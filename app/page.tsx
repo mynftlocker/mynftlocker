@@ -256,20 +256,26 @@ export default function Home() {
     const all:any[]=[];
     let cur:string|null=null;
     let more=true;
+    let pageNum=0;
+    const sleep=(ms:number)=>new Promise(r=>setTimeout(r,ms));
     try{
       while(more){
+        pageNum++;
         const url='/api/cards?slug='+encodeURIComponent(slug)+(cur?'&cursor='+encodeURIComponent(cur):'');
-        const res=await fetch(url);
-        if(!res.ok){setError('Erreur reseau');setOpenPhase(0);setLoading(false);return;}
-        const data=await res.json();
-        if(data.error||!data.cards){
-          if(all.length===0){setError('Joueur introuvable');setOpenPhase(0);}
-          break;
+        let data:any=null;
+        for(let attempt=0;attempt<3;attempt++){
+          if(attempt>0)await sleep(1500*attempt);
+          const res=await fetch(url);
+          if(!res.ok){console.error('Page'+pageNum+' HTTP'+res.status);continue;}
+          const d=await res.json();
+          if(d.error||!d.cards){console.error('Page'+pageNum+' error:',d.error,'loaded:'+all.length);if(attempt===2)break;}else{data=d;break;}
         }
+        if(!data){if(all.length===0){setError('Joueur introuvable');setOpenPhase(0);}break;}
         all.push(...data.cards);
-        setCards([...all]);// Affichage progressif
+        setCards([...all]);
         more=data.hasNextPage;
         cur=data.cursor;
+        if(more)await sleep(120);// anti rate-limit
       }
       if(all.length>0){
         try{localStorage.setItem(CACHE_KEY,JSON.stringify({c:all,ts:Date.now()}));}catch(e){}
