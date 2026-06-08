@@ -295,7 +295,7 @@ export default function Home() {
     if(hofCount>0) list.unshift({api:HOF_KEY,display:'HALL OF FAME',count:hofCount});
     return list;
   },[cards,hof]);
-  useEffect(()=>{ if(teamList.length>0 && !teamList.find(t=>t.api===teamApi)){const pref=localStorage.getItem('mynftlocker_default_team');const target=(pref && teamList.find(t=>t.api===pref))?pref:teamList[0].api;setTeamApi(target);} },[teamList,teamApi]);
+  useEffect(()=>{ if(teamList.length===0)return;const pref=localStorage.getItem('mynftlocker_default_team');const hofInList=teamList.find(t=>t.api==='__HOF__');if(!pref&&hofInList&&teamApi!=='__HOF__'){setTeamApi('__HOF__');return;}if(!teamList.find(t=>t.api===teamApi)){const target=(pref&&teamList.find(t=>t.api===pref))?pref:hofInList?'__HOF__':teamList[0].api;setTeamApi(target);} },[teamList,teamApi]);
 
   // Vestiaire : epingles prioritaires, puis remplissage, puis TOUTES les cartes
   const lockerCards=useMemo(()=>{

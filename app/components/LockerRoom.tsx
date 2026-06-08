@@ -228,9 +228,9 @@ const StatPanel=memo(({card,onClose,isClosing=false}:any)=>{
             <div key={l} style={{flex:1,padding:'0.16rem 0',border:'1px solid rgba(64,232,255,0.1)',borderRadius:'0.2rem',textAlign:'center',background:'rgba(64,232,255,0.025)'}}><span style={{fontSize:'0.5rem',color:'rgba(64,232,255,0.28)',letterSpacing:'0.03em'}}>{l} 🔒</span></div>
           ))}
         </div>
-        <div style={{display:'flex',justifyContent:'space-between',padding:'0 0.15rem'}}>
-          {[['PRIX','-- ETH'],['OWNER','--']].map(([l,v]:any)=>(
-            <div key={l} style={{display:'flex',gap:'0.3rem',alignItems:'baseline'}}><span style={{fontSize:'0.5rem',color:'rgba(64,232,255,0.32)',letterSpacing:'0.08em'}}>{l}</span><span style={{fontSize:'0.58rem',color:'rgba(64,232,255,0.2)'}}>{v} 🔒</span></div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0.3rem',marginTop:'0.15rem'}}>
+          {([['PRIX','-- ETH'],['OWNER','--']] as [string,string][]).map(([l,v])=>(
+            <div key={l} style={{background:'rgba(0,0,0,0.3)',border:'1px solid rgba(64,232,255,0.12)',borderRadius:'0.25rem',padding:'0.28rem 0.4rem',display:'flex',flexDirection:'column' as const,gap:'0.1rem'}}><span style={{fontSize:'0.42rem',color:'rgba(64,232,255,0.4)',letterSpacing:'0.1em',textTransform:'uppercase'}}>{l} 🔒</span><span style={{fontSize:'0.62rem',color:'rgba(64,232,255,0.28)',fontWeight:600}}>{v}</span></div>
           ))}
         </div>
       </div>
