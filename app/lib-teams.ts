@@ -1,0 +1,36 @@
+// Mapping equipe API -> image + nom affiche
+export interface TeamInfo { api:string; img:string; display:string; }
+export const TEAMS: TeamInfo[] = [
+  {api:'Atlanta Hawks',          img:'locker-hawks.png',        display:'ATLANTA HAWKS'},
+  {api:'Boston Celtics',         img:'locker-celtics.png',      display:'BOSTON CELTICS'},
+  {api:'Brooklyn Nets',          img:'locker-nets.png',         display:'BROOKLYN NETS'},
+  {api:'Charlotte Hornets',      img:'locker-hornets.png',      display:'CHARLOTTE HORNETS'},
+  {api:'Chicago Bulls',          img:'locker-bulls.png',        display:'CHICAGO BULLS'},
+  {api:'Cleveland Cavaliers',    img:'locker-cavaliers.png',    display:'CLEVELAND CAVALIERS'},
+  {api:'Dallas Mavericks',       img:'locker-mavericks.png',    display:'DALLAS MAVERICKS'},
+  {api:'Denver Nuggets',         img:'locker-nuggets.png',      display:'DENVER NUGGETS'},
+  {api:'Detroit Pistons',        img:'locker-pistons.png',      display:'DETROIT PISTONS'},
+  {api:'Golden State Warriors',  img:'locker-warriors.png',     display:'GOLDEN STATE WARRIORS'},
+  {api:'Houston Rockets',        img:'locker-rockets.png',      display:'HOUSTON ROCKETS'},
+  {api:'Indiana Pacers',         img:'locker-pacers.png',       display:'INDIANA PACERS'},
+  {api:'LA Clippers',            img:'locker-clippers.png',     display:'LOS ANGELES CLIPPERS'},
+  {api:'Los Angeles Lakers',     img:'locker-lakers.png',       display:'LOS ANGELES LAKERS'},
+  {api:'Memphis Grizzlies',      img:'locker-grizzlies.png',    display:'MEMPHIS GRIZZLIES'},
+  {api:'Miami Heat',             img:'locker-heat.png',         display:'MIAMI HEAT'},
+  {api:'Milwaukee Bucks',        img:'locker-bucks.png',        display:'MILWAUKEE BUCKS'},
+  {api:'Minnesota Timberwolves', img:'locker-timberwolves.png', display:'MINNESOTA TIMBERWOLVES'},
+  {api:'New Orleans Pelicans',   img:'locker-pelicans.png',     display:'NEW ORLEANS PELICANS'},
+  {api:'New York Knicks',        img:'locker-knicks.png',       display:'NEW YORK KNICKS'},
+  {api:'Oklahoma City Thunder',  img:'locker-thunder.png',      display:'OKLAHOMA CITY THUNDER'},
+  {api:'Orlando Magic',          img:'locker-magic.png',        display:'ORLANDO MAGIC'},
+  {api:'Philadelphia 76ers',     img:'locker-76ers.png',        display:'PHILADELPHIA 76ERS'},
+  {api:'Phoenix Suns',           img:'locker-suns.png',         display:'PHOENIX SUNS'},
+  {api:'Portland Trail Blazers', img:'locker-blazers.png',      display:'PORTLAND TRAIL BLAZERS'},
+  {api:'Sacramento Kings',       img:'locker-kings.png',        display:'SACRAMENTO KINGS'},
+  {api:'San Antonio Spurs',      img:'locker-spurs.png',        display:'SAN ANTONIO SPURS'},
+  {api:'Toronto Raptors',        img:'locker-raptors.png',      display:'TORONTO RAPTORS'},
+  {api:'Utah Jazz',              img:'locker-jazz.png',         display:'UTAH JAZZ'},
+  {api:'Washington Wizards',     img:'locker-wizards.png',      display:'WASHINGTON WIZARDS'},
+];
+export const TEAM_BY_API: Record<string,TeamInfo> = Object.fromEntries(TEAMS.map(t=>[t.api,t]));
+export const FALLBACK_IMG = 'locker-knicks.png';

@@ -1,0 +1,53 @@
+import { NextRequest, NextResponse } from 'next/server';
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const slug = searchParams.get('slug');
+  if (!slug) return NextResponse.json({ error: 'Slug manquant' }, { status: 400 });
+  const allCards: any[] = [];
+  let cursor: string | null = null;
+  let page = 0;
+  const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
+  while (page < 500) {
+    const after = cursor ? `, after: "${cursor}"` : '';
+    const query = `query { user(slug: "${slug}") { cards(first: 10${after}) { nodes { slug name rarityTyped pictureUrl ... on NBACard { seasonYear specialEdition power xp averageScore(type: LAST_TEN_PLAYED_SO5_AVERAGE_SCORE) anyTeam { name } anyPlayer { lastName shirtNumber playerGameScores(last: 10) { score } } } } pageInfo { hasNextPage endCursor } } } }`;
+    let data: any = null;
+    for (let attempt = 0; attempt < 5; attempt++) {
+      try {
+        const res = await fetch('https://api.sorare.com/federation/graphql', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json, */*',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+            'Origin': 'https://sorare.com',
+            'Referer': 'https://sorare.com/',
+            'JWT-AUD': 'ext-api-2',
+          },
+          body: JSON.stringify({ query }),
+        });
+        if (!res.ok) {
+          const errBody = await res.text();
+          console.error(`Page ${page} tentative ${attempt+1} HTTP ${res.status}:`, errBody.slice(0,200));
+          await sleep(1500 * (attempt + 1)); continue;
+        }
+        const json = await res.json();
+        if (json.errors || !json?.data?.user?.cards) {
+          const detail = json.errors ? JSON.stringify(json.errors).slice(0,300) : JSON.stringify(json.data).slice(0,300);
+          console.error(`Page ${page} tentative ${attempt + 1} echouee:`, detail);
+          await sleep(1500 * (attempt + 1)); continue;
+        }
+        data = json; break;
+      } catch (e) {
+        console.error(`Page ${page} erreur reseau:`, e);
+        await sleep(1500 * (attempt + 1));
+      }
+    }
+    if (!data) { console.error(`Abandon page ${page} (${allCards.length} cartes)`); break; }
+    const cards = data.data.user.cards;
+    allCards.push(...cards.nodes);
+    console.log(`Page ${page + 1}: ${allCards.length} cartes`);
+    if (!cards.pageInfo.hasNextPage) break;
+    cursor = cards.pageInfo.endCursor; page++;
+  }
+  return NextResponse.json({ cards: allCards, total: allCards.length });
+}
