@@ -204,7 +204,7 @@ export default function Home() {
 
   useEffect(()=>{const h=(e:MouseEvent)=>{mouseXYRef.current={x:(e.clientX/window.innerWidth-0.5)*2,y:(e.clientY/window.innerHeight-0.5)*2};};window.addEventListener('mousemove',h);return()=>window.removeEventListener('mousemove',h);},[]);
   useEffect(()=>{let i=0;let iv:any;const t=setTimeout(()=>{iv=setInterval(()=>{i++;setTypedIntro(INTRO_TEXT.slice(0,i));if(i>=INTRO_TEXT.length)clearInterval(iv);},55);},600);return()=>{clearTimeout(t);clearInterval(iv);};},[]);
-  useEffect(()=>{const cvs=canvasRef.current;if(!cvs||cards.length>0||openPhase>=3)return;const ctx=cvs.getContext('2d');if(!ctx)return;const resize=()=>{cvs.width=window.innerWidth;cvs.height=window.innerHeight;};resize();window.addEventListener('resize',resize);const stars=Array.from({length:260},(_,i)=>({x:Math.random(),y:Math.random(),sz:i<80?1.5+Math.random()*1.5:i<180?0.7+Math.random()*0.9:0.3+Math.random()*0.5,depth:i<80?3:i<180?2:1,tw:Math.random()*0.025+0.006,off:Math.random()*Math.PI*2,op:0.35+Math.random()*0.65,}));const ss:any[]=[];let lastSS=0;const asts=Array.from({length:5},()=>({x:Math.random()*2000,y:Math.random()*1200,vx:(Math.random()-0.5)*0.35,vy:Math.random()*0.18+0.08,r:Math.random()*4+2}));let raf:number;let t0=0;const draw=(ts:number)=>{if(!t0)t0=ts;const dt=ts-t0;const W=cvs.width,H=cvs.height;const mx=mouseXYRef.current.x,my=mouseXYRef.current.y;ctx.fillStyle='rgba(3,5,16,0.18)';ctx.fillRect(0,0,W,H);stars.forEach(s=>{const px=mx*s.depth*9,py=my*s.depth*9;const tw=0.5+0.5*Math.sin(dt*s.tw+s.off);const alpha=s.op*(0.55+0.45*tw);const cx2=((s.x*W+px)%W+W)%W,cy2=((s.y*H+py)%H+H)%H;ctx.beginPath();ctx.arc(cx2,cy2,s.sz*tw*0.4+s.sz*0.6,0,Math.PI*2);const col=s.depth===1?'220,235,255':s.depth===2?'235,245,255':'255,255,255';ctx.fillStyle=`rgba(${col},${alpha})`;ctx.fill();});if(ts-lastSS>1600+Math.random()*3200){lastSS=ts;ss.push({x:W*0.05+Math.random()*W*0.65,y:Math.random()*H*0.45,vx:9+Math.random()*9,vy:3+Math.random()*7,life:1.0})}for(let i=ss.length-1;i>=0;i--){const st=ss[i];st.x+=st.vx;st.y+=st.vy;st.life-=0.022;if(st.life<=0){ss.splice(i,1);continue;}const g=ctx.createLinearGradient(st.x-st.vx*10,st.y-st.vy*10,st.x,st.y);g.addColorStop(0,'rgba(200,235,255,0)');g.addColorStop(0.6,`rgba(220,245,255,${st.life*0.55})`);g.addColorStop(1,`rgba(255,255,255,${st.life})`);ctx.beginPath();ctx.strokeStyle=g;ctx.lineWidth=st.life*2;ctx.moveTo(st.x-st.vx*10,st.y-st.vy*10);ctx.lineTo(st.x,st.y);ctx.stroke();}asts.forEach(a=>{a.x=(a.x+a.vx+W)%W;a.y=(a.y+a.vy+H)%H;ctx.beginPath();ctx.arc(a.x,a.y,a.r,0,Math.PI*2);ctx.fillStyle='rgba(38,35,52,0.72)';ctx.fill();});raf=requestAnimationFrame(draw);};ctx.fillStyle='rgb(3,5,16)';ctx.fillRect(0,0,cvs.width,cvs.height);raf=requestAnimationFrame(draw);return()=>{cancelAnimationFrame(raf);window.removeEventListener('resize',resize);}},[openPhase,cards.length]);
+  useEffect(()=>{const cvs=canvasRef.current;if(!cvs||cards.length>0||openPhase>=3)return;const ctx=cvs.getContext('2d');if(!ctx)return;const resize=()=>{cvs.width=window.innerWidth;cvs.height=window.innerHeight;};resize();window.addEventListener('resize',resize);const stars=Array.from({length:260},(_,i)=>({x:Math.random(),y:Math.random(),sz:i<80?1.5+Math.random()*1.5:i<180?0.7+Math.random()*0.9:0.3+Math.random()*0.5,depth:i<80?3:i<180?2:1,tw:Math.random()*0.025+0.006,off:Math.random()*Math.PI*2,op:0.35+Math.random()*0.65,}));const ss:any[]=[];let lastSS=0;const asts=Array.from({length:5},()=>({x:Math.random()*2000,y:Math.random()*1200,vx:(Math.random()-0.5)*0.35,vy:Math.random()*0.18+0.08,r:Math.random()*4+2}));let raf:number;let t0=0;const draw=(ts:number)=>{if(!t0)t0=ts;const dt=ts-t0;const W=cvs.width,H=cvs.height;const mx=mouseXYRef.current.x,my=mouseXYRef.current.y;ctx.fillStyle='rgba(3,5,16,0.18)';ctx.fillRect(0,0,W,H);stars.forEach(s=>{const px=mx*s.depth*9,py=my*s.depth*9;const tw=0.5+0.5*Math.sin(dt*s.tw+s.off);const alpha=s.op*(0.55+0.45*tw);const cx2=((s.x*W+px)%W+W)%W,cy2=((s.y*H+py)%H+H)%H;ctx.beginPath();ctx.arc(cx2,cy2,s.sz*tw*0.4+s.sz*0.6,0,Math.PI*2);const col=s.depth===1?'220,235,255':s.depth===2?'235,245,255':'255,255,255';ctx.fillStyle=`rgba(${col},${alpha})`;ctx.fill();});if(ts-lastSS>1600+Math.random()*3200){lastSS=ts;ss.push({x:W*0.05+Math.random()*W*0.65,y:Math.random()*H*0.45,vx:9+Math.random()*9,vy:3+Math.random()*7,life:1.0})}for(let i=ss.length-1;i>=0;i--){const st=ss[i];st.x+=st.vx;st.y+=st.vy;st.life-=0.022;if(st.life<=0){ss.splice(i,1);continue;}const g=ctx.createLinearGradient(st.x-st.vx*10,st.y-st.vy*10,st.x,st.y);g.addColorStop(0,'rgba(200,235,255,0)');g.addColorStop(0.6,`rgba(220,245,255,${st.life*0.55})`);g.addColorStop(1,`rgba(255,255,255,${st.life})`);ctx.beginPath();ctx.strokeStyle=g;ctx.lineWidth=st.life*2;ctx.moveTo(st.x-st.vx*10,st.y-st.vy*10);ctx.lineTo(st.x,st.y);ctx.stroke();}asts.forEach(a=>{a.x=(a.x+a.vx+W)%W;a.y=(a.y+a.vy+H)%H;ctx.beginPath();ctx.arc(a.x,a.y,a.r,0,Math.PI*2);ctx.fillStyle='rgba(38,35,52,0.72)';ctx.fill();});raf=requestAnimationFrame(draw);};ctx.fillStyle='rgb(3,5,16)';ctx.fillRect(0,0,cvs.width,cvs.height);raf=requestAnimationFrame(draw);return()=>{cancelAnimationFrame(raf);window.removeEventListener('resize',resize);}},[openPhase,loading,cards.length]);
   // Premier accEs : pre-remplir le HoF avec les 5 meilleurs L10 (sans doublon)
   useEffect(()=>{
     if(cards.length===0) return;
@@ -243,20 +243,47 @@ export default function Home() {
   const fetchCards=async()=>{
     if(!slug)return;
     setLoading(true);setError('');setFlippedSlug(null);setLockerStart(0);
+    // Cache localStorage (TTL 1h)
+    const CACHE_KEY='mnfl_v1_'+slug;
     try{
-      const res=await fetch('/api/cards?slug='+slug);
-      const data=await res.json();
-      if(!data.cards){setError('Joueur introuvable');setOpenPhase(0);setShowFlash(false);return;}
-      setCards(data.cards);
-    }catch{setError('Erreur reseau');setOpenPhase(0);setShowFlash(false);}finally{setLoading(false);}
+      const cached=localStorage.getItem(CACHE_KEY);
+      if(cached){
+        const{c:cc,ts}=JSON.parse(cached);
+        if(Date.now()-ts<3600000&&cc?.length>0){setCards(cc);setLoading(false);return;}
+      }
+    }catch(e){}
+    // Pagination cote client (serverless-safe : 1 appel = 1 page)
+    const all:any[]=[];
+    let cur:string|null=null;
+    let more=true;
+    try{
+      while(more){
+        const url='/api/cards?slug='+encodeURIComponent(slug)+(cur?'&cursor='+encodeURIComponent(cur):'');
+        const res=await fetch(url);
+        if(!res.ok){setError('Erreur reseau');setOpenPhase(0);setLoading(false);return;}
+        const data=await res.json();
+        if(data.error||!data.cards){
+          if(all.length===0){setError('Joueur introuvable');setOpenPhase(0);}
+          break;
+        }
+        all.push(...data.cards);
+        setCards([...all]);// Affichage progressif
+        more=data.hasNextPage;
+        cur=data.cursor;
+      }
+      if(all.length>0){
+        try{localStorage.setItem(CACHE_KEY,JSON.stringify({c:all,ts:Date.now()}));}catch(e){}
+      }
+    }catch(e){if(all.length===0){setError('Erreur reseau');setOpenPhase(0);}}
+    setLoading(false);
   };
   const handleIntroClick=useCallback(()=>{if(!slug||loading||openPhase>0)return;fragStartedRef.current=false;setOpenPhase(1);fetchCards();},[slug,loading,openPhase]);
   useEffect(()=>{if(showFlash&&error){setShowFlash(false);setOpenPhase(0);}},[showFlash,error]);
   useEffect(()=>{if(!showFlash)return;const t=setTimeout(()=>setShowFlash(false),650);return()=>clearTimeout(t);},[showFlash]);
-  useEffect(()=>{if(openPhase===1&&cards.length>0&&!fragStartedRef.current){
+  useEffect(()=>{if(openPhase===1&&!loading&&cards.length>0&&!fragStartedRef.current){
     fragStartedRef.current=true;
     setOpenPhase(3);setShowFlash(true);
-  }},[openPhase,cards.length]);
+  }},[openPhase,loading,cards.length]);
 
   // Options dynamiques
   const seasonOptions=useMemo(()=>{
