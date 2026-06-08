@@ -17,7 +17,7 @@ export async function GET(req:Request){
   const season=sy&&sy>2000?nbaS(sy):'2025-26';
   try{
     const url=`https://stats.nba.com/stats/leaguedashplayerstats?College=&Conference=&Country=&DateFrom=&DateTo=&Division=&DraftPick=&DraftYear=&GameScope=&GameSegment=&Height=&LastNGames=0&LeagueID=00&Location=&MeasureType=Base&Month=0&OpponentTeamID=0&Outcome=&PORound=0&PaceAdjust=N&PerMode=PerGame&Period=0&PlayerExperience=&PlayerPosition=&PlusMinus=N&Rank=N&Season=${season}&SeasonSegment=&SeasonType=Regular+Season&ShotClockRange=&StarterBench=&TeamID=0&TwoWay=0&VsConference=&VsDivision=&Weight=`;
-    const res=await fetch(url,{headers:H,signal:AbortSignal.timeout(10000)});
+    const res=await fetch(url,{headers:H,signal:AbortSignal.timeout(3000)});
     if(!res.ok){console.error('NBA stats HTTP:',res.status);return NextResponse.json({},{status:200});}
     const data=await res.json();
     const rs=data.resultSets[0];
