@@ -247,39 +247,51 @@ export default function Home() {
     const CACHE_KEY='mnfl_v1_'+slug;
     try{
       const cached=localStorage.getItem(CACHE_KEY);
-      if(cached){
-        const{c:cc,ts}=JSON.parse(cached);
-        if(Date.now()-ts<3600000&&cc?.length>0){setCards(cc);setLoading(false);return;}
-      }
+      if(cached){const{c:cc,ts}=JSON.parse(cached);if(Date.now()-ts<3600000&&cc?.length>0){setCards(cc);setLoading(false);return;}}
     }catch(e){}
-    // Pagination cote client (serverless-safe : 1 appel = 1 page)
-    const all:any[]=[];
-    let cur:string|null=null;
-    let more=true;
-    let pageNum=0;
+    // Appel direct navigateur → Sorare (IP residentielle, bypass datacenter block)
+    const all:any[]=[];let cur:string|null=null;let more=true;let pageNum=0;
     const sleep=(ms:number)=>new Promise(r=>setTimeout(r,ms));
+    const SORARE_URL='https://api.sorare.com/federation/graphql';
+    const fetchPage=async(cursor:string|null):Promise<{cards:any[],hasNextPage:boolean,cursor:string|null}|null>=>{
+      const after=cursor?`, after: "${cursor}"` :'';
+      const query=`query{user(slug:"${slug}"){cards(first:25${after}){nodes{slug name rarityTyped pictureUrl ...on NBACard{seasonYear specialEdition power xp averageScore(type:LAST_TEN_PLAYED_SO5_AVERAGE_SCORE)anyTeam{name}anyPlayer{lastName shirtNumber}}}pageInfo{hasNextPage endCursor}}}}`;
+      // 1. Essai direct navigateur (IP residentielle)
+      try{
+        const r=await fetch(SORARE_URL,{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({query}),signal:AbortSignal.timeout(9000)});
+        if(r.ok){
+          const j=await r.json();
+          if(!j.errors&&j?.data?.user?.cards){const c=j.data.user.cards;return{cards:c.nodes,hasNextPage:c.pageInfo.hasNextPage,cursor:c.pageInfo.endCursor};}
+          console.warn('[Sorare direct]',j.errors?.[0]?.message);
+        }
+      }catch(e){console.warn('[Sorare direct CORS/timeout]',String(e));}
+      // 2. Fallback route Vercel
+      const url='/api/cards?slug='+encodeURIComponent(slug)+(cursor?'&cursor='+encodeURIComponent(cursor):'');
+      const r2=await fetch(url);
+      if(!r2.ok)return null;
+      const d=await r2.json();
+      if(d.error||!d.cards)return null;
+      return{cards:d.cards,hasNextPage:d.hasNextPage,cursor:d.cursor};
+    };
     try{
       while(more){
         pageNum++;
-        const url='/api/cards?slug='+encodeURIComponent(slug)+(cur?'&cursor='+encodeURIComponent(cur):'');
         let data:any=null;
         for(let attempt=0;attempt<3;attempt++){
           if(attempt>0)await sleep(1500*attempt);
-          const res=await fetch(url);
-          if(!res.ok){console.error('Page'+pageNum+' HTTP'+res.status);continue;}
-          const d=await res.json();
-          if(d.error||!d.cards){console.error('Page'+pageNum+' error:',d.error,'loaded:'+all.length);if(attempt===2)break;}else{data=d;break;}
+          data=await fetchPage(cur);
+          if(data)break;
+          console.error('Page'+pageNum+' attempt'+(attempt+1)+' failed');
         }
         if(!data){if(all.length===0){setError('Joueur introuvable');setOpenPhase(0);}break;}
         all.push(...data.cards);
         setCards([...all]);
         more=data.hasNextPage;
         cur=data.cursor;
-        if(more)await sleep(120);// anti rate-limit
+        if(more)await sleep(80);
       }
-      if(all.length>0){
-        try{localStorage.setItem(CACHE_KEY,JSON.stringify({c:all,ts:Date.now()}));}catch(e){}
-      }
+      console.log('=== LOAD DONE === cartes:'+all.length+' pages:'+pageNum);
+      if(all.length>0){try{localStorage.setItem(CACHE_KEY,JSON.stringify({c:all,ts:Date.now()}));}catch(e){}}
     }catch(e){if(all.length===0){setError('Erreur reseau');setOpenPhase(0);}}
     setLoading(false);
   };
