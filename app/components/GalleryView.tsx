@@ -67,9 +67,9 @@ const GalleryHUD=memo(({card,onClose,closing}:any)=>{
   useEffect(()=>{if(!card.anyPlayer?.lastName)return;setNbaLoading(true);fetch(`/api/player-stats?name=${encodeURIComponent(card.anyPlayer.lastName)}&season=${card.seasonYear||0}`).then(r=>r.json()).then(d=>{if(!d.error)setNbaStats(d);}).catch(()=>{}).finally(()=>setNbaLoading(false));},[]);
   const fv=(v:any,t:string)=>{if(v==null)return '—';const n=Number(v);if(t==='pct')return n.toFixed(1)+'%';if(t==='pm')return(n>=0?'+':'')+n.toFixed(1);return n.toFixed(1);};
   const cT={margin:'0 0 0.25rem',fontSize:'0.42rem',fontWeight:900,color:'rgba(64,232,255,0.65)',letterSpacing:'0.22em',textTransform:'uppercase',borderBottom:'1px solid rgba(64,232,255,0.14)',paddingBottom:'0.12rem'};
-  const cS=(i:number)=>({display:'flex',flexDirection:'column',overflow:'hidden',opacity:vis[i]?1:0,transform:vis[i]?'translateY(0)':'translateY(8px)',transition:'opacity 0.4s ease,transform 0.4s ease'});
+  const cS=(i:number)=>({display:'flex',flexDirection:'column' as const,overflow:'hidden',opacity:vis[i]?1:0,transform:vis[i]?'translateY(0)':'translateY(8px)',transition:'opacity 0.4s ease,transform 0.4s ease'});
   return(
-    <div style={{position:'fixed',right:'1.5%',top:'8%',width:'34%',height:'84%',zIndex:200,background:'rgba(2,8,20,0.94)',border:'1px solid rgba(64,232,255,0.45)',boxShadow:'0 0 50px rgba(64,232,255,0.12),inset 0 0 60px rgba(0,0,0,0.5)',backdropFilter:'blur(16px)',WebkitBackdropFilter:'blur(16px)',clipPath:closing?undefined:'polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px)',fontFamily:'Courier New,Consolas,monospace',animation:closing?'galHudClose 0.55s cubic-bezier(0.8,0,1,0.8) both':'galHudOpen 0.5s ease-out both',display:'flex',flexDirection:'column',overflow:'hidden',padding:'0.8rem'}}>
+    <div style={{position:'fixed',right:'1.5%',top:'8%',width:'34%',height:'84%',zIndex:200,background:'rgba(2,8,20,0.94)',border:'1px solid rgba(64,232,255,0.45)',boxShadow:'0 0 50px rgba(64,232,255,0.12),inset 0 0 60px rgba(0,0,0,0.5)',backdropFilter:'blur(16px)',WebkitBackdropFilter:'blur(16px)',clipPath:closing?undefined:'polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px)',fontFamily:'Courier New,Consolas,monospace',animation:closing?'galHudClose 0.55s cubic-bezier(0.8,0,1,0.8) both':'galHudOpen 0.5s ease-out both',display:'flex',flexDirection:'column' as const,overflow:'hidden',padding:'0.8rem'}}>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',borderBottom:'1px solid rgba(64,232,255,0.18)',paddingBottom:'0.45rem',marginBottom:'0.45rem',flexShrink:0}}>
         <div>
           <p style={{margin:0,fontSize:'0.5rem',color:'rgba(64,232,255,0.5)',fontWeight:700,letterSpacing:'0.2em',textTransform:'uppercase'}}>myNFTlocker · GALLERY</p>
@@ -150,7 +150,7 @@ export default function GalleryView({cards}:{cards:any[]}){
       `}</style>
       <div style={{padding:'1.2rem',minHeight:'100%',boxSizing:'border-box'}}>
         {cards.length===0?(
-          <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'55vh',color:'rgba(64,232,255,0.28)',fontFamily:'Courier New,monospace',gap:'0.5rem'}}>
+          <div style={{display:'flex',flexDirection:'column' as const,alignItems:'center',justifyContent:'center',height:'55vh',color:'rgba(64,232,255,0.28)',fontFamily:'Courier New,monospace',gap:'0.5rem'}}>
             <p style={{fontSize:'2rem',margin:0}}>⬡</p>
             <p style={{fontSize:'0.7rem',letterSpacing:'0.25em',textTransform:'uppercase',margin:0}}>Aucune carte</p>
           </div>
