@@ -182,10 +182,12 @@ export default function Home() {
   const [fPlayer, setFPlayer] = useState('');
   // Galerie
   const [gSport,setGSport]=useState('nba');
-  const [gConf,setGConf]=useState('all');
+  const [gLeague,setGLeague]=useState('all');
+  const [gLeagueOpen,setGLeagueOpen]=useState(false);
+  const [gClubOpen,setGClubOpen]=useState(false);
   const [gTeamCustom,setGTeamCustom]=useState('all');
   const [gSort,setGSort]=useState('default');
-  const [gDropOpen,setGDropOpen]=useState(false);
+  const [gClubOpen,setGClubOpen]=useState(false);
   const [openPhase,setOpenPhase]=useState(0);
   const canvasRef=useRef<HTMLCanvasElement|null>(null);
   const mouseXYRef=useRef<{x:number,y:number}>({x:0,y:0});
@@ -340,6 +342,7 @@ export default function Home() {
     if(hofCount>0) list.unshift({api:HOF_KEY,display:'HALL OF FAME',count:hofCount});
     return list;
   },[cards,hof]);
+  const leagueOptions=useMemo(()=>{if(gSport==='nba')return[{v:'all',l:'NBA'}];return[{v:'all',l:'Toutes les ligues'}];},[gSport]);
   useEffect(()=>{ if(teamList.length===0)return;const hofInList=teamList.find(t=>t.api==='__HOF__');if(hofInList&&teamApi!=='__HOF__'&&!localStorage.getItem('mnfl_team_chosen')){setTeamApi('__HOF__');return;}if(!teamList.find(t=>t.api===teamApi)){setTeamApi(hofInList?'__HOF__':teamList[0].api);} },[teamList,teamApi]);
 
   // Vestiaire : epingles prioritaires, puis remplissage, puis TOUTES les cartes
@@ -367,8 +370,8 @@ export default function Home() {
   },[cards,teamApi,applyFilters,lockerSort,hof,lineup]);
 
   // Galerie = sport + filtres + tri
-  const galleryTeamList=useMemo(()=>{const ts=new Set<string>();cards.filter(c=>isNBA(c.slug)).forEach(c=>{if(!c.anyTeam?.name)return;if(gConf==='all'||NBA_CONF[c.anyTeam.name]===gConf)ts.add(c.anyTeam.name);});return['all',...Array.from(ts).sort()] as string[];},[cards,gConf]);
-  const filteredGallery=useMemo(()=>{if(gSport==='foot')return[];let r=applyFilters(cards.filter(c=>isNBA(c.slug)));if(gConf!=='all')r=r.filter(c=>NBA_CONF[c.anyTeam?.name||'']===gConf);if(gTeamCustom!=='all')r=r.filter(c=>(c.anyTeam?.name||'')===gTeamCustom);if(gSort==='rarity')return[...r].sort((a,b)=>(RARITY_ORDER[a.rarityTyped]??9)-(RARITY_ORDER[b.rarityTyped]??9));if(gSort==='score')return[...r].sort((a,b)=>parseFloat(String(b.averageScore||0))-parseFloat(String(a.averageScore||0)));if(gSort==='name')return[...r].sort((a,b)=>(a.anyPlayer?.lastName||'').localeCompare(b.anyPlayer?.lastName||''));return r;},[cards,applyFilters,gSport,gConf,gTeamCustom,gSort]);
+  const galleryTeamList=useMemo(()=>{const ts=new Set<string>();cards.filter(c=>isNBA(c.slug)).forEach(c=>{if(!c.anyTeam?.name)return;ts.add(c.anyTeam.name);});return['all',...Array.from(ts).sort()] as string[];},[cards]);
+  const filteredGallery=useMemo(()=>{if(gSport==='foot')return[];let r=applyFilters(cards.filter(c=>isNBA(c.slug)));if(gTeamCustom!=='all')r=r.filter(c=>(c.anyTeam?.name||'')===gTeamCustom);if(gSort==='rarity')return[...r].sort((a,b)=>(RARITY_ORDER[a.rarityTyped]??9)-(RARITY_ORDER[b.rarityTyped]??9));if(gSort==='score')return[...r].sort((a,b)=>parseFloat(String(b.averageScore||0))-parseFloat(String(a.averageScore||0)));if(gSort==='name')return[...r].sort((a,b)=>(a.anyPlayer?.lastName||'').localeCompare(b.anyPlayer?.lastName||''));return r;},[cards,applyFilters,gSport,gTeamCustom,gSort]);
 
   const goldGrad='linear-gradient(160deg,#a86f15 0%,#d9a52e 22%,#f7da80 48%,#e8b84a 68%,#b8801a 100%)';
   const fBtn=(a:boolean):React.CSSProperties=>({padding:'0.4rem 0.6rem',borderRadius:'0.15rem',border:'none',borderLeft:a?'2px solid #f5d76e':'2px solid rgba(255,255,255,0.08)',background:a?'rgba(245,215,110,0.12)':'rgba(255,255,255,0.025)',color:a?'#f5d76e':'#cfd8e6',cursor:'pointer',fontSize:'0.76rem',fontWeight:a?700:500,transition:'all 0.12s'});
@@ -450,39 +453,61 @@ export default function Home() {
             )}
             {mode==='gallery'&&(
               <div style={{padding:'0 0.5rem',marginTop:'0.5rem'}}>
-                <p style={{fontSize:'0.64rem',fontWeight:800,letterSpacing:'0.14em',textTransform:'uppercase',color:'#eaf2ff',margin:'0 0 0.35rem'}}>SPORT</p>
-                <div style={{display:'flex',gap:'0.3rem',marginBottom:'0.55rem'}}>
-                  {(['nba','foot'] as const).map(s=>(<button key={s} onClick={()=>{setGSport(s);setGConf('all');setGTeamCustom('all');}} style={{flex:1,padding:'0.35rem 0',border:'none',borderLeft:gSport===s?'2px solid #f5d76e':'2px solid rgba(255,255,255,0.1)',background:gSport===s?'rgba(245,215,110,0.12)':'rgba(255,255,255,0.025)',color:gSport===s?'#f5d76e':'#8a9bb0',cursor:'pointer',fontSize:'0.72rem',fontWeight:gSport===s?700:500,borderRadius:'0.2rem',transition:'all 0.12s'}}>{s==='nba'?'NBA':'FOOT'}</button>))}
+                <p style={{fontSize:'0.6rem',fontWeight:800,letterSpacing:'0.14em',textTransform:'uppercase',color:'rgba(255,255,255,0.45)',margin:'0 0 0.35rem'}}>SPORT</p>
+                <div style={{display:'flex',gap:'0.35rem',flexWrap:'wrap',marginBottom:'0.9rem'}}>
+                  {(['nba','foot'] as const).map(s=>(
+                    <button key={s} onClick={()=>{setGSport(s);setGLeague('all');setGTeamCustom('all');setGLeagueOpen(false);setGClubOpen(false);}}
+                      style={{padding:'0.28rem 0.65rem',border:'1px solid',borderRadius:'2rem',cursor:'pointer',fontSize:'0.68rem',fontWeight:700,letterSpacing:'0.08em',transition:'all 0.18s',background:'transparent',borderColor:gSport===s?'rgba(0,225,255,0.8)':'rgba(255,255,255,0.15)',color:gSport===s?'#00e5ff':'rgba(255,255,255,0.5)',boxShadow:gSport===s?'0 0 8px rgba(0,225,255,0.25)':'none'}}
+                    >{s.toUpperCase()}</button>
+                  ))}
                 </div>
-                {gSport==='nba'&&(
-                  <>
-                    <p style={{fontSize:'0.64rem',fontWeight:800,letterSpacing:'0.14em',textTransform:'uppercase',color:'#eaf2ff',margin:'0 0 0.35rem'}}>CONFÉRENCE</p>
-                    <div style={{display:'flex',gap:'0.3rem',marginBottom:'0.55rem'}}>
-                      {(['all','Est','Ouest'] as const).map(v=>(<button key={v} onClick={()=>{setGConf(v);setGTeamCustom('all');}} style={{flex:1,padding:'0.32rem 0',border:'none',borderLeft:gConf===v?'2px solid #40e8ff':'2px solid rgba(255,255,255,0.08)',background:gConf===v?'rgba(64,232,255,0.1)':'rgba(255,255,255,0.025)',color:gConf===v?'#40e8ff':'#8a9bb0',cursor:'pointer',fontSize:'0.68rem',fontWeight:gConf===v?700:500,borderRadius:'0.2rem',transition:'all 0.12s'}}>{v==='all'?'Tout':v}</button>))}
-                    </div>
-                  </>
-                )}
-                <p style={{fontSize:'0.64rem',fontWeight:800,letterSpacing:'0.14em',textTransform:'uppercase',color:'#eaf2ff',margin:'0 0 0.35rem'}}>ÉQUIPE ▾</p>
-                <div style={{position:'relative',marginBottom:'0.55rem'}}>
-                  <div onClick={()=>setGDropOpen(o=>!o)} style={{background:'rgba(10,10,12,0.98)',border:gDropOpen?'1px solid rgba(64,232,255,0.5)':'1px solid rgba(64,232,255,0.22)',borderRadius:'0.25rem',padding:'0.38rem 0.6rem',cursor:'pointer',display:'flex',justifyContent:'space-between',alignItems:'center',fontSize:'0.7rem',color:'#cfe4fb',transition:'border-color 0.15s'}}>
-                    <span style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1,paddingRight:'0.4rem'}}>{gTeamCustom==='all'?'Toutes équipes':gTeamCustom}</span>
-                    <span style={{transform:gDropOpen?'rotate(180deg)':'rotate(0)',transition:'transform 0.2s',flexShrink:0,fontSize:'0.8rem',color:'#40e8ff'}}>▾</span>
+                <p style={{fontSize:'0.6rem',fontWeight:800,letterSpacing:'0.14em',textTransform:'uppercase',color:'rgba(255,255,255,0.45)',margin:'0 0 0.35rem'}}>LIGUE</p>
+                <div style={{position:'relative',marginBottom:'0.65rem'}}>
+                  <div onClick={()=>setGLeagueOpen(o=>!o)} style={{display:'flex',alignItems:'center',justifyContent:'space-between',background:'rgba(10,10,12,0.95)',border:'1px solid',borderColor:gLeagueOpen?'rgba(0,225,255,0.7)':'rgba(0,225,255,0.3)',borderRadius:'0.2rem',padding:'0.38rem 0.55rem',cursor:'pointer',fontSize:'0.7rem',color:'rgba(255,255,255,0.8)',transition:'border-color 0.15s'}}
+                    <span style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1}}>{leagueOptions.find((o:any)=>o.v===gLeague)?.l||'—'}</span>
+                    <span style={{marginLeft:'0.4rem',transform:gLeagueOpen?'rotate(180deg)':'rotate(0)',transition:'transform 0.2s',color:'rgba(0,225,255,0.7)',fontSize:'0.6rem'}}>▾</span>
                   </div>
-                  {gDropOpen&&(
-                    <div className='gal-scroll' style={{position:'absolute',top:'calc(100% + 3px)',left:0,right:0,maxHeight:'180px',overflowY:'auto',background:'rgba(10,10,12,0.98)',border:'1px solid rgba(64,232,255,0.25)',borderRadius:'0.25rem',zIndex:200,boxShadow:'0 8px 24px rgba(0,0,0,0.7)'}}>
-                      {galleryTeamList.map((t:string)=>(<div key={t} onClick={()=>{setGTeamCustom(t);setGDropOpen(false);}} style={{padding:'0.35rem 0.65rem',fontSize:'0.7rem',color:t===gTeamCustom?'#40e8ff':'#8a9bb0',cursor:'pointer',borderLeft:t===gTeamCustom?'2px solid #40e8ff':'2px solid transparent',transition:'all 0.1s',background:t===gTeamCustom?'rgba(64,232,255,0.06)':'transparent'}} onMouseEnter={e=>{if(t!==gTeamCustom)(e.currentTarget as HTMLElement).style.background='rgba(64,232,255,0.04)';}} onMouseLeave={e=>{if(t!==gTeamCustom)(e.currentTarget as HTMLElement).style.background='transparent';}}>{t==='all'?'Toutes équipes':t}</div>))}
+                  {gLeagueOpen&&(
+                    <div className='gal-scroll' style={{position:'absolute',bottom:'calc(100% + 3px)',left:0,right:0,background:'rgba(8,8,12,0.98)',border:'1px solid rgba(0,225,255,0.35)',borderRadius:'0.2rem',zIndex:400,maxHeight:'190px',overflowY:'auto'}}>
+                      {leagueOptions.map((o:any)=>(
+                        <div key={o.v} onClick={()=>{setGLeague(o.v);setGLeagueOpen(false);setGTeamCustom('all');}} style={{padding:'0.38rem 0.55rem',fontSize:'0.7rem',cursor:'pointer',background:o.v===gLeague?'rgba(0,225,255,0.1)':'transparent',color:o.v===gLeague?'#00e5ff':'rgba(255,255,255,0.75)',transition:'background 0.12s'}} onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.background='rgba(0,225,255,0.07)';}} onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.background=o.v===gLeague?'rgba(0,225,255,0.1)':'transparent';}}>{o.l}</div>
+                      ))}
                     </div>
                   )}
                 </div>
-                <p style={{fontSize:'0.64rem',fontWeight:800,letterSpacing:'0.14em',textTransform:'uppercase',color:'#eaf2ff',margin:'0 0 0.35rem'}}>TRI</p>
-                <div style={{display:'flex',flexDirection:'column' as const,overflow:'hidden',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'0.2rem',marginBottom:'0.6rem'}}>
-                  {([['default','Défaut'],['rarity','Rareté'],['score','Score L10'],['name','Nom']] as [string,string][]).map(([v,l],i)=>(<button key={v} onClick={()=>setGSort(v)} style={{padding:'0.4rem 0.6rem',border:'none',borderTop:i>0?'1px solid rgba(255,255,255,0.07)':'none',borderLeft:gSort===v?'2px solid #40e8ff':'2px solid transparent',background:gSort===v?'rgba(64,232,255,0.08)':'transparent',color:gSort===v?'#40e8ff':'rgba(207,216,230,0.6)',cursor:'pointer',fontSize:'0.72rem',fontWeight:gSort===v?700:500,textAlign:'left',transition:'all 0.12s'}}>{l}</button>))}
+                {(()=>{
+                const clubDisabled=gSport==='foot'&&leagueOptions.length>1&&gLeague==='all';
+                const curClub=(galleryTeamList as any[]).find(t=>t.api===gTeamCustom);
+                const curClubLabel=curClub?.display||'Tous les clubs';
+                return(
+                <div>
+                <p style={{fontSize:'0.6rem',fontWeight:800,letterSpacing:'0.14em',textTransform:'uppercase',color:'rgba(255,255,255,0.45)',margin:'0 0 0.35rem',opacity:clubDisabled?0.35:1}}>CLUB</p>
+                <div style={{position:'relative',marginBottom:'0.65rem',opacity:clubDisabled?0.4:1,pointerEvents:clubDisabled?'none':'auto'}}>
+                  <div onClick={()=>setGClubOpen(o=>!o)} style={{display:'flex',alignItems:'center',justifyContent:'space-between',background:'rgba(10,10,12,0.95)',border:'1px solid',borderColor:gClubOpen?'rgba(0,225,255,0.7)':'rgba(0,225,255,0.3)',borderRadius:'0.2rem',padding:'0.38rem 0.55rem',cursor:'pointer',fontSize:'0.7rem',color:'rgba(255,255,255,0.8)',transition:'border-color 0.15s'}}
+                    <span style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1}}>{curClubLabel}</span>
+                    <span style={{marginLeft:'0.4rem',transform:gClubOpen?'rotate(180deg)':'rotate(0)',transition:'transform 0.2s',color:'rgba(0,225,255,0.7)',fontSize:'0.6rem'}}>▾</span>
+                  </div>
+                  {gClubOpen&&(
+                    <div className='gal-scroll' style={{position:'absolute',bottom:'calc(100% + 3px)',left:0,right:0,background:'rgba(8,8,12,0.98)',border:'1px solid rgba(0,225,255,0.35)',borderRadius:'0.2rem',zIndex:400,maxHeight:'190px',overflowY:'auto'}}>
+                      <div onClick={()=>{setGTeamCustom('all');setGClubOpen(false);}} style={{padding:'0.38rem 0.55rem',fontSize:'0.7rem',cursor:'pointer',background:gTeamCustom==='all'?'rgba(0,225,255,0.1)':'transparent',color:gTeamCustom==='all'?'#00e5ff':'rgba(255,255,255,0.75)',transition:'background 0.12s'}} onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.background='rgba(0,225,255,0.07)';}} onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.background=gTeamCustom==='all'?'rgba(0,225,255,0.1)':'transparent';}}>Tous les clubs</div>
+                      {(galleryTeamList as any[]).map(t=>(
+                        <div key={t.api} onClick={()=>{setGTeamCustom(t.api);setGClubOpen(false);}} style={{padding:'0.38rem 0.55rem',fontSize:'0.7rem',cursor:'pointer',background:t.api===gTeamCustom?'rgba(0,225,255,0.1)':'transparent',color:t.api===gTeamCustom?'#00e5ff':'rgba(255,255,255,0.75)',transition:'background 0.12s'}} onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.background='rgba(0,225,255,0.07)';}} onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.background=t.api===gTeamCustom?'rgba(0,225,255,0.1)':'transparent';}}>{t.display}</div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                <p style={{fontSize:'0.62rem',color:'rgba(255,255,255,0.3)',letterSpacing:'0.1em',marginTop:'0.2rem',fontFamily:'Courier New,monospace'}}>{filteredGallery.length} CARTES</p>
+                </div>
+                );})()} 
+                <p style={{fontSize:'0.6rem',fontWeight:800,letterSpacing:'0.14em',textTransform:'uppercase',color:'rgba(255,255,255,0.45)',margin:'0 0 0.35rem'}}>TRI</p>
+                <div style={{display:'flex',flexDirection:'column' as const,overflow:'hidden',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'0.2rem',marginBottom:'0.5rem'}}>
+                  {([['default','Défaut'],['rarity','Rareté'],['score','Score L10'],['name','Nom']] as [string,string][]).map(([v,l])=>(
+                    <button key={v} onClick={()=>setGSort(v as any)} style={{padding:'0.3rem 0.5rem',border:'none',borderBottom:'1px solid rgba(255,255,255,0.06)',cursor:'pointer',fontSize:'0.68rem',textAlign:'left' as const,background:gSort===v?'rgba(212,175,55,0.18)':'transparent',color:gSort===v?'#e8c84a':'rgba(255,255,255,0.5)',fontWeight:gSort===v?700:400,transition:'all 0.15s'}}>{l}</button>
+                  ))}
+                </div>
               </div>
             )}
           </div>
-        )}
+        )
       </aside>
 
       {/* ===== CONTENU ===== */}
