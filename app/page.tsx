@@ -187,7 +187,6 @@ export default function Home() {
   const [gClubOpen,setGClubOpen]=useState(false);
   const [gTeamCustom,setGTeamCustom]=useState('all');
   const [gSort,setGSort]=useState('default');
-  const [gClubOpen,setGClubOpen]=useState(false);
   const [openPhase,setOpenPhase]=useState(0);
   const canvasRef=useRef<HTMLCanvasElement|null>(null);
   const mouseXYRef=useRef<{x:number,y:number}>({x:0,y:0});
@@ -489,7 +488,7 @@ export default function Home() {
               </div>
             )}
           </div>
-        ),
+        )}
       </aside>
 
       {/* ===== CONTENU ===== */}
