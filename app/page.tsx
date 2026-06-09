@@ -156,6 +156,50 @@ const FilterMenu=({title,options,current,onSelect}:any)=>{
     </div>
   );
 };
+
+const FootTeamMenu=({countries,teamsByCountry,country,team,onPickCountry,onPickTeam}:any)=>{
+  const [open,setOpen]=useState(false);
+  const [mounted,setMounted]=useState(false);
+  const [step,setStep]=useState('country');
+  useEffect(()=>{setMounted(true);},[]);
+  const ref=useRef<HTMLDivElement>(null);
+  const [pos,setPos]=useState({left:0,top:0,maxH:340});
+  const cap=(s:string)=>s.charAt(0).toUpperCase()+s.slice(1).replace(/-/g,' ');
+  const label=team!=='all'?team:(country!=='all'?cap(country):'Toutes les équipes');
+  const enter=()=>{const el=ref.current;if(el){const r=el.getBoundingClientRect();const h=Math.min(340,window.innerHeight-16);const top=Math.max(8,Math.min(r.top,window.innerHeight-h-8));setPos({left:r.right,top,maxH:h});}setStep(country!=='all'&&team!=='all'?'team':'country');setOpen(true);};
+  const btn=(sel:boolean):React.CSSProperties=>({display:'block',width:'100%',textAlign:'left',padding:'0.4rem 0.7rem',borderRadius:'0.25rem',border:'none',borderLeft:sel?'2px solid #f5d76e':'2px solid transparent',cursor:'pointer',fontSize:'0.8rem',fontWeight:sel?700:500,background:sel?'rgba(245,215,110,0.12)':'transparent',color:sel?'#f5d76e':'#cfd8e6',transition:'background 0.1s'});
+  return(
+    <div ref={ref} style={{position:'relative',marginBottom:'0.15rem'}} onMouseEnter={enter} onMouseLeave={()=>setOpen(false)}>
+      <div style={{width:'100%',padding:'0.35rem 0.5rem',borderRadius:'0.15rem',background:open?'rgba(111,195,232,0.08)':'transparent',borderLeft:open?'2px solid #6fc3e8':'2px solid transparent',cursor:'default',transition:'all 0.12s'}}>
+        <p style={{fontSize:'0.64rem',fontWeight:800,letterSpacing:'0.14em',textTransform:'uppercase',color:'#eaf2ff',margin:'0 0 0.05rem'}}>Équipe</p>
+        <p style={{fontSize:'0.8rem',fontWeight:500,color:open?'#6fc3e8':'#ffffff',opacity:open?1:0.6,margin:0,display:'flex',alignItems:'center',justifyContent:'space-between'}}>{label} <span style={{fontSize:'0.7rem',opacity:0.7}}>›</span></p>
+      </div>
+      {open&&mounted&&createPortal(
+        <div className='thin-sb' style={{position:'fixed',left:pos.left+'px',top:pos.top+'px',maxHeight:pos.maxH+'px',overflowY:'auto',minWidth:'200px',background:'#080a0e',border:'1px solid #6fc3e8',borderRadius:'0.4rem',padding:'0.3rem',boxShadow:'0 14px 38px rgba(0,0,0,0.7),0 0 14px rgba(111,195,232,0.18)',zIndex:9999}}>
+          {step==='country'?(
+            <>
+              <p style={{fontSize:'0.58rem',fontWeight:800,letterSpacing:'0.12em',textTransform:'uppercase',color:'#6fc3e8',margin:'0.1rem 0.4rem 0.3rem'}}>1 · Pays</p>
+              <button style={btn(country==='all')} onClick={()=>{onPickCountry('all');onPickTeam('all');setOpen(false);}}>Tous les pays</button>
+              {countries.map((co:string)=>(
+                <button key={co} style={btn(co===country)} onClick={()=>{onPickCountry(co);setStep('team');}}>{cap(co)}<span style={{float:'right',opacity:0.55}}>›</span></button>
+              ))}
+            </>
+          ):(
+            <>
+              <button style={{display:'block',width:'100%',textAlign:'left',padding:'0.35rem 0.7rem',border:'none',background:'transparent',color:'#6fc3e8',fontWeight:700,fontSize:'0.74rem',cursor:'pointer'}} onClick={()=>setStep('country')}>‹ Retour aux pays</button>
+              <p style={{fontSize:'0.58rem',fontWeight:800,letterSpacing:'0.12em',textTransform:'uppercase',color:'#6fc3e8',margin:'0.2rem 0.4rem 0.3rem'}}>2 · {cap(country)}</p>
+              <button style={btn(team==='all')} onClick={()=>{onPickTeam('all');setOpen(false);}}>Toutes les équipes</button>
+              {(teamsByCountry[country]||[]).map((t:string)=>(
+                <button key={t} style={btn(t===team)} onClick={()=>{onPickTeam(t);setOpen(false);}}>{t}</button>
+              ))}
+            </>
+          )}
+        </div>
+      ,document.body)}
+    </div>
+  );
+};
+
 const NBA_CONF:Record<string,string>={
   'Atlanta Hawks':'Est','Boston Celtics':'Est','Brooklyn Nets':'Est','Charlotte Hornets':'Est',
   'Chicago Bulls':'Est','Cleveland Cavaliers':'Est','Detroit Pistons':'Est','Indiana Pacers':'Est',
@@ -375,7 +419,7 @@ export default function Home() {
 
   // Galerie = sport + filtres + tri
   const footCountries=useMemo(()=>{const s=new Set<string>();cards.filter((c:any)=>!isNBA(c)).forEach((c:any)=>{const co=c.anyTeam?.country?.slug;if(co)s.add(co);});return Array.from(s).sort();},[cards]);
-  const footTeams=useMemo(()=>{const s=new Set<string>();cards.filter((c:any)=>!isNBA(c)).forEach((c:any)=>{if(gCountry!=='all'&&c.anyTeam?.country?.slug!==gCountry)return;if(c.anyTeam?.name)s.add(c.anyTeam.name);});return Array.from(s).sort();},[cards,gCountry]);
+  const teamsByCountry=useMemo(()=>{const m:Record<string,Set<string>>={};cards.filter((c:any)=>!isNBA(c)).forEach((c:any)=>{const co=c.anyTeam?.country?.slug;const nm=c.anyTeam?.name;if(co&&nm){(m[co]=m[co]||new Set<string>()).add(nm);}});const out:Record<string,string[]>={};for(const k in m)out[k]=Array.from(m[k]).sort();return out;},[cards]);
   const galleryTeamList=useMemo(()=>{const ts=new Set<string>();cards.filter(c=>isNBA(c)).forEach(c=>{if(!c.anyTeam?.name)return;ts.add(c.anyTeam.name);});return['all',...Array.from(ts).sort()] as string[];},[cards]);
   const filteredGallery=useMemo(()=>{let base=cards.filter((c:any)=>gSport==='nba'?isNBA(c):!isNBA(c));let r=applyFilters(base);if(gSport==='foot'&&gCountry!=='all')r=r.filter((c:any)=>c.anyTeam?.country?.slug===gCountry);if(gTeamCustom!=='all')r=r.filter((c:any)=>(c.anyTeam?.name||'')===gTeamCustom);if(gSort==='rarity')return[...r].sort((a:any,b:any)=>(RARITY_ORDER[a.rarityTyped]??9)-(RARITY_ORDER[b.rarityTyped]??9));if(gSort==='name')return[...r].sort((a:any,b:any)=>(a.anyPlayer?.lastName||'').localeCompare(b.anyPlayer?.lastName||''));return[...r].sort((a:any,b:any)=>parseFloat(String(b.averageScore||0))-parseFloat(String(a.averageScore||0)));},[cards,applyFilters,gSport,gCountry,gTeamCustom,gSort]);
 
@@ -442,10 +486,7 @@ export default function Home() {
             {gSport==='nba'?(
               <FilterMenu title='Équipe' options={(galleryTeamList as string[]).map((n:string)=>({value:n,label:n==='all'?'Toutes les équipes':n}))} current={gTeamCustom} onSelect={(v:string)=>{setGTeamCustom(v);if(mode==='locker'){setTeamApi(v);}}}/>
             ):(
-              <div style={{display:'flex',gap:'0.3rem',alignItems:'flex-start'}}>
-                <div style={{flex:1,minWidth:0}}><FilterMenu title='Pays' options={[{value:'all',label:'Tous'},...footCountries.map((co:string)=>({value:co,label:co.charAt(0).toUpperCase()+co.slice(1).replace(/-/g,' ')}))]} current={gCountry} onSelect={(v:string)=>{setGCountry(v);setGTeamCustom('all');}}/></div>
-                <div style={{flex:1,minWidth:0}}><FilterMenu title='Équipe' options={[{value:'all',label:'Toutes'},...footTeams.map((n:string)=>({value:n,label:n}))]} current={gTeamCustom} onSelect={(v:string)=>{setGTeamCustom(v);}}/></div>
-              </div>
+              <FootTeamMenu countries={footCountries} teamsByCountry={teamsByCountry} country={gCountry} team={gTeamCustom} onPickCountry={(v:string)=>{setGCountry(v);setGTeamCustom('all');}} onPickTeam={(v:string)=>setGTeamCustom(v)}/>
             )}
             <FilterMenu title='Saison' options={seasonOpts} current={fSeason} onSelect={setFSeason}/>
             <FilterMenu title='Rareté' options={rarityOpts} current={fRarity} onSelect={setFRarity}/>
