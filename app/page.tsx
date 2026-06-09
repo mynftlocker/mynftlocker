@@ -190,6 +190,7 @@ export default function Home() {
   const [gClubOpen,setGClubOpen]=useState(false);
   const [gClubPos,setGClubPos]=useState({t:0,l:224});
   const [gTeamCustom,setGTeamCustom]=useState('all');
+  const [gCountry,setGCountry]=useState('all');
   const [gSort,setGSort]=useState('default');
   const [openPhase,setOpenPhase]=useState(0);
   const canvasRef=useRef<HTMLCanvasElement|null>(null);
@@ -260,7 +261,7 @@ export default function Home() {
     const SORARE_URL='https://api.sorare.com/federation/graphql';
     const fetchPage=async(cursor:string|null):Promise<{cards:any[],hasNextPage:boolean,cursor:string|null}|null>=>{
       const after=cursor?`, after: "${cursor}"` :'';
-      const query=`query{user(slug:"${slug}"){cards(first:25${after}){nodes{slug name rarityTyped pictureUrl ...on NBACard{seasonYear specialEdition power xp averageScore(type:LAST_TEN_PLAYED_SO5_AVERAGE_SCORE)anyTeam{name}anyPlayer{lastName shirtNumber}}}pageInfo{hasNextPage endCursor}}}}`;
+      const query=`query{user(slug:"${slug}"){cards(first:25${after}){nodes{slug name rarityTyped pictureUrl anyPlayer{lastName shirtNumber}anyTeam{name ...on Club{country{slug}}}...on NBACard{seasonYear specialEdition power xp averageScore(type:LAST_TEN_PLAYED_SO5_AVERAGE_SCORE)}}pageInfo{hasNextPage endCursor}}}}`;
       // 1. Essai direct navigateur (IP residentielle)
       try{
         const r=await fetch(SORARE_URL,{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({query}),signal:AbortSignal.timeout(9000)});
@@ -373,8 +374,10 @@ export default function Home() {
   },[cards,teamApi,applyFilters,lockerSort,hof,lineup]);
 
   // Galerie = sport + filtres + tri
+  const footCountries=useMemo(()=>{const s=new Set<string>();cards.filter((c:any)=>!isNBA(c.slug)).forEach((c:any)=>{const co=c.anyTeam?.country?.slug;if(co)s.add(co);});return Array.from(s).sort();},[cards]);
+  const footTeams=useMemo(()=>{const s=new Set<string>();cards.filter((c:any)=>!isNBA(c.slug)).forEach((c:any)=>{if(gCountry!=='all'&&c.anyTeam?.country?.slug!==gCountry)return;if(c.anyTeam?.name)s.add(c.anyTeam.name);});return Array.from(s).sort();},[cards,gCountry]);
   const galleryTeamList=useMemo(()=>{const ts=new Set<string>();cards.filter(c=>isNBA(c.slug)).forEach(c=>{if(!c.anyTeam?.name)return;ts.add(c.anyTeam.name);});return['all',...Array.from(ts).sort()] as string[];},[cards]);
-  const filteredGallery=useMemo(()=>{if(gSport==='foot')return[];let r=applyFilters(cards.filter(c=>isNBA(c.slug)));if(gTeamCustom!=='all')r=r.filter(c=>(c.anyTeam?.name||'')===gTeamCustom);if(gSort==='rarity')return[...r].sort((a,b)=>(RARITY_ORDER[a.rarityTyped]??9)-(RARITY_ORDER[b.rarityTyped]??9));if(gSort==='score')return[...r].sort((a,b)=>parseFloat(String(b.averageScore||0))-parseFloat(String(a.averageScore||0)));if(gSort==='name')return[...r].sort((a,b)=>(a.anyPlayer?.lastName||'').localeCompare(b.anyPlayer?.lastName||''));return r;},[cards,applyFilters,gSport,gTeamCustom,gSort]);
+  const filteredGallery=useMemo(()=>{let base=cards.filter((c:any)=>gSport==='nba'?isNBA(c.slug):!isNBA(c.slug));let r=applyFilters(base);if(gSport==='foot'&&gCountry!=='all')r=r.filter((c:any)=>c.anyTeam?.country?.slug===gCountry);if(gTeamCustom!=='all')r=r.filter((c:any)=>(c.anyTeam?.name||'')===gTeamCustom);if(gSort==='rarity')return[...r].sort((a:any,b:any)=>(RARITY_ORDER[a.rarityTyped]??9)-(RARITY_ORDER[b.rarityTyped]??9));if(gSort==='score')return[...r].sort((a:any,b:any)=>parseFloat(String(b.averageScore||0))-parseFloat(String(a.averageScore||0)));if(gSort==='name')return[...r].sort((a:any,b:any)=>(a.anyPlayer?.lastName||'').localeCompare(b.anyPlayer?.lastName||''));return r;},[cards,applyFilters,gSport,gCountry,gTeamCustom,gSort]);
 
   const goldGrad='linear-gradient(160deg,#a86f15 0%,#d9a52e 22%,#f7da80 48%,#e8b84a 68%,#b8801a 100%)';
   const fBtn=(a:boolean):React.CSSProperties=>({padding:'0.4rem 0.6rem',borderRadius:'0.15rem',border:'none',borderLeft:a?'2px solid #f5d76e':'2px solid rgba(255,255,255,0.08)',background:a?'rgba(245,215,110,0.12)':'rgba(255,255,255,0.025)',color:a?'#f5d76e':'#cfd8e6',cursor:'pointer',fontSize:'0.76rem',fontWeight:a?700:500,transition:'all 0.12s'});
@@ -436,7 +439,14 @@ export default function Home() {
               <p style={{fontSize:'0.64rem',fontWeight:800,letterSpacing:'0.14em',textTransform:'uppercase',color:'#eaf2ff',margin:'0 0 0.2rem'}}>Joueur</p>
               <input style={{width:'100%',boxSizing:'border-box',background:'rgba(255,255,255,0.05)',color:'#e8eefc',padding:'0.3rem 0.5rem',borderRadius:'0.15rem',border:'1px solid rgba(255,255,255,0.12)',outline:'none',fontSize:'0.76rem'}} placeholder='Rechercher...' value={fPlayer} onChange={e=>setFPlayer(e.target.value)}/>
             </div>
-            <FilterMenu title='Équipe' options={[{value:'all',label:'Toutes les équipes'},...(galleryTeamList as any[]).map((t:any)=>({value:t.api,label:t.display}))]} current={gTeamCustom} onSelect={(v:string)=>{setGTeamCustom(v);if(mode==='locker'){setTeamApi(v);}}}/>
+            {gSport==='nba'?(
+              <FilterMenu title='Équipe' options={(galleryTeamList as string[]).map((n:string)=>({value:n,label:n==='all'?'Toutes les équipes':n}))} current={gTeamCustom} onSelect={(v:string)=>{setGTeamCustom(v);if(mode==='locker'){setTeamApi(v);}}}/>
+            ):(
+              <div style={{display:'flex',gap:'0.3rem',alignItems:'flex-start'}}>
+                <div style={{flex:1,minWidth:0}}><FilterMenu title='Pays' options={[{value:'all',label:'Tous'},...footCountries.map((co:string)=>({value:co,label:co.charAt(0).toUpperCase()+co.slice(1).replace(/-/g,' ')}))]} current={gCountry} onSelect={(v:string)=>{setGCountry(v);setGTeamCustom('all');}}/></div>
+                <div style={{flex:1,minWidth:0}}><FilterMenu title='Équipe' options={[{value:'all',label:'Toutes'},...footTeams.map((n:string)=>({value:n,label:n}))]} current={gTeamCustom} onSelect={(v:string)=>{setGTeamCustom(v);}}/></div>
+              </div>
+            )}
             <FilterMenu title='Saison' options={seasonOpts} current={fSeason} onSelect={setFSeason}/>
             <FilterMenu title='Rareté' options={rarityOpts} current={fRarity} onSelect={setFRarity}/>
             <FilterMenu title='Édition de la carte' options={specialOpts} current={fSpecial} onSelect={setFSpecial}/>
