@@ -404,7 +404,7 @@ export default function Home() {
     <main style={{minHeight:'100vh',background:contentBg,backgroundAttachment:'fixed',color:'white',fontFamily:'system-ui,sans-serif',display:'flex'}}>
       <style>{`aside::-webkit-scrollbar,.noscroll::-webkit-scrollbar{width:0;height:0;display:none} .noscroll{scrollbar-width:none} .thin-sb::-webkit-scrollbar{width:6px} .thin-sb::-webkit-scrollbar-thumb{background:rgba(111,195,232,0.45);border-radius:3px} .thin-sb::-webkit-scrollbar-track{background:transparent} .thin-sb{scrollbar-width:thin;scrollbar-color:rgba(111,195,232,0.45) transparent} @keyframes mnflBuild{0%{opacity:0;transform:translateX(-50%) translateY(12px);filter:blur(3.5px) brightness(1.6) saturate(0.4);box-shadow:0 0 28px 7px rgba(111,195,232,0.5)}50%{opacity:0.65;filter:blur(1.5px) brightness(1.2) saturate(0.75)}100%{opacity:1;transform:translateX(-50%) translateY(0);filter:blur(0) brightness(1) saturate(1);box-shadow:0 0 0 0 rgba(111,195,232,0)}} @keyframes mnflSlideLeft{from{opacity:0;transform:translateX(70px);filter:blur(2px)}to{opacity:1;transform:translateX(0);filter:blur(0)}} @keyframes mnflSlideRight{from{opacity:0;transform:translateX(-70px);filter:blur(2px)}to{opacity:1;transform:translateX(0);filter:blur(0)}} @keyframes mnflLaser{0%{height:0;opacity:0.95}50%{height:29%;opacity:1}75%{height:29%;opacity:0.85}100%{height:29%;opacity:0}} @keyframes mnflDeploy{0%{opacity:0;clip-path:inset(0 100% 0 0);transform:perspective(900px) rotateY(-4deg) translateX(-6px)}35%{opacity:0.6}100%{opacity:1;clip-path:inset(0 0% 0 0);transform:perspective(900px) rotateY(0deg) translateX(0)}} @keyframes mnflClose{0%{opacity:1;transform:scaleY(1);filter:brightness(1)}30%{transform:scaleY(0.84);filter:brightness(1.2)}55%{transform:scaleY(0.42);filter:brightness(1.7)}72%{transform:scaleY(0.12);filter:brightness(2.5)}80%{transform:scaleY(0.025);filter:brightness(4) blur(0.5px)}88%{transform:scaleY(0.008);filter:brightness(6);opacity:1}95%{transform:scaleY(0.003);filter:brightness(9)}100%{transform:scaleY(0);opacity:0;filter:brightness(0)}} @keyframes mnflIcebreaker{0%{opacity:0;transform:translate(-50%,-50%) scaleX(0.05) scaleY(1)}18%{opacity:1;transform:translate(-50%,-50%) scaleX(1) scaleY(1);filter:brightness(2)}52%{opacity:1;transform:translate(-50%,-50%) scaleX(1) scaleY(1)}70%{opacity:1;transform:translate(-50%,-50%) scaleX(0.14) scaleY(2.5);filter:brightness(5)}82%{opacity:1;transform:translate(-50%,-50%) scaleX(0.04) scaleY(7);filter:brightness(10)}90%{opacity:1;transform:translate(-50%,-50%) scaleX(0.01) scaleY(2);filter:brightness(4)}100%{opacity:0;transform:translate(-50%,-50%) scaleX(0) scaleY(0)}} @keyframes mnflFloat{0%{transform:translateY(8px);opacity:0}25%{opacity:0.55}75%{opacity:0.45}100%{transform:translateY(-26px);opacity:0}} @keyframes mnflPulse{0%,100%{box-shadow:0 0 9px 1px var(--rc)}50%{box-shadow:0 0 24px 6px var(--rc)}}@keyframes mnflCyanPulse{0%,100%{box-shadow:0 0 12px 3px rgba(64,232,255,0.45),0 0 22px 5px rgba(64,232,255,0.18)}50%{box-shadow:0 0 22px 6px rgba(64,232,255,0.75),0 0 40px 10px rgba(64,232,255,0.32)}}@keyframes mnflCardTrace{0%{stroke-dashoffset:1000}100%{stroke-dashoffset:0}}`}</style>
       {/* ===== BARRE LATERALE (glass sombre) ===== */}
-      <aside style={{position:'fixed',left:0,top:0,width:'220px',height:'100vh',overflow:'visible',background:sideBg,backdropFilter:'blur(12px)',WebkitBackdropFilter:'blur(12px)',borderRight:'1px solid rgba(111,195,232,0.35)',boxShadow:'1px 0 0 rgba(111,195,232,0.25), 6px 0 24px -6px rgba(111,195,232,0.22)',padding:'0.65rem 0.8rem',zIndex:50,scrollbarWidth:'none',display:'flex',flexDirection:'column' as const,gap:'0',fontFamily:"'Inter','Segoe UI',system-ui,-apple-system,sans-serif"}}>
+      <aside style={{position:'fixed',left:0,top:0,width:'220px',height:'100vh',overflowY:'auto',background:sideBg,backdropFilter:'blur(12px)',WebkitBackdropFilter:'blur(12px)',borderRight:'1px solid rgba(111,195,232,0.35)',boxShadow:'1px 0 0 rgba(111,195,232,0.25), 6px 0 24px -6px rgba(111,195,232,0.22)',padding:'0.65rem 0.8rem',zIndex:50,scrollbarWidth:'none',display:'flex',flexDirection:'column' as const,gap:'0',fontFamily:"'Inter','Segoe UI',system-ui,-apple-system,sans-serif"}}>
 
         {/* ──── HEADER : centré ──── */}
         <div style={{textAlign:'center',marginBottom:'0.55rem'}}>
@@ -437,77 +437,59 @@ export default function Home() {
 
         {/* ──── FILTRES : alignés à gauche ──── */}
         {cards.length>0&&(
-          <div style={{textAlign:'left',flex:1}}>
+          <div style={{textAlign:'left',flex:1,display:'flex',flexDirection:'column' as const,gap:0}}>
             <div style={{borderTop:'1px solid rgba(255,255,255,0.06)',paddingTop:'0.45rem'}}><Filters/></div>
             {mode==='locker'&&(
               <div style={{marginTop:'0.5rem',padding:'0 0.5rem'}}>
-                <p style={{fontSize:'0.64rem',fontWeight:800,letterSpacing:'0.14em',textTransform:'uppercase',color:'#eaf2ff',margin:'0 0 0.4rem'}}>Affichage du 5</p>
-                {/* Segmented control vertical : plat, actif = or */}
-                <div style={{display:'flex',flexDirection:'column' as const,overflow:'hidden',border:'1px solid rgba(255,255,255,0.12)',clipPath:'polygon(7px 0,100% 0,100% calc(100% - 7px),calc(100% - 7px) 100%,0 100%,0 7px)'}}>
-                  <button onClick={()=>setLockerSort('majeur')} onMouseEnter={e=>{if(lockerSort!=='majeur'){const t=e.currentTarget as HTMLElement;t.style.color='#6fc3e8';t.style.borderLeftColor='#6fc3e8';}}} onMouseLeave={e=>{if(lockerSort!=='majeur'){const t=e.currentTarget as HTMLElement;t.style.color='rgba(207,216,230,0.62)';t.style.borderLeftColor='transparent';}}} style={{padding:'0.55rem 0.7rem',border:'none',borderLeft:'2px solid '+(lockerSort==='majeur'?'#f5d76e':'transparent'),cursor:'pointer',fontSize:'0.78rem',fontWeight:lockerSort==='majeur'?700:500,textAlign:'left',background:lockerSort==='majeur'?goldGrad:'transparent',color:lockerSort==='majeur'?'#1a0d00':'rgba(207,216,230,0.62)',transition:'all 0.12s'}}>5 Majeur (L10)</button>
-                  <button onClick={()=>setLockerSort('collection')} onMouseEnter={e=>{if(lockerSort!=='collection'){const t=e.currentTarget as HTMLElement;t.style.color='#6fc3e8';t.style.borderLeftColor='#6fc3e8';}}} onMouseLeave={e=>{if(lockerSort!=='collection'){const t=e.currentTarget as HTMLElement;t.style.color='rgba(207,216,230,0.62)';t.style.borderLeftColor='transparent';}}} style={{padding:'0.55rem 0.7rem',border:'none',borderTop:'1px solid rgba(255,255,255,0.07)',borderLeft:'2px solid '+(lockerSort==='collection'?'#f5d76e':'transparent'),cursor:'pointer',fontSize:'0.78rem',fontWeight:lockerSort==='collection'?700:500,textAlign:'left',background:lockerSort==='collection'?goldGrad:'transparent',color:lockerSort==='collection'?'#1a0d00':'rgba(207,216,230,0.62)',transition:'all 0.12s'}}>Alphabétique</button>
-                  <button onClick={()=>setLockerSort('manual')} onMouseEnter={e=>{if(lockerSort!=='manual'){const t=e.currentTarget as HTMLElement;t.style.color='#6fc3e8';t.style.borderLeftColor='#6fc3e8';}}} onMouseLeave={e=>{if(lockerSort!=='manual'){const t=e.currentTarget as HTMLElement;t.style.color='rgba(207,216,230,0.62)';t.style.borderLeftColor='transparent';}}} style={{padding:'0.55rem 0.7rem',border:'none',borderTop:'1px solid rgba(255,255,255,0.07)',borderLeft:'2px solid '+(lockerSort==='manual'?'#f5d76e':'transparent'),cursor:'pointer',fontSize:'0.78rem',fontWeight:lockerSort==='manual'?700:500,textAlign:'left',background:lockerSort==='manual'?goldGrad:'transparent',color:lockerSort==='manual'?'#1a0d00':'rgba(207,216,230,0.62)',transition:'all 0.12s'}}>Mon 5 majeur</button>
+                <p style={{fontSize:'0.64rem',fontWeight:800,letterSpacing:'0.14em',textTransform:'uppercase',color:'rgba(255,255,255,0.45)',marginBottom:'0.3rem'}}>TRI VESTIAIRE</p>
+                <div style={{display:'flex',flexDirection:'column' as const,overflow:'hidden',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'0.2rem',marginBottom:'0.4rem'}}>
+                  <button onClick={()=>setLockerSort('majeur')} onMouseEnter={e=>{if(lockerSort!=='majeur'){(e.currentTarget as HTMLElement).style.background='rgba(255,255,255,0.04)';}}} onMouseLeave={e=>{if(lockerSort!=='majeur'){(e.currentTarget as HTMLElement).style.background='transparent';}}} style={{padding:'0.3rem 0.5rem',border:'none',borderBottom:'1px solid rgba(255,255,255,0.06)',cursor:'pointer',fontSize:'0.68rem',textAlign:'left' as const,background:lockerSort==='majeur'?'rgba(212,175,55,0.18)':'transparent',color:lockerSort==='majeur'?'#e8c84a':'rgba(255,255,255,0.5)',fontWeight:lockerSort==='majeur'?700:400,transition:'all 0.15s'}}>Majeurs</button>
+                  <button onClick={()=>setLockerSort('collection')} onMouseEnter={e=>{if(lockerSort!=='collection'){(e.currentTarget as HTMLElement).style.background='rgba(255,255,255,0.04)';}}} onMouseLeave={e=>{if(lockerSort!=='collection'){(e.currentTarget as HTMLElement).style.background='transparent';}}} style={{padding:'0.3rem 0.5rem',border:'none',borderBottom:'1px solid rgba(255,255,255,0.06)',cursor:'pointer',fontSize:'0.68rem',textAlign:'left' as const,background:lockerSort==='collection'?'rgba(212,175,55,0.18)':'transparent',color:lockerSort==='collection'?'#e8c84a':'rgba(255,255,255,0.5)',fontWeight:lockerSort==='collection'?700:400,transition:'all 0.15s'}}>Collection</button>
+                  <button onClick={()=>setLockerSort('manual')} onMouseEnter={e=>{if(lockerSort!=='manual'){(e.currentTarget as HTMLElement).style.background='rgba(255,255,255,0.04)';}}} onMouseLeave={e=>{if(lockerSort!=='manual'){(e.currentTarget as HTMLElement).style.background='transparent';}}} style={{padding:'0.3rem 0.5rem',border:'none',cursor:'pointer',fontSize:'0.68rem',textAlign:'left' as const,background:lockerSort==='manual'?'rgba(212,175,55,0.18)':'transparent',color:lockerSort==='manual'?'#e8c84a':'rgba(255,255,255,0.5)',fontWeight:lockerSort==='manual'?700:400,transition:'all 0.15s'}}>Manuel</button>
                 </div>
-                <button onClick={()=>handleSetDefault(teamApi)} style={{marginTop:'0.4rem',width:'100%',boxSizing:'border-box',padding:'0.45rem 0.7rem',borderRadius:'0.25rem',border:'1px solid',borderColor:defaultTeam===teamApi?'rgba(245,215,110,0.5)':'rgba(255,255,255,0.1)',background:defaultTeam===teamApi?'rgba(245,215,110,0.1)':'transparent',color:defaultTeam===teamApi?'#f5d76e':'#cfd8e6',cursor:'pointer',fontSize:'0.76rem',fontWeight:600,textAlign:'left',transition:'all 0.12s'}}>{defaultTeam===teamApi?'✓ Affiché en premier':'Afficher en premier'}</button>
+                <button onClick={()=>handleSetDefault(teamApi)} style={{marginTop:'0.4rem',width:'100%',boxSizing:'border-box' as const,padding:'0.36rem',background:'rgba(212,175,55,0.12)',border:'1px solid rgba(212,175,55,0.35)',borderRadius:'0.18rem',color:'#e8c84a',fontSize:'0.64rem',cursor:'pointer',letterSpacing:'0.08em'}}>⭐ Équipe par défaut</button>
               </div>
             )}
+            <div style={{borderTop:'1px solid rgba(255,255,255,0.06)',margin:'0.5rem 0'}}/>
+            <p style={{fontSize:'0.6rem',fontWeight:800,letterSpacing:'0.14em',textTransform:'uppercase',color:'rgba(255,255,255,0.45)',margin:'0 0 0.32rem',padding:'0 0.5rem'}}>SPORT</p>
+            <div style={{display:'flex',gap:'0.35rem',flexWrap:'wrap',marginBottom:'0.75rem',padding:'0 0.5rem'}}>
+              {(['nba','foot'] as const).map(s=>(
+                <button key={s} onClick={()=>{setGSport(s);setGLeague('all');setGTeamCustom('all');setGLeagueOpen(false);setGClubOpen(false);}}
+                  style={{padding:'0.26rem 0.7rem',border:'1px solid',borderRadius:'2rem',cursor:'pointer',fontSize:'0.68rem',fontWeight:700,letterSpacing:'0.08em',transition:'all 0.18s',background:'transparent',borderColor:gSport===s?'rgba(0,225,255,0.8)':'rgba(255,255,255,0.15)',color:gSport===s?'#00e5ff':'rgba(255,255,255,0.5)',boxShadow:gSport===s?'0 0 8px rgba(0,225,255,0.25)':'none'}}
+                >{s.toUpperCase()}</button>
+              ))}
+            </div>
+            <p style={{fontSize:'0.6rem',fontWeight:800,letterSpacing:'0.14em',textTransform:'uppercase',color:'rgba(255,255,255,0.45)',margin:'0 0 0.32rem',padding:'0 0.5rem'}}>ÉQUIPE</p>
+            <div style={{position:'relative',marginBottom:'0.65rem',padding:'0 0.5rem'}}>
+              {(()=>{const curTeam=(galleryTeamList as any[]).find(t=>t.api===gTeamCustom);const label=curTeam?.display||'Toutes les équipes';return(
+              <div>
+              <div onClick={()=>setGClubOpen(o=>!o)} style={{display:'flex',alignItems:'center',justifyContent:'space-between',background:'rgba(10,10,12,0.95)',border:'1px solid rgba(0,225,255,0.3)',borderRadius:'0.2rem',padding:'0.36rem 0.55rem',cursor:'pointer',fontSize:'0.7rem',color:'rgba(255,255,255,0.8)',transition:'border-color 0.15s',borderColor:gClubOpen?'rgba(0,225,255,0.7)':'rgba(0,225,255,0.3)'}}>
+                <span style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1}}>{label}</span>
+                <span style={{marginLeft:'0.4rem',transform:gClubOpen?'rotate(180deg)':'rotate(0)',transition:'transform 0.2s',color:'rgba(0,225,255,0.7)',fontSize:'0.6rem'}}>▾</span>
+              </div>
+              {gClubOpen&&(
+                <div className='gal-scroll' style={{position:'absolute',bottom:'calc(100% + 3px)',left:0,right:0,background:'rgba(8,8,12,0.98)',border:'1px solid rgba(0,225,255,0.35)',borderRadius:'0.2rem',zIndex:400,maxHeight:'220px',overflowY:'auto'}}>
+                  <div onClick={()=>{setGTeamCustom('all');setGClubOpen(false);}} style={{padding:'0.36rem 0.55rem',fontSize:'0.7rem',cursor:'pointer',transition:'background 0.12s',background:gTeamCustom==='all'?'rgba(0,225,255,0.1)':'transparent',color:gTeamCustom==='all'?'#00e5ff':'rgba(255,255,255,0.75)'}} onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.background='rgba(0,225,255,0.07)';}} onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.background=gTeamCustom==='all'?'rgba(0,225,255,0.1)':'transparent';}}>Toutes les équipes</div>
+                  {(galleryTeamList as any[]).map(t=>(
+                    <div key={t.api} onClick={()=>{setGTeamCustom(t.api);setGClubOpen(false);if(mode==='locker'){setTeamApi(t.api);}}} style={{padding:'0.36rem 0.55rem',fontSize:'0.7rem',cursor:'pointer',transition:'background 0.12s',background:t.api===gTeamCustom?'rgba(0,225,255,0.1)':'transparent',color:t.api===gTeamCustom?'#00e5ff':'rgba(255,255,255,0.75)'}} onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.background='rgba(0,225,255,0.07)';}} onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.background=t.api===gTeamCustom?'rgba(0,225,255,0.1)':'transparent';}}>{t.display}</div>
+                  ))}
+                </div>
+              )}
+              </div>
+              );})()} 
+            </div>
             {mode==='gallery'&&(
-              <div style={{padding:'0 0.5rem',marginTop:'0.5rem'}}>
-                <p style={{fontSize:'0.6rem',fontWeight:800,letterSpacing:'0.14em',textTransform:'uppercase',color:'rgba(255,255,255,0.45)',margin:'0 0 0.35rem'}}>SPORT</p>
-                <div style={{display:'flex',gap:'0.35rem',flexWrap:'wrap',marginBottom:'0.9rem'}}>
-                  {(['nba','foot'] as const).map(s=>(
-                    <button key={s} onClick={()=>{setGSport(s);setGLeague('all');setGTeamCustom('all');setGLeagueOpen(false);setGClubOpen(false);}}
-                      style={{padding:'0.28rem 0.65rem',border:'1px solid',borderRadius:'2rem',cursor:'pointer',fontSize:'0.68rem',fontWeight:700,letterSpacing:'0.08em',transition:'all 0.18s',background:'transparent',borderColor:gSport===s?'rgba(0,225,255,0.8)':'rgba(255,255,255,0.15)',color:gSport===s?'#00e5ff':'rgba(255,255,255,0.5)',boxShadow:gSport===s?'0 0 8px rgba(0,225,255,0.25)':'none'}}
-                    >{s.toUpperCase()}</button>
-                  ))}
-                </div>
-                <p style={{fontSize:'0.6rem',fontWeight:800,letterSpacing:'0.14em',textTransform:'uppercase',color:'rgba(255,255,255,0.45)',margin:'0 0 0.35rem'}}>LIGUE</p>
-                <div style={{position:'relative',marginBottom:'0.65rem'}}>
-                  <div onClick={()=>setGLeagueOpen(o=>!o)} style={{display:'flex',alignItems:'center',justifyContent:'space-between',background:'rgba(10,10,12,0.95)',border:'1px solid',borderColor:gLeagueOpen?'rgba(0,225,255,0.7)':'rgba(0,225,255,0.3)',borderRadius:'0.2rem',padding:'0.38rem 0.55rem',cursor:'pointer',fontSize:'0.7rem',color:'rgba(255,255,255,0.8)',transition:'border-color 0.15s'}}
-                    <span style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1}}>{leagueOptions.find((o:any)=>o.v===gLeague)?.l||'—'}</span>
-                    <span style={{marginLeft:'0.4rem',transform:gLeagueOpen?'rotate(180deg)':'rotate(0)',transition:'transform 0.2s',color:'rgba(0,225,255,0.7)',fontSize:'0.6rem'}}>▾</span>
-                  </div>
-                  {gLeagueOpen&&(
-                    <div className='gal-scroll' style={{position:'absolute',bottom:'calc(100% + 3px)',left:0,right:0,background:'rgba(8,8,12,0.98)',border:'1px solid rgba(0,225,255,0.35)',borderRadius:'0.2rem',zIndex:400,maxHeight:'190px',overflowY:'auto'}}>
-                      {leagueOptions.map((o:any)=>(
-                        <div key={o.v} onClick={()=>{setGLeague(o.v);setGLeagueOpen(false);setGTeamCustom('all');}} style={{padding:'0.38rem 0.55rem',fontSize:'0.7rem',cursor:'pointer',background:o.v===gLeague?'rgba(0,225,255,0.1)':'transparent',color:o.v===gLeague?'#00e5ff':'rgba(255,255,255,0.75)',transition:'background 0.12s'}} onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.background='rgba(0,225,255,0.07)';}} onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.background=o.v===gLeague?'rgba(0,225,255,0.1)':'transparent';}}>{o.l}</div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                {(()=>{
-                const clubDisabled=gSport==='foot'&&leagueOptions.length>1&&gLeague==='all';
-                const curClub=(galleryTeamList as any[]).find(t=>t.api===gTeamCustom);
-                const curClubLabel=curClub?.display||'Tous les clubs';
-                return(
-                <div>
-                <p style={{fontSize:'0.6rem',fontWeight:800,letterSpacing:'0.14em',textTransform:'uppercase',color:'rgba(255,255,255,0.45)',margin:'0 0 0.35rem',opacity:clubDisabled?0.35:1}}>CLUB</p>
-                <div style={{position:'relative',marginBottom:'0.65rem',opacity:clubDisabled?0.4:1,pointerEvents:clubDisabled?'none':'auto'}}>
-                  <div onClick={()=>setGClubOpen(o=>!o)} style={{display:'flex',alignItems:'center',justifyContent:'space-between',background:'rgba(10,10,12,0.95)',border:'1px solid',borderColor:gClubOpen?'rgba(0,225,255,0.7)':'rgba(0,225,255,0.3)',borderRadius:'0.2rem',padding:'0.38rem 0.55rem',cursor:'pointer',fontSize:'0.7rem',color:'rgba(255,255,255,0.8)',transition:'border-color 0.15s'}}
-                    <span style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1}}>{curClubLabel}</span>
-                    <span style={{marginLeft:'0.4rem',transform:gClubOpen?'rotate(180deg)':'rotate(0)',transition:'transform 0.2s',color:'rgba(0,225,255,0.7)',fontSize:'0.6rem'}}>▾</span>
-                  </div>
-                  {gClubOpen&&(
-                    <div className='gal-scroll' style={{position:'absolute',bottom:'calc(100% + 3px)',left:0,right:0,background:'rgba(8,8,12,0.98)',border:'1px solid rgba(0,225,255,0.35)',borderRadius:'0.2rem',zIndex:400,maxHeight:'190px',overflowY:'auto'}}>
-                      <div onClick={()=>{setGTeamCustom('all');setGClubOpen(false);}} style={{padding:'0.38rem 0.55rem',fontSize:'0.7rem',cursor:'pointer',background:gTeamCustom==='all'?'rgba(0,225,255,0.1)':'transparent',color:gTeamCustom==='all'?'#00e5ff':'rgba(255,255,255,0.75)',transition:'background 0.12s'}} onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.background='rgba(0,225,255,0.07)';}} onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.background=gTeamCustom==='all'?'rgba(0,225,255,0.1)':'transparent';}}>Tous les clubs</div>
-                      {(galleryTeamList as any[]).map(t=>(
-                        <div key={t.api} onClick={()=>{setGTeamCustom(t.api);setGClubOpen(false);}} style={{padding:'0.38rem 0.55rem',fontSize:'0.7rem',cursor:'pointer',background:t.api===gTeamCustom?'rgba(0,225,255,0.1)':'transparent',color:t.api===gTeamCustom?'#00e5ff':'rgba(255,255,255,0.75)',transition:'background 0.12s'}} onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.background='rgba(0,225,255,0.07)';}} onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.background=t.api===gTeamCustom?'rgba(0,225,255,0.1)':'transparent';}}>{t.display}</div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                </div>
-                );})()} 
-                <p style={{fontSize:'0.6rem',fontWeight:800,letterSpacing:'0.14em',textTransform:'uppercase',color:'rgba(255,255,255,0.45)',margin:'0 0 0.35rem'}}>TRI</p>
-                <div style={{display:'flex',flexDirection:'column' as const,overflow:'hidden',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'0.2rem',marginBottom:'0.5rem'}}>
-                  {([['default','Défaut'],['rarity','Rareté'],['score','Score L10'],['name','Nom']] as [string,string][]).map(([v,l])=>(
-                    <button key={v} onClick={()=>setGSort(v as any)} style={{padding:'0.3rem 0.5rem',border:'none',borderBottom:'1px solid rgba(255,255,255,0.06)',cursor:'pointer',fontSize:'0.68rem',textAlign:'left' as const,background:gSort===v?'rgba(212,175,55,0.18)':'transparent',color:gSort===v?'#e8c84a':'rgba(255,255,255,0.5)',fontWeight:gSort===v?700:400,transition:'all 0.15s'}}>{l}</button>
-                  ))}
-                </div>
+              <div style={{padding:'0 0.5rem'}}>
+              <p style={{fontSize:'0.6rem',fontWeight:800,letterSpacing:'0.14em',textTransform:'uppercase',color:'rgba(255,255,255,0.45)',margin:'0 0 0.32rem',padding:'0 0.5rem'}}>TRI</p>
+              <div style={{display:'flex',flexDirection:'column' as const,overflow:'hidden',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'0.2rem'}}>
+                {([['default','Défaut'],['rarity','Rareté'],['score','Score L10'],['name','Nom']] as [string,string][]).map(([v,l])=>(
+                  <button key={v} onClick={()=>setGSort(v as any)} style={{padding:'0.3rem 0.5rem',border:'none',borderBottom:'1px solid rgba(255,255,255,0.06)',cursor:'pointer',fontSize:'0.68rem',textAlign:'left' as const,background:gSort===v?'rgba(212,175,55,0.18)':'transparent',color:gSort===v?'#e8c84a':'rgba(255,255,255,0.5)',fontWeight:gSort===v?700:400,transition:'all 0.15s'}}>{l}</button>
+                ))}
+              </div>
               </div>
             )}
           </div>
-        )
+        ),
       </aside>
 
       {/* ===== CONTENU ===== */}
