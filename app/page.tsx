@@ -40,7 +40,7 @@ const dedupeByPlayer=(list:any[])=>{
   return Object.values(byPlayer);
 };
 
-const isNBA=(slug:string)=>/\d{8}/.test(slug);
+const isNBA=(c:any)=>c?.__typename==='NBACard';
 const parseCard=(name:string)=>{
   const parts=name.split('•');const left=parts[0].trim();const right=(parts[1]||'').trim();
   const sm=left.match(/(\d{4}-\d{2})/);const season=sm?sm[1]:'';
@@ -60,7 +60,7 @@ const CardBack=memo(({ card }: { card: any }) => {
     <div style={{position:'absolute',top:0,left:0,right:0,bottom:0,backfaceVisibility:'hidden',transform:'rotateY(180deg)',borderRadius:'0.4rem',overflow:'hidden',background:'radial-gradient(ellipse at center,#15151f,#07070d)',display:'flex',flexDirection:'column' as const,borderTop:'3px solid '+rc,borderBottom:'3px solid '+rc}}>
       <div style={{padding:'0.5rem',borderBottom:'1px solid rgba(255,255,255,0.06)',textAlign:'center'}}>
         <p style={{margin:0,fontSize:'0.75rem',color:rc,fontWeight:800,letterSpacing:'0.06em'}}>myNFTlocker</p>
-        <p style={{margin:'2px 0 0',fontSize:'0.6rem',color:'#b8956a',fontWeight:600}}>{isNBA(card.slug)?'NBA':'FOOTBALL'} • {card.seasonYear||season}</p>
+        <p style={{margin:'2px 0 0',fontSize:'0.6rem',color:'#b8956a',fontWeight:600}}>{isNBA(card)?'NBA':'FOOTBALL'} • {card.seasonYear||season}</p>
       </div>
       <div style={{padding:'0.4rem',textAlign:'center'}}>
         <p style={{margin:0,fontSize:nameFontSize(lastName.length),fontWeight:900,color:'#fff',lineHeight:1.1,textShadow:'0 0 18px '+rc+'99'}}>{lastName}</p>
@@ -217,7 +217,7 @@ export default function Home() {
     if(localStorage.getItem('mynftlocker_hof_init')) return;
     const savedHof=localStorage.getItem('mynftlocker_hof');
     if(savedHof && JSON.parse(savedHof).length>0){ localStorage.setItem('mynftlocker_hof_init','done'); return; }
-    const nba=cards.filter(c=>isNBA(c.slug));
+    const nba=cards.filter(c=>isNBA(c));
     const top5=dedupeByPlayer(nba).sort((a:any,b:any)=>(b.averageScore??-1)-(a.averageScore??-1)).slice(0,5).map((c:any)=>c.slug);
     setHof(top5);
     localStorage.setItem('mynftlocker_hof',JSON.stringify(top5));
@@ -261,7 +261,7 @@ export default function Home() {
     const SORARE_URL='https://api.sorare.com/federation/graphql';
     const fetchPage=async(cursor:string|null):Promise<{cards:any[],hasNextPage:boolean,cursor:string|null}|null>=>{
       const after=cursor?`, after: "${cursor}"` :'';
-      const query=`query{user(slug:"${slug}"){cards(first:25${after}){nodes{slug name rarityTyped pictureUrl anyPlayer{lastName shirtNumber}anyTeam{name ...on Club{country{slug}}}...on NBACard{seasonYear specialEdition power xp averageScore(type:LAST_TEN_PLAYED_SO5_AVERAGE_SCORE)}}pageInfo{hasNextPage endCursor}}}}`;
+      const query=`query{user(slug:"${slug}"){cards(first:25${after}){nodes{__typename slug name rarityTyped pictureUrl anyPlayer{lastName shirtNumber}anyTeam{name ...on Club{country{slug}}}...on NBACard{seasonYear specialEdition power xp averageScore(type:LAST_TEN_PLAYED_SO5_AVERAGE_SCORE)}}pageInfo{hasNextPage endCursor}}}}`;
       // 1. Essai direct navigateur (IP residentielle)
       try{
         const r=await fetch(SORARE_URL,{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({query}),signal:AbortSignal.timeout(9000)});
@@ -340,7 +340,7 @@ export default function Home() {
   // Liste equipes : ordre alphabetique par ville + Hall of Fame en tete
   const teamList=useMemo(()=>{
     const counts:Record<string,number>={};
-    for(const c of cards){if(isNBA(c.slug)&&c.anyTeam?.name){counts[c.anyTeam.name]=(counts[c.anyTeam.name]||0)+1;}}
+    for(const c of cards){if(isNBA(c)&&c.anyTeam?.name){counts[c.anyTeam.name]=(counts[c.anyTeam.name]||0)+1;}}
     const list=Object.entries(counts).map(([api,count])=>({api,display:api,count})).sort((a,b)=>a.api.localeCompare(b.api));
     const hofCount=cards.filter(c=>hof.includes(c.slug)).length;
     if(hofCount>0) list.unshift({api:HOF_KEY,display:'HALL OF FAME',count:hofCount});
@@ -353,7 +353,7 @@ export default function Home() {
   const lockerCards=useMemo(()=>{
     const pool = teamApi===HOF_KEY
       ? applyFilters(cards.filter(c=>hof.includes(c.slug)))
-      : applyFilters(cards.filter(c=>isNBA(c.slug)&&c.anyTeam?.name===teamApi));
+      : applyFilters(cards.filter(c=>isNBA(c)&&c.anyTeam?.name===teamApi));
     const byL10=(a:any,b:any)=>(b.averageScore??-1)-(a.averageScore??-1);
     // Epingles = cartes exactes (doublons autorises), dans l'ordre d'epinglage
     const pins=lineup[teamApi]||[];
@@ -374,10 +374,10 @@ export default function Home() {
   },[cards,teamApi,applyFilters,lockerSort,hof,lineup]);
 
   // Galerie = sport + filtres + tri
-  const footCountries=useMemo(()=>{const s=new Set<string>();cards.filter((c:any)=>!isNBA(c.slug)).forEach((c:any)=>{const co=c.anyTeam?.country?.slug;if(co)s.add(co);});return Array.from(s).sort();},[cards]);
-  const footTeams=useMemo(()=>{const s=new Set<string>();cards.filter((c:any)=>!isNBA(c.slug)).forEach((c:any)=>{if(gCountry!=='all'&&c.anyTeam?.country?.slug!==gCountry)return;if(c.anyTeam?.name)s.add(c.anyTeam.name);});return Array.from(s).sort();},[cards,gCountry]);
-  const galleryTeamList=useMemo(()=>{const ts=new Set<string>();cards.filter(c=>isNBA(c.slug)).forEach(c=>{if(!c.anyTeam?.name)return;ts.add(c.anyTeam.name);});return['all',...Array.from(ts).sort()] as string[];},[cards]);
-  const filteredGallery=useMemo(()=>{let base=cards.filter((c:any)=>gSport==='nba'?isNBA(c.slug):!isNBA(c.slug));let r=applyFilters(base);if(gSport==='foot'&&gCountry!=='all')r=r.filter((c:any)=>c.anyTeam?.country?.slug===gCountry);if(gTeamCustom!=='all')r=r.filter((c:any)=>(c.anyTeam?.name||'')===gTeamCustom);if(gSort==='rarity')return[...r].sort((a:any,b:any)=>(RARITY_ORDER[a.rarityTyped]??9)-(RARITY_ORDER[b.rarityTyped]??9));if(gSort==='score')return[...r].sort((a:any,b:any)=>parseFloat(String(b.averageScore||0))-parseFloat(String(a.averageScore||0)));if(gSort==='name')return[...r].sort((a:any,b:any)=>(a.anyPlayer?.lastName||'').localeCompare(b.anyPlayer?.lastName||''));return r;},[cards,applyFilters,gSport,gCountry,gTeamCustom,gSort]);
+  const footCountries=useMemo(()=>{const s=new Set<string>();cards.filter((c:any)=>!isNBA(c)).forEach((c:any)=>{const co=c.anyTeam?.country?.slug;if(co)s.add(co);});return Array.from(s).sort();},[cards]);
+  const footTeams=useMemo(()=>{const s=new Set<string>();cards.filter((c:any)=>!isNBA(c)).forEach((c:any)=>{if(gCountry!=='all'&&c.anyTeam?.country?.slug!==gCountry)return;if(c.anyTeam?.name)s.add(c.anyTeam.name);});return Array.from(s).sort();},[cards,gCountry]);
+  const galleryTeamList=useMemo(()=>{const ts=new Set<string>();cards.filter(c=>isNBA(c)).forEach(c=>{if(!c.anyTeam?.name)return;ts.add(c.anyTeam.name);});return['all',...Array.from(ts).sort()] as string[];},[cards]);
+  const filteredGallery=useMemo(()=>{let base=cards.filter((c:any)=>gSport==='nba'?isNBA(c):!isNBA(c));let r=applyFilters(base);if(gSport==='foot'&&gCountry!=='all')r=r.filter((c:any)=>c.anyTeam?.country?.slug===gCountry);if(gTeamCustom!=='all')r=r.filter((c:any)=>(c.anyTeam?.name||'')===gTeamCustom);if(gSort==='rarity')return[...r].sort((a:any,b:any)=>(RARITY_ORDER[a.rarityTyped]??9)-(RARITY_ORDER[b.rarityTyped]??9));if(gSort==='name')return[...r].sort((a:any,b:any)=>(a.anyPlayer?.lastName||'').localeCompare(b.anyPlayer?.lastName||''));return[...r].sort((a:any,b:any)=>parseFloat(String(b.averageScore||0))-parseFloat(String(a.averageScore||0)));},[cards,applyFilters,gSport,gCountry,gTeamCustom,gSort]);
 
   const goldGrad='linear-gradient(160deg,#a86f15 0%,#d9a52e 22%,#f7da80 48%,#e8b84a 68%,#b8801a 100%)';
   const fBtn=(a:boolean):React.CSSProperties=>({padding:'0.4rem 0.6rem',borderRadius:'0.15rem',border:'none',borderLeft:a?'2px solid #f5d76e':'2px solid rgba(255,255,255,0.08)',background:a?'rgba(245,215,110,0.12)':'rgba(255,255,255,0.025)',color:a?'#f5d76e':'#cfd8e6',cursor:'pointer',fontSize:'0.76rem',fontWeight:a?700:500,transition:'all 0.12s'});
