@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect, useRef, memo, useCallback, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import dynamic from 'next/dynamic';
 import GalleryView from './components/GalleryView';
 import StarCanvas from './components/StarCanvas';
@@ -132,6 +133,8 @@ LockerSlot.displayName='LockerSlot';
 
 const FilterMenu=({title,options,current,onSelect}:any)=>{
   const [open,setOpen]=useState(false);
+  const [mounted,setMounted]=useState(false);
+  useEffect(()=>{setMounted(true);},[]);
   const [pos,setPos]=useState({left:0,top:0,maxH:320});
   const ref=useRef<HTMLDivElement>(null);
   const cur=options.find((o:any)=>o.value===current);
@@ -143,13 +146,13 @@ const FilterMenu=({title,options,current,onSelect}:any)=>{
         <p style={{fontSize:'0.64rem',fontWeight:800,letterSpacing:'0.14em',textTransform:'uppercase',color:'#eaf2ff',margin:'0 0 0.05rem',opacity:1}}>{title}</p>
         <p style={{fontSize:'0.8rem',fontWeight:500,color:open?'#6fc3e8':'#ffffff',opacity:open?1:0.6,margin:0,transition:'all 0.12s',display:'flex',alignItems:'center',justifyContent:'space-between'}}>{cur?cur.label:'—'} <span style={{fontSize:'0.7rem',opacity:0.7}}>›</span></p>
       </div>
-      {open&&(
-        <div className='thin-sb' style={{position:'fixed',left:pos.left+'px',top:pos.top+'px',maxHeight:pos.maxH+'px',overflowY:'auto',minWidth:'190px',background:'#080a0e',border:'1px solid #6fc3e8',borderRadius:'0.4rem',padding:'0.3rem',boxShadow:'0 14px 38px rgba(0,0,0,0.7),0 0 14px rgba(111,195,232,0.18)',zIndex:300}}>
+      {open&&mounted&&createPortal(
+        <div className='thin-sb' style={{position:'fixed',left:pos.left+'px',top:pos.top+'px',maxHeight:pos.maxH+'px',overflowY:'auto',minWidth:'190px',background:'#080a0e',border:'1px solid #6fc3e8',borderRadius:'0.4rem',padding:'0.3rem',boxShadow:'0 14px 38px rgba(0,0,0,0.7),0 0 14px rgba(111,195,232,0.18)',zIndex:9999}}>
             {options.map((o:any)=>(
               <button key={o.value} onClick={()=>onSelect(o.value)} style={{display:'block',width:'100%',textAlign:'left',padding:'0.4rem 0.7rem',borderRadius:'0.25rem',border:'none',borderLeft:o.value===current?'2px solid #f5d76e':'2px solid transparent',cursor:'pointer',fontSize:'0.8rem',fontWeight:o.value===current?700:500,background:o.value===current?'rgba(245,215,110,0.12)':'transparent',color:o.value===current?'#f5d76e':'#cfd8e6',transition:'background 0.1s'}} onMouseEnter={e=>{if(o.value!==current)(e.currentTarget as HTMLElement).style.background='rgba(111,195,232,0.12)';}} onMouseLeave={e=>{if(o.value!==current)(e.currentTarget as HTMLElement).style.background='transparent';}}>{o.label}</button>
             ))}
         </div>
-      )}
+      ,document.body)}
     </div>
   );
 };
@@ -388,17 +391,7 @@ export default function Home() {
   const rarityOpts=[{value:'all',label:'Toutes les raretés'},{value:'common',label:'Common'},{value:'limited',label:'Limited'},{value:'rare',label:'Rare'},{value:'super_rare',label:'Super Rare'},{value:'unique',label:'Unique'}];
   const seasonOpts=[{value:'all',label:'Toutes saisons'},...seasonOptions.map(y=>({value:String(y),label:y+'-'+String((y+1)%100).padStart(2,'0')}))];
   const specialOpts=[{value:'all',label:'Toutes cartes'},{value:'standard',label:'Standard uniquement'},{value:'special',label:'Spéciales uniquement'},...specialOptions.map(s=>({value:s,label:specialLabel(s)}))];
-  const Filters=()=>(
-    <div>
-      <FilterMenu title='Rareté' options={rarityOpts} current={fRarity} onSelect={setFRarity}/>
-      <FilterMenu title='Saison' options={seasonOpts} current={fSeason} onSelect={setFSeason}/>
-      <FilterMenu title='Édition de la carte' options={specialOpts} current={fSpecial} onSelect={setFSpecial}/>
-      <div style={{padding:'0.35rem 0.5rem'}}>
-        <p style={{fontSize:'0.64rem',fontWeight:800,letterSpacing:'0.14em',textTransform:'uppercase',color:'#eaf2ff',margin:'0 0 0.3rem'}}>Joueur</p>
-        <input style={{width:'100%',boxSizing:'border-box',background:'rgba(255,255,255,0.05)',color:'#e8eefc',padding:'0.4rem 0.6rem',borderRadius:'0.15rem',border:'1px solid rgba(255,255,255,0.12)',outline:'none',fontSize:'0.78rem'}} placeholder='Rechercher...' value={fPlayer} onChange={e=>setFPlayer(e.target.value)}/>
-      </div>
-    </div>
-  );
+  // (composant Filters retiré — filtres inlinés dans la sidebar)
 
   return(
     <main style={{minHeight:'100vh',background:contentBg,backgroundAttachment:'fixed',color:'white',fontFamily:'system-ui,sans-serif',display:'flex'}}>
@@ -406,15 +399,15 @@ export default function Home() {
       {/* ===== BARRE LATERALE (glass sombre) ===== */}
       <aside style={{position:'fixed',left:0,top:0,width:'220px',height:'100vh',overflow:'hidden',background:sideBg,backdropFilter:'blur(12px)',WebkitBackdropFilter:'blur(12px)',borderRight:'1px solid rgba(111,195,232,0.35)',boxShadow:'1px 0 0 rgba(111,195,232,0.25), 6px 0 24px -6px rgba(111,195,232,0.22)',padding:'0.4rem 0.6rem',zIndex:50,scrollbarWidth:'none',display:'flex',flexDirection:'column' as const,gap:'0',fontFamily:"'Inter','Segoe UI',system-ui,-apple-system,sans-serif"}}>
 
-        {/* HEADER logo */}
-        <div style={{textAlign:'center',marginBottom:'0.3rem'}}>
-          <img src='/logo-pack.png' alt='myNFTlocker' style={{display:'inline-block',height:'42px',width:'auto',filter:'drop-shadow(0 4px 12px rgba(0,0,0,0.6))'}} onError={(e)=>{(e.target as HTMLImageElement).style.display='none';}}/>
+        {/* HEADER logo (x3) */}
+        <div style={{textAlign:'center',marginBottom:'0.2rem'}}>
+          <img src='/logo-pack.png' alt='myNFTlocker' style={{display:'inline-block',height:'126px',width:'auto',filter:'drop-shadow(0 6px 18px rgba(0,0,0,0.6))'}} onError={(e)=>{(e.target as HTMLImageElement).style.display='none';}}/>
         </div>
 
         {/* COMPTE */}
-        <div style={{display:'flex',flexDirection:'column' as const,gap:'0.25rem',marginBottom:'0.3rem'}}>
+        <div style={{display:'flex',flexDirection:'column' as const,gap:'0.2rem',marginBottom:'0.25rem'}}>
           <div onClick={()=>setAcctOpen(o=>!o)} style={{display:'flex',alignItems:'center',gap:'0.5rem',padding:'0.3rem 0.4rem',borderRadius:'0.3rem',cursor:'pointer',background:'rgba(255,255,255,0.03)',border:'1px solid rgba(111,195,232,0.18)',transition:'all 0.15s'}} onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.background='rgba(111,195,232,0.08)';}} onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.background='rgba(255,255,255,0.03)';}}>
-            <div style={{width:'30px',height:'30px',flexShrink:0,borderRadius:'50%',background:'radial-gradient(circle at 35% 30%,#1a1c24,#0a0b0f)',border:'1.5px solid #6fc3e8',boxShadow:'0 0 10px rgba(111,195,232,0.5)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'0.8rem',fontWeight:900,color:'#6fc3e8'}}>{(slug||'?').trim().charAt(0).toUpperCase()||'?'}</div>
+            <div style={{width:'28px',height:'28px',flexShrink:0,borderRadius:'50%',background:'radial-gradient(circle at 35% 30%,#1a1c24,#0a0b0f)',border:'1.5px solid #6fc3e8',boxShadow:'0 0 10px rgba(111,195,232,0.5)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'0.78rem',fontWeight:900,color:'#6fc3e8'}}>{(slug||'?').trim().charAt(0).toUpperCase()||'?'}</div>
             <div style={{flex:1,minWidth:0,textAlign:'left'}}>
               <p style={{margin:0,fontSize:'0.72rem',fontWeight:700,color:'#eaf2ff',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{cards.length>0?'Ma collection':'Mon compte'}</p>
               <p style={{margin:0,fontSize:'0.56rem',color:'#7a8898'}}>{cards.length>0?(cards.length+' cartes'):'Identifiant Sorare'}</p>
@@ -424,25 +417,29 @@ export default function Home() {
           {(acctOpen||cards.length===0)&&(
             <input style={{background:'rgba(255,255,255,0.05)',color:'#cfe4fb',padding:'0.28rem 0.55rem',borderRadius:'0.15rem',border:'1px solid rgba(255,255,255,0.1)',outline:'none',fontSize:'0.76rem',boxSizing:'border-box'}} placeholder='ton-slug-sorare' value={slug} onChange={e=>setSlug(e.target.value)} onKeyDown={e=>e.key==='Enter'&&fetchCards()}/>
           )}
-          <button style={{background:goldGrad,color:'#1a0d00',padding:'0.3rem',borderRadius:'0.15rem',border:'none',cursor:'pointer',fontWeight:800,fontSize:'0.8rem',letterSpacing:'0.04em',boxShadow:'0 2px 10px rgba(200,151,30,0.3)'}} onClick={fetchCards}>{loading?'Chargement...':'Voir ma collection'}</button>
         </div>
 
         {/* NAV Vestiaire / Galerie */}
-        <div style={{display:'flex',overflow:'hidden',border:'1px solid rgba(255,255,255,0.12)',marginBottom:'0.3rem',clipPath:'polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px)'}}>
-          <button style={{flex:1,padding:'0.28rem 0',border:'none',cursor:'pointer',fontSize:'0.72rem',fontWeight:700,background:mode==='locker'?'linear-gradient(160deg,#a86f15 0%,#d9a52e 22%,#f7da80 48%,#e8b84a 68%,#b8801a 100%)':'rgba(255,255,255,0.04)',color:mode==='locker'?'#1a0d00':'#7a8898',transition:'all 0.15s'}} onClick={()=>setMode('locker')}>Vestiaire</button>
+        <div style={{display:'flex',overflow:'hidden',border:'1px solid rgba(255,255,255,0.12)',marginBottom:'0.25rem',clipPath:'polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px)'}}>
+          <button style={{flex:1,padding:'0.26rem 0',border:'none',cursor:'pointer',fontSize:'0.72rem',fontWeight:700,background:mode==='locker'?'linear-gradient(160deg,#a86f15 0%,#d9a52e 22%,#f7da80 48%,#e8b84a 68%,#b8801a 100%)':'rgba(255,255,255,0.04)',color:mode==='locker'?'#1a0d00':'#7a8898',transition:'all 0.15s'}} onClick={()=>setMode('locker')}>Vestiaire</button>
           <div style={{width:'1px',background:'rgba(255,255,255,0.1)',flexShrink:0}}/>
-          <button style={{flex:1,padding:'0.28rem 0',border:'none',cursor:'pointer',fontSize:'0.72rem',fontWeight:700,background:mode==='gallery'?'linear-gradient(160deg,#a86f15 0%,#d9a52e 22%,#f7da80 48%,#e8b84a 68%,#b8801a 100%)':'rgba(255,255,255,0.04)',color:mode==='gallery'?'#1a0d00':'#7a8898',transition:'all 0.15s'}} onClick={()=>setMode('gallery')}>Galerie</button>
+          <button style={{flex:1,padding:'0.26rem 0',border:'none',cursor:'pointer',fontSize:'0.72rem',fontWeight:700,background:mode==='gallery'?'linear-gradient(160deg,#a86f15 0%,#d9a52e 22%,#f7da80 48%,#e8b84a 68%,#b8801a 100%)':'rgba(255,255,255,0.04)',color:mode==='gallery'?'#1a0d00':'#7a8898',transition:'all 0.15s'}} onClick={()=>setMode('gallery')}>Galerie</button>
         </div>
 
         {error&&<p style={{color:'#fca5a5',fontSize:'0.7rem',marginBottom:'0.4rem'}}>{error}</p>}
 
-        {/* FILTRES — identiques en vestiaire ET galerie */}
+        {/* FILTRES — ordre: Sport, Joueur, Equipe, Saison, Rarete, Edition, Tri */}
         {cards.length>0&&(
-          <div style={{textAlign:'left',flex:1,minHeight:0,display:'flex',flexDirection:'column' as const,gap:0}}>
-            <div style={{borderTop:'1px solid rgba(255,255,255,0.06)',paddingTop:'0.4rem'}}><Filters/></div>
-            <div style={{borderTop:'1px solid rgba(255,255,255,0.06)',margin:'0.15rem 0'}}/>
+          <div style={{textAlign:'left',flex:1,minHeight:0,display:'flex',flexDirection:'column' as const,gap:0,borderTop:'1px solid rgba(255,255,255,0.06)',paddingTop:'0.3rem'}}>
             <FilterMenu title='Sport' options={[{value:'nba',label:'NBA'},{value:'foot',label:'Football'}]} current={gSport} onSelect={(v:string)=>{setGSport(v as any);setGLeague('all');setGTeamCustom('all');}}/>
+            <div style={{padding:'0.2rem 0.5rem'}}>
+              <p style={{fontSize:'0.64rem',fontWeight:800,letterSpacing:'0.14em',textTransform:'uppercase',color:'#eaf2ff',margin:'0 0 0.2rem'}}>Joueur</p>
+              <input style={{width:'100%',boxSizing:'border-box',background:'rgba(255,255,255,0.05)',color:'#e8eefc',padding:'0.3rem 0.5rem',borderRadius:'0.15rem',border:'1px solid rgba(255,255,255,0.12)',outline:'none',fontSize:'0.76rem'}} placeholder='Rechercher...' value={fPlayer} onChange={e=>setFPlayer(e.target.value)}/>
+            </div>
             <FilterMenu title='Équipe' options={[{value:'all',label:'Toutes les équipes'},...(galleryTeamList as any[]).map((t:any)=>({value:t.api,label:t.display}))]} current={gTeamCustom} onSelect={(v:string)=>{setGTeamCustom(v);if(mode==='locker'){setTeamApi(v);}}}/>
+            <FilterMenu title='Saison' options={seasonOpts} current={fSeason} onSelect={setFSeason}/>
+            <FilterMenu title='Rareté' options={rarityOpts} current={fRarity} onSelect={setFRarity}/>
+            <FilterMenu title='Édition de la carte' options={specialOpts} current={fSpecial} onSelect={setFSpecial}/>
             <FilterMenu title='Tri' options={mode==='locker'?[{value:'majeur',label:'L10 Max'},{value:'manual',label:'Manuel'},{value:'collection',label:'Alphabétique'}]:[{value:'default',label:'Défaut'},{value:'rarity',label:'Rareté'},{value:'score',label:'Score L10'},{value:'name',label:'Nom'}]} current={mode==='locker'?lockerSort:gSort} onSelect={(v:string)=>{if(mode==='locker'){setLockerSort(v as any);}else{setGSort(v as any);}}}/>
             {mode==='locker'&&(
               <button onClick={()=>handleSetDefault(teamApi)} style={{width:'100%',boxSizing:'border-box' as const,padding:'0.3rem',background:'rgba(212,175,55,0.12)',border:'1px solid rgba(212,175,55,0.35)',borderRadius:'0.18rem',color:'#e8c84a',fontSize:'0.64rem',cursor:'pointer',letterSpacing:'0.08em',marginTop:'0.3rem'}}>⭐ Équipe par défaut</button>
