@@ -1,166 +1,202 @@
 'use client';
-import {useState,useEffect,useCallback,memo} from 'react';
+import { memo, useState, useEffect } from 'react';
 
-const RARITY_COLOR:Record<string,string>={common:'#9ca3af',limited:'#eab308',rare:'#3b82f6',super_rare:'#ef4444',unique:'#a855f7'};
-
-function parseCard(name:string){
-  const parts=name.split('•');const left=parts[0].trim();const right=(parts[1]||'').trim();
+const RARITY_GLOW: Record<string,string> = {
+  common:'0 0 9px 1px rgba(220,220,255,0.55)',
+  limited:'0 0 11px 1px rgba(234,179,8,0.95)',
+  rare:'0 0 12px 1px rgba(59,130,246,0.95)',
+  super_rare:'0 0 13px 2px rgba(239,68,68,0.97)',
+  unique:'0 0 15px 2px rgba(168,85,247,1)',
+};
+const RARITY_COLOR: Record<string,string> = {
+  common:'#9ca3af',limited:'#eab308',rare:'#3b82f6',super_rare:'#ef4444',unique:'#a855f7',
+};
+const RARITY_FILL: Record<string,string> = {
+  common:'#a8a8b5',limited:'#b48a14',rare:'#1e4ba8',super_rare:'#a82a2a',unique:'#7e3fc4',
+};
+const isNBA=(c:any)=>c?.__typename==='NBACard';
+const parseCard=(name:string)=>{
+  const parts=name.split('\u2022');const left=parts[0].trim();const right=(parts[1]||'').trim();
   const sm=left.match(/(\d{4}-\d{2})/);const season=sm?sm[1]:'';
+  const pn=left.replace(/\d{4}-\d{2}/,'').trim();
+  const lastName=(pn.split(' ').pop()||'').toUpperCase();
   const sr=right.match(/(\d+\/\d+)/);
-  return{season,serial:sr?('#'+sr[1]):'—'};
-}
+  return {lastName,season,serial:sr?sr[1]:null};
+};
+const nfs=(l:number)=>l<=5?'1.45rem':l<=7?'1.2rem':l<=9?'1rem':l<=11?'0.82rem':l<=13?'0.7rem':'0.6rem';
 
-const GalleryPod=memo(({card,isActive,onActivate}:any)=>{
-  const [hover,setHover]=useState(false);
-  const [scanning,setScanning]=useState(false);
-  const rc=RARITY_COLOR[card.rarityTyped]||'#9ca3af';
-  const handleClick=useCallback(()=>{
-    if(isActive){onActivate(null);return;}
-    if(scanning)return;
-    setScanning(true);
-    setTimeout(()=>{setScanning(false);onActivate(card.slug);},480);
-  },[isActive,scanning,card.slug,onActivate]);
-  const tilt=hover||isActive?'rotateX(0deg) rotateY(0deg)':'rotateX(5deg) rotateY(-4deg)';
+// ===== DOS DE CARTE (identique vestiaire) =====
+const CardBack=memo(({card,rc}:any)=>{
+  const {season,serial}=parseCard(card.name);
+  const ln=(card.anyPlayer?.lastName||parseCard(card.name).lastName).toUpperCase();
+  const sn=card.anyPlayer?.shirtNumber??null;
+  const bonus=card.power?('+'+Math.round((parseFloat(card.power)-1)*100)+'%'):null;
+  const score=card.averageScore!=null?String(card.averageScore):null;
+  const stats:any[]=[['L10',score||'\u2014',true],['Beat L10','\uD83D\uDD12',false],['GW','\uD83D\uDD12',false],['R\u00e9comp.','\uD83D\uDD12',false]];
   return(
-    <div style={{perspective:'600px',cursor:'pointer',userSelect:'none'}} onClick={handleClick} onMouseEnter={()=>setHover(true)} onMouseLeave={()=>setHover(false)}>
-      <div style={{position:'relative',borderRadius:'10px',background:'rgba(255,255,255,0.025)',backdropFilter:'blur(10px)',WebkitBackdropFilter:'blur(10px)',border:isActive?'1px solid rgba(64,232,255,0.5)':'1px solid rgba(255,255,255,0.08)',boxShadow:`0 0 18px ${rc}50,0 8px 28px rgba(0,0,0,0.7),inset 0 0 22px ${rc}18`,transform:tilt,transformStyle:'preserve-3d',transition:'transform 0.4s ease,box-shadow 0.3s ease,border-color 0.3s',overflow:'hidden',aspectRatio:'0.73',animation:(!hover&&!isActive)?'galFloat 4s ease-in-out infinite':undefined}}>
-        <img src={card.pictureUrl||''} alt={card.name} loading='lazy' style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}} onError={(e:any)=>{e.target.style.display='none';}}/>
-        <div style={{position:'absolute',top:0,left:0,right:0,height:'3px',background:`linear-gradient(to right,transparent,${rc},transparent)`,opacity:0.85}}/>
-        <div style={{position:'absolute',bottom:0,left:0,right:0,background:'linear-gradient(to top,rgba(0,0,0,0.92) 0%,transparent 100%)',padding:'1.2rem 0.5rem 0.45rem'}}>
-          <p style={{margin:0,fontSize:'0.65rem',fontWeight:900,color:'#fff',letterSpacing:'0.06em',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{(card.anyPlayer?.lastName||'').toUpperCase()}</p>
-          <p style={{margin:'1px 0 0',fontSize:'0.48rem',color:rc,letterSpacing:'0.12em',fontFamily:'Courier New,monospace'}}>{card.rarityTyped.replace(/_/g,' ').toUpperCase()}</p>
-        </div>
-        {isActive&&(<svg style={{position:'absolute',top:0,left:0,width:'100%',height:'100%',zIndex:10,pointerEvents:'none',overflow:'visible'}}><rect x='0' y='0' width='100%' height='100%' rx='10' pathLength='1000' fill='none' stroke='#40e8ff' strokeWidth='2' style={{filter:'drop-shadow(0 0 6px rgba(64,232,255,0.9))',strokeDasharray:'1000',strokeDashoffset:'1000',animation:'galTrace 1.2s ease-in-out 0.3s both'}}/></svg>)}
-        {scanning&&(<div style={{position:'absolute',left:0,right:0,height:'3px',top:0,background:'linear-gradient(to right,transparent,#00ffff 30%,#00ffff 70%,transparent)',boxShadow:'0 0 16px 6px rgba(0,255,255,0.65)',animation:'galScan 0.48s ease-in-out forwards',pointerEvents:'none',zIndex:20}}/>)}
+    <div style={{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'rotateY(180deg)',borderRadius:'0.5rem',overflow:'hidden',background:'radial-gradient(ellipse 130% 90% at 50% 0%,#191b24 0%,#0c0d14 60%,#06070d 100%)',display:'flex',flexDirection:'column' as const,border:'1px solid '+rc+'44'}}>
+      <div style={{height:'3px',background:'linear-gradient(90deg,transparent,'+rc+',transparent)'}}></div>
+      <div style={{padding:'0.35rem 0.4rem 0.3rem',textAlign:'center',borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
+        <p style={{margin:0,fontSize:'0.6rem',color:'#e3c074',fontWeight:900,letterSpacing:'0.08em'}}>myNFTlocker</p>
+        <p style={{margin:'1px 0 0',fontSize:'0.48rem',color:'#9aa3b2',fontWeight:600,letterSpacing:'0.1em'}}>{isNBA(card)?'NBA':'FOOT'} \u2022 {season}</p>
+      </div>
+      <div style={{flex:1,minHeight:0,display:'flex',flexDirection:'column' as const,alignItems:'center',justifyContent:'center',padding:'0.2rem 0.3rem',overflow:'hidden'}}>
+        <p style={{margin:0,width:'100%',fontSize:nfs(ln.length),fontWeight:900,color:'#fff',lineHeight:1.05,textAlign:'center',textShadow:'0 0 14px '+rc+'aa',overflow:'hidden'}}>{ln}</p>
+        <p style={{margin:'2px 0 0',fontSize:'0.5rem',color:'#9aa3b2',fontWeight:700,letterSpacing:'0.05em'}}>{sn!==null?('#'+sn):''}{(sn!==null&&serial)?'  \u00b7  ':''}{serial||''}</p>
+      </div>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',borderTop:'1px solid rgba(255,255,255,0.06)',padding:'0.3rem 0.1rem'}}>
+        {stats.map(([l,v,hot]:any)=>(
+          <div key={l} style={{textAlign:'center'}}>
+            <p style={{margin:0,fontSize:hot?'0.95rem':'0.62rem',fontWeight:900,color:hot?'#fff':'#5c6470',lineHeight:1.1,textShadow:(hot&&score)?('0 0 10px '+rc+'88'):'none'}}>{v}</p>
+            <p style={{margin:'1px 0 0',fontSize:'0.4rem',color:hot?rc:'#5c6470',textTransform:'uppercase',fontWeight:800,letterSpacing:'0.03em'}}>{l}</p>
+          </div>
+        ))}
+      </div>
+      <div style={{display:'flex',gap:'0.3rem',padding:'0.3rem 0.4rem 0.45rem'}}>
+        <span style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',height:'1.05rem',borderRadius:'0.3rem',border:'1px solid '+rc+'55',background:rc+'15',fontSize:'0.46rem',fontWeight:800,color:rc,letterSpacing:'0.02em',whiteSpace:'nowrap'}}>BONUS {bonus||'\u2014'}</span>
+        <span style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',height:'1.05rem',borderRadius:'0.3rem',border:'1px solid '+rc+'55',background:'rgba(0,0,0,0.4)',fontSize:'0.46rem',fontWeight:700,color:rc,textTransform:'uppercase',letterSpacing:'0.02em',whiteSpace:'nowrap'}}>{card.rarityTyped.replace('_',' ')}</span>
       </div>
     </div>
   );
 });
-GalleryPod.displayName='GalleryPod';
+CardBack.displayName='CardBack';
 
-const GalleryHUD=memo(({card,onClose,closing}:any)=>{
+// ===== CARTE GALERIE (flip 3D + halo cyan + trace, identique vestiaire) =====
+const GalleryCard=memo(({card,isFlipped,onFlip}:any)=>{
+  const [hover,setHover]=useState(false);
+  const glow=RARITY_GLOW[card.rarityTyped]||RARITY_GLOW.common;
+  const fill=RARITY_FILL[card.rarityTyped]||RARITY_FILL.common;
   const rc=RARITY_COLOR[card.rarityTyped]||'#9ca3af';
-  const{season,serial}=parseCard(card.name);
-  const ln=(card.anyPlayer?.lastName||'').toUpperCase();
+  return(
+    <div style={{perspective:'900px',cursor:'pointer',width:'100%',position:'relative'}} onClick={()=>onFlip(card.slug)} onMouseEnter={()=>setHover(true)} onMouseLeave={()=>setHover(false)}>
+      <div style={{position:'relative',transformStyle:'preserve-3d',transition:'transform 0.4s cubic-bezier(0.2,0.8,0.3,1),box-shadow 0.3s ease',transform:(isFlipped?'rotateY(180deg)':'rotateY(0deg)')+((hover&&!isFlipped)?' translateY(-10px) scale(1.03)':''),boxShadow:isFlipped?'0 0 12px 3px rgba(64,232,255,0.45),0 0 24px 6px rgba(64,232,255,0.2)':((hover&&!isFlipped)?glow+', 0 22px 40px -8px rgba(0,0,0,0.7)':glow),borderRadius:'0.5rem',background:fill,...({['--rc']:rc,animation:isFlipped?'mnflCyanPulse 2.2s ease-in-out infinite':undefined} as any)}}>
+        <div style={{backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',borderRadius:'0.5rem',overflow:'hidden'}}>
+          <img src={card.pictureUrl} alt={card.name} loading='lazy' style={{width:'100%',height:'auto',display:'block'}} onError={(e:any)=>{e.target.style.display='none';}}/>
+        </div>
+        <CardBack card={card} rc={rc}/>
+      </div>
+      {isFlipped&&(<svg style={{position:'absolute',top:0,left:0,width:'100%',height:'100%',zIndex:22,pointerEvents:'none',overflow:'visible'}}><rect x='0' y='0' width='100%' height='100%' rx='8' pathLength='1000' fill='none' stroke='#40e8ff' strokeWidth='2.5' style={{filter:'drop-shadow(0 0 9px rgba(64,232,255,0.9))',strokeDasharray:'1000',strokeDashoffset:'1000',animation:'mnflCardTrace 1.4s ease-in-out 0.5s both'}}/></svg>)}
+    </div>
+  );
+});
+GalleryCard.displayName='GalleryCard';
+
+// ===== TABLEAU NOIR (StatPanel identique vestiaire, overlay fixe) =====
+const StatPanel=memo(({card,onClose,isClosing=false}:any)=>{
+  const rc=RARITY_COLOR[card.rarityTyped]||'#9ca3af';
+  const {season,serial}=parseCard(card.name);
+  const ln=(card.anyPlayer?.lastName||parseCard(card.name).lastName).toUpperCase();
   const sn=card.anyPlayer?.shirtNumber;
-  const bonus=card.power?('+'+Math.round((parseFloat(card.power)-1)*100)+'%'):null;
-  const avg=card.averageScore!=null?parseFloat(String(card.averageScore)):null;
-  const nbaSeasonStr=card.seasonYear?String(card.seasonYear)+'-'+String(card.seasonYear+1).slice(2):'2025-26';
-  const team=card.anyTeam?.name||'—';
-  const xp=card.xp?card.xp.toLocaleString():'—';
+  const bonus=card.power?('+'+(Math.round((parseFloat(card.power)-1)*100))+'%'):null;
+  const avgNum=card.averageScore!=null?parseFloat(String(card.averageScore)):null;
+  const team=card.anyTeam?.name||'\u2014';
+  const xp=card.xp?card.xp.toLocaleString():'\u2014';
   const edition=card.specialEdition?card.specialEdition.replace(/_/g,' ').toUpperCase():'STANDARD';
+  const nbaSeasonStr=card.seasonYear&&card.seasonYear>2000?String(card.seasonYear)+'-'+String(card.seasonYear+1).slice(2):'2025-26';
   const raw=(card.anyPlayer?.playerGameScores||[]).map((s:any)=>s.score).filter((s:any)=>s!=null) as number[];
   const scores=[...raw].reverse();
-  const W=170,H=36,n=scores.length;
-  const mn=Math.min(...(n?scores:[0]),0),mx=Math.max(...(n?scores:[1]),1),rng=mx-mn||1;
-  const sx=(i:number)=>((i/Math.max(n-1,1))*(W-8)+4).toFixed(1);
-  const sy=(s:number)=>(H-4-((s-mn)/rng)*(H-8)).toFixed(1);
-  const pts=n>1?scores.map((s,i)=>`${sx(i)},${sy(s)}`).join(' '):'';
-  const gid='gh'+card.slug.slice(-4);
-  const CY='#40e8ff';const CYS='0 0 8px rgba(64,232,255,0.5)';const LK='🔒';
   const [typedName,setTypedName]=useState('');
+  const [countedAvg,setCountedAvg]=useState('0');
   const [nbaStats,setNbaStats]=useState<any>(null);
   const [nbaLoading,setNbaLoading]=useState(false);
-  const [vis,setVis]=useState([false,false,false]);
-  useEffect(()=>{let i=0;let iv:any;const t=setTimeout(()=>{iv=setInterval(()=>{i++;setTypedName(ln.slice(0,i));if(i>=ln.length)clearInterval(iv);},44);},250);return()=>{clearTimeout(t);clearInterval(iv);};},[ln]);
-  useEffect(()=>{const ts=[setTimeout(()=>setVis(v=>[true,v[1],v[2]]),200),setTimeout(()=>setVis(v=>[v[0],true,v[2]]),480),setTimeout(()=>setVis(v=>[v[0],v[1],true]),760)];return()=>ts.forEach(clearTimeout);},[]);
-  useEffect(()=>{if(!card.anyPlayer?.lastName)return;setNbaLoading(true);fetch(`/api/player-stats?name=${encodeURIComponent(card.anyPlayer.lastName)}&season=${card.seasonYear||0}`).then(r=>r.json()).then(d=>{if(!d.error)setNbaStats(d);}).catch(()=>{}).finally(()=>setNbaLoading(false));},[]);
-  const fv=(v:any,t:string)=>{if(v==null)return '—';const n=Number(v);if(t==='pct')return n.toFixed(1)+'%';if(t==='pm')return(n>=0?'+':'')+n.toFixed(1);return n.toFixed(1);};
-  const cT={margin:'0 0 0.25rem',fontSize:'0.42rem',fontWeight:900,color:'rgba(64,232,255,0.65)',letterSpacing:'0.22em',textTransform:'uppercase',borderBottom:'1px solid rgba(64,232,255,0.14)',paddingBottom:'0.12rem'};
-  const cS=(i:number)=>({display:'flex',flexDirection:'column' as const,overflow:'hidden',opacity:vis[i]?1:0,transform:vis[i]?'translateY(0)':'translateY(8px)',transition:'opacity 0.4s ease,transform 0.4s ease'});
+  useEffect(()=>{let i=0;let iv:any;const t=setTimeout(()=>{iv=setInterval(()=>{i++;setTypedName(ln.slice(0,i));if(i>=ln.length)clearInterval(iv);},45);},600);return()=>{clearTimeout(t);clearInterval(iv);};},[ln]);
+  useEffect(()=>{if(avgNum==null)return;let step=0;let iv:any;const t=setTimeout(()=>{iv=setInterval(()=>{step++;const cur=Math.min((avgNum/20)*step,avgNum);setCountedAvg(cur%1===0?String(Math.round(cur)):cur.toFixed(1));if(step>=20)clearInterval(iv);},40);},700);return()=>{clearTimeout(t);clearInterval(iv);};},[avgNum]);
+  useEffect(()=>{if(!card.anyPlayer?.lastName)return;setNbaLoading(true);fetch('/api/player-stats?name='+encodeURIComponent(card.anyPlayer.lastName)+'&season='+(card.seasonYear||0)).then(r=>r.json()).then(d=>{if(!d.error)setNbaStats(d);}).catch(()=>{}).finally(()=>setNbaLoading(false));},[]);
+  const W=240,H=46,n=scores.length;
+  const mn=Math.min(...(n?scores:[0]),0),mx=Math.max(...(n?scores:[1]),1),rng=mx-mn||1;
+  const sx=(i:number)=>((i/Math.max(n-1,1))*(W-10)+5).toFixed(1);
+  const sy=(s:number)=>(H-5-((s-mn)/rng)*(H-10)).toFixed(1);
+  const pts=n>1?scores.map((s,i)=>sx(i)+','+sy(s)).join(' '):'';
+  const gid='sg'+card.slug.slice(-4);
+  const CY='#40e8ff';const CYS='0 0 8px rgba(64,232,255,0.5)';
+  const sep:React.CSSProperties={borderBottom:'1px solid rgba(64,232,255,0.16)',paddingBottom:'0.42rem',marginBottom:'0.42rem',flexShrink:0};
+  const fv=(v:any,t:string)=>{if(v==null)return '\u2014';const nn=Number(v);if(t==='pct')return nn.toFixed(1)+'%';if(t==='pm')return(nn>=0?'+':'')+nn.toFixed(1);return nn.toFixed(1);};
   return(
-    <div style={{position:'fixed',right:'1.5%',top:'8%',width:'34%',height:'84%',zIndex:200,background:'rgba(2,8,20,0.94)',border:'1px solid rgba(64,232,255,0.45)',boxShadow:'0 0 50px rgba(64,232,255,0.12),inset 0 0 60px rgba(0,0,0,0.5)',backdropFilter:'blur(16px)',WebkitBackdropFilter:'blur(16px)',clipPath:closing?undefined:'polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px)',fontFamily:'Courier New,Consolas,monospace',animation:closing?'galHudClose 0.55s cubic-bezier(0.8,0,1,0.8) both':'galHudOpen 0.5s ease-out both',display:'flex',flexDirection:'column' as const,overflow:'hidden',padding:'0.8rem'}}>
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',borderBottom:'1px solid rgba(64,232,255,0.18)',paddingBottom:'0.45rem',marginBottom:'0.45rem',flexShrink:0}}>
+    <div key={card.slug} style={{position:'fixed',right:'1.5%',top:'7%',width:'33%',maxWidth:'440px',height:'86vh',zIndex:200,background:'repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(64,232,255,0.03) 2px,rgba(64,232,255,0.03) 3px),linear-gradient(rgba(2,10,22,0.95),rgba(2,10,22,0.95))',border:'1px solid rgba(64,232,255,0.5)',boxShadow:'0 0 40px rgba(64,232,255,0.15),inset 0 0 60px rgba(0,0,0,0.5)',clipPath:isClosing?'none':'polygon(14px 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,0 100%,0 14px)',padding:'0.8rem 0.75rem',display:'flex',flexDirection:'column' as const,overflow:'hidden',animation:isClosing?'mnflClose 0.45s cubic-bezier(0.7,0,0.95,1) both':'mnflDeploy 0.55s ease-out 0.1s backwards',fontFamily:'Courier New,Consolas,monospace',backdropFilter:isClosing?'none':'blur(12px)',WebkitBackdropFilter:isClosing?'none':'blur(12px)'}}>
+      <div style={{...sep,display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
         <div>
-          <p style={{margin:0,fontSize:'0.5rem',color:'rgba(64,232,255,0.5)',fontWeight:700,letterSpacing:'0.2em',textTransform:'uppercase'}}>myNFTlocker · GALLERY</p>
-          <p style={{margin:'3px 0 2px',fontSize:'1.05rem',fontWeight:900,color:CY,letterSpacing:'0.07em',textShadow:CYS,minHeight:'1.3em'}}>{typedName}{typedName.length<ln.length?'▊':''}</p>
-          <p style={{margin:0,fontSize:'0.56rem',color:'rgba(64,232,255,0.35)'}}>{sn!=null?'#'+sn+' · ':''}{season}</p>
+          <p style={{margin:0,fontSize:'0.55rem',color:'rgba(64,232,255,0.5)',fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase'}}>myNFTlocker \u00b7 STATS</p>
+          <p style={{margin:'4px 0 2px',fontSize:'1.1rem',fontWeight:900,color:CY,letterSpacing:'0.06em',textShadow:CYS,minHeight:'1.35em'}}>{typedName}{typedName.length<ln.length?'\u258a':''}</p>
+          <p style={{margin:0,fontSize:'0.6rem',color:'rgba(64,232,255,0.38)',letterSpacing:'0.04em'}}>{sn!=null?'#'+sn+' \u00b7 ':''}{season}</p>
         </div>
-        <button onClick={onClose} style={{background:'transparent',border:'1px solid rgba(64,232,255,0.3)',borderRadius:'50%',width:'20px',height:'20px',color:CY,cursor:'pointer',fontSize:'0.55rem',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,marginTop:'2px'}}>✕</button>
+        <button onClick={!isClosing?onClose:undefined} style={{background:'transparent',border:'1px solid rgba(64,232,255,0.35)',borderRadius:'50%',width:'20px',height:'20px',color:CY,cursor:'pointer',fontSize:'0.55rem',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,opacity:isClosing?0:1,marginTop:'2px'}}>\u2715</button>
       </div>
-      <div style={{flex:1,display:'grid',gridTemplateColumns:'1fr 1px 1fr 1px 1fr',minHeight:0,overflow:'hidden'}}>
-        <div style={cS(0)}>
-          <p style={cT}>SORARE</p>
-          <div style={{textAlign:'center',margin:'0.1rem 0 0.22rem'}}>
-            <p style={{margin:0,fontSize:'1.9rem',fontWeight:900,color:CY,lineHeight:1,textShadow:'0 0 20px '+CY}}>{avg!=null?avg.toFixed(1):'—'}</p>
-            <p style={{margin:0,fontSize:'0.36rem',color:'rgba(64,232,255,0.55)',letterSpacing:'0.2em',textTransform:'uppercase'}}>MOY. L10</p>
-          </div>
-          {bonus&&<div style={{textAlign:'center',padding:'0.16rem',border:'1px solid rgba(64,232,255,0.25)',borderRadius:'0.2rem',background:'rgba(64,232,255,0.06)',marginBottom:'0.18rem'}}><span style={{fontSize:'0.56rem',fontWeight:800,color:CY,textShadow:CYS}}>{bonus}</span><span style={{fontSize:'0.35rem',color:'rgba(64,232,255,0.45)',marginLeft:'0.18rem'}}>BONUS</span></div>}
-          <div style={{textAlign:'center',padding:'0.14rem',border:'1px solid '+rc+'50',borderRadius:'0.2rem',background:rc+'0c',marginBottom:'0.2rem'}}><span style={{fontSize:'0.46rem',fontWeight:900,color:rc,letterSpacing:'0.1em',textShadow:'0 0 6px '+rc}}>{card.rarityTyped.replace(/_/g,' ').toUpperCase()}</span></div>
-          {(['BEAT L10','GW','RÉCOMP.'] as string[]).map(l=>(<div key={l} style={{display:'flex',justifyContent:'space-between',marginBottom:'0.08rem'}}><span style={{fontSize:'0.38rem',color:'rgba(64,232,255,0.3)'}}>{l}</span><span style={{fontSize:'0.36rem',color:'rgba(64,232,255,0.18)'}}>{LK}</span></div>))}
-          {n>1&&<div style={{marginTop:'auto',paddingTop:'0.15rem'}}>
-            <p style={{margin:'0 0 0.08rem',fontSize:'0.34rem',color:'rgba(64,232,255,0.42)',letterSpacing:'0.1em',textTransform:'uppercase'}}>↗  10 MATCHS</p>
-            <svg width='100%' viewBox={`0 0 ${W} ${H}`} style={{display:'block',overflow:'visible'}}>
-              <defs><linearGradient id={gid} x1='0' y1='0' x2='0' y2='1'><stop offset='0%' stopColor={rc} stopOpacity='0.28'/><stop offset='100%' stopColor={rc} stopOpacity='0'/></linearGradient></defs>
-              <polygon points={`4,${H-4} ${pts} ${sx(n-1)},${H-4}`} fill={`url(#${gid})`}/>
-              <polyline points={pts} fill='none' stroke={rc} strokeWidth='1.6' strokeLinejoin='round'/>
-            </svg>
-          </div>}
+      <div style={{...sep,display:'flex',alignItems:'stretch'}}>
+        <div style={{width:'50%',textAlign:'center',display:'flex',flexDirection:'column' as const,justifyContent:'center',borderRight:'1px solid rgba(64,232,255,0.1)',paddingRight:'0.5rem'}}>
+          <p style={{margin:0,fontSize:'2.2rem',fontWeight:900,color:CY,lineHeight:1,textShadow:'0 0 22px '+CY}}>{countedAvg}</p>
+          <p style={{margin:'2px 0 0',fontSize:'0.52rem',color:'rgba(64,232,255,0.6)',letterSpacing:'0.2em',textTransform:'uppercase'}}>MOY. L10</p>
         </div>
-        <div style={{background:'rgba(64,232,255,0.14)'}}/>
-        <div style={cS(1)}>
-          <p style={cT}>NBA · {nbaSeasonStr}</p>
-          {nbaLoading&&<p style={{margin:0,fontSize:'0.54rem',color:'rgba(64,232,255,0.4)',letterSpacing:'0.1em'}}>SCAN...</p>}
-          {!nbaLoading&&nbaStats&&(
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0.1rem'}}>
-              {([[' PPG',nbaStats.pts,'dec'],[' APG',nbaStats.ast,'dec'],[' RPG',nbaStats.reb,'dec'],[' STL',nbaStats.stl,'dec'],[' BLK',nbaStats.blk,'dec'],[' TOV',nbaStats.tov,'dec'],[' MIN',nbaStats.min,'dec'],[' FG%',nbaStats.fgp,'pct'],[' 3P%',nbaStats.tp,'pct'],[' FT%',nbaStats.ftp,'pct'],[' FTA',nbaStats.fta,'dec'],[' +/-',nbaStats.pm,'pm']] as any[]).map(([l,v,t]:any)=>(<div key={l} style={{display:'flex',justifyContent:'space-between',borderBottom:'1px solid rgba(64,232,255,0.07)',paddingBottom:'0.04rem'}}><span style={{fontSize:'0.37rem',color:'rgba(64,232,255,0.42)',letterSpacing:'0.05em'}}>{l}</span><span style={{fontSize:'0.42rem',fontWeight:700,color:CY,textShadow:'0 0 4px rgba(64,232,255,0.28)'}}>{fv(v,t)}</span></div>))}
-            </div>
-          )}
-          {!nbaLoading&&!nbaStats&&<p style={{margin:0,fontSize:'0.5rem',color:'rgba(64,232,255,0.25)'}}>non disponibles</p>}
+        <div style={{width:'50%',display:'flex',flexDirection:'column' as const,gap:'0.24rem',paddingLeft:'0.5rem',justifyContent:'center'}}>
+          {bonus&&<div style={{padding:'0.22rem 0.4rem',border:'1px solid rgba(64,232,255,0.28)',borderRadius:'0.25rem',background:'rgba(64,232,255,0.07)',display:'flex',justifyContent:'space-between',alignItems:'baseline'}}><span style={{fontSize:'0.52rem',color:'rgba(64,232,255,0.55)',letterSpacing:'0.1em'}}>BONUS</span><span style={{fontSize:'0.72rem',fontWeight:800,color:CY,textShadow:CYS}}>{bonus}</span></div>}
+          <div style={{padding:'0.22rem 0.4rem',border:'1px solid '+rc+'55',borderRadius:'0.25rem',background:rc+'0d',textAlign:'center'}}><span style={{fontSize:'0.65rem',fontWeight:900,color:rc,letterSpacing:'0.1em',textShadow:'0 0 7px '+rc}}>{card.rarityTyped.replace(/_/g,' ').toUpperCase()}</span></div>
         </div>
-        <div style={{background:'rgba(64,232,255,0.14)'}}/>
-        <div style={cS(2)}>
-          <p style={cT}>WEB 3.0</p>
-          {([['ÉQUIPE',team],['SAISON',season],['SÉRIE',serial],['XP',xp],['ÉDITION',edition]] as [string,string][]).map(([l,v])=>(
-            <div key={l} style={{marginBottom:'0.18rem',minWidth:0}}>
-              <span style={{display:'block',fontSize:'0.34rem',color:'rgba(64,232,255,0.38)',letterSpacing:'0.1em',textTransform:'uppercase'}}>{l}</span>
-              <span style={{display:'block',fontSize:'0.56rem',fontWeight:700,color:CY,textShadow:'0 0 5px rgba(64,232,255,0.25)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{v}</span>
+      </div>
+      {n>1&&<div style={{...sep}}>
+        <p style={{margin:'0 0 0.2rem',fontSize:'0.5rem',color:'rgba(64,232,255,0.48)',letterSpacing:'0.14em',textTransform:'uppercase'}}>\u2197  10 DERNIERS MATCHS</p>
+        <svg width='100%' viewBox={'0 0 '+W+' '+H} style={{display:'block',overflow:'visible'}}>
+          <defs><linearGradient id={gid} x1='0' y1='0' x2='0' y2='1'><stop offset='0%' stopColor={rc} stopOpacity='0.28'/><stop offset='100%' stopColor={rc} stopOpacity='0'/></linearGradient></defs>
+          <polygon points={'5,'+(H-5)+' '+pts+' '+sx(n-1)+','+(H-5)} fill={'url(#'+gid+')'}/>
+          <polyline points={pts} fill='none' stroke={rc} strokeWidth='1.8' strokeLinejoin='round' strokeLinecap='round'/>
+          {scores.map((s:number,i:number)=>i%2===0?<circle key={i} cx={sx(i)} cy={sy(s)} r='2.5' fill={rc} opacity='0.9'/>:null)}
+        </svg>
+      </div>}
+      <div style={{...sep}}>
+        <p style={{margin:'0 0 0.3rem',fontSize:'0.52rem',fontWeight:900,color:'rgba(64,232,255,0.6)',letterSpacing:'0.2em',textTransform:'uppercase'}}>CARTE</p>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0.18rem 0.6rem'}}>
+          {([[' \u00c9QUIPE',team],[' S\u00c9RIE',serial],[' SAISON',season],[' XP',xp],[' \u00c9DITION',edition]] as [string,string][]).map(([l,v])=>(
+            <div key={l} style={{minWidth:0}}>
+              <span style={{display:'block',fontSize:'0.5rem',color:'rgba(64,232,255,0.4)',letterSpacing:'0.1em',textTransform:'uppercase'}}>{l}</span>
+              <span style={{display:'block',fontSize:'0.72rem',fontWeight:700,color:CY,textShadow:'0 0 5px rgba(64,232,255,0.3)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{v}</span>
             </div>
           ))}
-          <div style={{marginTop:'auto',borderTop:'1px solid rgba(64,232,255,0.1)',paddingTop:'0.2rem'}}>
-            {([['PRIX','-- ETH'],['OWNER','--']] as [string,string][]).map(([l,v])=>(
-              <div key={l} style={{display:'flex',justifyContent:'space-between',marginBottom:'0.08rem'}}><span style={{fontSize:'0.38rem',color:'rgba(64,232,255,0.3)',letterSpacing:'0.08em'}}>{l}</span><span style={{fontSize:'0.42rem',color:'rgba(64,232,255,0.18)'}}>{v} {LK}</span></div>
-            ))}
+        </div>
+      </div>
+      <div style={{...sep,flex:1,minHeight:0,overflow:'hidden'}}>
+        <p style={{margin:'0 0 0.3rem',fontSize:'0.52rem',fontWeight:900,color:'rgba(64,232,255,0.6)',letterSpacing:'0.2em',textTransform:'uppercase'}}>NBA STATS \u00b7 {nbaStats?.season||nbaSeasonStr}</p>
+        {nbaLoading&&<p style={{margin:0,fontSize:'0.62rem',color:'rgba(64,232,255,0.42)',letterSpacing:'0.14em'}}>CHARGEMENT...</p>}
+        {!nbaLoading&&nbaStats&&(
+          <div style={{display:'grid',gridTemplateColumns:'repeat(6,1fr)',gap:'0.18rem'}}>
+            {([[' PTS',nbaStats.pts,'dec'],[' AST',nbaStats.ast,'dec'],[' REB',nbaStats.reb,'dec'],[' STL',nbaStats.stl,'dec'],[' BLK',nbaStats.blk,'dec'],[' TOV',nbaStats.tov,'dec'],[' MIN',nbaStats.min,'dec'],[' FG%',nbaStats.fgp,'pct'],[' 3P%',nbaStats.tp,'pct'],[' FT%',nbaStats.ftp,'pct'],[' FTA',nbaStats.fta,'dec'],[' +/-',nbaStats.pm,'pm']] as any[]).map(([l,v,t]:any)=>(<div key={l} style={{textAlign:'center',padding:'0.16rem 0.08rem',border:'1px solid rgba(64,232,255,0.14)',borderRadius:'0.2rem',background:'rgba(64,232,255,0.04)'}}><span style={{display:'block',fontSize:'0.4rem',color:'rgba(64,232,255,0.5)',letterSpacing:'0.04em',textTransform:'uppercase'}}>{l}</span><span style={{display:'block',fontSize:'0.76rem',fontWeight:900,color:CY,textShadow:CYS,lineHeight:1.15}}>{fv(v,t)}</span></div>))}
           </div>
+        )}
+        {!nbaLoading&&!nbaStats&&<p style={{margin:0,fontSize:'0.58rem',color:'rgba(64,232,255,0.28)',letterSpacing:'0.06em'}}>stats non disponibles</p>}
+      </div>
+      <div style={{flexShrink:0,marginTop:'auto',paddingTop:'0.3rem',borderTop:'1px solid rgba(64,232,255,0.14)'}}>
+        <div style={{display:'flex',gap:'0.3rem',marginBottom:'0.22rem'}}>
+          {['BEAT L10','GW','R\u00c9COMP.'].map((l:string)=>(
+            <div key={l} style={{flex:1,padding:'0.16rem 0',border:'1px solid rgba(64,232,255,0.1)',borderRadius:'0.2rem',textAlign:'center',background:'rgba(64,232,255,0.025)'}}><span style={{fontSize:'0.5rem',color:'rgba(64,232,255,0.28)',letterSpacing:'0.03em'}}>{l} \uD83D\uDD12</span></div>
+          ))}
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0.3rem',marginTop:'0.15rem'}}>
+          {([['PRIX','-- ETH'],['OWNER','--']] as [string,string][]).map(([l,v])=>(
+            <div key={l} style={{background:'rgba(0,0,0,0.3)',border:'1px solid rgba(64,232,255,0.12)',borderRadius:'0.25rem',padding:'0.28rem 0.4rem',display:'flex',flexDirection:'column' as const,gap:'0.1rem'}}><span style={{fontSize:'0.42rem',color:'rgba(64,232,255,0.4)',letterSpacing:'0.1em',textTransform:'uppercase'}}>{l} \uD83D\uDD12</span><span style={{fontSize:'0.62rem',color:'rgba(64,232,255,0.28)',fontWeight:600}}>{v}</span></div>
+          ))}
         </div>
       </div>
     </div>
   );
 });
-GalleryHUD.displayName='GalleryHUD';
+StatPanel.displayName='StatPanel';
 
 export default function GalleryView({cards}:{cards:any[]}){
   const [activeSlug,setActiveSlug]=useState<string|null>(null);
-  const [closingSlug,setClosingSlug]=useState<string|null>(null);
-  const handleActivate=useCallback((slug:string|null)=>{
-    if(!slug){setClosingSlug(activeSlug);setTimeout(()=>{setActiveSlug(null);setClosingSlug(null);},650);}
-    else{setActiveSlug(slug);setClosingSlug(null);}
-  },[activeSlug]);
-  const activeCard=cards.find(c=>c.slug===activeSlug);
-  const isClosing=closingSlug!=null&&closingSlug===activeSlug;
+  const [isClosing,setIsClosing]=useState(false);
+  const startClose=()=>{setIsClosing(true);setTimeout(()=>{setActiveSlug(null);setIsClosing(false);},600);};
+  const handleFlip=(slug:string)=>{if(slug===activeSlug){startClose();}else{setActiveSlug(slug);setIsClosing(false);}};
+  const activeCard=activeSlug?(cards.find(c=>c.slug===activeSlug)||null):null;
   return(
-    <>
-      <style>{`
-        @keyframes galScan{0%{top:-4px;opacity:0}8%{opacity:1}92%{opacity:1}100%{top:calc(100% + 4px);opacity:0}}
-        @keyframes galFloat{0%,100%{transform:rotateX(5deg) rotateY(-4deg) translateY(0px)}50%{transform:rotateX(5deg) rotateY(-4deg) translateY(-5px)}}
-        @keyframes galTrace{0%{stroke-dashoffset:1000}100%{stroke-dashoffset:0}}
-        @keyframes galHudOpen{0%{opacity:0;clip-path:inset(0 100% 0 0);transform:perspective(900px) rotateY(-6deg) translateX(20px)}40%{opacity:0.8}100%{opacity:1;clip-path:inset(0 0% 0 0);transform:perspective(900px) rotateY(0deg) translateX(0)}}
-        @keyframes galHudClose{0%{clip-path:inset(0 0 0 0);opacity:1;filter:brightness(1)}25%{clip-path:inset(8% 12% 8% 12%);filter:brightness(1.5)}55%{clip-path:inset(30% 35% 30% 35%);filter:brightness(3)}78%{clip-path:inset(46% 48% 46% 48%);filter:brightness(6)}88%{clip-path:inset(49% 0 49% 0);filter:brightness(9)}96%{clip-path:inset(49.5% 44% 49.5% 44%);filter:brightness(12)}100%{clip-path:inset(50% 50% 50% 50%);opacity:0;filter:brightness(0)}}
-        .gal-scroll::-webkit-scrollbar{width:3px}.gal-scroll::-webkit-scrollbar-track{background:transparent}.gal-scroll::-webkit-scrollbar-thumb{background:rgba(64,232,255,0.2);border-radius:2px}
-      `}</style>
-      <div style={{padding:'1.2rem',minHeight:'100%',boxSizing:'border-box'}}>
-        {cards.length===0?(
-          <div style={{display:'flex',flexDirection:'column' as const,alignItems:'center',justifyContent:'center',height:'55vh',color:'rgba(64,232,255,0.28)',fontFamily:'Courier New,monospace',gap:'0.5rem'}}>
-            <p style={{fontSize:'2rem',margin:0}}>⬡</p>
-            <p style={{fontSize:'0.7rem',letterSpacing:'0.25em',textTransform:'uppercase',margin:0}}>Aucune carte</p>
-          </div>
-        ):(
-          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(160px,1fr))',gap:'1.4rem',perspective:'1400px'}}>
-            {cards.map(c=>(<GalleryPod key={c.slug} card={c} isActive={activeSlug===c.slug} onActivate={handleActivate}/>))}
-          </div>
-        )}
-      </div>
-      {activeCard&&(<GalleryHUD key={activeCard.slug} card={activeCard} onClose={()=>handleActivate(null)} closing={isClosing}/>)}
-    </>
+    <div style={{padding:'1.2rem',minHeight:'100%',boxSizing:'border-box'}}>
+      {cards.length===0?(
+        <div style={{display:'flex',flexDirection:'column' as const,alignItems:'center',justifyContent:'center',height:'55vh',color:'rgba(64,232,255,0.28)',fontFamily:'Courier New,monospace',gap:'0.5rem'}}>
+          <p style={{fontSize:'2rem',margin:0}}>\u2b21</p>
+          <p style={{fontSize:'0.7rem',letterSpacing:'0.25em',textTransform:'uppercase',margin:0}}>Aucune carte</p>
+        </div>
+      ):(
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(150px,1fr))',gap:'1.4rem'}}>
+          {cards.map(c=>(<GalleryCard key={c.slug} card={c} isFlipped={activeSlug===c.slug} onFlip={handleFlip}/>))}
+        </div>
+      )}
+      {activeCard&&<StatPanel key={activeCard.slug} card={activeCard} isClosing={isClosing} onClose={startClose}/>}
+    </div>
   );
 }
