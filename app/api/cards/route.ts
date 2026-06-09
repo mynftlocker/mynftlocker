@@ -5,7 +5,7 @@ export async function GET(request:NextRequest){
   const cursor=searchParams.get('cursor')||null;
   if(!slug)return NextResponse.json({error:'Slug manquant'},{status:400});
   const after=cursor?`, after: "${cursor}"` :'';
-  const query=`query{user(slug:"${slug}"){cards(first:25${after}){nodes{slug name rarityTyped pictureUrl ...on NBACard{seasonYear specialEdition power xp averageScore(type:LAST_TEN_PLAYED_SO5_AVERAGE_SCORE)anyTeam{name}anyPlayer{lastName shirtNumber}}}pageInfo{hasNextPage endCursor}}}}`;
+  const query=`query{user(slug:"${slug}"){cards(first:25${after}){nodes{__typename slug name rarityTyped pictureUrl ...on NBACard{seasonYear specialEdition power xp averageScore(type:LAST_TEN_PLAYED_SO5_AVERAGE_SCORE)anyTeam{name}anyPlayer{lastName shirtNumber}}}pageInfo{hasNextPage endCursor}}}}`;
   try{
     const res=await fetch('https://api.sorare.com/federation/graphql',{
       method:'POST',
