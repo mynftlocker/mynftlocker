@@ -392,7 +392,7 @@ export default function Home() {
     <div>
       <FilterMenu title='Rareté' options={rarityOpts} current={fRarity} onSelect={setFRarity}/>
       <FilterMenu title='Saison' options={seasonOpts} current={fSeason} onSelect={setFSeason}/>
-      <FilterMenu title='Cartes spéciales' options={specialOpts} current={fSpecial} onSelect={setFSpecial}/>
+      <FilterMenu title='Édition de la carte' options={specialOpts} current={fSpecial} onSelect={setFSpecial}/>
       <div style={{padding:'0.35rem 0.5rem'}}>
         <p style={{fontSize:'0.64rem',fontWeight:800,letterSpacing:'0.14em',textTransform:'uppercase',color:'#eaf2ff',margin:'0 0 0.3rem'}}>Joueur</p>
         <input style={{width:'100%',boxSizing:'border-box',background:'rgba(255,255,255,0.05)',color:'#e8eefc',padding:'0.4rem 0.6rem',borderRadius:'0.15rem',border:'1px solid rgba(255,255,255,0.12)',outline:'none',fontSize:'0.78rem'}} placeholder='Rechercher...' value={fPlayer} onChange={e=>setFPlayer(e.target.value)}/>
@@ -406,12 +406,13 @@ export default function Home() {
       {/* ===== BARRE LATERALE (glass sombre) ===== */}
       <aside style={{position:'fixed',left:0,top:0,width:'220px',height:'100vh',overflow:'hidden',background:sideBg,backdropFilter:'blur(12px)',WebkitBackdropFilter:'blur(12px)',borderRight:'1px solid rgba(111,195,232,0.35)',boxShadow:'1px 0 0 rgba(111,195,232,0.25), 6px 0 24px -6px rgba(111,195,232,0.22)',padding:'0.4rem 0.6rem',zIndex:50,scrollbarWidth:'none',display:'flex',flexDirection:'column' as const,gap:'0',fontFamily:"'Inter','Segoe UI',system-ui,-apple-system,sans-serif"}}>
 
-        {/* ──── HEADER : centré ──── */}
-        <div style={{textAlign:'center',marginBottom:'0.55rem'}}>
-          <img src='/logo-pack.png' alt='myNFTlocker' style={{display:'inline-block',height:'42px',width:'auto',filter:'drop-shadow(0 6px 18px rgba(0,0,0,0.6))'}} onError={(e)=>{(e.target as HTMLImageElement).style.display='none';}}/>
+        {/* HEADER logo */}
+        <div style={{textAlign:'center',marginBottom:'0.3rem'}}>
+          <img src='/logo-pack.png' alt='myNFTlocker' style={{display:'inline-block',height:'42px',width:'auto',filter:'drop-shadow(0 4px 12px rgba(0,0,0,0.6))'}} onError={(e)=>{(e.target as HTMLImageElement).style.display='none';}}/>
         </div>
-        <div style={{display:'flex',flexDirection:'column' as const,gap:'0.4rem',marginBottom:'0.45rem'}}>
-          {/* Avatar compte (panneau identifiant au clic) */}
+
+        {/* COMPTE */}
+        <div style={{display:'flex',flexDirection:'column' as const,gap:'0.25rem',marginBottom:'0.3rem'}}>
           <div onClick={()=>setAcctOpen(o=>!o)} style={{display:'flex',alignItems:'center',gap:'0.5rem',padding:'0.3rem 0.4rem',borderRadius:'0.3rem',cursor:'pointer',background:'rgba(255,255,255,0.03)',border:'1px solid rgba(111,195,232,0.18)',transition:'all 0.15s'}} onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.background='rgba(111,195,232,0.08)';}} onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.background='rgba(255,255,255,0.03)';}}>
             <div style={{width:'30px',height:'30px',flexShrink:0,borderRadius:'50%',background:'radial-gradient(circle at 35% 30%,#1a1c24,#0a0b0f)',border:'1.5px solid #6fc3e8',boxShadow:'0 0 10px rgba(111,195,232,0.5)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'0.8rem',fontWeight:900,color:'#6fc3e8'}}>{(slug||'?').trim().charAt(0).toUpperCase()||'?'}</div>
             <div style={{flex:1,minWidth:0,textAlign:'left'}}>
@@ -421,75 +422,33 @@ export default function Home() {
             <span style={{fontSize:'0.6rem',color:'#6fc3e8',opacity:0.8}}>{(acctOpen||cards.length===0)?'▲':'▼'}</span>
           </div>
           {(acctOpen||cards.length===0)&&(
-            <input style={{background:'rgba(255,255,255,0.05)',color:'#cfe4fb',padding:'0.4rem 0.65rem',borderRadius:'0.15rem',border:'1px solid rgba(255,255,255,0.1)',outline:'none',fontSize:'0.76rem',boxSizing:'border-box'}} placeholder='ton-slug-sorare' value={slug} onChange={e=>setSlug(e.target.value)} onKeyDown={e=>e.key==='Enter'&&fetchCards()}/>
+            <input style={{background:'rgba(255,255,255,0.05)',color:'#cfe4fb',padding:'0.28rem 0.55rem',borderRadius:'0.15rem',border:'1px solid rgba(255,255,255,0.1)',outline:'none',fontSize:'0.76rem',boxSizing:'border-box'}} placeholder='ton-slug-sorare' value={slug} onChange={e=>setSlug(e.target.value)} onKeyDown={e=>e.key==='Enter'&&fetchCards()}/>
           )}
-          <button style={{background:goldGrad,color:'#1a0d00',padding:'0.42rem',borderRadius:'0.15rem',border:'none',cursor:'pointer',fontWeight:800,fontSize:'0.8rem',letterSpacing:'0.04em',boxShadow:'0 2px 10px rgba(200,151,30,0.3)'}} onClick={fetchCards}>{loading?'Chargement...':'Voir ma collection'}</button>
+          <button style={{background:goldGrad,color:'#1a0d00',padding:'0.3rem',borderRadius:'0.15rem',border:'none',cursor:'pointer',fontWeight:800,fontSize:'0.8rem',letterSpacing:'0.04em',boxShadow:'0 2px 10px rgba(200,151,30,0.3)'}} onClick={fetchCards}>{loading?'Chargement...':'Voir ma collection'}</button>
         </div>
 
-        {/* ──── SEGMENTED Vestiaire / Galerie (toujours visible) ──── */}
-        <div style={{display:'flex',overflow:'hidden',border:'1px solid rgba(255,255,255,0.12)',marginBottom:'0.5rem',clipPath:'polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px)'}}>
-          <button style={{flex:1,padding:'0.4rem 0',border:'none',cursor:'pointer',fontSize:'0.76rem',fontWeight:700,background:mode==='locker'?'linear-gradient(160deg,#a86f15 0%,#d9a52e 22%,#f7da80 48%,#e8b84a 68%,#b8801a 100%)':'rgba(255,255,255,0.04)',color:mode==='locker'?'#1a0d00':'#7a8898',transition:'all 0.15s',display:'flex',alignItems:'center',justifyContent:'center',gap:'0.3rem'}} onClick={()=>setMode('locker')}>Vestiaire</button>
+        {/* NAV Vestiaire / Galerie */}
+        <div style={{display:'flex',overflow:'hidden',border:'1px solid rgba(255,255,255,0.12)',marginBottom:'0.3rem',clipPath:'polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px)'}}>
+          <button style={{flex:1,padding:'0.28rem 0',border:'none',cursor:'pointer',fontSize:'0.72rem',fontWeight:700,background:mode==='locker'?'linear-gradient(160deg,#a86f15 0%,#d9a52e 22%,#f7da80 48%,#e8b84a 68%,#b8801a 100%)':'rgba(255,255,255,0.04)',color:mode==='locker'?'#1a0d00':'#7a8898',transition:'all 0.15s'}} onClick={()=>setMode('locker')}>Vestiaire</button>
           <div style={{width:'1px',background:'rgba(255,255,255,0.1)',flexShrink:0}}/>
-          <button style={{flex:1,padding:'0.4rem 0',border:'none',cursor:'pointer',fontSize:'0.76rem',fontWeight:700,background:mode==='gallery'?'linear-gradient(160deg,#a86f15 0%,#d9a52e 22%,#f7da80 48%,#e8b84a 68%,#b8801a 100%)':'rgba(255,255,255,0.04)',color:mode==='gallery'?'#1a0d00':'#7a8898',transition:'all 0.15s',display:'flex',alignItems:'center',justifyContent:'center',gap:'0.3rem'}} onClick={()=>setMode('gallery')}>Galerie</button>
+          <button style={{flex:1,padding:'0.28rem 0',border:'none',cursor:'pointer',fontSize:'0.72rem',fontWeight:700,background:mode==='gallery'?'linear-gradient(160deg,#a86f15 0%,#d9a52e 22%,#f7da80 48%,#e8b84a 68%,#b8801a 100%)':'rgba(255,255,255,0.04)',color:mode==='gallery'?'#1a0d00':'#7a8898',transition:'all 0.15s'}} onClick={()=>setMode('gallery')}>Galerie</button>
         </div>
 
         {error&&<p style={{color:'#fca5a5',fontSize:'0.7rem',marginBottom:'0.4rem'}}>{error}</p>}
 
-        {/* ──── FILTRES : alignés à gauche ──── */}
+        {/* FILTRES — identiques en vestiaire ET galerie */}
         {cards.length>0&&(
-          <div style={{textAlign:'left',flex:1,display:'flex',flexDirection:'column' as const,gap:0}}>
-            <div style={{borderTop:'1px solid rgba(255,255,255,0.06)',paddingTop:'0.45rem'}}><Filters/></div>
+          <div style={{textAlign:'left',flex:1,minHeight:0,display:'flex',flexDirection:'column' as const,gap:0}}>
+            <div style={{borderTop:'1px solid rgba(255,255,255,0.06)',paddingTop:'0.4rem'}}><Filters/></div>
+            <div style={{borderTop:'1px solid rgba(255,255,255,0.06)',margin:'0.15rem 0'}}/>
+            <FilterMenu title='Sport' options={[{value:'nba',label:'NBA'},{value:'foot',label:'Football'}]} current={gSport} onSelect={(v:string)=>{setGSport(v as any);setGLeague('all');setGTeamCustom('all');}}/>
+            <FilterMenu title='Équipe' options={[{value:'all',label:'Toutes les équipes'},...(galleryTeamList as any[]).map((t:any)=>({value:t.api,label:t.display}))]} current={gTeamCustom} onSelect={(v:string)=>{setGTeamCustom(v);if(mode==='locker'){setTeamApi(v);}}}/>
+            <FilterMenu title='Tri' options={mode==='locker'?[{value:'majeur',label:'L10 Max'},{value:'manual',label:'Manuel'},{value:'collection',label:'Alphabétique'}]:[{value:'default',label:'Défaut'},{value:'rarity',label:'Rareté'},{value:'score',label:'Score L10'},{value:'name',label:'Nom'}]} current={mode==='locker'?lockerSort:gSort} onSelect={(v:string)=>{if(mode==='locker'){setLockerSort(v as any);}else{setGSort(v as any);}}}/>
             {mode==='locker'&&(
-              <div style={{marginTop:'0.5rem',padding:'0 0.5rem'}}>
-                <p style={{fontSize:'0.64rem',fontWeight:800,letterSpacing:'0.14em',textTransform:'uppercase',color:'rgba(255,255,255,0.45)',marginBottom:'0.3rem'}}>TRI VESTIAIRE</p>
-                <div style={{display:'flex',flexDirection:'column' as const,overflow:'hidden',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'0.2rem',marginBottom:'0.4rem'}}>
-                  <button onClick={()=>setLockerSort('majeur')} onMouseEnter={e=>{if(lockerSort!=='majeur'){(e.currentTarget as HTMLElement).style.background='rgba(255,255,255,0.04)';}}} onMouseLeave={e=>{if(lockerSort!=='majeur'){(e.currentTarget as HTMLElement).style.background='transparent';}}} style={{padding:'0.3rem 0.5rem',border:'none',borderBottom:'1px solid rgba(255,255,255,0.06)',cursor:'pointer',fontSize:'0.68rem',textAlign:'left' as const,background:lockerSort==='majeur'?'rgba(212,175,55,0.18)':'transparent',color:lockerSort==='majeur'?'#e8c84a':'rgba(255,255,255,0.5)',fontWeight:lockerSort==='majeur'?700:400,transition:'all 0.15s'}}>Majeurs</button>
-                  <button onClick={()=>setLockerSort('collection')} onMouseEnter={e=>{if(lockerSort!=='collection'){(e.currentTarget as HTMLElement).style.background='rgba(255,255,255,0.04)';}}} onMouseLeave={e=>{if(lockerSort!=='collection'){(e.currentTarget as HTMLElement).style.background='transparent';}}} style={{padding:'0.3rem 0.5rem',border:'none',borderBottom:'1px solid rgba(255,255,255,0.06)',cursor:'pointer',fontSize:'0.68rem',textAlign:'left' as const,background:lockerSort==='collection'?'rgba(212,175,55,0.18)':'transparent',color:lockerSort==='collection'?'#e8c84a':'rgba(255,255,255,0.5)',fontWeight:lockerSort==='collection'?700:400,transition:'all 0.15s'}}>Collection</button>
-                  <button onClick={()=>setLockerSort('manual')} onMouseEnter={e=>{if(lockerSort!=='manual'){(e.currentTarget as HTMLElement).style.background='rgba(255,255,255,0.04)';}}} onMouseLeave={e=>{if(lockerSort!=='manual'){(e.currentTarget as HTMLElement).style.background='transparent';}}} style={{padding:'0.3rem 0.5rem',border:'none',cursor:'pointer',fontSize:'0.68rem',textAlign:'left' as const,background:lockerSort==='manual'?'rgba(212,175,55,0.18)':'transparent',color:lockerSort==='manual'?'#e8c84a':'rgba(255,255,255,0.5)',fontWeight:lockerSort==='manual'?700:400,transition:'all 0.15s'}}>Manuel</button>
-                </div>
-                <button onClick={()=>handleSetDefault(teamApi)} style={{marginTop:'0.4rem',width:'100%',boxSizing:'border-box' as const,padding:'0.36rem',background:'rgba(212,175,55,0.12)',border:'1px solid rgba(212,175,55,0.35)',borderRadius:'0.18rem',color:'#e8c84a',fontSize:'0.64rem',cursor:'pointer',letterSpacing:'0.08em'}}>⭐ Équipe par défaut</button>
-              </div>
-            )}
-            <div style={{borderTop:'1px solid rgba(255,255,255,0.06)',margin:'0.5rem 0'}}/>
-            <p style={{fontSize:'0.6rem',fontWeight:800,letterSpacing:'0.14em',textTransform:'uppercase',color:'rgba(255,255,255,0.45)',margin:'0 0 0.32rem',padding:'0 0.5rem'}}>SPORT</p>
-            <div style={{display:'flex',gap:'0.35rem',flexWrap:'wrap',marginBottom:'0.75rem',padding:'0 0.5rem'}}>
-              {(['nba','foot'] as const).map(s=>(
-                <button key={s} onClick={()=>{setGSport(s);setGLeague('all');setGTeamCustom('all');setGLeagueOpen(false);setGClubOpen(false);}}
-                  style={{padding:'0.26rem 0.7rem',border:'1px solid',borderRadius:'2rem',cursor:'pointer',fontSize:'0.68rem',fontWeight:700,letterSpacing:'0.08em',transition:'all 0.18s',background:'transparent',borderColor:gSport===s?'rgba(0,225,255,0.8)':'rgba(255,255,255,0.15)',color:gSport===s?'#00e5ff':'rgba(255,255,255,0.5)',boxShadow:gSport===s?'0 0 8px rgba(0,225,255,0.25)':'none'}}
-                >{s.toUpperCase()}</button>
-              ))}
-            </div>
-            <p style={{fontSize:'0.6rem',fontWeight:800,letterSpacing:'0.14em',textTransform:'uppercase',color:'rgba(255,255,255,0.45)',margin:'0 0 0.32rem',padding:'0 0.5rem'}}>ÉQUIPE</p>
-            <div style={{position:'relative',marginBottom:'0.65rem',padding:'0 0.5rem'}}>
-              {(()=>{const curTeam=(galleryTeamList as any[]).find(t=>t.api===gTeamCustom);const label=curTeam?.display||'Toutes les équipes';return(
-              <div>
-              <div onClick={(e)=>{const r=(e.currentTarget as HTMLElement).getBoundingClientRect();setGClubPos({t:r.bottom+2,l:r.right+4});setGClubOpen((o:boolean)=>!o);}} style={{display:'flex',alignItems:'center',justifyContent:'space-between',background:'rgba(10,10,12,0.95)',border:'1px solid rgba(0,225,255,0.3)',borderRadius:'0.2rem',padding:'0.36rem 0.55rem',cursor:'pointer',fontSize:'0.7rem',color:'rgba(255,255,255,0.8)',transition:'border-color 0.15s',borderColor:gClubOpen?'rgba(0,225,255,0.7)':'rgba(0,225,255,0.3)'}}>
-                <span style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1}}>{label}</span>
-                <span style={{marginLeft:'0.4rem',transform:gClubOpen?'rotate(180deg)':'rotate(0)',transition:'transform 0.2s',color:'rgba(0,225,255,0.7)',fontSize:'0.6rem'}}>▾</span>
-              </div>
-              {gClubOpen&&(
-                <div className='gal-scroll' style={{position:'fixed',top:gClubPos.t+'px',left:gClubPos.l+'px',width:'190px',background:'rgba(8,8,12,0.98)',border:'1px solid rgba(0,225,255,0.35)',borderRadius:'0.2rem',zIndex:400,maxHeight:'65vh',overflowY:'auto'}}>
-                  <div onClick={()=>{setGTeamCustom('all');setGClubOpen(false);}} style={{padding:'0.36rem 0.55rem',fontSize:'0.7rem',cursor:'pointer',transition:'background 0.12s',background:gTeamCustom==='all'?'rgba(0,225,255,0.1)':'transparent',color:gTeamCustom==='all'?'#00e5ff':'rgba(255,255,255,0.75)'}} onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.background='rgba(0,225,255,0.07)';}} onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.background=gTeamCustom==='all'?'rgba(0,225,255,0.1)':'transparent';}}>Toutes les équipes</div>
-                  {(galleryTeamList as any[]).map(t=>(
-                    <div key={t.api} onClick={()=>{setGTeamCustom(t.api);setGClubOpen(false);if(mode==='locker'){setTeamApi(t.api);}}} style={{padding:'0.36rem 0.55rem',fontSize:'0.7rem',cursor:'pointer',transition:'background 0.12s',background:t.api===gTeamCustom?'rgba(0,225,255,0.1)':'transparent',color:t.api===gTeamCustom?'#00e5ff':'rgba(255,255,255,0.75)'}} onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.background='rgba(0,225,255,0.07)';}} onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.background=t.api===gTeamCustom?'rgba(0,225,255,0.1)':'transparent';}}>{t.display}</div>
-                  ))}
-                </div>
-              )}
-              </div>
-              );})()} 
-            </div>
-            {mode==='gallery'&&(
-              <div style={{padding:'0 0.5rem'}}>
-              <p style={{fontSize:'0.6rem',fontWeight:800,letterSpacing:'0.14em',textTransform:'uppercase',color:'rgba(255,255,255,0.45)',margin:'0 0 0.32rem',padding:'0 0.5rem'}}>TRI</p>
-              <div style={{display:'flex',flexDirection:'column' as const,overflow:'hidden',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'0.2rem'}}>
-                {([['default','Défaut'],['rarity','Rareté'],['score','Score L10'],['name','Nom']] as [string,string][]).map(([v,l])=>(
-                  <button key={v} onClick={()=>setGSort(v as any)} style={{padding:'0.3rem 0.5rem',border:'none',borderBottom:'1px solid rgba(255,255,255,0.06)',cursor:'pointer',fontSize:'0.68rem',textAlign:'left' as const,background:gSort===v?'rgba(212,175,55,0.18)':'transparent',color:gSort===v?'#e8c84a':'rgba(255,255,255,0.5)',fontWeight:gSort===v?700:400,transition:'all 0.15s'}}>{l}</button>
-                ))}
-              </div>
-              </div>
+              <button onClick={()=>handleSetDefault(teamApi)} style={{width:'100%',boxSizing:'border-box' as const,padding:'0.3rem',background:'rgba(212,175,55,0.12)',border:'1px solid rgba(212,175,55,0.35)',borderRadius:'0.18rem',color:'#e8c84a',fontSize:'0.64rem',cursor:'pointer',letterSpacing:'0.08em',marginTop:'0.3rem'}}>⭐ Équipe par défaut</button>
             )}
           </div>
-         )}
+        )}
       </aside>
 
       {/* ===== CONTENU ===== */}
