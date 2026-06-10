@@ -101,7 +101,7 @@ const StatPanel=memo(({card,onClose,isClosing=false}:any)=>{
   const [nbaLoading,setNbaLoading]=useState(false);
   useEffect(()=>{let i=0;let iv:any;const t=setTimeout(()=>{iv=setInterval(()=>{i++;setTypedName(ln.slice(0,i));if(i>=ln.length)clearInterval(iv);},45);},600);return()=>{clearTimeout(t);clearInterval(iv);};},[ln]);
   useEffect(()=>{if(avgNum==null)return;let step=0;let iv:any;const t=setTimeout(()=>{iv=setInterval(()=>{step++;const cur=Math.min((avgNum/20)*step,avgNum);setCountedAvg(cur%1===0?String(Math.round(cur)):cur.toFixed(1));if(step>=20)clearInterval(iv);},40);},700);return()=>{clearTimeout(t);clearInterval(iv);};},[avgNum]);
-  useEffect(()=>{if(!card.anyPlayer?.lastName)return;setNbaLoading(true);fetch('/api/player-stats?name='+encodeURIComponent(card.anyPlayer.lastName)+'&season='+(card.seasonYear||0)).then(r=>r.json()).then(d=>{if(!d.error)setNbaStats(d);}).catch(()=>{}).finally(()=>setNbaLoading(false));},[]);
+  useEffect(()=>{if(!card.anyPlayer?.lastName)return;const _full=(card.name.split('\u2022')[0]||'').replace(/\d{4}-\d{2}/,'').trim();setNbaLoading(true);fetch('/api/player-stats?name='+encodeURIComponent(_full||card.anyPlayer.lastName)+'&season='+(card.seasonYear||0)).then(r=>r.json()).then(d=>{if(!d.error)setNbaStats(d);}).catch(()=>{}).finally(()=>setNbaLoading(false));},[]);
   const W=240,H=46,n=scores.length;
   const mn=Math.min(...(n?scores:[0]),0),mx=Math.max(...(n?scores:[1]),1),rng=mx-mn||1;
   const sx=(i:number)=>((i/Math.max(n-1,1))*(W-10)+5).toFixed(1);
