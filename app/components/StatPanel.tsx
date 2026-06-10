@@ -81,10 +81,9 @@ export const StatPanel=memo(({card,onClose,isClosing=false,placement='scene'}:an
   const _full=(card.name.split('•')[0]||'').replace(/\d{4}-\d{2}/,'').trim();
   useEffect(()=>{let i=0;let iv:any;const t=setTimeout(()=>{iv=setInterval(()=>{i++;setTypedName(ln.slice(0,i));if(i>=ln.length)clearInterval(iv);},45);},600);return()=>{clearTimeout(t);clearInterval(iv);};},[ln]);
   useEffect(()=>{if(avgNum==null)return;let step=0;let iv:any;const t=setTimeout(()=>{iv=setInterval(()=>{step++;const cur=Math.min((avgNum/20)*step,avgNum);setCountedAvg(cur%1===0?String(Math.round(cur)):cur.toFixed(1));if(step>=20)clearInterval(iv);},40);},700);return()=>{clearTimeout(t);clearInterval(iv);};},[avgNum]);
-  const [footStats,setFootStats]=useState<any>(null);
-  const [footLoading,setFootLoading]=useState(false);
+
   useEffect(()=>{if(!card.anyPlayer?.lastName)return;setNbaLoading(true);fetch(`/api/player-stats?name=${encodeURIComponent(_full||card.anyPlayer.lastName)}&season=${card.seasonYear||0}`).then(r=>r.json()).then(d=>{if(!d.error)setNbaStats(d);}).catch(()=>{}).finally(()=>setNbaLoading(false));},[]);
-  useEffect(()=>{if(isNBA(card))return;if(!card.anyPlayer?.lastName)return;setFootLoading(true);const tm=encodeURIComponent(_full||card.anyPlayer.lastName);const te=encodeURIComponent(card.anyTeam?.name||'');fetch(`/api/player-stats-foot?name=${tm}&team=${te}&season=${card.seasonYear||0}`).then(r=>r.json()).then(d=>{if(!d.error)setFootStats(d);}).catch(()=>{}).finally(()=>setFootLoading(false));},[]);
+
   const W=240,H=46,n=scores.length;
   const mn=Math.min(...(n?scores:[0]),0),mx=Math.max(...(n?scores:[1]),1),rng=mx-mn||1;
   const sx=(i:number)=>((i/Math.max(n-1,1))*(W-10)+5).toFixed(1);
@@ -153,27 +152,23 @@ export const StatPanel=memo(({card,onClose,isClosing=false,placement='scene'}:an
           </>
         ):(
           <>
-            <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:'0.3rem'}}>
-              <p style={{margin:0,fontSize:'0.52rem',fontWeight:900,color:'rgba(64,232,255,0.6)',letterSpacing:'0.2em',textTransform:'uppercase'}}>CLUB STATS · {card.seasonYear&&card.seasonYear>2000?String(card.seasonYear)+'-'+String(card.seasonYear+1).slice(2):'2025-26'}</p>
-              {footStats?.marketValue&&<span style={{fontSize:'0.62rem',fontWeight:800,color:'#f5d76e',textShadow:'0 0 8px rgba(245,215,110,0.5)'}}>{footStats.marketValue}</span>}
-            </div>
-            {footLoading&&<p style={{margin:0,fontSize:'0.62rem',color:'rgba(64,232,255,0.42)',letterSpacing:'0.14em'}}>CHARGEMENT...</p>}
-            {!footLoading&&footStats&&(
-              <div>
-                <div style={{display:'grid',gridTemplateColumns:'2fr 1fr 1fr 1fr 1fr 1fr',gap:'0.12rem',marginBottom:'0.1rem'}}>
-                  {[' ','J','B','P','%XI','%MIN'].map((h:string)=>(<div key={h} style={{textAlign:'center',padding:'0.1rem 0.06rem'}}><span style={{fontSize:'0.38rem',color:'rgba(64,232,255,0.45)',letterSpacing:'0.04em',textTransform:'uppercase',fontWeight:700}}>{h}</span></div>))}
+            <p style={{margin:'0 0 0.3rem',fontSize:'0.52rem',fontWeight:900,color:'rgba(64,232,255,0.6)',letterSpacing:'0.2em',textTransform:'uppercase'}}>CLUB STATS · {card.seasonYear&&card.seasonYear>2000?String(card.seasonYear)+'-'+String(card.seasonYear+1).slice(2):'2025-26'}</p>
+            {(()=>{
+              const pgs=(card.playerGameScores||[]) as any[];
+              if(!pgs.length)return <p style={{margin:0,fontSize:'0.58rem',color:'rgba(64,232,255,0.28)',letterSpacing:'0.06em'}}>stats non disponibles</p>;
+              const gp=pgs.length;
+              const goals=pgs.reduce((s:number,g:any)=>s+(g.goals||0),0);
+              const assists=pgs.reduce((s:number,g:any)=>s+(g.assists||0),0);
+              const minutes=pgs.reduce((s:number,g:any)=>s+(g.minutesPlayed||0),0);
+              const yc=pgs.reduce((s:number,g:any)=>s+(g.yellowCards||0),0);
+              const rc=pgs.reduce((s:number,g:any)=>s+(g.redCards||0),0);
+              const stats:any[]=[['GP',gp,'int'],['G',goals,'int'],['A',assists,'int'],['MIN',minutes,'int'],['YC',yc,'int'],['RC',rc,'int']];
+              return(
+                <div style={{display:'grid',gridTemplateColumns:'repeat(6,1fr)',gap:'0.18rem'}}>
+                  {stats.map(([l,v,t]:any)=>(<div key={l} style={{textAlign:'center',padding:'0.16rem 0.08rem',border:'1px solid rgba(64,232,255,0.14)',borderRadius:'0.2rem',background:'rgba(64,232,255,0.04)'}}><span style={{display:'block',fontSize:'0.4rem',color:'rgba(64,232,255,0.5)',letterSpacing:'0.04em',textTransform:'uppercase'}}>{l}</span><span style={{display:'block',fontSize:'0.76rem',fontWeight:900,color:CY,textShadow:CYS,lineHeight:1.15}}>{fv(v,t)}</span></div>))}
                 </div>
-                {(['NATIONAL','CUP','CONTINENTAL'] as const).map((cat:any)=>{
-                  const s=footStats[cat];
-                  if(!s||s.games===null)return null;
-                  return(<div key={cat} style={{display:'grid',gridTemplateColumns:'2fr 1fr 1fr 1fr 1fr 1fr',gap:'0.12rem',marginBottom:'0.1rem'}}>
-                    <div style={{padding:'0.12rem 0.08rem',border:'1px solid rgba(64,232,255,0.14)',borderRadius:'0.2rem',background:'rgba(64,232,255,0.04)'}}><span style={{display:'block',fontSize:'0.38rem',color:'rgba(64,232,255,0.5)',fontWeight:700,letterSpacing:'0.04em',textTransform:'uppercase',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{cat}</span></div>
-                    {[s.games,s.goals,s.assists,s.pctStart!=null?s.pctStart+'%':null,s.pctMin!=null?s.pctMin+'%':null].map((v:any,i:number)=>(<div key={i} style={{textAlign:'center',padding:'0.12rem 0.06rem',border:'1px solid rgba(64,232,255,0.14)',borderRadius:'0.2rem',background:'rgba(64,232,255,0.04)'}}><span style={{display:'block',fontSize:'0.72rem',fontWeight:900,color:CY,textShadow:CYS,lineHeight:1.15}}>{v!=null?String(v):'—'}</span></div>))}
-                  </div>);
-                })}
-              </div>
-            )}
-            {!footLoading&&!footStats&&<p style={{margin:0,fontSize:'0.58rem',color:'rgba(64,232,255,0.28)',letterSpacing:'0.06em'}}>stats non disponibles</p>}
+              );
+            })()}
           </>
         )}
       </div>
@@ -193,7 +188,7 @@ export const StatPanel=memo(({card,onClose,isClosing=false,placement='scene'}:an
           </a>
         )}
         {!isNBA(card)&&(
-          <a href={footStats?.tmUrl||('https://www.transfermarkt.com/schnellsuche/ergebnis/schnellsuche?query='+encodeURIComponent(_full||card.anyPlayer?.lastName||''))}
+          <a href={'https://www.transfermarkt.com/schnellsuche/ergebnis/schnellsuche?query='+encodeURIComponent(_full||card.anyPlayer?.lastName||'')}
             target='_blank' rel='noopener noreferrer'
             style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',gap:'0.3rem',padding:'0.3rem 0',borderRadius:'0.25rem',border:'1px solid rgba(64,232,255,0.5)',background:'rgba(64,232,255,0.06)',color:'#e05050',fontSize:'0.55rem',fontWeight:800,letterSpacing:'0.1em',textDecoration:'none',cursor:'pointer'}}>
             <span style={{fontSize:'0.75rem',fontWeight:900,color:'#1d6fa4'}}>TM</span> TRANSFERMARKT
