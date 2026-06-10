@@ -78,9 +78,10 @@ export const StatPanel=memo(({card,onClose,isClosing=false,placement='scene'}:an
   const [countedAvg,setCountedAvg]=useState('0');
   const [nbaStats,setNbaStats]=useState<any>(null);
   const [nbaLoading,setNbaLoading]=useState(false);
+  const _full=(card.name.split('•')[0]||'').replace(/\d{4}-\d{2}/,'').trim();
   useEffect(()=>{let i=0;let iv:any;const t=setTimeout(()=>{iv=setInterval(()=>{i++;setTypedName(ln.slice(0,i));if(i>=ln.length)clearInterval(iv);},45);},600);return()=>{clearTimeout(t);clearInterval(iv);};},[ln]);
   useEffect(()=>{if(avgNum==null)return;let step=0;let iv:any;const t=setTimeout(()=>{iv=setInterval(()=>{step++;const cur=Math.min((avgNum/20)*step,avgNum);setCountedAvg(cur%1===0?String(Math.round(cur)):cur.toFixed(1));if(step>=20)clearInterval(iv);},40);},700);return()=>{clearTimeout(t);clearInterval(iv);};},[avgNum]);
-  useEffect(()=>{if(!card.anyPlayer?.lastName)return;const _full=(card.name.split('•')[0]||'').replace(/\d{4}-\d{2}/,'').trim();setNbaLoading(true);fetch(`/api/player-stats?name=${encodeURIComponent(_full||card.anyPlayer.lastName)}&season=${card.seasonYear||0}`).then(r=>r.json()).then(d=>{if(!d.error)setNbaStats(d);}).catch(()=>{}).finally(()=>setNbaLoading(false));},[]);
+  useEffect(()=>{if(!card.anyPlayer?.lastName)return;setNbaLoading(true);fetch(`/api/player-stats?name=${encodeURIComponent(_full||card.anyPlayer.lastName)}&season=${card.seasonYear||0}`).then(r=>r.json()).then(d=>{if(!d.error)setNbaStats(d);}).catch(()=>{}).finally(()=>setNbaLoading(false));},[]);
   const W=240,H=46,n=scores.length;
   const mn=Math.min(...(n?scores:[0]),0),mx=Math.max(...(n?scores:[1]),1),rng=mx-mn||1;
   const sx=(i:number)=>((i/Math.max(n-1,1))*(W-10)+5).toFixed(1);
@@ -92,7 +93,7 @@ export const StatPanel=memo(({card,onClose,isClosing=false,placement='scene'}:an
   const fv=(v:any,t:string)=>{if(v==null)return '—';const n=Number(v);if(t==='pct')return n.toFixed(1)+'%';if(t==='pm')return(n>=0?'+':'')+n.toFixed(1);if(t==='int')return String(Math.round(n));return n.toFixed(1);};
   const isOverlay=placement==='overlay';
   const posStyle:React.CSSProperties=isOverlay
-    ? {position:'fixed',right:'1.5%',top:'7vh',width:'min(34vw, 400px)',maxHeight:'90vh',zIndex:200}
+    ? {position:'fixed',right:'1%',top:'5vh',width:'30%',minWidth:'320px',maxWidth:'420px',height:'89vh',zIndex:200}
     : {position:'absolute',right:'1%',top:'5%',width:'30%',height:'89%',zIndex:50};
   const deployDelay=isOverlay?'0.1s':'0.45s';
   return(
@@ -144,6 +145,22 @@ export const StatPanel=memo(({card,onClose,isClosing=false,placement='scene'}:an
           </div>
         )}
         {!nbaLoading&&!nbaStats&&<p style={{margin:0,fontSize:'0.58rem',color:'rgba(64,232,255,0.28)',letterSpacing:'0.06em'}}>stats non disponibles</p>}
+      </div>
+      <div style={{display:'flex',gap:'0.4rem',marginBottom:'0.3rem',flexShrink:0}}>
+        {nbaStats?._id&&(
+          <a href={'https://sorare.com/fr/nba/players/'+card.slug.split('-').filter((_:any,i:number,a:any)=>i<a.length-3).join('-')+'?sale=true'}
+            target='_blank' rel='noopener noreferrer'
+            style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',gap:'0.3rem',padding:'0.3rem 0',borderRadius:'0.25rem',border:'1px solid rgba(235,135,50,0.5)',background:'rgba(235,135,50,0.08)',color:'#eb8732',fontSize:'0.55rem',fontWeight:800,letterSpacing:'0.1em',textDecoration:'none',cursor:'pointer'}}>
+            <span style={{fontSize:'0.75rem'}}>⚡</span> SORARE
+          </a>
+        )}
+        {nbaStats?._id&&(
+          <a href={'https://www.espn.com/nba/player/_/id/'+nbaStats._id+'/'+(_full||card.anyPlayer?.lastName||'').toLowerCase().replace(/\s+/g,'-')}
+            target='_blank' rel='noopener noreferrer'
+            style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',gap:'0.3rem',padding:'0.3rem 0',borderRadius:'0.25rem',border:'1px solid rgba(200,40,40,0.5)',background:'rgba(200,40,40,0.08)',color:'#e05050',fontSize:'0.55rem',fontWeight:800,letterSpacing:'0.1em',textDecoration:'none',cursor:'pointer'}}>
+            <span style={{fontSize:'0.75rem'}}>📺</span> ESPN
+          </a>
+        )}
       </div>
       <div style={{flexShrink:0,marginTop:'auto',paddingTop:'0.3rem',borderTop:'1px solid rgba(64,232,255,0.14)'}}>
         <div style={{display:'flex',gap:'0.3rem',marginBottom:'0.22rem'}}>
