@@ -14,17 +14,17 @@ async function kvGet(key: string): Promise<any> {
       signal: AbortSignal.timeout(2000),
     });
     const j = await r.json();
-    return j?.result ? JSON.parse(j.result) : null;
+    if (!j?.result) return null;
+    return typeof j.result === 'string' ? JSON.parse(j.result) : j.result;
   } catch { return null; }
 }
 
 async function kvSet(key: string, value: any): Promise<void> {
   if (!KV_URL || !KV_TOKEN) return;
   try {
-    await fetch(`${KV_URL}/set/${encodeURIComponent(key)}`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${KV_TOKEN}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ value: JSON.stringify(value), ex: CACHE_TTL }),
+    const encoded = encodeURIComponent(JSON.stringify(value));
+    await fetch(`${KV_URL}/set/${encodeURIComponent(key)}/${encoded}?ex=${CACHE_TTL}`, {
+      headers: { Authorization: `Bearer ${KV_TOKEN}` },
       signal: AbortSignal.timeout(2000),
     });
   } catch {}
