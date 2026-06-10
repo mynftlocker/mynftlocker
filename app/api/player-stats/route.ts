@@ -6,29 +6,19 @@ const UA = {
   'Accept-Language': 'en-US,en;q=0.9',
 };
 const seasonStr = (sy: number) => (sy && sy > 2000 ? `${sy}-${String(sy + 1).slice(2)}` : '');
-const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
 
-// 1. Resoudre le nom du joueur en ID athlete ESPN
-async function findAthlete(name: string): Promise<{ id: string; name: string } | null> {
-  const url = `https://site.web.api.espn.com/apis/common/v3/search?query=${encodeURIComponent(name)}&limit=12&sport=basketball&league=nba`;
+// 1. Resoudre le nom du joueur en ID athlete ESPN (endpoint search/v2)
+async function findAthlete(name: string): Promise<{ id: string | null; url: string; raw?: any; httpError?: number }> {
+  const url = `https://site.web.api.espn.com/apis/search/v2?limit=10&query=${encodeURIComponent(name)}`;
   const r = await fetch(url, { headers: UA, signal: AbortSignal.timeout(4500) });
-  if (!r.ok) return null;
+  if (!r.ok) return { id: null, url, httpError: r.status };
   const j = await r.json();
   const s = JSON.stringify(j);
-  const all = [...s.matchAll(/s:40~l:46~a:(\d+)/g)].map((m) => m[1]);
-  if (all.length === 0) return null;
-  const nl = norm(name);
-  const lastTok = nl.split(' ').pop() || nl;
-  const items: any[] = (j?.results || j?.items || []).flatMap((g: any) => g?.contents || g?.items || g || []);
-  for (const it of items) {
-    const dn = norm(String(it?.displayName || it?.name || it?.title || ''));
-    const uid = String(it?.uid || it?.id || '');
-    const idm = uid.match(/a:(\d+)/) || String(it?.id || '').match(/(\d+)/);
-    if (idm && (dn === nl || dn.includes(nl) || dn.includes(lastTok))) {
-      return { id: idm[1], name };
-    }
-  }
-  return { id: all[0], name };
+  // Motifs d'ID athlete NBA : uid (l:46~a:ID) ou lien de page joueur (/nba/player/_/id/ID)
+  const m1 = s.match(/l:46~a:(\d+)/);
+  const m2 = s.match(/nba\/player\/_\/id\/(\d+)/);
+  const id = (m1 && m1[1]) || (m2 && m2[1]) || null;
+  return { id, url, raw: j };
 }
 
 // 2. Recuperer les moyennes de saison de l'athlete
@@ -81,8 +71,8 @@ export async function GET(req: Request) {
 
   try {
     const found = await findAthlete(name);
-    if (!found) {
-      if (debug) return NextResponse.json({ stage: 'search', name, found: null });
+    if (!found.id) {
+      if (debug) return NextResponse.json({ stage: 'search', name, searchUrl: found.url, httpError: found.httpError ?? null, searchRaw: found.raw ?? null });
       return NextResponse.json({}, { status: 200 });
     }
     const overview = await getOverview(found.id);
