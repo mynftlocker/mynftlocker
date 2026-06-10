@@ -7,56 +7,67 @@ const UA = {
 };
 const seasonStr = (sy: number) => (sy && sy > 2000 ? `${sy}-${String(sy + 1).slice(2)}` : '');
 
-// 1. Resoudre le nom du joueur en ID athlete ESPN (endpoint search/v2)
-async function findAthlete(name: string): Promise<{ id: string | null; url: string; raw?: any; httpError?: number }> {
+// 1. Resoudre le nom du joueur en ID athlete ESPN (search/v2)
+async function findAthleteId(name: string): Promise<string | null> {
   const url = `https://site.web.api.espn.com/apis/search/v2?limit=10&query=${encodeURIComponent(name)}`;
   const r = await fetch(url, { headers: UA, signal: AbortSignal.timeout(4500) });
-  if (!r.ok) return { id: null, url, httpError: r.status };
+  if (!r.ok) return null;
   const j = await r.json();
   const s = JSON.stringify(j);
-  // Motifs d'ID athlete NBA : uid (l:46~a:ID) ou lien de page joueur (/nba/player/_/id/ID)
   const m1 = s.match(/l:46~a:(\d+)/);
   const m2 = s.match(/nba\/player\/_\/id\/(\d+)/);
-  const id = (m1 && m1[1]) || (m2 && m2[1]) || null;
-  return { id, url, raw: j };
+  return (m1 && m1[1]) || (m2 && m2[1]) || null;
 }
 
-// 2. Recuperer les moyennes de saison de l'athlete
-async function getOverview(id: string): Promise<any> {
-  const url = `https://site.web.api.espn.com/apis/common/v3/sports/basketball/nba/athletes/${id}/overview`;
+// 2. Recuperer les stats de l'athlete (endpoint /stats, decoupe par saison)
+async function getStats(id: string): Promise<any> {
+  const url = `https://site.web.api.espn.com/apis/common/v3/sports/basketball/nba/athletes/${id}/stats`;
   const r = await fetch(url, { headers: UA, signal: AbortSignal.timeout(4500) });
   if (!r.ok) return null;
   return r.json();
 }
 
-function parseStats(overview: any) {
-  const st = overview?.statistics;
-  if (!st) return null;
-  const names: string[] = st.names || [];
-  const labels: string[] = st.labels || [];
-  let split: any = st.splits;
-  if (Array.isArray(split)) split = split.find((x: any) => /regular/i.test(x?.displayName || x?.name || '')) || split[0];
-  const vals: any[] = split?.stats || split?.statistics || [];
-  if (!vals.length) return null;
-  const map: Record<string, any> = {};
-  names.forEach((nm, i) => { map[nm] = vals[i]; });
-  labels.forEach((lb, i) => { if (map[lb] == null) map[lb] = vals[i]; });
+function parseStats(data: any, sy: number) {
+  const cats: any[] = data?.categories || [];
+  if (!cats.length) return null;
+  const avg = cats.find((c) => c.name === 'averages');
+  const misc = cats.find((c) => c.name === 'miscellaneous');
+  if (!avg) return null;
+
+  const target = seasonStr(sy); // ex: "2024-25"
+  // Choisir la ligne de la saison demandee, sinon la plus recente
+  const pickRow = (cat: any) => {
+    const rows: any[] = cat?.statistics || [];
+    if (!rows.length) return null;
+    if (target) { const m = rows.find((rr: any) => rr?.season?.displayName === target); if (m) return m; }
+    return rows[rows.length - 1];
+  };
+  const avgRow = pickRow(avg);
+  const miscRow = pickRow(misc);
+  if (!avgRow) return null;
+
   const num = (v: any) => { if (v == null || v === '') return null; const n = parseFloat(String(v).replace('%', '').replace(',', '.')); return isNaN(n) ? null : n; };
-  const pick = (...keys: string[]) => { for (const k of keys) { if (map[k] != null && map[k] !== '') return map[k]; } return null; };
+  const get = (cat: any, row: any, name: string) => {
+    if (!cat || !row) return null;
+    const i = (cat.names || []).indexOf(name);
+    return i >= 0 ? row.stats?.[i] : null;
+  };
+
   const out = {
-    pts: num(pick('avgPoints', 'PTS', 'points')),
-    ast: num(pick('avgAssists', 'AST', 'assists')),
-    reb: num(pick('avgRebounds', 'REB', 'rebounds', 'avgTotalRebounds')),
-    stl: num(pick('avgSteals', 'STL', 'steals')),
-    blk: num(pick('avgBlocks', 'BLK', 'blocks')),
-    tov: num(pick('avgTurnovers', 'TO', 'TOV', 'turnovers')),
-    min: num(pick('avgMinutes', 'MIN', 'minutes')),
-    fgp: num(pick('fieldGoalPct', 'FG%', 'fieldGoalPercentage')),
-    tp: num(pick('threePointFieldGoalPct', '3P%', 'threePointFieldGoalPercentage')),
-    ftp: num(pick('freeThrowPct', 'FT%', 'freeThrowPercentage')),
-    fta: num(pick('avgFreeThrowsAttempted', 'FTA', 'freeThrowsAttempted')),
-    pm: num(pick('avgPlusMinus', 'plusMinus', '+/-', 'PlusMinus')),
-    gp: num(pick('gamesPlayed', 'GP', 'games')),
+    pts: num(get(avg, avgRow, 'avgPoints')),
+    ast: num(get(avg, avgRow, 'avgAssists')),
+    reb: num(get(avg, avgRow, 'avgRebounds')),
+    stl: num(get(avg, avgRow, 'avgSteals')),
+    blk: num(get(avg, avgRow, 'avgBlocks')),
+    tov: num(get(avg, avgRow, 'avgTurnovers')),
+    min: num(get(avg, avgRow, 'avgMinutes')),
+    fgp: num(get(avg, avgRow, 'fieldGoalPct')),
+    tp: num(get(avg, avgRow, 'threePointFieldGoalPct')),
+    ftp: num(get(avg, avgRow, 'freeThrowPct')),
+    dd: num(get(misc, miscRow, 'doubleDouble')),
+    td: num(get(misc, miscRow, 'tripleDouble')),
+    gp: num(get(avg, avgRow, 'gamesPlayed')),
+    season: avgRow?.season?.displayName || target || undefined,
   };
   if (out.pts == null && out.reb == null && out.ast == null) return null;
   return out;
@@ -70,18 +81,16 @@ export async function GET(req: Request) {
   if (!name) return NextResponse.json({ error: 'name required' }, { status: 400 });
 
   try {
-    const found = await findAthlete(name);
-    if (!found.id) {
-      if (debug) return NextResponse.json({ stage: 'search', name, searchUrl: found.url, httpError: found.httpError ?? null, searchRaw: found.raw ?? null });
+    const id = await findAthleteId(name);
+    if (!id) {
+      if (debug) return NextResponse.json({ stage: 'search', name, id: null });
       return NextResponse.json({}, { status: 200 });
     }
-    const overview = await getOverview(found.id);
-    if (debug) {
-      return NextResponse.json({ stage: 'overview', id: found.id, parsed: parseStats(overview), rawStatistics: overview?.statistics ?? null });
-    }
-    const stats = parseStats(overview);
-    if (!stats) return NextResponse.json({}, { status: 200 });
-    return NextResponse.json({ ...stats, season: seasonStr(sy) || undefined, _id: found.id });
+    const data = await getStats(id);
+    const parsed = parseStats(data, sy);
+    if (debug) return NextResponse.json({ stage: 'stats', id, target: seasonStr(sy), parsed });
+    if (!parsed) return NextResponse.json({}, { status: 200 });
+    return NextResponse.json({ ...parsed, _id: id });
   } catch (e) {
     if (debug) return NextResponse.json({ error: String(e) });
     return NextResponse.json({}, { status: 200 });
