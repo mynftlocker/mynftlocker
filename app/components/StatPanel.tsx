@@ -151,14 +151,14 @@ export const StatPanel=memo(({card,onClose,isClosing=false,placement='scene'}:an
           <a href={'https://sorare.com/fr/nba/players/'+card.slug.split('-').filter((_:any,i:number,a:any)=>i<a.length-3).join('-')+'?sale=true'}
             target='_blank' rel='noopener noreferrer'
             style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',gap:'0.3rem',padding:'0.3rem 0',borderRadius:'0.25rem',border:'1px solid rgba(235,135,50,0.5)',background:'rgba(235,135,50,0.08)',color:'#eb8732',fontSize:'0.55rem',fontWeight:800,letterSpacing:'0.1em',textDecoration:'none',cursor:'pointer'}}>
-            <span style={{fontSize:'0.75rem'}}>⚡</span> SORARE
+            <img src="https://sorare.com/favicon.ico" alt="S" style={{width:'14px',height:'14px',borderRadius:'50%',objectFit:'cover'}}/> SORARE
           </a>
         )}
         {nbaStats?._id&&(
           <a href={'https://www.espn.com/nba/player/_/id/'+nbaStats._id+'/'+(_full||card.anyPlayer?.lastName||'').toLowerCase().replace(/\s+/g,'-')}
             target='_blank' rel='noopener noreferrer'
             style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',gap:'0.3rem',padding:'0.3rem 0',borderRadius:'0.25rem',border:'1px solid rgba(200,40,40,0.5)',background:'rgba(200,40,40,0.08)',color:'#e05050',fontSize:'0.55rem',fontWeight:800,letterSpacing:'0.1em',textDecoration:'none',cursor:'pointer'}}>
-            <span style={{fontSize:'0.75rem'}}>📺</span> ESPN
+            <img src="https://a.espncdn.com/favicon.ico" alt="E" style={{width:'14px',height:'14px',objectFit:'contain'}}/> ESPN
           </a>
         )}
       </div>
