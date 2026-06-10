@@ -78,14 +78,13 @@ export const StatPanel=memo(({card,onClose,isClosing=false,placement='scene'}:an
   const [countedAvg,setCountedAvg]=useState('0');
   const [nbaStats,setNbaStats]=useState<any>(null);
   const [nbaLoading,setNbaLoading]=useState(false);
-  const [footStats,setFootStats]=useState<any>(null);
-  const [footLoading,setFootLoading]=useState(false);
+
   const _full=(card.name.split('•')[0]||'').replace(/\d{4}-\d{2}/,'').trim();
   useEffect(()=>{let i=0;let iv:any;const t=setTimeout(()=>{iv=setInterval(()=>{i++;setTypedName(ln.slice(0,i));if(i>=ln.length)clearInterval(iv);},45);},600);return()=>{clearTimeout(t);clearInterval(iv);};},[ln]);
   useEffect(()=>{if(avgNum==null)return;let step=0;let iv:any;const t=setTimeout(()=>{iv=setInterval(()=>{step++;const cur=Math.min((avgNum/20)*step,avgNum);setCountedAvg(cur%1===0?String(Math.round(cur)):cur.toFixed(1));if(step>=20)clearInterval(iv);},40);},700);return()=>{clearTimeout(t);clearInterval(iv);};},[avgNum]);
 
   useEffect(()=>{if(!card.anyPlayer?.lastName)return;setNbaLoading(true);fetch(`/api/player-stats?name=${encodeURIComponent(_full||card.anyPlayer.lastName)}&season=${card.seasonYear||0}`).then(r=>r.json()).then(d=>{if(!d.error)setNbaStats(d);}).catch(()=>{}).finally(()=>setNbaLoading(false));},[]);
-  useEffect(()=>{if(isNBA(card)||!card.anyPlayer?.lastName)return;setFootLoading(true);const tm=encodeURIComponent(_full||card.anyPlayer.lastName);const te=encodeURIComponent(card.anyTeam?.name||'');fetch(`/api/player-stats-foot?name=${tm}&team=${te}&season=${card.seasonYear||0}`).then(r=>r.json()).then(d=>{if(d&&!d.error)setFootStats(d);}).catch(()=>{}).finally(()=>setFootLoading(false));},[]);
+;
 
   const W=240,H=46,n=scores.length;
   const mn=Math.min(...(n?scores:[0]),0),mx=Math.max(...(n?scores:[1]),1),rng=mx-mn||1;
@@ -156,13 +155,7 @@ export const StatPanel=memo(({card,onClose,isClosing=false,placement='scene'}:an
         ):(
           <>
             <p style={{margin:'0 0 0.3rem',fontSize:'0.52rem',fontWeight:900,color:'rgba(64,232,255,0.6)',letterSpacing:'0.2em',textTransform:'uppercase'}}>CLUB STATS · {card.seasonYear&&card.seasonYear>2000?String(card.seasonYear)+'-'+String(card.seasonYear+1).slice(2):'2025-26'}</p>
-            {footLoading&&<p style={{margin:0,fontSize:'0.62rem',color:'rgba(64,232,255,0.42)',letterSpacing:'0.14em'}}>CHARGEMENT...</p>}
-            {!footLoading&&footStats&&footStats.gp!=null&&(
-              <div style={{display:'grid',gridTemplateColumns:'repeat(6,1fr)',gap:'0.18rem'}}>
-                {([[' GP',footStats.gp,'int'],[' G',footStats.goals,'int'],[' A',footStats.assists,'int'],[' MIN',footStats.minutes,'int'],[' YC',footStats.yc,'int'],[' RC',footStats.rc,'int']] as any[]).map(([l,v,t]:any)=>(<div key={l} style={{textAlign:'center',padding:'0.16rem 0.08rem',border:'1px solid rgba(64,232,255,0.14)',borderRadius:'0.2rem',background:'rgba(64,232,255,0.04)'}}><span style={{display:'block',fontSize:'0.4rem',color:'rgba(64,232,255,0.5)',letterSpacing:'0.04em',textTransform:'uppercase'}}>{l}</span><span style={{display:'block',fontSize:'0.76rem',fontWeight:900,color:CY,textShadow:CYS,lineHeight:1.15}}>{fv(v,t)}</span></div>))}
-              </div>
-            )}
-            {!footLoading&&(!footStats||footStats.gp==null)&&<p style={{margin:0,fontSize:'0.58rem',color:'rgba(64,232,255,0.28)',letterSpacing:'0.06em'}}>stats non disponibles</p>}
+            <p style={{margin:0,fontSize:'0.58rem',color:'rgba(64,232,255,0.28)',letterSpacing:'0.06em'}}>stats non disponibles</p>
           </>
         )}
       </div>
