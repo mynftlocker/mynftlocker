@@ -32,7 +32,7 @@ export default function GalleryView({cards}:{cards:any[]}){
     <div style={{padding:'1.2rem',minHeight:'100%',boxSizing:'border-box'}}>
       {cards.length===0?(
         <div style={{display:'flex',flexDirection:'column' as const,alignItems:'center',justifyContent:'center',height:'55vh',color:'rgba(64,232,255,0.28)',fontFamily:'Courier New,monospace',gap:'0.5rem'}}>
-          <p style={{fontSize:'2rem',margin:0}}>\u2b21</p>
+          <p style={{fontSize:'2rem',margin:0}}>⬡</p>
           <p style={{fontSize:'0.7rem',letterSpacing:'0.25em',textTransform:'uppercase',margin:0}}>Aucune carte</p>
         </div>
       ):(
