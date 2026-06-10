@@ -15,7 +15,10 @@ async function kvGet(key: string): Promise<any> {
     });
     const j = await r.json();
     if (!j?.result) return null;
-    return typeof j.result === 'string' ? JSON.parse(j.result) : j.result;
+    const parsed = typeof j.result === 'string' ? JSON.parse(j.result) : j.result;
+    // Ancien format stocke : {value: "...", ex: N} -> on ignore et on force un refresh
+    if (parsed && typeof parsed.value === 'string' && parsed.ex) return null;
+    return parsed;
   } catch { return null; }
 }
 
