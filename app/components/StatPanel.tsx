@@ -99,7 +99,7 @@ export const StatPanel=memo(({card,onClose,isClosing=false,placement='scene'}:an
   const fv=(v:any,t:string)=>{if(v==null)return '—';const n=Number(v);if(t==='pct')return n.toFixed(1)+'%';if(t==='pm')return(n>=0?'+':'')+n.toFixed(1);if(t==='int')return String(Math.round(n));return n.toFixed(1);};
   const isOverlay=placement==='overlay';
   const posStyle:React.CSSProperties=isOverlay
-    ? {position:'fixed',right:'1%',top:'5%',width:'320px',height:'89vh',zIndex:200}
+    ? {position:'fixed',right:'1%',top:'5%',width:'218px',height:'361px',zIndex:200}
     : {position:'absolute',right:'1%',top:'5%',width:'30%',height:'89%',zIndex:50};
   const deployDelay=isOverlay?'0.1s':'0.45s';
   return(
