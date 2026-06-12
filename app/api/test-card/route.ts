@@ -1,24 +1,17 @@
-import { NextRequest, NextResponse } from 'next/server';
-export async function GET(request:NextRequest){
-  // Introspection complete sur NBACard + types lies
-  const query=`{
-    nbaCard: __type(name: "NBACard") { fields { name type { name kind ofType { name kind ofType { name kind } } } } }
-    tokenOffer: __type(name: "TokenOffer") { fields { name type { name kind } } }
-    englishAuction: __type(name: "EnglishAuction") { fields { name type { name kind } } }
-    so5Score: __type(name: "So5Score") { fields { name type { name kind } } }
-  }`;
-  const jwt=process.env.SORARE_JWT||'';
-  const aud=process.env.SORARE_AUD||'';
-  const headers:Record<string,string>={'Content-Type':'application/json','Accept':'application/json'};
-  if(jwt&&aud){headers['Authorization']=`Bearer ${jwt}`;headers['JWT-AUD']=aud;}
-  const r=await fetch('https://api.sorare.com/federation/graphql',{method:'POST',headers,body:JSON.stringify({query}),signal:AbortSignal.timeout(8000)});
-  const j=await r.json();
-  // Formater proprement
-  const fmt=(t:any)=>t?.fields?.map((f:any)=>f.name)||[];
+import { NextResponse } from 'next/server';
+export async function GET(){
+  // Telecharger le schema Sorare et extraire les champs NBACard
+  const r=await fetch('https://api.sorare.com/graphql/schema',{signal:AbortSignal.timeout(8000)});
+  const schema=await r.text();
+  // Extraire le bloc "type NBACard"
+  const m=schema.match(/type NBACard[^{]*\{([^}]+)\}/s);
+  const block=m?m[1]:'NOT FOUND';
+  // Extraire aussi TokenOffer et EnglishAuction
+  const m2=schema.match(/type TokenOffer[^{]*\{([^}]+)\}/s);
+  const m3=schema.match(/type EnglishAuction[^{]*\{([^}]+)\}/s);
   return NextResponse.json({
-    NBACard_fields: fmt(j?.data?.nbaCard),
-    TokenOffer_fields: fmt(j?.data?.tokenOffer),
-    EnglishAuction_fields: fmt(j?.data?.englishAuction),
-    So5Score_fields: fmt(j?.data?.so5Score),
+    NBACard: block.split('\n').map((l:string)=>l.trim()).filter(Boolean),
+    TokenOffer: m2?m2[1].split('\n').map((l:string)=>l.trim()).filter(Boolean):[],
+    EnglishAuction: m3?m3[1].split('\n').map((l:string)=>l.trim()).filter(Boolean):[],
   });
 }
