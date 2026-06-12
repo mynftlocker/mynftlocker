@@ -40,7 +40,7 @@ const dedupeByPlayer=(list:any[])=>{
   return Object.values(byPlayer);
 };
 
-const isNBA=(c:any)=>c?.__typename==='NBACard';
+const isNBA=(x:any)=>typeof x==='string'?/\d{8}/.test(x):x?.__typename==='NBACard';
 const parseCard=(name:string)=>{
   const parts=name.split('•');const left=parts[0].trim();const right=(parts[1]||'').trim();
   const sm=left.match(/(\d{4}-\d{2})/);const season=sm?sm[1]:'';
@@ -420,8 +420,12 @@ export default function Home() {
   // Galerie = sport + filtres + tri
   const footCountries=useMemo(()=>{const s=new Set<string>();cards.filter((c:any)=>!isNBA(c)).forEach((c:any)=>{const co=c.anyTeam?.country?.slug;if(co)s.add(co);});return Array.from(s).sort();},[cards]);
   const teamsByCountry=useMemo(()=>{const m:Record<string,Set<string>>={};cards.filter((c:any)=>!isNBA(c)).forEach((c:any)=>{const co=c.anyTeam?.country?.slug;const nm=c.anyTeam?.name;if(co&&nm){(m[co]=m[co]||new Set<string>()).add(nm);}});const out:Record<string,string[]>={};for(const k in m)out[k]=Array.from(m[k]).sort();return out;},[cards]);
-  const galleryTeamList=useMemo(()=>{const ts=new Set<string>();cards.filter(c=>isNBA(c)).forEach(c=>{if(!c.anyTeam?.name)return;ts.add(c.anyTeam.name);});return['all',...Array.from(ts).sort()] as string[];},[cards]);
-  const filteredGallery=useMemo(()=>{let base=cards.filter((c:any)=>gSport==='nba'?isNBA(c):!isNBA(c));let r=applyFilters(base);if(gSport==='foot'&&gCountry!=='all')r=r.filter((c:any)=>c.anyTeam?.country?.slug===gCountry);if(gTeamCustom!=='all')r=r.filter((c:any)=>(c.anyTeam?.name||'')===gTeamCustom);if(gSort==='rarity')return[...r].sort((a:any,b:any)=>(RARITY_ORDER[a.rarityTyped]??9)-(RARITY_ORDER[b.rarityTyped]??9));if(gSort==='name')return[...r].sort((a:any,b:any)=>(a.anyPlayer?.lastName||'').localeCompare(b.anyPlayer?.lastName||''));return[...r].sort((a:any,b:any)=>parseFloat(String(b.averageScore||0))-parseFloat(String(a.averageScore||0)));},[cards,applyFilters,gSport,gCountry,gTeamCustom,gSort]);
+  const galleryTeamList=useMemo(()=>{
+    const ts=new Set<string>();
+    const sportCards=gSport==='foot'?cards.filter(c=>!isNBA(c)):cards.filter(c=>isNBA(c));
+    sportCards.forEach(c=>{if(!c.anyTeam?.name)return;ts.add(c.anyTeam.name);});
+    return['all',...Array.from(ts).sort()] as string[];
+  },[cards,gSport]); const filteredGallery=useMemo(()=>{let base=cards.filter((c:any)=>gSport==='nba'?isNBA(c):!isNBA(c));let r=applyFilters(base);if(gSport==='foot'&&gCountry!=='all')r=r.filter((c:any)=>c.anyTeam?.country?.slug===gCountry);if(gTeamCustom!=='all')r=r.filter((c:any)=>(c.anyTeam?.name||'')===gTeamCustom);if(gSort==='rarity')return[...r].sort((a:any,b:any)=>(RARITY_ORDER[a.rarityTyped]??9)-(RARITY_ORDER[b.rarityTyped]??9));if(gSort==='name')return[...r].sort((a:any,b:any)=>(a.anyPlayer?.lastName||'').localeCompare(b.anyPlayer?.lastName||''));return[...r].sort((a:any,b:any)=>parseFloat(String(b.averageScore||0))-parseFloat(String(a.averageScore||0)));},[cards,applyFilters,gSport,gCountry,gTeamCustom,gSort]);
 
   const goldGrad='linear-gradient(160deg,#a86f15 0%,#d9a52e 22%,#f7da80 48%,#e8b84a 68%,#b8801a 100%)';
   const fBtn=(a:boolean):React.CSSProperties=>({padding:'0.4rem 0.6rem',borderRadius:'0.15rem',border:'none',borderLeft:a?'2px solid #f5d76e':'2px solid rgba(255,255,255,0.08)',background:a?'rgba(245,215,110,0.12)':'rgba(255,255,255,0.025)',color:a?'#f5d76e':'#cfd8e6',cursor:'pointer',fontSize:'0.76rem',fontWeight:a?700:500,transition:'all 0.12s'});
