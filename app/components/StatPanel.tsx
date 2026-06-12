@@ -70,8 +70,6 @@ export const StatPanel=memo(({card,onClose,isClosing=false,placement='scene'}:an
   const avgNum=card.averageScore!=null?parseFloat(String(card.averageScore)):null;
   const team=card.anyTeam?.name||'—';
   const xp=card.xp?card.xp.toLocaleString():'—';
-  const priceCents=card.liveSingleSaleOffer?.senderSide?.amounts?.eurCents;
-  const priceStr=priceCents!=null?(priceCents/100).toFixed(2)+' €':'--';
   const edition=card.specialEdition?card.specialEdition.replace(/_/g,' ').toUpperCase():'STANDARD';
   const nbaSeasonStr=card.seasonYear&&card.seasonYear>2000?String(card.seasonYear)+'-'+String(card.seasonYear+1).slice(2):'2025-26';
   const [l10scores,setL10scores]=useState<number[]>([]);
@@ -186,13 +184,7 @@ export const StatPanel=memo(({card,onClose,isClosing=false,placement='scene'}:an
           </a>
         )}
       </div>
-      <div style={{flexShrink:0,paddingTop:'0.3rem',borderTop:'1px solid rgba(64,232,255,0.14)'}}>
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0.3rem'}}>
-          {([['SÉRIE',serial||'—'],['PRIX',priceStr]] as [string,string][]).map(([l,v])=>(
-            <div key={l} style={{background:'rgba(0,0,0,0.3)',border:'1px solid rgba(64,232,255,0.12)',borderRadius:'0.25rem',padding:'0.28rem 0.4rem',display:'flex',flexDirection:'column' as const,gap:'0.1rem'}}><span style={{fontSize:'0.42rem',color:'rgba(64,232,255,0.4)',letterSpacing:'0.1em',textTransform:'uppercase'}}>{l}</span><span style={{fontSize:'0.62rem',color:'rgba(64,232,255,0.6)',fontWeight:600}}>{v}</span></div>
-          ))}
-        </div>
-      </div>
+
     </div>
   );
 });
