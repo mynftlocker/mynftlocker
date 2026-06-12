@@ -3,10 +3,12 @@ export async function GET(request:NextRequest){
   const slug=request.nextUrl.searchParams.get('slug')||'';
   if(!slug)return NextResponse.json({error:'slug required'});
   const query=`query{anyCards(slugs:["${slug}"]){
-    __typename slug serialNumber xp
-    averageScore(type:LAST_TEN_PLAYED_SO5_AVERAGE_SCORE)
-    rawSo5Scores(last:10)
-    ...on Card{seasonYear specialEdition power}
+    __typename slug
+    ...on Card{
+      serialNumber xp seasonYear specialEdition power
+      averageScore(type:LAST_TEN_PLAYED_SO5_AVERAGE_SCORE)
+      rawSo5Scores(last:10)
+    }
   }}`;
   const jwt=process.env.SORARE_JWT||'';
   const aud=process.env.SORARE_AUD||'';
