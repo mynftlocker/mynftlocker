@@ -399,7 +399,7 @@ export default function Home() {
       if(!groups.has(g))groups.set(g,editionGroupLabel(se));
     }
     return [...groups.entries()].map(([v,l])=>({v,l})).sort((a,b)=>a.l.localeCompare(b.l));
-  },[cards,gSport]);},[gSport]);
+  },[cards,gSport]);
   useEffect(()=>{ if(teamList.length===0)return;const hofInList=teamList.find(t=>t.api==='__HOF__');if(hofInList&&teamApi!=='__HOF__'&&!localStorage.getItem('mnfl_team_chosen')){setTeamApi('__HOF__');return;}if(!teamList.find(t=>t.api===teamApi)){setTeamApi(hofInList?'__HOF__':teamList[0].api);} },[teamList,teamApi]);
 
   // Vestiaire : epingles prioritaires, puis remplissage, puis TOUTES les cartes
