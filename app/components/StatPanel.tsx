@@ -31,7 +31,6 @@ export const CardBack=memo(({card,rc}:any)=>{
   const sn=card.anyPlayer?.shirtNumber??null;
   const bonus=card.power?('+'+Math.round((parseFloat(card.power)-1)*100)+'%'):null;
   const score=card.averageScore!=null?String(card.averageScore):null;
-  const stats:any[]=[['L10',score||'—',true],['Beat L10','🔒',false],['GW','🔒',false],['Récomp.','🔒',false]];
   const fv=(v:any,t:string)=>{if(v==null)return '—';const n=Number(v);if(t==='pct')return n.toFixed(1)+'%';if(t==='pm')return(n>=0?'+':'')+n.toFixed(1);return n.toFixed(1);};
   return(
     <div style={{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'rotateY(180deg)',borderRadius:'0.4rem',overflow:'hidden',background:'radial-gradient(ellipse 130% 90% at 50% 0%,#191b24 0%,#0c0d14 60%,#06070d 100%)',display:'flex',flexDirection:'column' as const,border:'1px solid '+rc+'44'}}>
@@ -44,13 +43,9 @@ export const CardBack=memo(({card,rc}:any)=>{
         <p style={{margin:0,width:'100%',fontSize:nfs(ln.length),fontWeight:900,color:'#fff',lineHeight:1.05,textAlign:'center',textShadow:'0 0 14px '+rc+'aa',overflow:'hidden'}}>{ln}</p>
         <p style={{margin:'2px 0 0',fontSize:'0.5rem',color:'#9aa3b2',fontWeight:700,letterSpacing:'0.05em'}}>{sn!==null?('#'+sn):''}{(sn!==null&&serial)?'  ·  ':''}{serial||''}</p>
       </div>
-      <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',borderTop:'1px solid rgba(255,255,255,0.06)',padding:'0.3rem 0.1rem'}}>
-        {stats.map(([l,v,hot]:any)=>(
-          <div key={l} style={{textAlign:'center'}}>
-            <p style={{margin:0,fontSize:hot?'0.95rem':'0.62rem',fontWeight:900,color:hot?'#fff':'#5c6470',lineHeight:1.1,textShadow:(hot&&score)?('0 0 10px '+rc+'88'):'none'}}>{v}</p>
-            <p style={{margin:'1px 0 0',fontSize:'0.4rem',color:hot?rc:'#5c6470',textTransform:'uppercase',fontWeight:800,letterSpacing:'0.03em'}}>{l}</p>
-          </div>
-        ))}
+      <div style={{borderTop:'1px solid rgba(255,255,255,0.06)',padding:'0.4rem 0.3rem',textAlign:'center'}}>
+        <p style={{margin:0,fontSize:'1.4rem',fontWeight:900,color:'#fff',lineHeight:1,textShadow:score?('0 0 14px '+rc+'aa'):'none'}}>{score||'—'}</p>
+        <p style={{margin:'2px 0 0',fontSize:'0.42rem',color:rc,textTransform:'uppercase',fontWeight:800,letterSpacing:'0.1em'}}>MOY. L10</p>
       </div>
       <div style={{display:'flex',gap:'0.3rem',padding:'0.3rem 0.4rem 0.45rem'}}>
         <span style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',height:'1.05rem',borderRadius:'0.3rem',border:'1px solid '+rc+'55',background:rc+'15',fontSize:'0.46rem',fontWeight:800,color:rc,letterSpacing:'0.02em',whiteSpace:'nowrap'}}>BONUS {bonus||'—'}</span>
@@ -72,11 +67,6 @@ export const StatPanel=memo(({card,onClose,isClosing=false,placement='scene'}:an
   const xp=card.xp?card.xp.toLocaleString():'—';
   const edition=card.specialEdition?card.specialEdition.replace(/_/g,' ').toUpperCase():'STANDARD';
   const nbaSeasonStr=card.seasonYear&&card.seasonYear>2000?String(card.seasonYear)+'-'+String(card.seasonYear+1).slice(2):'2025-26';
-  const [l10scores,setL10scores]=useState<number[]>([]);
-  useEffect(()=>{if(!isNBA(card)||!card.slug)return;fetch(`/api/card-scores?slug=${encodeURIComponent(card.slug)}`).then(r=>r.json()).then(d=>{if(d?.scores?.length)setL10scores(d.scores);}).catch(()=>{});},[]);
-  const footRaw=(card.rawSo5Scores||[]).filter((s:any)=>s!=null) as number[];
-  const raw=(l10scores.length?l10scores:footRaw.length?footRaw:(card.anyPlayer?.playerGameScores||[]).map((s:any)=>s.score)).filter((s:any)=>s!=null) as number[];
-  const scores=[...raw].reverse();
   const [typedName,setTypedName]=useState('');
   const [countedAvg,setCountedAvg]=useState('0');
   const [nbaStats,setNbaStats]=useState<any>(null);
@@ -89,12 +79,6 @@ export const StatPanel=memo(({card,onClose,isClosing=false,placement='scene'}:an
   useEffect(()=>{if(!card.anyPlayer?.lastName)return;setNbaLoading(true);fetch(`/api/player-stats?name=${encodeURIComponent(_full||card.anyPlayer.lastName)}&season=${card.seasonYear||0}`).then(r=>r.json()).then(d=>{if(!d.error)setNbaStats(d);}).catch(()=>{}).finally(()=>setNbaLoading(false));},[]);
 ;
 
-  const W=240,H=46,n=scores.length;
-  const mn=Math.min(...(n?scores:[0]),0),mx=Math.max(...(n?scores:[1]),1),rng=mx-mn||1;
-  const sx=(i:number)=>((i/Math.max(n-1,1))*(W-10)+5).toFixed(1);
-  const sy=(s:number)=>(H-5-((s-mn)/rng)*(H-10)).toFixed(1);
-  const pts=n>1?scores.map((s,i)=>`${sx(i)},${sy(s)}`).join(' '):'';
-  const gid='sg'+card.slug.slice(-4);
   const CY='#40e8ff';const CYS='0 0 8px rgba(64,232,255,0.5)';
   const sep:React.CSSProperties={borderBottom:'1px solid rgba(64,232,255,0.16)',paddingBottom:'0.42rem',marginBottom:'0.42rem',flexShrink:0};
   const fv=(v:any,t:string)=>{if(v==null)return '—';const n=Number(v);if(t==='pct')return n.toFixed(1)+'%';if(t==='pm')return(n>=0?'+':'')+n.toFixed(1);if(t==='int')return String(Math.round(n));return n.toFixed(1);};
@@ -123,15 +107,6 @@ export const StatPanel=memo(({card,onClose,isClosing=false,placement='scene'}:an
           <div style={{padding:'0.22rem 0.4rem',border:'1px solid '+rc+'55',borderRadius:'0.25rem',background:rc+'0d',textAlign:'center'}}><span style={{fontSize:'0.65rem',fontWeight:900,color:rc,letterSpacing:'0.1em',textShadow:'0 0 7px '+rc}}>{card.rarityTyped.replace(/_/g,' ').toUpperCase()}</span></div>
         </div>
       </div>
-      {n>1&&<div style={{...sep}}>
-        <p style={{margin:'0 0 0.2rem',fontSize:'0.5rem',color:'rgba(64,232,255,0.48)',letterSpacing:'0.14em',textTransform:'uppercase'}}>↗  10 DERNIERS MATCHS</p>
-        <svg width='100%' viewBox={`0 0 ${W} ${H}`} style={{display:'block',overflow:'visible'}}>
-          <defs><linearGradient id={gid} x1='0' y1='0' x2='0' y2='1'><stop offset='0%' stopColor={rc} stopOpacity='0.28'/><stop offset='100%' stopColor={rc} stopOpacity='0'/></linearGradient></defs>
-          <polygon points={`5,${H-5} ${pts} ${sx(n-1)},${H-5}`} fill={`url(#${gid})`}/>
-          <polyline points={pts} fill='none' stroke={rc} strokeWidth='1.8' strokeLinejoin='round' strokeLinecap='round'/>
-          {scores.map((s:number,i:number)=>i%2===0?<circle key={i} cx={sx(i)} cy={sy(s)} r='2.5' fill={rc} opacity='0.9'/>:null)}
-        </svg>
-      </div>}
       <div style={{...sep}}>
         <p style={{margin:'0 0 0.3rem',fontSize:'0.52rem',fontWeight:900,color:'rgba(64,232,255,0.6)',letterSpacing:'0.2em',textTransform:'uppercase'}}>CARTE</p>
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0.18rem 0.6rem'}}>
