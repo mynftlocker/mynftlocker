@@ -294,7 +294,7 @@ export default function Home() {
     if(!slug)return;
     setLoading(true);setError('');setFlippedSlug(null);setLockerStart(0);
     // Cache localStorage (TTL 1h)
-    const CACHE_KEY='mnfl_v2_'+slug;
+    const CACHE_KEY='mnfl_v3_'+slug;
     try{
       const cached=localStorage.getItem(CACHE_KEY);
       if(cached){const{c:cc,ts}=JSON.parse(cached);if(Date.now()-ts<3600000&&cc?.length>0){setCards(cc);setLoading(false);return;}}
