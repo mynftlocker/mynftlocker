@@ -70,10 +70,8 @@ export const StatPanel=memo(({card,onClose,isClosing=false,placement='scene'}:an
   const avgNum=card.averageScore!=null?parseFloat(String(card.averageScore)):null;
   const team=card.anyTeam?.name||'—';
   const xp=card.xp?card.xp.toLocaleString():'—';
-  const owner=card.user?.nickname||'--';
   const priceCents=card.liveSingleSaleOffer?.senderSide?.amounts?.eurCents;
-  const priceAuction=card.latestEnglishAuction?.currentPrice;
-  const priceStr=priceCents!=null?(priceCents/100).toFixed(2)+'€':priceAuction?String(Math.round(parseInt(priceAuction)/1e18*100)/100)+' ETH':'--';
+  const priceStr=priceCents!=null?(priceCents/100).toFixed(2)+' €':'--';
   const edition=card.specialEdition?card.specialEdition.replace(/_/g,' ').toUpperCase():'STANDARD';
   const nbaSeasonStr=card.seasonYear&&card.seasonYear>2000?String(card.seasonYear)+'-'+String(card.seasonYear+1).slice(2):'2025-26';
   const [l10scores,setL10scores]=useState<number[]>([]);
