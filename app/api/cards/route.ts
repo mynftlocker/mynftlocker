@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+
 export async function GET(request:NextRequest){
   const slug=request.nextUrl.searchParams.get('slug')||'';
   const cursor=request.nextUrl.searchParams.get('cursor')||'';
@@ -7,12 +8,23 @@ export async function GET(request:NextRequest){
     __typename slug name rarityTyped pictureUrl
     serialNumber
     user{nickname}
-    liveSingleSaleOffer{senderSide{amounts{eurCents}}}
+    liveSingleSaleOffer{senderSide{amounts{eurCents wei}}}
     latestEnglishAuction{currentPrice currency}
     priceRange{min max}
     anyPlayer{lastName shirtNumber}
     anyTeam{name ...on Club{country{slug}}}
-    ...on NBACard{seasonYear specialEdition power xp averageScore(type:LAST_TEN_PLAYED_SO5_AVERAGE_SCORE)}
+    ...on NBACard{
+      seasonYear specialEdition power xp
+      averageScore(type:LAST_TEN_PLAYED_SO5_AVERAGE_SCORE)
+      basketballPlayer{
+        allPlayerGameScores(last:10){score}
+      }
+    }
+    ...on Card{
+      seasonYear specialEdition power xp
+      averageScore(type:LAST_TEN_PLAYED_SO5_AVERAGE_SCORE)
+      rawSo5Scores(last:10)
+    }
   }pageInfo{hasNextPage endCursor}}}}`;
   try{
     const headers:Record<string,string>={'Content-Type':'application/json','Accept':'application/json'};
