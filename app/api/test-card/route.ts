@@ -2,13 +2,21 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function GET(request:NextRequest){
   const slug=request.nextUrl.searchParams.get('slug')||'';
   if(!slug)return NextResponse.json({error:'slug required'});
-  const query=`query{nbaCards(slugs:["${slug}"]){
-    slug xp power openForTrade
-    averageScore(type:LAST_TEN_PLAYED_SO5_AVERAGE_SCORE)
-    liveSingleSaleOffer{price}
-    latestEnglishAuction{currentPrice}
-    myMintedSingleSaleOffer{price}
-    so5Scores(last:5){score gameWeek{name}}
+  const query=`query{anyCards(slugs:["${slug}"]){
+    slug
+    ...on NBACard{
+      xp power openForTrade
+      averageScore(type:LAST_TEN_PLAYED_SO5_AVERAGE_SCORE)
+      liveSingleSaleOffer{price}
+      latestEnglishAuction{currentPrice}
+      myMintedSingleSaleOffer{price}
+      so5Scores(last:5){score gameWeek{displayName}}
+    }
+    ...on Card{
+      xp openForTrade
+      liveSingleSaleOffer{price}
+      latestEnglishAuction{currentPrice}
+    }
   }}`;
   const jwt=process.env.SORARE_JWT||'';
   const aud=process.env.SORARE_AUD||'';
