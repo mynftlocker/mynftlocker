@@ -142,7 +142,7 @@ export const StatPanel=memo(({card,onClose,isClosing=false,placement='scene'}:an
           ))}
         </div>
       </div>
-      <div style={{...sep,flex:1,minHeight:0,overflow:'hidden'}}>
+      <div style={{...sep,overflow:'hidden'}}>
         {isNBA(card)?(
           <>
             <p style={{margin:'0 0 0.3rem',fontSize:'0.52rem',fontWeight:900,color:'rgba(64,232,255,0.6)',letterSpacing:'0.2em',textTransform:'uppercase'}}>NBA STATS · {nbaStats?.season||nbaSeasonStr}</p>
