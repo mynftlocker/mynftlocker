@@ -4,9 +4,20 @@ export async function GET(request:NextRequest){
   const slug=request.nextUrl.searchParams.get('slug')||'';
   const cursor=request.nextUrl.searchParams.get('cursor')||'';
   const after=cursor?`,after:"${cursor}"`:'';
-  const query=`query{user(slug:"${slug}"){cards(first:25${after}){nodes{__typename slug name rarityTyped pictureUrl anyPlayer{lastName shirtNumber}anyTeam{name ...on Club{country{slug}}}...on NBACard{seasonYear specialEdition power xp averageScore(type:LAST_TEN_PLAYED_SO5_AVERAGE_SCORE)}}pageInfo{hasNextPage endCursor}}}}`;
+  const query=`query{user(slug:"${slug}"){cards(first:25${after}){nodes{
+    __typename slug name rarityTyped pictureUrl
+    xp power specialEdition
+    anyPlayer{lastName shirtNumber}
+    anyTeam{name ...on Club{country{slug}}}
+    ...on NBACard{
+      seasonYear
+      averageScore(type:LAST_TEN_PLAYED_SO5_AVERAGE_SCORE)
+      latestEnglishAuction{currentPrice}
+      myMintedSingleSaleOffer{price}
+      currentUserSingleSaleOffer{price}
+    }
+  }pageInfo{hasNextPage endCursor}}}}`;
   try{
-    // Headers de base + JWT si configure (debloque cartes privees et champs verrouilles)
     const headers:Record<string,string>={'Content-Type':'application/json','Accept':'application/json'};
     const jwt=process.env.SORARE_JWT||'';
     const aud=process.env.SORARE_AUD||'';
