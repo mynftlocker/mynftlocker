@@ -96,7 +96,7 @@ const CardBack=memo(({ card }: { card: any }) => {
         <p style={{margin:0,fontSize:nameFontSize(lastName.length),fontWeight:900,color:'#fff',lineHeight:1.1,textShadow:'0 0 18px '+rc+'99'}}>{lastName}</p>
         {shirtNumber!==null&&<p style={{margin:'0.25rem 0 0',fontSize:'1.1rem',color:rc,fontWeight:900}}>#{shirtNumber}</p>}
         {serial&&<p style={{margin:'0.1rem 0 0',fontSize:'0.65rem',color:'#b8956a',fontWeight:600}}>{serial}</p>}
-        {isSpecialCard(card)&&<p style={{margin:'0.15rem 0 0',fontSize:'0.55rem',color:rc,fontWeight:700,letterSpacing:'0.05em'}}>{specialLabel(card.specialEdition)}</p>}
+        {isSpecialCard(card)&&<p style={{margin:'0.15rem 0 0',fontSize:'0.55rem',color:rc,fontWeight:700,letterSpacing:'0.05em'}}>{editionGroupLabel(card.specialEdition)}</p>}
       </div>
       <div style={{flex:1,display:'flex',flexDirection:'column' as const,alignItems:'center',justifyContent:'center'}}>
         <p style={{margin:0,fontSize:'1.5rem',fontWeight:800,color:'#fff'}}>{card.averageScore??'--'}</p>
