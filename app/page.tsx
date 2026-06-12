@@ -23,15 +23,45 @@ const RARITY_FILL: Record<string,string> = {
 const RARITY_ORDER: Record<string,number> = { unique:0, super_rare:1, rare:2, limited:3, common:4 };
 const HOF_KEY = '__HOF__';
 
-// Labels lisibles pour les editions speciales
-const SPECIAL_LABELS: Record<string,string> = {
-  stellar_shiny_base:'Shiny', stellar_holo_base:'Holo', stellar_meteor_base:'Meteor',
-  stellar_shiny_jersey_number:'Shiny Jersey', stellar_holo_jersey_number:'Holo Jersey',
-  stellar_standard_base:'Standard', playoffs:'Playoffs', showtime:'Showtime', sunset:'Sunset',
+// Groupes d'editions (dynamiques, bases sur le portefeuille)
+const EDITION_GROUPS: Record<string,string> = {
+  'colors_standard_base':'COLORS','colors_holo_base':'COLORS','colors_shiny_base':'COLORS',
+  'stellar_standard_base':'STELLAR','stellar_holo_base':'STELLAR','stellar_shiny_base':'STELLAR',
+  'stellar_meteor_base':'STELLAR','stellar_shiny_jersey_number':'STELLAR','stellar_holo_jersey_number':'STELLAR',
+  'winter':'WINTER','legacy':'LEGACY',
+  'early_access':'EARLY ACCESS','early access':'EARLY ACCESS',
+  'ice_breaker':'ICE BREAKER','ice breaker':'ICE BREAKER',
+  'playoffs':'PLAYOFFS','postseason':'PLAYOFFS',
+  'showtime':'SHOWTIME','sunset':'SUNSET','ace':'ACE',
+  'all_star':'ALL-STAR','all-star':'ALL-STAR','emirates':'EMIRATES',
+  'neon':'NEON','rookie':'ROOKIE',
+  'animated':'ANIMATED','cursed':'CURSED','halloween':'HALLOWEEN',
+  'ballon_dor':'BALLON D'OR','ballon_dor_sealed':'BALLON D'OR','ballon_dor_winner':'BALLON D'OR',
+  'flag_pose':'FLAG POSE','horangi_heritage':'HORANGI HERITAGE',
 };
-const specialLabel=(v:string)=>SPECIAL_LABELS[v]||v;
-const STANDARD_SET=new Set(['stellar_standard_base']);
-const isSpecialCard=(c:any)=>{ const se=c.specialEdition; if(!se)return false; if(STANDARD_SET.has(se))return false; return true; };
+const editionGroup=(se:string):string=>{
+  if(!se)return'standard';
+  const exact=EDITION_GROUPS[se];if(exact)return exact;
+  const l=se.toLowerCase().replace(/[- ]/g,'_');
+  const norm=EDITION_GROUPS[l];if(norm)return norm;
+  if(l.startsWith('ballon'))return'BALLON D'OR';
+  if(l.startsWith('neon'))return'NEON';
+  if(l.startsWith('stellar'))return'STELLAR';
+  if(l.startsWith('colors'))return'COLORS';
+  if(l.startsWith('ice'))return'ICE BREAKER';
+  if(l.startsWith('early'))return'EARLY ACCESS';
+  if(l.startsWith('all_star')||l.startsWith('allstar'))return'ALL-STAR';
+  if(l.startsWith('flag'))return'FLAG POSE';
+  if(l.startsWith('horangi'))return'HORANGI HERITAGE';
+  if(l.startsWith('playoff')||l.startsWith('postseason'))return'PLAYOFFS';
+  return se;
+};
+const editionGroupLabel=(se:string):string=>{
+  const g=editionGroup(se);
+  return g===se?se.split(/[_\- ]/).map((w:string)=>w?w[0].toUpperCase()+w.slice(1):'').join(' '):g;
+};
+const STANDARD_EDITIONS=new Set(['stellar_standard_base','colors_standard_base','legacy']);
+const isSpecialCard=(c:any)=>{ const se=c.specialEdition; if(!se)return false; if(STANDARD_EDITIONS.has(se))return false; return editionGroup(se)!=='standard'; };
 const playerKey=(c:any)=>(c.anyPlayer?.lastName||c.slug.split('-')[0])+'|'+(c.anyPlayer?.shirtNumber??'');
 const dedupeByPlayer=(list:any[])=>{
   const better=(a:any,b:any)=>{ const sa=isSpecialCard(a)?1:0, sb=isSpecialCard(b)?1:0; if(sa!==sb) return sa>sb?a:b; return (a.xp??0)>=(b.xp??0)?a:b; };
@@ -360,37 +390,16 @@ export default function Home() {
     return [...s].sort((a,b)=>b-a);
   },[cards]);
   const specialOptions=useMemo(()=>{
-    const s=new Set<string>();
-    for(const c of cards){if(isSpecialCard(c))s.add(c.specialEdition);}
-    return [...s].sort();
-  },[cards]);
-
-  // Filtre cumulable applique a n'importe quelle liste
-  const applyFilters=useCallback((list:any[])=>{
-    return list.filter(c=>{
-      if(fRarity!=='all' && c.rarityTyped!==fRarity) return false;
-      if(fSeason!=='all' && c.seasonYear!==Number(fSeason)) return false;
-      if(fSpecial==='standard' && isSpecialCard(c)) return false;
-      if(fSpecial==='special' && !isSpecialCard(c)) return false;
-      if(fSpecial!=='all'&&fSpecial!=='standard'&&fSpecial!=='special' && c.specialEdition!==fSpecial) return false;
-      if(fPlayer){
-        const ln=(c.anyPlayer?.lastName||'').toLowerCase();
-        if(!ln.includes(fPlayer.toLowerCase()) && !c.name.toLowerCase().includes(fPlayer.toLowerCase())) return false;
-      }
-      return true;
-    });
-  },[fRarity,fSeason,fSpecial,fPlayer]);
-
-  // Liste equipes : ordre alphabetique par ville + Hall of Fame en tete
-  const teamList=useMemo(()=>{
-    const counts:Record<string,number>={};
-    for(const c of cards){if(isNBA(c)&&c.anyTeam?.name){counts[c.anyTeam.name]=(counts[c.anyTeam.name]||0)+1;}}
-    const list=Object.entries(counts).map(([api,count])=>({api,display:api,count})).sort((a,b)=>a.api.localeCompare(b.api));
-    const hofCount=cards.filter(c=>hof.includes(c.slug)).length;
-    if(hofCount>0) list.unshift({api:HOF_KEY,display:'HALL OF FAME',count:hofCount});
-    return list;
-  },[cards,hof]);
-  const leagueOptions=useMemo(()=>{if(gSport==='nba')return[{v:'all',l:'NBA'}];return[{v:'all',l:'Toutes les ligues'}];},[gSport]);
+    const groups=new Map<string,string>();
+    const sportCards=gSport==='foot'?cards.filter((x:any)=>!isNBA(x)):cards.filter((x:any)=>isNBA(x));
+    for(const card of sportCards){
+      const se=card.specialEdition;
+      if(!se||STANDARD_EDITIONS.has(se))continue;
+      const g=editionGroup(se);
+      if(!groups.has(g))groups.set(g,editionGroupLabel(se));
+    }
+    return [...groups.entries()].map(([v,l])=>({v,l})).sort((a,b)=>a.l.localeCompare(b.l));
+  },[cards,gSport]);return[{v:'all',l:'Toutes les ligues'}];},[gSport]);
   useEffect(()=>{ if(teamList.length===0)return;const hofInList=teamList.find(t=>t.api==='__HOF__');if(hofInList&&teamApi!=='__HOF__'&&!localStorage.getItem('mnfl_team_chosen')){setTeamApi('__HOF__');return;}if(!teamList.find(t=>t.api===teamApi)){setTeamApi(hofInList?'__HOF__':teamList[0].api);} },[teamList,teamApi]);
 
   // Vestiaire : epingles prioritaires, puis remplissage, puis TOUTES les cartes
@@ -441,7 +450,7 @@ export default function Home() {
   // Bloc filtres vertical (barre laterale)
   const rarityOpts=[{value:'all',label:'Toutes les raretés'},{value:'common',label:'Common'},{value:'limited',label:'Limited'},{value:'rare',label:'Rare'},{value:'super_rare',label:'Super Rare'},{value:'unique',label:'Unique'}];
   const seasonOpts=[{value:'all',label:'Toutes saisons'},...seasonOptions.map(y=>({value:String(y),label:y+'-'+String((y+1)%100).padStart(2,'0')}))];
-  const specialOpts=[{value:'all',label:'Toutes cartes'},{value:'standard',label:'Standard uniquement'},{value:'special',label:'Spéciales uniquement'},...specialOptions.map(s=>({value:s,label:specialLabel(s)}))];
+  const specialOpts=[{value:'all',label:'Toutes cartes'},{value:'standard',label:'Standard uniquement'},{value:'special',label:'Spéciales uniquement'},...specialOptions.map(({v,l}:{v:string,l:string})=>({value:v,label:l}))];
   // (composant Filters retiré — filtres inlinés dans la sidebar)
 
   return(
