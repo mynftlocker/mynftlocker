@@ -1,16 +1,18 @@
-import { NextRequest, NextResponse } from 'next/server';
-export async function GET(request:NextRequest){
-  const fields=request.nextUrl.searchParams.get('fields')||'serialNumber';
-  const slug=request.nextUrl.searchParams.get('slug')||'lebron-james-19841230-2025-limited-210';
-  const query=`query{anyCards(slugs:["${slug}"]){
-    __typename slug
-    ${fields}
-  }}`;
-  const jwt=process.env.SORARE_JWT||'';
-  const aud=process.env.SORARE_AUD||'';
-  const headers:Record<string,string>={'Content-Type':'application/json','Accept':'application/json'};
-  if(jwt&&aud){headers['Authorization']=`Bearer ${jwt}`;headers['JWT-AUD']=aud;}
-  const r=await fetch('https://api.sorare.com/federation/graphql',{method:'POST',headers,body:JSON.stringify({query}),signal:AbortSignal.timeout(8000)});
-  const j=await r.json();
-  return NextResponse.json({fields,result:j?.data?.anyCards?.[0]||null,errors:j?.errors||null});
+import { NextResponse } from 'next/server';
+export async function GET(){
+  const r=await fetch('https://api.sorare.com/graphql/schema',{signal:AbortSignal.timeout(8000)});
+  const schema=await r.text();
+  const extractType=(name:string)=>{
+    const idx=schema.indexOf('type '+name+' ');
+    if(idx<0)return ['NOT FOUND'];
+    const start=schema.indexOf('{',idx)+1;
+    const end=schema.indexOf('}',start);
+    return schema.slice(start,end).split('\n').map((l:string)=>l.trim()).filter(Boolean);
+  };
+  const cardFields=extractType('Card');
+  // Filtrer les champs pertinents: xp, serial, score, l10, average
+  const relevant=cardFields.filter((l:string)=>
+    /xp|serial|score|average|game|season|power|special/i.test(l)
+  );
+  return NextResponse.json({relevant, total: cardFields.length});
 }
