@@ -1,24 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-
 export async function GET(request:NextRequest){
   const slug=request.nextUrl.searchParams.get('slug')||'';
   const cursor=request.nextUrl.searchParams.get('cursor')||'';
   const after=cursor?`,after:"${cursor}"`:'';
   const query=`query{user(slug:"${slug}"){cards(first:25${after}){nodes{
     __typename slug name rarityTyped pictureUrl
-    serialNumber
-    user{nickname}
-    liveSingleSaleOffer{senderSide{amounts{eurCents wei}}}
-    latestEnglishAuction{currentPrice currency}
-    priceRange{min max}
     anyPlayer{lastName shirtNumber}
     anyTeam{name ...on Club{country{slug}}}
     ...on NBACard{
       seasonYear specialEdition power xp
       averageScore(type:LAST_TEN_PLAYED_SO5_AVERAGE_SCORE)
-      basketballPlayer{
-        allPlayerGameScores(last:10){score}
-      }
     }
     ...on Card{
       seasonYear specialEdition power xp
