@@ -6,15 +6,11 @@ export async function GET(request:NextRequest){
   const after=cursor?`,after:"${cursor}"`:'';
   const query=`query{user(slug:"${slug}"){cards(first:25${after}){nodes{
     __typename slug name rarityTyped pictureUrl
-    xp power specialEdition
     anyPlayer{lastName shirtNumber}
     anyTeam{name ...on Club{country{slug}}}
     ...on NBACard{
-      seasonYear
+      seasonYear specialEdition power xp
       averageScore(type:LAST_TEN_PLAYED_SO5_AVERAGE_SCORE)
-      latestEnglishAuction{currentPrice}
-      myMintedSingleSaleOffer{price}
-      currentUserSingleSaleOffer{price}
     }
   }pageInfo{hasNextPage endCursor}}}}`;
   try{
