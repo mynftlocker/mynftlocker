@@ -100,7 +100,7 @@ export const StatPanel=memo(({card,onClose,isClosing=false,placement='scene'}:an
   const isOverlay=placement==='overlay';
   const posStyle:React.CSSProperties=isOverlay
     ? {position:'fixed',right:'1%',top:'5%',width:'22.2vw',maxHeight:'89vh',zIndex:200}
-    : {position:'absolute',right:'1%',top:'5%',width:'30%',height:'89%',zIndex:50};
+    : {position:'absolute',right:'1%',top:'5%',width:'30%',maxHeight:'89%',zIndex:50};
   const deployDelay=isOverlay?'0.1s':'0.45s';
   return(
     <div key={card.slug} style={{...posStyle,background:'repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(64,232,255,0.03) 2px,rgba(64,232,255,0.03) 3px),linear-gradient(rgba(2,10,22,0.95),rgba(2,10,22,0.95))',border:'1px solid rgba(64,232,255,0.5)',boxShadow:'0 0 40px rgba(64,232,255,0.15),inset 0 0 60px rgba(0,0,0,0.5)',clipPath:isClosing?'none':'polygon(14px 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,0 100%,0 14px)',padding:'0.8rem 0.75rem',display:'flex',flexDirection:'column' as const,overflow:'hidden',animation:isClosing?'mnflClose 0.45s cubic-bezier(0.7,0,0.95,1) both':('mnflDeploy 0.55s ease-out '+deployDelay+' backwards'),fontFamily:'Courier New,Consolas,monospace',backdropFilter:isClosing?'none':'blur(12px)',WebkitBackdropFilter:isClosing?'none':'blur(12px)'}}>
