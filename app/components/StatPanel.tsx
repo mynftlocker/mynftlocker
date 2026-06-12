@@ -186,14 +186,9 @@ export const StatPanel=memo(({card,onClose,isClosing=false,placement='scene'}:an
           </a>
         )}
       </div>
-      <div style={{flexShrink:0,marginTop:'auto',paddingTop:'0.3rem',borderTop:'1px solid rgba(64,232,255,0.14)'}}>
-        <div style={{display:'flex',gap:'0.3rem',marginBottom:'0.22rem'}}>
-          {['BEAT L10','GW','RÉCOMP.'].map((l:string)=>(
-            <div key={l} style={{flex:1,padding:'0.16rem 0',border:'1px solid rgba(64,232,255,0.1)',borderRadius:'0.2rem',textAlign:'center',background:'rgba(64,232,255,0.025)'}}><span style={{fontSize:'0.5rem',color:'rgba(64,232,255,0.28)',letterSpacing:'0.03em'}}>{l} 🔒</span></div>
-          ))}
-        </div>
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0.3rem',marginTop:'0.15rem'}}>
-          {([['PRIX',priceStr],['OWNER',owner]] as [string,string][]).map(([l,v])=>(
+      <div style={{flexShrink:0,paddingTop:'0.3rem',borderTop:'1px solid rgba(64,232,255,0.14)'}}>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0.3rem'}}>
+          {([['SÉRIE',serial||'—'],['PRIX',priceStr]] as [string,string][]).map(([l,v])=>(
             <div key={l} style={{background:'rgba(0,0,0,0.3)',border:'1px solid rgba(64,232,255,0.12)',borderRadius:'0.25rem',padding:'0.28rem 0.4rem',display:'flex',flexDirection:'column' as const,gap:'0.1rem'}}><span style={{fontSize:'0.42rem',color:'rgba(64,232,255,0.4)',letterSpacing:'0.1em',textTransform:'uppercase'}}>{l}</span><span style={{fontSize:'0.62rem',color:'rgba(64,232,255,0.6)',fontWeight:600}}>{v}</span></div>
           ))}
         </div>
