@@ -36,7 +36,7 @@ const EDITION_GROUPS: Record<string,string> = {
   'all_star':'ALL-STAR','all-star':'ALL-STAR','emirates':'EMIRATES',
   'neon':'NEON','rookie':'ROOKIE',
   'animated':'ANIMATED','cursed':'CURSED','halloween':'HALLOWEEN',
-  'ballon_dor':'BALLON D'OR','ballon_dor_sealed':'BALLON D'OR','ballon_dor_winner':'BALLON D'OR',
+  'ballon_dor':"BALLON D'OR",'ballon_dor_sealed':"BALLON D'OR",'ballon_dor_winner':"BALLON D'OR",
   'flag_pose':'FLAG POSE','horangi_heritage':'HORANGI HERITAGE',
 };
 const editionGroup=(se:string):string=>{
@@ -44,7 +44,7 @@ const editionGroup=(se:string):string=>{
   const exact=EDITION_GROUPS[se];if(exact)return exact;
   const l=se.toLowerCase().replace(/[- ]/g,'_');
   const norm=EDITION_GROUPS[l];if(norm)return norm;
-  if(l.startsWith('ballon'))return'BALLON D'OR';
+  if(l.startsWith('ballon'))return"BALLON D'OR";
   if(l.startsWith('neon'))return'NEON';
   if(l.startsWith('stellar'))return'STELLAR';
   if(l.startsWith('colors'))return'COLORS';
