@@ -1,18 +1,33 @@
-import { NextResponse } from 'next/server';
-export async function GET(){
-  const r=await fetch('https://api.sorare.com/graphql/schema',{signal:AbortSignal.timeout(8000)});
-  const schema=await r.text();
-  const extractType=(name:string)=>{
-    const idx=schema.indexOf('type '+name+' ');
-    if(idx<0)return ['NOT FOUND'];
-    const start=schema.indexOf('{',idx)+1;
-    const end=schema.indexOf('}',start);
-    return schema.slice(start,end).split('\n').map((l:string)=>l.trim()).filter(Boolean);
-  };
-  return NextResponse.json({
-    NBACard: extractType('NBACard'),
-    TokenOffer: extractType('TokenOffer'),
-    EnglishAuction: extractType('EnglishAuction'),
-    So5Score: extractType('So5Score'),
-  });
+import { NextRequest, NextResponse } from 'next/server';
+export async function GET(request:NextRequest){
+  const slug=request.nextUrl.searchParams.get('slug')||'';
+  if(!slug)return NextResponse.json({error:'slug required'});
+  const query=`query{anyCards(slugs:["${slug}"]){
+    slug serialNumber
+    user{nickname}
+    liveSingleSaleOffer{
+      senderSide{amounts{wei eur usd}}
+      receiverSide{amounts{wei eur usd}}
+    }
+    latestEnglishAuction: latestEnglishAuction{
+      currentPrice
+      bestBid{amounts{wei eur usd}}
+    }
+    myMintedSingleSaleOffer{
+      senderSide{amounts{wei eur usd}}
+    }
+    priceRange{min max}
+    ...on NBACard{
+      xp power seasonYear specialEdition
+      averageScore(type:LAST_TEN_PLAYED_SO5_AVERAGE_SCORE)
+      so5Scores: so5Scores(last:10){score anyGame{date}}
+    }
+  }}`;
+  const jwt=process.env.SORARE_JWT||'';
+  const aud=process.env.SORARE_AUD||'';
+  const headers:Record<string,string>={'Content-Type':'application/json','Accept':'application/json'};
+  if(jwt&&aud){headers['Authorization']=`Bearer ${jwt}`;headers['JWT-AUD']=aud;}
+  const r=await fetch('https://api.sorare.com/federation/graphql',{method:'POST',headers,body:JSON.stringify({query}),signal:AbortSignal.timeout(8000)});
+  const j=await r.json();
+  return NextResponse.json(j);
 }
