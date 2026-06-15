@@ -22,41 +22,37 @@ const RARITY_FILL: Record<string,string> = {
 const RARITY_ORDER: Record<string,number> = { unique:0, super_rare:1, rare:2, limited:3, common:4 };
 const HOF_KEY = '__HOF__';
 
-// Groupes d'editions (dynamiques, bases sur le portefeuille)
-const EDITION_GROUPS: Record<string,string> = {
-  'colors_standard_base':'COLORS','colors_holo_base':'COLORS','colors_shiny_base':'COLORS',
-  'stellar_standard_base':'STELLAR','stellar_holo_base':'STELLAR','stellar_shiny_base':'STELLAR',
-  'stellar_meteor_base':'STELLAR','stellar_shiny_jersey_number':'STELLAR','stellar_holo_jersey_number':'STELLAR',
-  'winter':'WINTER','legacy':'LEGACY',
-  'early_access':'EARLY ACCESS','ice_breaker':'ICE BREAKER',
-  'playoffs':'PLAYOFFS','postseason':'PLAYOFFS',
-  'showtime':'SHOWTIME','sunset':'SUNSET','ace':'ACE',
-  'all_star':'ALL-STAR','emirates':'EMIRATES',
-  'neon':'NEON','rookie':'ROOKIE',
-  'animated':'ANIMATED','cursed':'CURSED','halloween':'HALLOWEEN',
-  'ballon_dor':'BALLON DOR','ballon_dor_sealed':'BALLON DOR','ballon_dor_winner':'BALLON DOR',
-  'flag_pose':'FLAG POSE','horangi_heritage':'HORANGI HERITAGE',
-};
+// Groupes d'editions
 const editionGroup=(se:string):string=>{
   if(!se)return 'standard';
-  const exact=(EDITION_GROUPS as any)[se]; if(exact)return exact;
-  const l=se.toLowerCase().replace(/[- ]/g,'_');
-  const norm=(EDITION_GROUPS as any)[l]; if(norm)return norm;
-  if(l.startsWith('ballon'))return 'BALLON DOR';
+  const l=se.toLowerCase();
+  if(l.startsWith('colors_standard')||l==='legacy')return 'standard';
+  if(l.startsWith('stellar_standard'))return 'standard';
+  if(l.startsWith('colors_'))return 'COLORS';
+  if(l.startsWith('stellar_'))return 'STELLAR';
   if(l.startsWith('neon'))return 'NEON';
-  if(l.startsWith('stellar'))return 'STELLAR';
-  if(l.startsWith('colors'))return 'COLORS';
   if(l.startsWith('ice'))return 'ICE BREAKER';
   if(l.startsWith('early'))return 'EARLY ACCESS';
-  if(l.startsWith('all_star'))return 'ALL-STAR';
+  if(l.startsWith('ballon'))return 'BALLON DOR';
   if(l.startsWith('flag'))return 'FLAG POSE';
   if(l.startsWith('horangi'))return 'HORANGI HERITAGE';
-  if(l.startsWith('playoff')||l.startsWith('postseason'))return 'PLAYOFFS';
+  if(l==='playoffs'||l==='postseason'||l.startsWith('postseason'))return 'PLAYOFFS';
+  if(l==='showtime')return 'SHOWTIME';
+  if(l==='sunset')return 'SUNSET';
+  if(l==='winter')return 'WINTER';
+  if(l==='ace')return 'ACE';
+  if(l==='all-star'||l==='all_star')return 'ALL-STAR';
+  if(l==='emirates')return 'EMIRATES';
+  if(l==='rookie')return 'ROOKIE';
+  if(l==='animated')return 'ANIMATED';
+  if(l==='cursed')return 'CURSED';
+  if(l==='halloween')return 'HALLOWEEN';
   return se;
 };
 const editionGroupLabel=(se:string):string=>{
   const g=editionGroup(se);
-  return g===se?se.split(/[_ ]/).map((w:string)=>w?w[0].toUpperCase()+w.slice(1):'').join(' '):g;
+  if(g===se)return se;
+  return g;
 };
 const STANDARD_EDITIONS=new Set(['stellar_standard_base','colors_standard_base','legacy']);
 const isSpecialCard=(c:any)=>{ const se=c.specialEdition; if(!se)return false; if(STANDARD_EDITIONS.has(se))return false; return editionGroup(se)!=='standard'; };
@@ -346,10 +342,11 @@ export default function Home() {
     for(const card of sc){
       const se=card.specialEdition;
       if(!se||STANDARD_EDITIONS.has(se))continue;
+      if(editionGroup(se)==='standard')continue;
       const g=editionGroup(se);
-      if(!groups.has(g))groups.set(g,editionGroupLabel(se));
+      if(!groups.has(g))groups.set(g,g);
     }
-    return [...groups.entries()].map(([v,l])=>({v,l})).sort((a,b)=>a.l.localeCompare(b.l));
+    return [...groups.keys()].sort();
   },[cards,gSport]);
 
   // Filtre cumulable applique a n'importe quelle liste
@@ -435,7 +432,7 @@ export default function Home() {
   // Bloc filtres vertical (barre laterale)
   const rarityOpts=[{value:'all',label:'Toutes les raretés'},{value:'common',label:'Common'},{value:'limited',label:'Limited'},{value:'rare',label:'Rare'},{value:'super_rare',label:'Super Rare'},{value:'unique',label:'Unique'}];
   const seasonOpts=[{value:'all',label:'Toutes saisons'},...seasonOptions.map(y=>({value:String(y),label:y+'-'+String((y+1)%100).padStart(2,'0')}))];
-  const specialOpts=[{value:'all',label:'Toutes cartes'},{value:'standard',label:'Standard uniquement'},{value:'special',label:'Spéciales uniquement'},...specialOptions.map(({v,l}:{v:string,l:string})=>({value:v,label:l}))];
+  const specialOpts=[{value:'all',label:'Toutes cartes'},{value:'standard',label:'Standard uniquement'},{value:'special',label:'Spéciales uniquement'},...specialOptions.map(g=>({value:g,label:g}))];
   const Filters=()=>(
     <div>
       <FilterMenu title='Rareté' options={rarityOpts} current={fRarity} onSelect={setFRarity}/>
