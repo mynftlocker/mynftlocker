@@ -382,9 +382,9 @@ export default function Home() {
   },[cards]);
   const specialOptions=useMemo(()=>{
     const s=new Set<string>();
-    for(const c of cards){if(isSpecialCard(c))s.add(editionGroup(c.specialEdition));}
+    for(const c of cards){if((gSport==='nba'?isNBA(c):!isNBA(c))&&isSpecialCard(c))s.add(editionGroup(c.specialEdition));}
     return [...s].sort();
-  },[cards]);
+  },[cards,gSport]);
 
   // Filtre cumulable applique a n'importe quelle liste
   const applyFilters=useCallback((list:any[])=>{
@@ -458,7 +458,7 @@ export default function Home() {
   // Bloc filtres vertical (barre laterale)
   const rarityOpts=[{value:'all',label:'Toutes les raretés'},{value:'common',label:'Common'},{value:'limited',label:'Limited'},{value:'rare',label:'Rare'},{value:'super_rare',label:'Super Rare'},{value:'unique',label:'Unique'}];
   const seasonOpts=[{value:'all',label:'Toutes saisons'},...seasonOptions.map(y=>({value:String(y),label:y+'-'+String((y+1)%100).padStart(2,'0')}))];
-  const specialOpts=[{value:'all',label:'Toutes cartes'},{value:'standard',label:'Standard uniquement'},{value:'special',label:'Spéciales uniquement'},...specialOptions.map(s=>({value:s,label:s}))];
+  const specialOpts=[{value:'all',label:'Toutes cartes'},{value:'standard',label:'STANDARD UNIQUEMENT'},{value:'special',label:'SPÉCIALES UNIQUEMENT'},...specialOptions.map(s=>({value:s,label:s}))];
   // (composant Filters retiré — filtres inlinés dans la sidebar)
 
   return(
@@ -499,7 +499,7 @@ export default function Home() {
         {/* FILTRES — ordre: Sport, Joueur, Equipe, Saison, Rarete, Edition, Tri */}
         {cards.length>0&&(
           <div style={{textAlign:'left',flex:1,minHeight:0,display:'flex',flexDirection:'column' as const,gap:0,borderTop:'1px solid rgba(255,255,255,0.06)',paddingTop:'0.3rem'}}>
-            <FilterMenu title='Sport' options={[{value:'nba',label:'NBA'},{value:'foot',label:'Football'}]} current={gSport} onSelect={(v:string)=>{setGSport(v as any);setGLeague('all');setGTeamCustom('all');}}/>
+            <FilterMenu title='Sport' options={[{value:'nba',label:'NBA'},{value:'foot',label:'Football'}]} current={gSport} onSelect={(v:string)=>{setGSport(v as any);setGLeague('all');setGTeamCustom('all');setFSpecial('all');}}/>
             <div style={{padding:'0.2rem 0.5rem'}}>
               <p style={{fontSize:'0.64rem',fontWeight:800,letterSpacing:'0.14em',textTransform:'uppercase',color:'#eaf2ff',margin:'0 0 0.2rem'}}>Joueur</p>
               <input style={{width:'100%',boxSizing:'border-box',background:'rgba(255,255,255,0.05)',color:'#e8eefc',padding:'0.3rem 0.5rem',borderRadius:'0.15rem',border:'1px solid rgba(255,255,255,0.12)',outline:'none',fontSize:'0.76rem'}} placeholder='Rechercher...' value={fPlayer} onChange={e=>setFPlayer(e.target.value)}/>
