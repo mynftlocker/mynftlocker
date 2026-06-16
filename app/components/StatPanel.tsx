@@ -89,6 +89,15 @@ export const StatPanel=memo(({card,onClose,isClosing=false,placement='scene'}:an
   const deployDelay=isOverlay?'0.1s':'0.45s';
   return(
     <div key={card.slug} style={{...posStyle,background:'repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(64,232,255,0.03) 2px,rgba(64,232,255,0.03) 3px),linear-gradient(rgba(2,10,22,0.95),rgba(2,10,22,0.95))',border:'1px solid rgba(64,232,255,0.5)',boxShadow:'0 0 40px rgba(64,232,255,0.15),inset 0 0 60px rgba(0,0,0,0.5)',clipPath:isClosing?'none':'polygon(14px 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,0 100%,0 14px)',padding:'0.8rem 0.75rem',display:'flex',flexDirection:'column' as const,overflow:'hidden',animation:isClosing?'mnflClose 0.45s cubic-bezier(0.7,0,0.95,1) both':('mnflDeploy 0.55s ease-out '+deployDelay+' backwards'),fontFamily:'Courier New,Consolas,monospace',backdropFilter:isClosing?'none':'blur(12px)',WebkitBackdropFilter:isClosing?'none':'blur(12px)'}}>
+      <style>{`
+        .stat-link-btn{transition:box-shadow 0.22s ease,border-color 0.22s ease,background 0.22s ease;}
+        .stat-link-btn:hover{
+          border-color:#40e8ff !important;
+          background:rgba(64,232,255,0.14) !important;
+          box-shadow:0 0 12px rgba(64,232,255,0.7),0 0 22px rgba(64,232,255,0.45),inset 0 0 10px rgba(64,232,255,0.25) !important;
+        }
+        .stat-link-btn:hover *{text-shadow:0 0 8px rgba(64,232,255,0.6);}
+      `}</style>
       <div style={{...sep,display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
         <div>
           <p style={{margin:0,fontSize:'0.55rem',color:'rgba(64,232,255,0.5)',fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase'}}>myNFTlocker · STATS</p>
@@ -140,21 +149,21 @@ export const StatPanel=memo(({card,onClose,isClosing=false,placement='scene'}:an
       <div style={{display:'flex',gap:'0.4rem',marginBottom:'0.3rem',flexShrink:0}}>
         {(nbaStats?._id||!isNBA(card))&&(
           <a href={isNBA(card)?('https://sorare.com/fr/nba/players/'+card.slug.split('-').filter((_:any,i:number,a:any)=>i<a.length-3).join('-')+'?sale=true'):('https://sorare.com/fr/football/players/'+card.slug.split('-').filter((_:any,i:number,a:any)=>i<a.length-3).join('-')+'?sale=true')}
-            target='_blank' rel='noopener noreferrer'
+            target='_blank' rel='noopener noreferrer' className='stat-link-btn'
             style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',gap:'0.3rem',padding:'0.3rem 0',borderRadius:'0.25rem',border:'1px solid rgba(64,232,255,0.5)',background:'rgba(64,232,255,0.06)',color:'#ffffff',fontSize:'0.55rem',fontWeight:800,letterSpacing:'0.1em',textDecoration:'none',cursor:'pointer'}}>
             <img src="/sorare-logo.png" alt="S" style={{width:'14px',height:'14px',borderRadius:'50%',objectFit:'cover'}} onError={(e:any)=>{e.target.style.display='none';}}/> SORARE
           </a>
         )}
         {isNBA(card)&&nbaStats?._id&&(
           <a href={'https://www.espn.com/nba/player/_/id/'+nbaStats._id+'/'+(_full||card.anyPlayer?.lastName||'').toLowerCase().replace(/\s+/g,'-')}
-            target='_blank' rel='noopener noreferrer'
+            target='_blank' rel='noopener noreferrer' className='stat-link-btn'
             style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',gap:'0.3rem',padding:'0.3rem 0',borderRadius:'0.25rem',border:'1px solid rgba(64,232,255,0.5)',background:'rgba(64,232,255,0.06)',color:'#e05050',fontSize:'0.55rem',fontWeight:800,letterSpacing:'0.1em',textDecoration:'none',cursor:'pointer'}}>
             <img src="https://a.espncdn.com/favicon.ico" alt="E" style={{width:'14px',height:'14px',objectFit:'contain'}}/> ESPN
           </a>
         )}
         {!isNBA(card)&&(
           <a href={'https://www.transfermarkt.com/schnellsuche/ergebnis/schnellsuche?query='+encodeURIComponent(_full||card.anyPlayer?.lastName||'')}
-            target='_blank' rel='noopener noreferrer'
+            target='_blank' rel='noopener noreferrer' className='stat-link-btn'
             style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',gap:'0.3rem',padding:'0.3rem 0',borderRadius:'0.25rem',border:'1px solid rgba(64,232,255,0.5)',background:'rgba(64,232,255,0.06)',color:'#ffffff',fontSize:'0.55rem',fontWeight:800,letterSpacing:'0.1em',textDecoration:'none',cursor:'pointer'}}>
             <span style={{fontSize:'0.75rem',fontWeight:900,color:'#1d6fa4'}}>TM</span> TRANSFERMARKT
           </a>
