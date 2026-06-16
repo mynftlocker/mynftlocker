@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect, useRef, memo, useCallback, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import dynamic from 'next/dynamic';
 import GalleryView from './components/GalleryView';
 import StarCanvas from './components/StarCanvas';
@@ -22,40 +23,15 @@ const RARITY_FILL: Record<string,string> = {
 const RARITY_ORDER: Record<string,number> = { unique:0, super_rare:1, rare:2, limited:3, common:4 };
 const HOF_KEY = '__HOF__';
 
-// Groupes d'editions
-const editionGroup=(se:string):string=>{
-  if(!se)return 'standard';
-  const l=se.toLowerCase();
-  if(l.startsWith('colors_standard')||l==='legacy')return 'standard';
-  if(l.startsWith('stellar_standard'))return 'standard';
-  if(l.startsWith('colors_'))return 'COLORS';
-  if(l.startsWith('stellar_'))return 'STELLAR';
-  if(l.startsWith('neon'))return 'NEON';
-  if(l.startsWith('ice'))return 'ICE BREAKER';
-  if(l.startsWith('early'))return 'EARLY ACCESS';
-  if(l.startsWith('ballon'))return 'BALLON DOR';
-  if(l.startsWith('flag'))return 'FLAG POSE';
-  if(l.startsWith('horangi'))return 'HORANGI HERITAGE';
-  if(l==='playoffs'||l==='postseason'||l.startsWith('postseason'))return 'PLAYOFFS';
-  if(l==='showtime')return 'SHOWTIME';
-  if(l==='sunset')return 'SUNSET';
-  if(l==='winter')return 'WINTER';
-  if(l==='ace')return 'ACE';
-  if(l==='all-star'||l==='all_star')return 'ALL-STAR';
-  if(l==='emirates')return 'EMIRATES';
-  if(l==='rookie')return 'ROOKIE';
-  if(l==='animated')return 'ANIMATED';
-  if(l==='cursed')return 'CURSED';
-  if(l==='halloween')return 'HALLOWEEN';
-  return se;
+// Labels lisibles pour les editions speciales
+const SPECIAL_LABELS: Record<string,string> = {
+  stellar_shiny_base:'Shiny', stellar_holo_base:'Holo', stellar_meteor_base:'Meteor',
+  stellar_shiny_jersey_number:'Shiny Jersey', stellar_holo_jersey_number:'Holo Jersey',
+  stellar_standard_base:'Standard', playoffs:'Playoffs', showtime:'Showtime', sunset:'Sunset',
 };
-const editionGroupLabel=(se:string):string=>{
-  const g=editionGroup(se);
-  if(g===se)return se;
-  return g;
-};
-const STANDARD_EDITIONS=new Set(['stellar_standard_base','colors_standard_base','legacy']);
-const isSpecialCard=(c:any)=>{ const se=c.specialEdition; if(!se)return false; if(STANDARD_EDITIONS.has(se))return false; return editionGroup(se)!=='standard'; };
+const specialLabel=(v:string)=>SPECIAL_LABELS[v]||v;
+const STANDARD_SET=new Set(['stellar_standard_base']);
+const isSpecialCard=(c:any)=>{ const se=c.specialEdition; if(!se)return false; if(STANDARD_SET.has(se))return false; return true; };
 const playerKey=(c:any)=>(c.anyPlayer?.lastName||c.slug.split('-')[0])+'|'+(c.anyPlayer?.shirtNumber??'');
 const dedupeByPlayer=(list:any[])=>{
   const better=(a:any,b:any)=>{ const sa=isSpecialCard(a)?1:0, sb=isSpecialCard(b)?1:0; if(sa!==sb) return sa>sb?a:b; return (a.xp??0)>=(b.xp??0)?a:b; };
@@ -64,7 +40,7 @@ const dedupeByPlayer=(list:any[])=>{
   return Object.values(byPlayer);
 };
 
-const isNBA=(c:any)=>typeof c==='string'?/\d{8}/.test(c):c?.__typename==='NBACard';
+const isNBA=(c:any)=>c?.__typename==='NBACard';
 const parseCard=(name:string)=>{
   const parts=name.split('•');const left=parts[0].trim();const right=(parts[1]||'').trim();
   const sm=left.match(/(\d{4}-\d{2})/);const season=sm?sm[1]:'';
@@ -84,13 +60,13 @@ const CardBack=memo(({ card }: { card: any }) => {
     <div style={{position:'absolute',top:0,left:0,right:0,bottom:0,backfaceVisibility:'hidden',transform:'rotateY(180deg)',borderRadius:'0.4rem',overflow:'hidden',background:'radial-gradient(ellipse at center,#15151f,#07070d)',display:'flex',flexDirection:'column' as const,borderTop:'3px solid '+rc,borderBottom:'3px solid '+rc}}>
       <div style={{padding:'0.5rem',borderBottom:'1px solid rgba(255,255,255,0.06)',textAlign:'center'}}>
         <p style={{margin:0,fontSize:'0.75rem',color:rc,fontWeight:800,letterSpacing:'0.06em'}}>myNFTlocker</p>
-        <p style={{margin:'2px 0 0',fontSize:'0.6rem',color:'#b8956a',fontWeight:600}}>{isNBA(card.slug)?'NBA':'FOOTBALL'} • {card.seasonYear||season}</p>
+        <p style={{margin:'2px 0 0',fontSize:'0.6rem',color:'#b8956a',fontWeight:600}}>{isNBA(card)?'NBA':'FOOTBALL'} • {card.seasonYear||season}</p>
       </div>
       <div style={{padding:'0.4rem',textAlign:'center'}}>
         <p style={{margin:0,fontSize:nameFontSize(lastName.length),fontWeight:900,color:'#fff',lineHeight:1.1,textShadow:'0 0 18px '+rc+'99'}}>{lastName}</p>
         {shirtNumber!==null&&<p style={{margin:'0.25rem 0 0',fontSize:'1.1rem',color:rc,fontWeight:900}}>#{shirtNumber}</p>}
         {serial&&<p style={{margin:'0.1rem 0 0',fontSize:'0.65rem',color:'#b8956a',fontWeight:600}}>{serial}</p>}
-        {isSpecialCard(card)&&<p style={{margin:'0.15rem 0 0',fontSize:'0.55rem',color:rc,fontWeight:700,letterSpacing:'0.05em'}}>{editionGroupLabel(card.specialEdition)}</p>}
+        {isSpecialCard(card)&&<p style={{margin:'0.15rem 0 0',fontSize:'0.55rem',color:rc,fontWeight:700,letterSpacing:'0.05em'}}>{specialLabel(card.specialEdition)}</p>}
       </div>
       <div style={{flex:1,display:'flex',flexDirection:'column' as const,alignItems:'center',justifyContent:'center'}}>
         <p style={{margin:0,fontSize:'1.5rem',fontWeight:800,color:'#fff'}}>{card.averageScore??'--'}</p>
@@ -157,6 +133,8 @@ LockerSlot.displayName='LockerSlot';
 
 const FilterMenu=({title,options,current,onSelect}:any)=>{
   const [open,setOpen]=useState(false);
+  const [mounted,setMounted]=useState(false);
+  useEffect(()=>{setMounted(true);},[]);
   const [pos,setPos]=useState({left:0,top:0,maxH:320});
   const ref=useRef<HTMLDivElement>(null);
   const cur=options.find((o:any)=>o.value===current);
@@ -168,16 +146,60 @@ const FilterMenu=({title,options,current,onSelect}:any)=>{
         <p style={{fontSize:'0.64rem',fontWeight:800,letterSpacing:'0.14em',textTransform:'uppercase',color:'#eaf2ff',margin:'0 0 0.05rem',opacity:1}}>{title}</p>
         <p style={{fontSize:'0.8rem',fontWeight:500,color:open?'#6fc3e8':'#ffffff',opacity:open?1:0.6,margin:0,transition:'all 0.12s',display:'flex',alignItems:'center',justifyContent:'space-between'}}>{cur?cur.label:'—'} <span style={{fontSize:'0.7rem',opacity:0.7}}>›</span></p>
       </div>
-      {open&&(
-        <div className='thin-sb' style={{position:'fixed',left:pos.left+'px',top:pos.top+'px',maxHeight:pos.maxH+'px',overflowY:'auto',minWidth:'190px',background:'#080a0e',border:'1px solid #6fc3e8',borderRadius:'0.4rem',padding:'0.3rem',boxShadow:'0 14px 38px rgba(0,0,0,0.7),0 0 14px rgba(111,195,232,0.18)',zIndex:300}}>
+      {open&&mounted&&createPortal(
+        <div className='thin-sb' style={{position:'fixed',left:pos.left+'px',top:pos.top+'px',maxHeight:pos.maxH+'px',overflowY:'auto',minWidth:'190px',background:'#080a0e',border:'1px solid #6fc3e8',borderRadius:'0.4rem',padding:'0.3rem',boxShadow:'0 14px 38px rgba(0,0,0,0.7),0 0 14px rgba(111,195,232,0.18)',zIndex:9999}}>
             {options.map((o:any)=>(
               <button key={o.value} onClick={()=>onSelect(o.value)} style={{display:'block',width:'100%',textAlign:'left',padding:'0.4rem 0.7rem',borderRadius:'0.25rem',border:'none',borderLeft:o.value===current?'2px solid #f5d76e':'2px solid transparent',cursor:'pointer',fontSize:'0.8rem',fontWeight:o.value===current?700:500,background:o.value===current?'rgba(245,215,110,0.12)':'transparent',color:o.value===current?'#f5d76e':'#cfd8e6',transition:'background 0.1s'}} onMouseEnter={e=>{if(o.value!==current)(e.currentTarget as HTMLElement).style.background='rgba(111,195,232,0.12)';}} onMouseLeave={e=>{if(o.value!==current)(e.currentTarget as HTMLElement).style.background='transparent';}}>{o.label}</button>
             ))}
         </div>
-      )}
+      ,document.body)}
     </div>
   );
 };
+
+const FootTeamMenu=({countries,teamsByCountry,country,team,onPickCountry,onPickTeam}:any)=>{
+  const [open,setOpen]=useState(false);
+  const [mounted,setMounted]=useState(false);
+  const [step,setStep]=useState('country');
+  useEffect(()=>{setMounted(true);},[]);
+  const ref=useRef<HTMLDivElement>(null);
+  const [pos,setPos]=useState({left:0,top:0,maxH:340});
+  const cap=(s:string)=>s.charAt(0).toUpperCase()+s.slice(1).replace(/-/g,' ');
+  const label=team!=='all'?team:(country!=='all'?cap(country):'Toutes les équipes');
+  const enter=()=>{const el=ref.current;if(el){const r=el.getBoundingClientRect();const h=Math.min(340,window.innerHeight-16);const top=Math.max(8,Math.min(r.top,window.innerHeight-h-8));setPos({left:r.right,top,maxH:h});}setStep(country!=='all'&&team!=='all'?'team':'country');setOpen(true);};
+  const btn=(sel:boolean):React.CSSProperties=>({display:'block',width:'100%',textAlign:'left',padding:'0.4rem 0.7rem',borderRadius:'0.25rem',border:'none',borderLeft:sel?'2px solid #f5d76e':'2px solid transparent',cursor:'pointer',fontSize:'0.8rem',fontWeight:sel?700:500,background:sel?'rgba(245,215,110,0.12)':'transparent',color:sel?'#f5d76e':'#cfd8e6',transition:'background 0.1s'});
+  return(
+    <div ref={ref} style={{position:'relative',marginBottom:'0.15rem'}} onMouseEnter={enter} onMouseLeave={()=>setOpen(false)}>
+      <div style={{width:'100%',padding:'0.35rem 0.5rem',borderRadius:'0.15rem',background:open?'rgba(111,195,232,0.08)':'transparent',borderLeft:open?'2px solid #6fc3e8':'2px solid transparent',cursor:'default',transition:'all 0.12s'}}>
+        <p style={{fontSize:'0.64rem',fontWeight:800,letterSpacing:'0.14em',textTransform:'uppercase',color:'#eaf2ff',margin:'0 0 0.05rem'}}>Équipe</p>
+        <p style={{fontSize:'0.8rem',fontWeight:500,color:open?'#6fc3e8':'#ffffff',opacity:open?1:0.6,margin:0,display:'flex',alignItems:'center',justifyContent:'space-between'}}>{label} <span style={{fontSize:'0.7rem',opacity:0.7}}>›</span></p>
+      </div>
+      {open&&mounted&&createPortal(
+        <div className='thin-sb' style={{position:'fixed',left:pos.left+'px',top:pos.top+'px',maxHeight:pos.maxH+'px',overflowY:'auto',minWidth:'200px',background:'#080a0e',border:'1px solid #6fc3e8',borderRadius:'0.4rem',padding:'0.3rem',boxShadow:'0 14px 38px rgba(0,0,0,0.7),0 0 14px rgba(111,195,232,0.18)',zIndex:9999}}>
+          {step==='country'?(
+            <>
+              <p style={{fontSize:'0.58rem',fontWeight:800,letterSpacing:'0.12em',textTransform:'uppercase',color:'#6fc3e8',margin:'0.1rem 0.4rem 0.3rem'}}>1 · Pays</p>
+              <button style={btn(country==='all')} onClick={()=>{onPickCountry('all');onPickTeam('all');setOpen(false);}}>Tous les pays</button>
+              {countries.map((co:string)=>(
+                <button key={co} style={btn(co===country)} onClick={()=>{onPickCountry(co);setStep('team');}}>{cap(co)}<span style={{float:'right',opacity:0.55}}>›</span></button>
+              ))}
+            </>
+          ):(
+            <>
+              <button style={{display:'block',width:'100%',textAlign:'left',padding:'0.35rem 0.7rem',border:'none',background:'transparent',color:'#6fc3e8',fontWeight:700,fontSize:'0.74rem',cursor:'pointer'}} onClick={()=>setStep('country')}>‹ Retour aux pays</button>
+              <p style={{fontSize:'0.58rem',fontWeight:800,letterSpacing:'0.12em',textTransform:'uppercase',color:'#6fc3e8',margin:'0.2rem 0.4rem 0.3rem'}}>2 · {cap(country)}</p>
+              <button style={btn(team==='all')} onClick={()=>{onPickTeam('all');setOpen(false);}}>Toutes les équipes</button>
+              {(teamsByCountry[country]||[]).map((t:string)=>(
+                <button key={t} style={btn(t===team)} onClick={()=>{onPickTeam(t);setOpen(false);}}>{t}</button>
+              ))}
+            </>
+          )}
+        </div>
+      ,document.body)}
+    </div>
+  );
+};
+
 const NBA_CONF:Record<string,string>={
   'Atlanta Hawks':'Est','Boston Celtics':'Est','Brooklyn Nets':'Est','Charlotte Hornets':'Est',
   'Chicago Bulls':'Est','Cleveland Cavaliers':'Est','Detroit Pistons':'Est','Indiana Pacers':'Est',
@@ -210,7 +232,9 @@ export default function Home() {
   const [gLeague,setGLeague]=useState('all');
   const [gLeagueOpen,setGLeagueOpen]=useState(false);
   const [gClubOpen,setGClubOpen]=useState(false);
+  const [gClubPos,setGClubPos]=useState({t:0,l:224});
   const [gTeamCustom,setGTeamCustom]=useState('all');
+  const [gCountry,setGCountry]=useState('all');
   const [gSort,setGSort]=useState('default');
   const [openPhase,setOpenPhase]=useState(0);
   const canvasRef=useRef<HTMLCanvasElement|null>(null);
@@ -237,7 +261,7 @@ export default function Home() {
     if(localStorage.getItem('mynftlocker_hof_init')) return;
     const savedHof=localStorage.getItem('mynftlocker_hof');
     if(savedHof && JSON.parse(savedHof).length>0){ localStorage.setItem('mynftlocker_hof_init','done'); return; }
-    const nba=cards.filter(c=>isNBA(c.slug));
+    const nba=cards.filter(c=>isNBA(c));
     const top5=dedupeByPlayer(nba).sort((a:any,b:any)=>(b.averageScore??-1)-(a.averageScore??-1)).slice(0,5).map((c:any)=>c.slug);
     setHof(top5);
     localStorage.setItem('mynftlocker_hof',JSON.stringify(top5));
@@ -270,7 +294,7 @@ export default function Home() {
     if(!slug)return;
     setLoading(true);setError('');setFlippedSlug(null);setLockerStart(0);
     // Cache localStorage (TTL 1h)
-    const CACHE_KEY='mnfl_v1_'+slug;
+    const CACHE_KEY='mnfl_v2_'+slug;
     try{
       const cached=localStorage.getItem(CACHE_KEY);
       if(cached){const{c:cc,ts}=JSON.parse(cached);if(Date.now()-ts<3600000&&cc?.length>0){setCards(cc);setLoading(false);return;}}
@@ -281,7 +305,7 @@ export default function Home() {
     const SORARE_URL='https://api.sorare.com/federation/graphql';
     const fetchPage=async(cursor:string|null):Promise<{cards:any[],hasNextPage:boolean,cursor:string|null}|null>=>{
       const after=cursor?`, after: "${cursor}"` :'';
-      const query=`query{user(slug:"${slug}"){cards(first:25${after}){nodes{slug name rarityTyped pictureUrl ...on NBACard{seasonYear specialEdition power xp averageScore(type:LAST_TEN_PLAYED_SO5_AVERAGE_SCORE)anyTeam{name}anyPlayer{lastName shirtNumber}}}pageInfo{hasNextPage endCursor}}}}`;
+      const query=`query{user(slug:"${slug}"){cards(first:25${after}){nodes{__typename slug name rarityTyped pictureUrl anyPlayer{lastName shirtNumber}anyTeam{name ...on Club{country{slug}}}...on NBACard{seasonYear specialEdition power xp averageScore(type:LAST_TEN_PLAYED_SO5_AVERAGE_SCORE)}}pageInfo{hasNextPage endCursor}}}}`;
       // 1. Essai direct navigateur (IP residentielle)
       try{
         const r=await fetch(SORARE_URL,{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({query}),signal:AbortSignal.timeout(9000)});
@@ -332,22 +356,14 @@ export default function Home() {
   // Options dynamiques
   const seasonOptions=useMemo(()=>{
     const s=new Set<number>();
-    const sc=gSport==='foot'?cards.filter((x:any)=>!isNBA(x)):cards.filter((x:any)=>isNBA(x));
-    for(const c of sc){if(c.seasonYear)s.add(c.seasonYear);}
+    for(const c of cards){if(c.seasonYear)s.add(c.seasonYear);}
     return [...s].sort((a,b)=>b-a);
-  },[cards,gSport]);
+  },[cards]);
   const specialOptions=useMemo(()=>{
-    const groups=new Map<string,string>();
-    const sc=gSport==='foot'?cards.filter((x:any)=>!isNBA(x)):cards.filter((x:any)=>isNBA(x));
-    for(const card of sc){
-      const se=card.specialEdition;
-      if(!se||STANDARD_EDITIONS.has(se))continue;
-      if(editionGroup(se)==='standard')continue;
-      const g=editionGroup(se);
-      if(!groups.has(g))groups.set(g,g);
-    }
-    return [...groups.keys()].sort();
-  },[cards,gSport]);
+    const s=new Set<string>();
+    for(const c of cards){if(isSpecialCard(c))s.add(c.specialEdition);}
+    return [...s].sort();
+  },[cards]);
 
   // Filtre cumulable applique a n'importe quelle liste
   const applyFilters=useCallback((list:any[])=>{
@@ -356,7 +372,7 @@ export default function Home() {
       if(fSeason!=='all' && c.seasonYear!==Number(fSeason)) return false;
       if(fSpecial==='standard' && isSpecialCard(c)) return false;
       if(fSpecial==='special' && !isSpecialCard(c)) return false;
-      if(fSpecial!=='all'&&fSpecial!=='standard'&&fSpecial!=='special' && editionGroup(c.specialEdition||'')!==fSpecial) return false;
+      if(fSpecial!=='all'&&fSpecial!=='standard'&&fSpecial!=='special' && c.specialEdition!==fSpecial) return false;
       if(fPlayer){
         const ln=(c.anyPlayer?.lastName||'').toLowerCase();
         if(!ln.includes(fPlayer.toLowerCase()) && !c.name.toLowerCase().includes(fPlayer.toLowerCase())) return false;
@@ -368,7 +384,7 @@ export default function Home() {
   // Liste equipes : ordre alphabetique par ville + Hall of Fame en tete
   const teamList=useMemo(()=>{
     const counts:Record<string,number>={};
-    for(const c of cards){if(isNBA(c.slug)&&c.anyTeam?.name){counts[c.anyTeam.name]=(counts[c.anyTeam.name]||0)+1;}}
+    for(const c of cards){if(isNBA(c)&&c.anyTeam?.name){counts[c.anyTeam.name]=(counts[c.anyTeam.name]||0)+1;}}
     const list=Object.entries(counts).map(([api,count])=>({api,display:api,count})).sort((a,b)=>a.api.localeCompare(b.api));
     const hofCount=cards.filter(c=>hof.includes(c.slug)).length;
     if(hofCount>0) list.unshift({api:HOF_KEY,display:'HALL OF FAME',count:hofCount});
@@ -381,7 +397,7 @@ export default function Home() {
   const lockerCards=useMemo(()=>{
     const pool = teamApi===HOF_KEY
       ? applyFilters(cards.filter(c=>hof.includes(c.slug)))
-      : applyFilters(cards.filter(c=>isNBA(c.slug)&&c.anyTeam?.name===teamApi));
+      : applyFilters(cards.filter(c=>isNBA(c)&&c.anyTeam?.name===teamApi));
     const byL10=(a:any,b:any)=>(b.averageScore??-1)-(a.averageScore??-1);
     // Epingles = cartes exactes (doublons autorises), dans l'ordre d'epinglage
     const pins=lineup[teamApi]||[];
@@ -402,21 +418,10 @@ export default function Home() {
   },[cards,teamApi,applyFilters,lockerSort,hof,lineup]);
 
   // Galerie = sport + filtres + tri
-  const galleryTeamList=useMemo(()=>{
-    const ts=new Set<string>();
-    const sc=gSport==='foot'?cards.filter((x:any)=>!isNBA(x)):cards.filter((x:any)=>isNBA(x));
-    sc.forEach((c:any)=>{if(!c.anyTeam?.name)return;ts.add(c.anyTeam.name);});
-    return['all',...Array.from(ts).sort()] as string[];
-  },[cards,gSport]);
-  const filteredGallery=useMemo(()=>{
-    const base=gSport==='foot'?cards.filter((x:any)=>!isNBA(x)):cards.filter((x:any)=>isNBA(x));
-    let r=applyFilters(base);
-    if(gTeamCustom!=='all')r=r.filter((c:any)=>(c.anyTeam?.name||'')===gTeamCustom);
-    if(gSort==='rarity')return[...r].sort((a,b)=>(RARITY_ORDER[a.rarityTyped]??9)-(RARITY_ORDER[b.rarityTyped]??9));
-    if(gSort==='score')return[...r].sort((a,b)=>parseFloat(String(b.averageScore||0))-parseFloat(String(a.averageScore||0)));
-    if(gSort==='name')return[...r].sort((a,b)=>(a.anyPlayer?.lastName||'').localeCompare(b.anyPlayer?.lastName||''));
-    return r;
-  },[cards,applyFilters,gSport,gTeamCustom,gSort]);
+  const footCountries=useMemo(()=>{const s=new Set<string>();cards.filter((c:any)=>!isNBA(c)).forEach((c:any)=>{const co=c.anyTeam?.country?.slug;if(co)s.add(co);});return Array.from(s).sort();},[cards]);
+  const teamsByCountry=useMemo(()=>{const m:Record<string,Set<string>>={};cards.filter((c:any)=>!isNBA(c)).forEach((c:any)=>{const co=c.anyTeam?.country?.slug;const nm=c.anyTeam?.name;if(co&&nm){(m[co]=m[co]||new Set<string>()).add(nm);}});const out:Record<string,string[]>={};for(const k in m)out[k]=Array.from(m[k]).sort();return out;},[cards]);
+  const galleryTeamList=useMemo(()=>{const ts=new Set<string>();cards.filter(c=>isNBA(c)).forEach(c=>{if(!c.anyTeam?.name)return;ts.add(c.anyTeam.name);});return['all',...Array.from(ts).sort()] as string[];},[cards]);
+  const filteredGallery=useMemo(()=>{let base=cards.filter((c:any)=>gSport==='nba'?isNBA(c):!isNBA(c));let r=applyFilters(base);if(gSport==='foot'&&gCountry!=='all')r=r.filter((c:any)=>c.anyTeam?.country?.slug===gCountry);if(gTeamCustom!=='all')r=r.filter((c:any)=>(c.anyTeam?.name||'')===gTeamCustom);if(gSort==='rarity')return[...r].sort((a:any,b:any)=>(RARITY_ORDER[a.rarityTyped]??9)-(RARITY_ORDER[b.rarityTyped]??9));if(gSort==='name')return[...r].sort((a:any,b:any)=>(a.anyPlayer?.lastName||'').localeCompare(b.anyPlayer?.lastName||''));return[...r].sort((a:any,b:any)=>parseFloat(String(b.averageScore||0))-parseFloat(String(a.averageScore||0)));},[cards,applyFilters,gSport,gCountry,gTeamCustom,gSort]);
 
   const goldGrad='linear-gradient(160deg,#a86f15 0%,#d9a52e 22%,#f7da80 48%,#e8b84a 68%,#b8801a 100%)';
   const fBtn=(a:boolean):React.CSSProperties=>({padding:'0.4rem 0.6rem',borderRadius:'0.15rem',border:'none',borderLeft:a?'2px solid #f5d76e':'2px solid rgba(255,255,255,0.08)',background:a?'rgba(245,215,110,0.12)':'rgba(255,255,255,0.025)',color:a?'#f5d76e':'#cfd8e6',cursor:'pointer',fontSize:'0.76rem',fontWeight:a?700:500,transition:'all 0.12s'});
@@ -432,33 +437,24 @@ export default function Home() {
   // Bloc filtres vertical (barre laterale)
   const rarityOpts=[{value:'all',label:'Toutes les raretés'},{value:'common',label:'Common'},{value:'limited',label:'Limited'},{value:'rare',label:'Rare'},{value:'super_rare',label:'Super Rare'},{value:'unique',label:'Unique'}];
   const seasonOpts=[{value:'all',label:'Toutes saisons'},...seasonOptions.map(y=>({value:String(y),label:y+'-'+String((y+1)%100).padStart(2,'0')}))];
-  const specialOpts=[{value:'all',label:'Toutes cartes'},{value:'standard',label:'Standard uniquement'},{value:'special',label:'Spéciales uniquement'},...specialOptions.map(g=>({value:g,label:g}))];
-  const Filters=()=>(
-    <div>
-      <FilterMenu title='Rareté' options={rarityOpts} current={fRarity} onSelect={setFRarity}/>
-      <FilterMenu title='Saison' options={seasonOpts} current={fSeason} onSelect={setFSeason}/>
-      <FilterMenu title='Cartes spéciales' options={specialOpts} current={fSpecial} onSelect={setFSpecial}/>
-      <div style={{padding:'0.35rem 0.5rem'}}>
-        <p style={{fontSize:'0.64rem',fontWeight:800,letterSpacing:'0.14em',textTransform:'uppercase',color:'#eaf2ff',margin:'0 0 0.3rem'}}>Joueur</p>
-        <input style={{width:'100%',boxSizing:'border-box',background:'rgba(255,255,255,0.05)',color:'#e8eefc',padding:'0.4rem 0.6rem',borderRadius:'0.15rem',border:'1px solid rgba(255,255,255,0.12)',outline:'none',fontSize:'0.78rem'}} placeholder='Rechercher...' value={fPlayer} onChange={e=>setFPlayer(e.target.value)}/>
-      </div>
-    </div>
-  );
+  const specialOpts=[{value:'all',label:'Toutes cartes'},{value:'standard',label:'Standard uniquement'},{value:'special',label:'Spéciales uniquement'},...specialOptions.map(s=>({value:s,label:specialLabel(s)}))];
+  // (composant Filters retiré — filtres inlinés dans la sidebar)
 
   return(
     <main style={{minHeight:'100vh',background:contentBg,backgroundAttachment:'fixed',color:'white',fontFamily:'system-ui,sans-serif',display:'flex'}}>
       <style>{`aside::-webkit-scrollbar,.noscroll::-webkit-scrollbar{width:0;height:0;display:none} .noscroll{scrollbar-width:none} .thin-sb::-webkit-scrollbar{width:6px} .thin-sb::-webkit-scrollbar-thumb{background:rgba(111,195,232,0.45);border-radius:3px} .thin-sb::-webkit-scrollbar-track{background:transparent} .thin-sb{scrollbar-width:thin;scrollbar-color:rgba(111,195,232,0.45) transparent} @keyframes mnflBuild{0%{opacity:0;transform:translateX(-50%) translateY(12px);filter:blur(3.5px) brightness(1.6) saturate(0.4);box-shadow:0 0 28px 7px rgba(111,195,232,0.5)}50%{opacity:0.65;filter:blur(1.5px) brightness(1.2) saturate(0.75)}100%{opacity:1;transform:translateX(-50%) translateY(0);filter:blur(0) brightness(1) saturate(1);box-shadow:0 0 0 0 rgba(111,195,232,0)}} @keyframes mnflSlideLeft{from{opacity:0;transform:translateX(70px);filter:blur(2px)}to{opacity:1;transform:translateX(0);filter:blur(0)}} @keyframes mnflSlideRight{from{opacity:0;transform:translateX(-70px);filter:blur(2px)}to{opacity:1;transform:translateX(0);filter:blur(0)}} @keyframes mnflLaser{0%{height:0;opacity:0.95}50%{height:29%;opacity:1}75%{height:29%;opacity:0.85}100%{height:29%;opacity:0}} @keyframes mnflDeploy{0%{opacity:0;clip-path:inset(0 100% 0 0);transform:perspective(900px) rotateY(-4deg) translateX(-6px)}35%{opacity:0.6}100%{opacity:1;clip-path:inset(0 0% 0 0);transform:perspective(900px) rotateY(0deg) translateX(0)}} @keyframes mnflClose{0%{opacity:1;transform:scaleY(1);filter:brightness(1)}30%{transform:scaleY(0.84);filter:brightness(1.2)}55%{transform:scaleY(0.42);filter:brightness(1.7)}72%{transform:scaleY(0.12);filter:brightness(2.5)}80%{transform:scaleY(0.025);filter:brightness(4) blur(0.5px)}88%{transform:scaleY(0.008);filter:brightness(6);opacity:1}95%{transform:scaleY(0.003);filter:brightness(9)}100%{transform:scaleY(0);opacity:0;filter:brightness(0)}} @keyframes mnflIcebreaker{0%{opacity:0;transform:translate(-50%,-50%) scaleX(0.05) scaleY(1)}18%{opacity:1;transform:translate(-50%,-50%) scaleX(1) scaleY(1);filter:brightness(2)}52%{opacity:1;transform:translate(-50%,-50%) scaleX(1) scaleY(1)}70%{opacity:1;transform:translate(-50%,-50%) scaleX(0.14) scaleY(2.5);filter:brightness(5)}82%{opacity:1;transform:translate(-50%,-50%) scaleX(0.04) scaleY(7);filter:brightness(10)}90%{opacity:1;transform:translate(-50%,-50%) scaleX(0.01) scaleY(2);filter:brightness(4)}100%{opacity:0;transform:translate(-50%,-50%) scaleX(0) scaleY(0)}} @keyframes mnflFloat{0%{transform:translateY(8px);opacity:0}25%{opacity:0.55}75%{opacity:0.45}100%{transform:translateY(-26px);opacity:0}} @keyframes mnflPulse{0%,100%{box-shadow:0 0 9px 1px var(--rc)}50%{box-shadow:0 0 24px 6px var(--rc)}}@keyframes mnflCyanPulse{0%,100%{box-shadow:0 0 12px 3px rgba(64,232,255,0.45),0 0 22px 5px rgba(64,232,255,0.18)}50%{box-shadow:0 0 22px 6px rgba(64,232,255,0.75),0 0 40px 10px rgba(64,232,255,0.32)}}@keyframes mnflCardTrace{0%{stroke-dashoffset:1000}100%{stroke-dashoffset:0}}`}</style>
       {/* ===== BARRE LATERALE (glass sombre) ===== */}
-      <aside style={{position:'fixed',left:0,top:0,width:'220px',height:'100vh',overflowY:'auto',background:sideBg,backdropFilter:'blur(12px)',WebkitBackdropFilter:'blur(12px)',borderRight:'1px solid rgba(111,195,232,0.35)',boxShadow:'1px 0 0 rgba(111,195,232,0.25), 6px 0 24px -6px rgba(111,195,232,0.22)',padding:'0.65rem 0.8rem',zIndex:50,scrollbarWidth:'none',display:'flex',flexDirection:'column' as const,gap:'0',fontFamily:"'Inter','Segoe UI',system-ui,-apple-system,sans-serif"}}>
+      <aside style={{position:'fixed',left:0,top:0,width:'220px',height:'100vh',overflow:'hidden',background:sideBg,backdropFilter:'blur(12px)',WebkitBackdropFilter:'blur(12px)',borderRight:'1px solid rgba(111,195,232,0.35)',boxShadow:'1px 0 0 rgba(111,195,232,0.25), 6px 0 24px -6px rgba(111,195,232,0.22)',padding:'0.4rem 0.6rem',zIndex:50,scrollbarWidth:'none',display:'flex',flexDirection:'column' as const,gap:'0',fontFamily:"'Inter','Segoe UI',system-ui,-apple-system,sans-serif"}}>
 
-        {/* ──── HEADER : centré ──── */}
-        <div style={{textAlign:'center',marginBottom:'0.55rem'}}>
-          <img src='/logo-pack.png' alt='myNFTlocker' style={{display:'inline-block',width:'70%',filter:'drop-shadow(0 6px 18px rgba(0,0,0,0.6))'}} onError={(e)=>{(e.target as HTMLImageElement).style.display='none';}}/>
+        {/* HEADER logo (x3) */}
+        <div style={{textAlign:'center',marginBottom:'0.2rem'}}>
+          <img src='/logo-pack.png' alt='myNFTlocker' style={{display:'inline-block',height:'126px',width:'auto',filter:'drop-shadow(0 6px 18px rgba(0,0,0,0.6))'}} onError={(e)=>{(e.target as HTMLImageElement).style.display='none';}}/>
         </div>
-        <div style={{display:'flex',flexDirection:'column' as const,gap:'0.4rem',marginBottom:'0.45rem'}}>
-          {/* Avatar compte (panneau identifiant au clic) */}
+
+        {/* COMPTE */}
+        <div style={{display:'flex',flexDirection:'column' as const,gap:'0.2rem',marginBottom:'0.25rem'}}>
           <div onClick={()=>setAcctOpen(o=>!o)} style={{display:'flex',alignItems:'center',gap:'0.5rem',padding:'0.3rem 0.4rem',borderRadius:'0.3rem',cursor:'pointer',background:'rgba(255,255,255,0.03)',border:'1px solid rgba(111,195,232,0.18)',transition:'all 0.15s'}} onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.background='rgba(111,195,232,0.08)';}} onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.background='rgba(255,255,255,0.03)';}}>
-            <div style={{width:'30px',height:'30px',flexShrink:0,borderRadius:'50%',background:'radial-gradient(circle at 35% 30%,#1a1c24,#0a0b0f)',border:'1.5px solid #6fc3e8',boxShadow:'0 0 10px rgba(111,195,232,0.5)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'0.8rem',fontWeight:900,color:'#6fc3e8'}}>{(slug||'?').trim().charAt(0).toUpperCase()||'?'}</div>
+            <div style={{width:'28px',height:'28px',flexShrink:0,borderRadius:'50%',background:'radial-gradient(circle at 35% 30%,#1a1c24,#0a0b0f)',border:'1.5px solid #6fc3e8',boxShadow:'0 0 10px rgba(111,195,232,0.5)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'0.78rem',fontWeight:900,color:'#6fc3e8'}}>{(slug||'?').trim().charAt(0).toUpperCase()||'?'}</div>
             <div style={{flex:1,minWidth:0,textAlign:'left'}}>
               <p style={{margin:0,fontSize:'0.72rem',fontWeight:700,color:'#eaf2ff',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{cards.length>0?'Ma collection':'Mon compte'}</p>
               <p style={{margin:0,fontSize:'0.56rem',color:'#7a8898'}}>{cards.length>0?(cards.length+' cartes'):'Identifiant Sorare'}</p>
@@ -466,75 +462,41 @@ export default function Home() {
             <span style={{fontSize:'0.6rem',color:'#6fc3e8',opacity:0.8}}>{(acctOpen||cards.length===0)?'▲':'▼'}</span>
           </div>
           {(acctOpen||cards.length===0)&&(
-            <input style={{background:'rgba(255,255,255,0.05)',color:'#cfe4fb',padding:'0.4rem 0.65rem',borderRadius:'0.15rem',border:'1px solid rgba(255,255,255,0.1)',outline:'none',fontSize:'0.76rem',boxSizing:'border-box'}} placeholder='ton-slug-sorare' value={slug} onChange={e=>setSlug(e.target.value)} onKeyDown={e=>e.key==='Enter'&&fetchCards()}/>
+            <input style={{background:'rgba(255,255,255,0.05)',color:'#cfe4fb',padding:'0.28rem 0.55rem',borderRadius:'0.15rem',border:'1px solid rgba(255,255,255,0.1)',outline:'none',fontSize:'0.76rem',boxSizing:'border-box'}} placeholder='ton-slug-sorare' value={slug} onChange={e=>setSlug(e.target.value)} onKeyDown={e=>e.key==='Enter'&&fetchCards()}/>
           )}
-          <button style={{background:goldGrad,color:'#1a0d00',padding:'0.42rem',borderRadius:'0.15rem',border:'none',cursor:'pointer',fontWeight:800,fontSize:'0.8rem',letterSpacing:'0.04em',boxShadow:'0 2px 10px rgba(200,151,30,0.3)'}} onClick={fetchCards}>{loading?'Chargement...':'Voir ma collection'}</button>
         </div>
 
-        {/* ──── SEGMENTED Vestiaire / Galerie (toujours visible) ──── */}
-        <div style={{display:'flex',overflow:'hidden',border:'1px solid rgba(255,255,255,0.12)',marginBottom:'0.5rem',clipPath:'polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px)'}}>
-          <button style={{flex:1,padding:'0.4rem 0',border:'none',cursor:'pointer',fontSize:'0.76rem',fontWeight:700,background:mode==='locker'?'linear-gradient(160deg,#a86f15 0%,#d9a52e 22%,#f7da80 48%,#e8b84a 68%,#b8801a 100%)':'rgba(255,255,255,0.04)',color:mode==='locker'?'#1a0d00':'#7a8898',transition:'all 0.15s',display:'flex',alignItems:'center',justifyContent:'center',gap:'0.3rem'}} onClick={()=>setMode('locker')}>Vestiaire</button>
+        {/* NAV Vestiaire / Galerie */}
+        <div style={{display:'flex',overflow:'hidden',border:'1px solid rgba(255,255,255,0.12)',marginBottom:'0.25rem',clipPath:'polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px)'}}>
+          <button style={{flex:1,padding:'0.26rem 0',border:'none',cursor:'pointer',fontSize:'0.72rem',fontWeight:700,background:mode==='locker'?'linear-gradient(160deg,#a86f15 0%,#d9a52e 22%,#f7da80 48%,#e8b84a 68%,#b8801a 100%)':'rgba(255,255,255,0.04)',color:mode==='locker'?'#1a0d00':'#7a8898',transition:'all 0.15s'}} onClick={()=>setMode('locker')}>Vestiaire</button>
           <div style={{width:'1px',background:'rgba(255,255,255,0.1)',flexShrink:0}}/>
-          <button style={{flex:1,padding:'0.4rem 0',border:'none',cursor:'pointer',fontSize:'0.76rem',fontWeight:700,background:mode==='gallery'?'linear-gradient(160deg,#a86f15 0%,#d9a52e 22%,#f7da80 48%,#e8b84a 68%,#b8801a 100%)':'rgba(255,255,255,0.04)',color:mode==='gallery'?'#1a0d00':'#7a8898',transition:'all 0.15s',display:'flex',alignItems:'center',justifyContent:'center',gap:'0.3rem'}} onClick={()=>setMode('gallery')}>Galerie</button>
+          <button style={{flex:1,padding:'0.26rem 0',border:'none',cursor:'pointer',fontSize:'0.72rem',fontWeight:700,background:mode==='gallery'?'linear-gradient(160deg,#a86f15 0%,#d9a52e 22%,#f7da80 48%,#e8b84a 68%,#b8801a 100%)':'rgba(255,255,255,0.04)',color:mode==='gallery'?'#1a0d00':'#7a8898',transition:'all 0.15s'}} onClick={()=>setMode('gallery')}>Galerie</button>
         </div>
 
         {error&&<p style={{color:'#fca5a5',fontSize:'0.7rem',marginBottom:'0.4rem'}}>{error}</p>}
 
-        {/* ──── FILTRES : alignés à gauche ──── */}
+        {/* FILTRES — ordre: Sport, Joueur, Equipe, Saison, Rarete, Edition, Tri */}
         {cards.length>0&&(
-          <div style={{textAlign:'left',flex:1,display:'flex',flexDirection:'column' as const,gap:0}}>
-            <div style={{borderTop:'1px solid rgba(255,255,255,0.06)',paddingTop:'0.45rem'}}><Filters/></div>
-            {mode==='locker'&&(
-              <div style={{marginTop:'0.5rem',padding:'0 0.5rem'}}>
-                <p style={{fontSize:'0.64rem',fontWeight:800,letterSpacing:'0.14em',textTransform:'uppercase',color:'rgba(255,255,255,0.45)',marginBottom:'0.3rem'}}>TRI VESTIAIRE</p>
-                <div style={{display:'flex',flexDirection:'column' as const,overflow:'hidden',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'0.2rem',marginBottom:'0.4rem'}}>
-                  <button onClick={()=>setLockerSort('majeur')} onMouseEnter={e=>{if(lockerSort!=='majeur'){(e.currentTarget as HTMLElement).style.background='rgba(255,255,255,0.04)';}}} onMouseLeave={e=>{if(lockerSort!=='majeur'){(e.currentTarget as HTMLElement).style.background='transparent';}}} style={{padding:'0.3rem 0.5rem',border:'none',borderBottom:'1px solid rgba(255,255,255,0.06)',cursor:'pointer',fontSize:'0.68rem',textAlign:'left' as const,background:lockerSort==='majeur'?'rgba(212,175,55,0.18)':'transparent',color:lockerSort==='majeur'?'#e8c84a':'rgba(255,255,255,0.5)',fontWeight:lockerSort==='majeur'?700:400,transition:'all 0.15s'}}>Majeurs</button>
-                  <button onClick={()=>setLockerSort('collection')} onMouseEnter={e=>{if(lockerSort!=='collection'){(e.currentTarget as HTMLElement).style.background='rgba(255,255,255,0.04)';}}} onMouseLeave={e=>{if(lockerSort!=='collection'){(e.currentTarget as HTMLElement).style.background='transparent';}}} style={{padding:'0.3rem 0.5rem',border:'none',borderBottom:'1px solid rgba(255,255,255,0.06)',cursor:'pointer',fontSize:'0.68rem',textAlign:'left' as const,background:lockerSort==='collection'?'rgba(212,175,55,0.18)':'transparent',color:lockerSort==='collection'?'#e8c84a':'rgba(255,255,255,0.5)',fontWeight:lockerSort==='collection'?700:400,transition:'all 0.15s'}}>Collection</button>
-                  <button onClick={()=>setLockerSort('manual')} onMouseEnter={e=>{if(lockerSort!=='manual'){(e.currentTarget as HTMLElement).style.background='rgba(255,255,255,0.04)';}}} onMouseLeave={e=>{if(lockerSort!=='manual'){(e.currentTarget as HTMLElement).style.background='transparent';}}} style={{padding:'0.3rem 0.5rem',border:'none',cursor:'pointer',fontSize:'0.68rem',textAlign:'left' as const,background:lockerSort==='manual'?'rgba(212,175,55,0.18)':'transparent',color:lockerSort==='manual'?'#e8c84a':'rgba(255,255,255,0.5)',fontWeight:lockerSort==='manual'?700:400,transition:'all 0.15s'}}>Manuel</button>
-                </div>
-                <button onClick={()=>handleSetDefault(teamApi)} style={{marginTop:'0.4rem',width:'100%',boxSizing:'border-box' as const,padding:'0.36rem',background:'rgba(212,175,55,0.12)',border:'1px solid rgba(212,175,55,0.35)',borderRadius:'0.18rem',color:'#e8c84a',fontSize:'0.64rem',cursor:'pointer',letterSpacing:'0.08em'}}>⭐ Équipe par défaut</button>
-              </div>
+          <div style={{textAlign:'left',flex:1,minHeight:0,display:'flex',flexDirection:'column' as const,gap:0,borderTop:'1px solid rgba(255,255,255,0.06)',paddingTop:'0.3rem'}}>
+            <FilterMenu title='Sport' options={[{value:'nba',label:'NBA'},{value:'foot',label:'Football'}]} current={gSport} onSelect={(v:string)=>{setGSport(v as any);setGLeague('all');setGTeamCustom('all');}}/>
+            <div style={{padding:'0.2rem 0.5rem'}}>
+              <p style={{fontSize:'0.64rem',fontWeight:800,letterSpacing:'0.14em',textTransform:'uppercase',color:'#eaf2ff',margin:'0 0 0.2rem'}}>Joueur</p>
+              <input style={{width:'100%',boxSizing:'border-box',background:'rgba(255,255,255,0.05)',color:'#e8eefc',padding:'0.3rem 0.5rem',borderRadius:'0.15rem',border:'1px solid rgba(255,255,255,0.12)',outline:'none',fontSize:'0.76rem'}} placeholder='Rechercher...' value={fPlayer} onChange={e=>setFPlayer(e.target.value)}/>
+            </div>
+            {gSport==='nba'?(
+              <FilterMenu title='Équipe' options={(galleryTeamList as string[]).map((n:string)=>({value:n,label:n==='all'?'Toutes les équipes':n}))} current={gTeamCustom} onSelect={(v:string)=>{setGTeamCustom(v);if(mode==='locker'){setTeamApi(v);}}}/>
+            ):(
+              <FootTeamMenu countries={footCountries} teamsByCountry={teamsByCountry} country={gCountry} team={gTeamCustom} onPickCountry={(v:string)=>{setGCountry(v);setGTeamCustom('all');}} onPickTeam={(v:string)=>setGTeamCustom(v)}/>
             )}
-            <div style={{borderTop:'1px solid rgba(255,255,255,0.06)',margin:'0.5rem 0'}}/>
-            <p style={{fontSize:'0.6rem',fontWeight:800,letterSpacing:'0.14em',textTransform:'uppercase',color:'rgba(255,255,255,0.45)',margin:'0 0 0.32rem',padding:'0 0.5rem'}}>SPORT</p>
-            <div style={{display:'flex',gap:'0.35rem',flexWrap:'wrap',marginBottom:'0.75rem',padding:'0 0.5rem'}}>
-              {(['nba','foot'] as const).map(s=>(
-                <button key={s} onClick={()=>{setGSport(s);setGLeague('all');setGTeamCustom('all');setGLeagueOpen(false);setGClubOpen(false);}}
-                  style={{padding:'0.26rem 0.7rem',border:'1px solid',borderRadius:'2rem',cursor:'pointer',fontSize:'0.68rem',fontWeight:700,letterSpacing:'0.08em',transition:'all 0.18s',background:'transparent',borderColor:gSport===s?'rgba(0,225,255,0.8)':'rgba(255,255,255,0.15)',color:gSport===s?'#00e5ff':'rgba(255,255,255,0.5)',boxShadow:gSport===s?'0 0 8px rgba(0,225,255,0.25)':'none'}}
-                >{s.toUpperCase()}</button>
-              ))}
-            </div>
-            <p style={{fontSize:'0.6rem',fontWeight:800,letterSpacing:'0.14em',textTransform:'uppercase',color:'rgba(255,255,255,0.45)',margin:'0 0 0.32rem',padding:'0 0.5rem'}}>ÉQUIPE</p>
-            <div style={{position:'relative',marginBottom:'0.65rem',padding:'0 0.5rem'}}>
-              {(()=>{const curTeam=(galleryTeamList as any[]).find(t=>t.api===gTeamCustom);const label=curTeam?.display||'Toutes les équipes';return(
-              <div>
-              <div onClick={()=>setGClubOpen(o=>!o)} style={{display:'flex',alignItems:'center',justifyContent:'space-between',background:'rgba(10,10,12,0.95)',border:'1px solid rgba(0,225,255,0.3)',borderRadius:'0.2rem',padding:'0.36rem 0.55rem',cursor:'pointer',fontSize:'0.7rem',color:'rgba(255,255,255,0.8)',transition:'border-color 0.15s',borderColor:gClubOpen?'rgba(0,225,255,0.7)':'rgba(0,225,255,0.3)'}}>
-                <span style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1}}>{label}</span>
-                <span style={{marginLeft:'0.4rem',transform:gClubOpen?'rotate(180deg)':'rotate(0)',transition:'transform 0.2s',color:'rgba(0,225,255,0.7)',fontSize:'0.6rem'}}>▾</span>
-              </div>
-              {gClubOpen&&(
-                <div className='gal-scroll' style={{position:'absolute',bottom:'calc(100% + 3px)',left:0,right:0,background:'rgba(8,8,12,0.98)',border:'1px solid rgba(0,225,255,0.35)',borderRadius:'0.2rem',zIndex:400,maxHeight:'220px',overflowY:'auto'}}>
-                  <div onClick={()=>{setGTeamCustom('all');setGClubOpen(false);}} style={{padding:'0.36rem 0.55rem',fontSize:'0.7rem',cursor:'pointer',transition:'background 0.12s',background:gTeamCustom==='all'?'rgba(0,225,255,0.1)':'transparent',color:gTeamCustom==='all'?'#00e5ff':'rgba(255,255,255,0.75)'}} onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.background='rgba(0,225,255,0.07)';}} onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.background=gTeamCustom==='all'?'rgba(0,225,255,0.1)':'transparent';}}>Toutes les équipes</div>
-                  {(galleryTeamList as any[]).map(t=>(
-                    <div key={t.api} onClick={()=>{setGTeamCustom(t.api);setGClubOpen(false);if(mode==='locker'){setTeamApi(t.api);}}} style={{padding:'0.36rem 0.55rem',fontSize:'0.7rem',cursor:'pointer',transition:'background 0.12s',background:t.api===gTeamCustom?'rgba(0,225,255,0.1)':'transparent',color:t.api===gTeamCustom?'#00e5ff':'rgba(255,255,255,0.75)'}} onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.background='rgba(0,225,255,0.07)';}} onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.background=t.api===gTeamCustom?'rgba(0,225,255,0.1)':'transparent';}}>{t.display}</div>
-                  ))}
-                </div>
-              )}
-              </div>
-              );})()} 
-            </div>
-            {mode==='gallery'&&(
-              <div style={{padding:'0 0.5rem'}}>
-              <p style={{fontSize:'0.6rem',fontWeight:800,letterSpacing:'0.14em',textTransform:'uppercase',color:'rgba(255,255,255,0.45)',margin:'0 0 0.32rem',padding:'0 0.5rem'}}>TRI</p>
-              <div style={{display:'flex',flexDirection:'column' as const,overflow:'hidden',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'0.2rem'}}>
-                {([['default','Défaut'],['rarity','Rareté'],['score','Score L10'],['name','Nom']] as [string,string][]).map(([v,l])=>(
-                  <button key={v} onClick={()=>setGSort(v as any)} style={{padding:'0.3rem 0.5rem',border:'none',borderBottom:'1px solid rgba(255,255,255,0.06)',cursor:'pointer',fontSize:'0.68rem',textAlign:'left' as const,background:gSort===v?'rgba(212,175,55,0.18)':'transparent',color:gSort===v?'#e8c84a':'rgba(255,255,255,0.5)',fontWeight:gSort===v?700:400,transition:'all 0.15s'}}>{l}</button>
-                ))}
-              </div>
-              </div>
+            <FilterMenu title='Saison' options={seasonOpts} current={fSeason} onSelect={setFSeason}/>
+            <FilterMenu title='Rareté' options={rarityOpts} current={fRarity} onSelect={setFRarity}/>
+            <FilterMenu title='Édition de la carte' options={specialOpts} current={fSpecial} onSelect={setFSpecial}/>
+            <FilterMenu title='Tri' options={mode==='locker'?[{value:'majeur',label:'L10 Max'},{value:'manual',label:'Manuel'},{value:'collection',label:'Alphabétique'}]:[{value:'default',label:'Défaut'},{value:'rarity',label:'Rareté'},{value:'score',label:'Score L10'},{value:'name',label:'Nom'}]} current={mode==='locker'?lockerSort:gSort} onSelect={(v:string)=>{if(mode==='locker'){setLockerSort(v as any);}else{setGSort(v as any);}}}/>
+            {mode==='locker'&&(
+              <button onClick={()=>handleSetDefault(teamApi)} style={{width:'100%',boxSizing:'border-box' as const,padding:'0.3rem',background:'rgba(212,175,55,0.12)',border:'1px solid rgba(212,175,55,0.35)',borderRadius:'0.18rem',color:'#e8c84a',fontSize:'0.64rem',cursor:'pointer',letterSpacing:'0.08em',marginTop:'0.3rem'}}>⭐ Équipe par défaut</button>
             )}
           </div>
-         )}
+        )}
       </aside>
 
       {/* ===== CONTENU ===== */}
