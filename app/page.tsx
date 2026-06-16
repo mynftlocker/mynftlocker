@@ -178,42 +178,99 @@ const FilterMenu=({title,options,current,onSelect}:any)=>{
   );
 };
 
+const COUNTRY_FR: Record<string,string> = {
+  'be':'Belgique','ca':'Canada','de':'Allemagne','es':'Espagne',
+  'fr':'France','gb-eng':'Angleterre','gb-sco':'Ecosse','gb-wls':'Pays de Galles',
+  'gb-nir':'Irlande du Nord','it':'Italie','pt':'Portugal',
+  'nl':'Pays-Bas','tr':'Turquie','ru':'Russie','pl':'Pologne',
+  'at':'Autriche','ch':'Suisse','se':'Suede','dk':'Danemark',
+  'no':'Norvege','gr':'Grece','ro':'Roumanie','hr':'Croatie',
+  'rs':'Serbie','ua':'Ukraine','hu':'Hongrie','cz':'Republique Tcheque',
+  'sk':'Slovaquie','bg':'Bulgarie','us':'Etats-Unis','mx':'Mexique',
+  'br':'Bresil','ar':'Argentine','cl':'Chili','co':'Colombie',
+  'uy':'Uruguay','pe':'Perou','ec':'Equateur','py':'Paraguay',
+  'bo':'Bolivie','ve':'Venezuela','jp':'Japon','kr':'Coree du Sud',
+  'cn':'Chine','au':'Australie','sa':'Arabie Saoudite',
+  'ae':'Emirats Arabes Unis','ma':'Maroc','sn':'Senegal','ng':'Nigeria',
+  'za':'Afrique du Sud','eg':'Egypte','cm':'Cameroun','gh':'Ghana',
+  'ci':'Cote d Ivoire','tn':'Tunisie','int':'International',
+};
+const countryFR=(slug:string)=>COUNTRY_FR[slug]||'Autres pays';
+
 const FootTeamMenu=({countries,teamsByCountry,country,team,onPickCountry,onPickTeam}:any)=>{
   const [open,setOpen]=useState(false);
   const [mounted,setMounted]=useState(false);
-  const [step,setStep]=useState('country');
+  const [hoveredCountry,setHoveredCountry]=useState<string|null>(null);
   useEffect(()=>{setMounted(true);},[]);
   const ref=useRef<HTMLDivElement>(null);
-  const [pos,setPos]=useState({left:0,top:0,maxH:340});
-  const cap=(s:string)=>s.charAt(0).toUpperCase()+s.slice(1).replace(/-/g,' ');
-  const label=team!=='all'?team:(country!=='all'?cap(country):'Toutes les équipes');
-  const enter=()=>{const el=ref.current;if(el){const r=el.getBoundingClientRect();const h=Math.min(340,window.innerHeight-16);const top=Math.max(8,Math.min(r.top,window.innerHeight-h-8));setPos({left:r.right,top,maxH:h});}setStep(country!=='all'&&team!=='all'?'team':'country');setOpen(true);};
-  const btn=(sel:boolean):React.CSSProperties=>({display:'block',width:'100%',textAlign:'left',padding:'0.4rem 0.7rem',borderRadius:'0.25rem',border:'none',borderLeft:sel?'2px solid #f5d76e':'2px solid transparent',cursor:'pointer',fontSize:'0.8rem',fontWeight:sel?700:500,background:sel?'rgba(245,215,110,0.12)':'transparent',color:sel?'#f5d76e':'#cfd8e6',transition:'background 0.1s'});
+  const [posL,setPosL]=useState(220);
+  const [posT,setPosT]=useState(0);
+  // Monaco joue en Ligue 1 : fusionner mc dans fr
+  const mergedByCountry:Record<string,string[]>={...teamsByCountry};
+  if(mergedByCountry['mc']){
+    mergedByCountry['fr']=[...new Set([...(mergedByCountry['fr']||[]),...mergedByCountry['mc']])].sort();
+    delete mergedByCountry['mc'];
+  }
+  const mergedCountries=countries.filter((c:string)=>c!=='mc');
+  if(mergedByCountry['fr']&&!mergedCountries.includes('fr'))mergedCountries.push('fr');
+  const effectiveTeams=(c:string)=>mergedByCountry[c]||[];
+  const label=team!=='all'?team:(country!=='all'?countryFR(country):'Toutes les equipes');
+  const sortedCountries=[...new Set(mergedCountries)].sort((a:string,b:string)=>countryFR(a).localeCompare(countryFR(b),'fr'));
+  const enter=()=>{
+    const el=ref.current;
+    if(el){const r=el.getBoundingClientRect();setPosL(r.right);setPosT(r.top);}
+    setOpen(true);
+  };
+  const btnStyle=(sel:boolean):React.CSSProperties=>({
+    display:'block',width:'100%',textAlign:'left',padding:'0.4rem 0.7rem',
+    borderRadius:'0.25rem',border:'none',
+    borderLeft:sel?'2px solid #f5d76e':'2px solid transparent',
+    cursor:'pointer',fontSize:'0.8rem',fontWeight:sel?700:500,
+    background:sel?'rgba(245,215,110,0.12)':'transparent',
+    color:sel?'#f5d76e':'#cfd8e6',transition:'background 0.1s',
+  });
+  const menuBase:React.CSSProperties={
+    overflowY:'auto',minWidth:'190px',
+    background:'#080a0e',border:'1px solid #6fc3e8',
+    borderRadius:'0.4rem',padding:'0.3rem',
+    boxShadow:'0 14px 38px rgba(0,0,0,0.7),0 0 14px rgba(111,195,232,0.18)',
+    zIndex:9999,
+  };
   return(
-    <div ref={ref} style={{position:'relative',marginBottom:'0.15rem'}} onMouseEnter={enter} onMouseLeave={()=>setOpen(false)}>
+    <div ref={ref} style={{position:'relative',marginBottom:'0.15rem'}}
+      onMouseEnter={enter}
+      onMouseLeave={()=>{setOpen(false);setHoveredCountry(null);}}>
       <div style={{width:'100%',padding:'0.35rem 0.5rem',borderRadius:'0.15rem',background:open?'rgba(111,195,232,0.08)':'transparent',borderLeft:open?'2px solid #6fc3e8':'2px solid transparent',cursor:'default',transition:'all 0.12s'}}>
-        <p style={{fontSize:'0.64rem',fontWeight:800,letterSpacing:'0.14em',textTransform:'uppercase',color:'#eaf2ff',margin:'0 0 0.05rem'}}>Équipe</p>
+        <p style={{fontSize:'0.64rem',fontWeight:800,letterSpacing:'0.14em',textTransform:'uppercase',color:'#eaf2ff',margin:'0 0 0.05rem'}}>Equipe</p>
         <p style={{fontSize:'0.8rem',fontWeight:500,color:open?'#6fc3e8':'#ffffff',opacity:open?1:0.6,margin:0,display:'flex',alignItems:'center',justifyContent:'space-between'}}>{label} <span style={{fontSize:'0.7rem',opacity:0.7}}>›</span></p>
       </div>
       {open&&mounted&&createPortal(
-        <div className='thin-sb' style={{position:'fixed',left:pos.left+'px',top:pos.top+'px',maxHeight:pos.maxH+'px',overflowY:'auto',minWidth:'200px',background:'#080a0e',border:'1px solid #6fc3e8',borderRadius:'0.4rem',padding:'0.3rem',boxShadow:'0 14px 38px rgba(0,0,0,0.7),0 0 14px rgba(111,195,232,0.18)',zIndex:9999}}>
-          {step==='country'?(
-            <>
-              <p style={{fontSize:'0.58rem',fontWeight:800,letterSpacing:'0.12em',textTransform:'uppercase',color:'#6fc3e8',margin:'0.1rem 0.4rem 0.3rem'}}>1 · Pays</p>
-              <button style={btn(country==='all')} onClick={()=>{onPickCountry('all');onPickTeam('all');setOpen(false);}}>Tous les pays</button>
-              {countries.map((co:string)=>(
-                <button key={co} style={btn(co===country)} onClick={()=>{onPickCountry(co);setStep('team');}}>{cap(co)}<span style={{float:'right',opacity:0.55}}>›</span></button>
+        <div style={{position:'fixed',left:posL+'px',top:posT+'px',display:'flex',gap:'4px',zIndex:9999}}
+          onMouseLeave={()=>{setOpen(false);setHoveredCountry(null);}}>
+          <div className='thin-sb' style={{...menuBase,maxHeight:Math.min(380,window.innerHeight-posT-16)+'px'}}>
+            <button style={btnStyle(country==='all'&&team==='all')}
+              onClick={()=>{onPickCountry('all');onPickTeam('all');setHoveredCountry(null);}}>
+              Toutes les equipes
+            </button>
+            {sortedCountries.map((c:string)=>(
+              <button key={c}
+                style={{...btnStyle(country===c),display:'flex',justifyContent:'space-between',alignItems:'center'}}
+                onMouseEnter={()=>setHoveredCountry(c)}
+                onClick={()=>{onPickCountry(c);setHoveredCountry(c);}}>
+                <span>{countryFR(c)}</span>
+                <span style={{opacity:0.4,fontSize:'0.7rem',marginLeft:'0.5rem'}}>›</span>
+              </button>
+            ))}
+          </div>
+          {hoveredCountry&&effectiveTeams(hoveredCountry).length>0&&(
+            <div className='thin-sb' style={{...menuBase,maxHeight:Math.min(380,window.innerHeight-posT-16)+'px'}}>
+              {effectiveTeams(hoveredCountry).map((t:string)=>(
+                <button key={t} style={btnStyle(team===t)}
+                  onClick={()=>{onPickCountry(hoveredCountry);onPickTeam(t);}}>
+                  {t}
+                </button>
               ))}
-            </>
-          ):(
-            <>
-              <button style={{display:'block',width:'100%',textAlign:'left',padding:'0.35rem 0.7rem',border:'none',background:'transparent',color:'#6fc3e8',fontWeight:700,fontSize:'0.74rem',cursor:'pointer'}} onClick={()=>setStep('country')}>‹ Retour aux pays</button>
-              <p style={{fontSize:'0.58rem',fontWeight:800,letterSpacing:'0.12em',textTransform:'uppercase',color:'#6fc3e8',margin:'0.2rem 0.4rem 0.3rem'}}>2 · {cap(country)}</p>
-              <button style={btn(team==='all')} onClick={()=>{onPickTeam('all');setOpen(false);}}>Toutes les équipes</button>
-              {(teamsByCountry[country]||[]).map((t:string)=>(
-                <button key={t} style={btn(t===team)} onClick={()=>{onPickTeam(t);setOpen(false);}}>{t}</button>
-              ))}
-            </>
+            </div>
           )}
         </div>
       ,document.body)}
