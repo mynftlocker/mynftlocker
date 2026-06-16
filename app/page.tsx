@@ -204,6 +204,25 @@ const COUNTRY_FR: Record<string,string> = {
 };
 const countryFR=(slug:string)=>COUNTRY_FR[slug]||(slug.split('-').map((w:string)=>w.charAt(0).toUpperCase()+w.slice(1)).join(' '));
 
+const COUNTRY_FR: Record<string,string> = {
+  'be':'Belgique','ca':'Canada','de':'Allemagne','es':'Espagne',
+  'fr':'France','gb-eng':'Angleterre','gb-sco':'Ecosse','gb-wls':'Pays de Galles',
+  'gb-nir':'Irlande du Nord','mc':'Monaco','it':'Italie','pt':'Portugal',
+  'nl':'Pays-Bas','tr':'Turquie','ru':'Russie','pl':'Pologne',
+  'at':'Autriche','ch':'Suisse','se':'Suede','dk':'Danemark',
+  'no':'Norvege','gr':'Grece','ro':'Roumanie','hr':'Croatie',
+  'rs':'Serbie','ua':'Ukraine','hu':'Hongrie','cz':'Republique Tcheque',
+  'sk':'Slovaquie','bg':'Bulgarie','us':'Etats-Unis','mx':'Mexique',
+  'ca':'Canada','br':'Bresil','ar':'Argentine','cl':'Chili',
+  'co':'Colombie','uy':'Uruguay','pe':'Perou','ec':'Equateur',
+  'py':'Paraguay','bo':'Bolivie','ve':'Venezuela','jp':'Japon',
+  'kr':'Coree du Sud','cn':'Chine','au':'Australie','sa':'Arabie Saoudite',
+  'ae':'Emirats Arabes Unis','ma':'Maroc','sn':'Senegal','ng':'Nigeria',
+  'za':'Afrique du Sud','eg':'Egypte','cm':'Cameroun','gh':'Ghana',
+  'ci':'Cote d Ivoire','tn':'Tunisie','int':'International',
+};
+const countryFR=(slug:string)=>COUNTRY_FR[slug]||'Autres pays';
+
 const FootTeamMenu=({countries,teamsByCountry,country,team,onPickCountry,onPickTeam}:any)=>{
   const [open,setOpen]=useState(false);
   const [mounted,setMounted]=useState(false);
@@ -213,7 +232,7 @@ const FootTeamMenu=({countries,teamsByCountry,country,team,onPickCountry,onPickT
   const [posL,setPosL]=useState(220);
   const [posT,setPosT]=useState(0);
   const label=team!=='all'?team:(country!=='all'?countryFR(country):'Toutes les equipes');
-  const sortedCountries=[...countries].sort((a:string,b:string)=>countryFR(a).localeCompare(countryFR(b),'fr'));
+  const mergedByCountry:Record<string,string[]>={...teamsByCountry};if(mergedByCountry['mc']){mergedByCountry['fr']=[...new Set([...(mergedByCountry['fr']||[]),...mergedByCountry['mc']])].sort();delete mergedByCountry['mc'];}const mergedCountries=countries.filter((c:string)=>c!=='mc');if(mergedByCountry['fr']&&!mergedCountries.includes('fr'))mergedCountries.push('fr');const effectiveTeams=(c:string)=>mergedByCountry[c]||[];  const sortedCountries=[...new Set(mergedCountries)].sort((a:string,b:string)=>countryFR(a).localeCompare(countryFR(b),'fr'));
   const enter=()=>{
     const el=ref.current;
     if(el){const r=el.getBoundingClientRect();setPosL(r.right);setPosT(r.top);}
@@ -247,7 +266,7 @@ const FootTeamMenu=({countries,teamsByCountry,country,team,onPickCountry,onPickT
           onMouseEnter={()=>{}}
           onMouseLeave={()=>{setOpen(false);setHoveredCountry(null);}}>
           {/* Menu Pays */}
-          <div className='thin-sb' style={{...menuBase,maxHeight:Math.min(360,window.innerHeight-posT-16)+'px'}}>
+          <div className='thin-sb' style={{...menuBase,maxHeight:Math.min(380,window.innerHeight-posT-16)+'px'}}>
             <button style={btnStyle(country==='all'&&team==='all')}
               onClick={()=>{onPickCountry('all');onPickTeam('all');setHoveredCountry(null);}}>
               Toutes les equipes
@@ -262,10 +281,10 @@ const FootTeamMenu=({countries,teamsByCountry,country,team,onPickCountry,onPickT
               </button>
             ))}
           </div>
-          {/* Menu Equipes — apparait a droite au survol d un pays */}
-          {hoveredCountry&&(teamsByCountry[hoveredCountry]||[]).length>0&&(
-            <div className='thin-sb' style={{...menuBase,maxHeight:Math.min(360,window.innerHeight-posT-16)+'px'}}>
-              {(teamsByCountry[hoveredCountry]||[]).map((t:string)=>(
+          {/* Menu Equipes */}
+          {hoveredCountry&&effectiveTeams(hoveredCountry).length>0&&(
+            <div className='thin-sb' style={{...menuBase,maxHeight:Math.min(380,window.innerHeight-posT-16)+'px'}}>
+              {effectiveTeams(hoveredCountry).map((t:string)=>(
                 <button key={t} style={btnStyle(team===t)}
                   onClick={()=>{onPickCountry(hoveredCountry);onPickTeam(t);}}>
                   {t}
