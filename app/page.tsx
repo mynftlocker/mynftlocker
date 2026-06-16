@@ -23,15 +23,36 @@ const RARITY_FILL: Record<string,string> = {
 const RARITY_ORDER: Record<string,number> = { unique:0, super_rare:1, rare:2, limited:3, common:4 };
 const HOF_KEY = '__HOF__';
 
-// Labels lisibles pour les editions speciales
-const SPECIAL_LABELS: Record<string,string> = {
-  stellar_shiny_base:'Shiny', stellar_holo_base:'Holo', stellar_meteor_base:'Meteor',
-  stellar_shiny_jersey_number:'Shiny Jersey', stellar_holo_jersey_number:'Holo Jersey',
-  stellar_standard_base:'Standard', playoffs:'Playoffs', showtime:'Showtime', sunset:'Sunset',
+// Regroupe une specialEdition en famille (ex: stellar_holo_base -> STELLAR)
+const editionGroup=(se:string):string=>{
+  if(!se)return 'standard';
+  const l=se.toLowerCase();
+  if(l==='legacy')return 'standard';
+  if(l.startsWith('colors_standard')||l.startsWith('stellar_standard'))return 'standard';
+  if(l.startsWith('colors_'))return 'COLORS';
+  if(l.startsWith('stellar_'))return 'STELLAR';
+  if(l.startsWith('neon'))return 'NEON';
+  if(l.startsWith('ice'))return 'ICE BREAKER';
+  if(l.startsWith('early'))return 'EARLY ACCESS';
+  if(l.startsWith('ballon'))return 'BALLON DOR';
+  if(l.startsWith('flag'))return 'FLAG POSE';
+  if(l.startsWith('horangi'))return 'HORANGI HERITAGE';
+  if(l==='playoffs'||l.startsWith('postseason'))return 'PLAYOFFS';
+  if(l==='showtime')return 'SHOWTIME';
+  if(l==='sunset')return 'SUNSET';
+  if(l==='winter')return 'WINTER';
+  if(l==='ace')return 'ACE';
+  if(l==='all-star'||l==='all_star')return 'ALL-STAR';
+  if(l==='emirates')return 'EMIRATES';
+  if(l==='rookie')return 'ROOKIE';
+  if(l==='animated')return 'ANIMATED';
+  if(l==='cursed')return 'CURSED';
+  if(l==='halloween')return 'HALLOWEEN';
+  return se.toUpperCase();
 };
-const specialLabel=(v:string)=>SPECIAL_LABELS[v]||v;
-const STANDARD_SET=new Set(['stellar_standard_base']);
-const isSpecialCard=(c:any)=>{ const se=c.specialEdition; if(!se)return false; if(STANDARD_SET.has(se))return false; return true; };
+const specialLabel=(v:string)=>editionGroup(v);
+const STANDARD_EDITIONS=new Set(['stellar_standard_base','colors_standard_base','legacy']);
+const isSpecialCard=(c:any)=>{ const se=c.specialEdition; if(!se)return false; if(STANDARD_EDITIONS.has(se))return false; return editionGroup(se)!=='standard'; };
 const playerKey=(c:any)=>(c.anyPlayer?.lastName||c.slug.split('-')[0])+'|'+(c.anyPlayer?.shirtNumber??'');
 const dedupeByPlayer=(list:any[])=>{
   const better=(a:any,b:any)=>{ const sa=isSpecialCard(a)?1:0, sb=isSpecialCard(b)?1:0; if(sa!==sb) return sa>sb?a:b; return (a.xp??0)>=(b.xp??0)?a:b; };
@@ -361,7 +382,7 @@ export default function Home() {
   },[cards]);
   const specialOptions=useMemo(()=>{
     const s=new Set<string>();
-    for(const c of cards){if(isSpecialCard(c))s.add(c.specialEdition);}
+    for(const c of cards){if(isSpecialCard(c))s.add(editionGroup(c.specialEdition));}
     return [...s].sort();
   },[cards]);
 
@@ -372,7 +393,7 @@ export default function Home() {
       if(fSeason!=='all' && c.seasonYear!==Number(fSeason)) return false;
       if(fSpecial==='standard' && isSpecialCard(c)) return false;
       if(fSpecial==='special' && !isSpecialCard(c)) return false;
-      if(fSpecial!=='all'&&fSpecial!=='standard'&&fSpecial!=='special' && c.specialEdition!==fSpecial) return false;
+      if(fSpecial!=='all'&&fSpecial!=='standard'&&fSpecial!=='special' && editionGroup(c.specialEdition||'')!==fSpecial) return false;
       if(fPlayer){
         const ln=(c.anyPlayer?.lastName||'').toLowerCase();
         if(!ln.includes(fPlayer.toLowerCase()) && !c.name.toLowerCase().includes(fPlayer.toLowerCase())) return false;
@@ -437,7 +458,7 @@ export default function Home() {
   // Bloc filtres vertical (barre laterale)
   const rarityOpts=[{value:'all',label:'Toutes les raretés'},{value:'common',label:'Common'},{value:'limited',label:'Limited'},{value:'rare',label:'Rare'},{value:'super_rare',label:'Super Rare'},{value:'unique',label:'Unique'}];
   const seasonOpts=[{value:'all',label:'Toutes saisons'},...seasonOptions.map(y=>({value:String(y),label:y+'-'+String((y+1)%100).padStart(2,'0')}))];
-  const specialOpts=[{value:'all',label:'Toutes cartes'},{value:'standard',label:'Standard uniquement'},{value:'special',label:'Spéciales uniquement'},...specialOptions.map(s=>({value:s,label:specialLabel(s)}))];
+  const specialOpts=[{value:'all',label:'Toutes cartes'},{value:'standard',label:'Standard uniquement'},{value:'special',label:'Spéciales uniquement'},...specialOptions.map(s=>({value:s,label:s}))];
   // (composant Filters retiré — filtres inlinés dans la sidebar)
 
   return(
