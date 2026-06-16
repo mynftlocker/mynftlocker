@@ -195,7 +195,7 @@ const COUNTRY_FR: Record<string,string> = {
   'za':'Afrique du Sud','eg':'Egypte','cm':'Cameroun','gh':'Ghana',
   'ci':'Cote d Ivoire','tn':'Tunisie','int':'International',
 };
-const countryFR=(slug:string)=>COUNTRY_FR[slug]||'Autres pays';
+const countryFR=(slug:string)=>slug==='__NATIONAL__'?'Selection Nationale':(COUNTRY_FR[slug]||'Autres pays');
 
 const FootTeamMenu=({countries,teamsByCountry,country,team,onPickCountry,onPickTeam}:any)=>{
   const [open,setOpen]=useState(false);
@@ -214,8 +214,8 @@ const FootTeamMenu=({countries,teamsByCountry,country,team,onPickCountry,onPickT
   const mergedCountries=countries.filter((c:string)=>c!=='mc');
   if(mergedByCountry['fr']&&!mergedCountries.includes('fr'))mergedCountries.push('fr');
   const effectiveTeams=(c:string)=>mergedByCountry[c]||[];
-  const label=team!=='all'?team:(country!=='all'?countryFR(country):'Toutes les equipes');
-  const sortedCountries=[...new Set<string>(mergedCountries)].sort((a:string,b:string)=>countryFR(a).localeCompare(countryFR(b),'fr'));
+  const label=team!=='all'?team:(country!=='all'?countryFR(country):'Tous les championnats');
+  const sortedCountries=[...new Set<string>(mergedCountries)].sort((a:string,b:string)=>{if(a==='__NATIONAL__')return 1;if(b==='__NATIONAL__')return -1;return countryFR(a).localeCompare(countryFR(b),'fr');});
   const enter=()=>{
     const el=ref.current;
     if(el){const r=el.getBoundingClientRect();setPosL(r.right);setPosT(r.top);}
@@ -250,7 +250,7 @@ const FootTeamMenu=({countries,teamsByCountry,country,team,onPickCountry,onPickT
           <div className='thin-sb' style={{...menuBase,maxHeight:Math.min(380,window.innerHeight-posT-16)+'px'}}>
             <button style={btnStyle(country==='all'&&team==='all')}
               onClick={()=>{onPickCountry('all');onPickTeam('all');setHoveredCountry(null);}}>
-              Toutes les equipes
+              Tous les championnats
             </button>
             {sortedCountries.map((c:string)=>(
               <button key={c}
@@ -496,10 +496,10 @@ export default function Home() {
   },[cards,teamApi,applyFilters,lockerSort,hof,lineup]);
 
   // Galerie = sport + filtres + tri
-  const footCountries=useMemo(()=>{const s=new Set<string>();cards.filter((c:any)=>!isNBA(c)).forEach((c:any)=>{const co=c.anyTeam?.country?.slug;if(co)s.add(co);});return Array.from(s).sort();},[cards]);
-  const teamsByCountry=useMemo(()=>{const m:Record<string,Set<string>>={};cards.filter((c:any)=>!isNBA(c)).forEach((c:any)=>{const co=c.anyTeam?.country?.slug;const nm=c.anyTeam?.name;if(co&&nm){(m[co]=m[co]||new Set<string>()).add(nm);}});const out:Record<string,string[]>={};for(const k in m)out[k]=Array.from(m[k]).sort();return out;},[cards]);
+  const footCountries=useMemo(()=>{const s=new Set<string>();let hasNational=false;cards.filter((c:any)=>!isNBA(c)).forEach((c:any)=>{const co=c.anyTeam?.country?.slug;if(co)s.add(co);else if(c.anyTeam?.name)hasNational=true;});const arr=Array.from(s).sort();if(hasNational)arr.push('__NATIONAL__');return arr;},[cards]);
+  const teamsByCountry=useMemo(()=>{const m:Record<string,Set<string>>={};cards.filter((c:any)=>!isNBA(c)).forEach((c:any)=>{const co=c.anyTeam?.country?.slug;const nm=c.anyTeam?.name;if(nm){const key=co||'__NATIONAL__';(m[key]=m[key]||new Set<string>()).add(nm);}});const out:Record<string,string[]>={};for(const k in m)out[k]=Array.from(m[k]).sort();return out;},[cards]);
   const galleryTeamList=useMemo(()=>{const ts=new Set<string>();cards.filter(c=>isNBA(c)).forEach(c=>{if(!c.anyTeam?.name)return;ts.add(c.anyTeam.name);});return['all',...Array.from(ts).sort()] as string[];},[cards]);
-  const filteredGallery=useMemo(()=>{let base=cards.filter((c:any)=>gSport==='nba'?isNBA(c):!isNBA(c));let r=applyFilters(base);if(gSport==='foot'&&gCountry!=='all')r=r.filter((c:any)=>c.anyTeam?.country?.slug===gCountry);if(gTeamCustom!=='all')r=r.filter((c:any)=>(c.anyTeam?.name||'')===gTeamCustom);if(gSort==='rarity')return[...r].sort((a:any,b:any)=>(RARITY_ORDER[a.rarityTyped]??9)-(RARITY_ORDER[b.rarityTyped]??9));if(gSort==='name')return[...r].sort((a:any,b:any)=>(a.anyPlayer?.lastName||'').localeCompare(b.anyPlayer?.lastName||''));return[...r].sort((a:any,b:any)=>parseFloat(String(b.averageScore||0))-parseFloat(String(a.averageScore||0)));},[cards,applyFilters,gSport,gCountry,gTeamCustom,gSort]);
+  const filteredGallery=useMemo(()=>{let base=cards.filter((c:any)=>gSport==='nba'?isNBA(c):!isNBA(c));let r=applyFilters(base);if(gSport==='foot'&&gCountry!=='all'){if(gCountry==='__NATIONAL__')r=r.filter((c:any)=>!c.anyTeam?.country?.slug&&c.anyTeam?.name);else r=r.filter((c:any)=>c.anyTeam?.country?.slug===gCountry);}if(gTeamCustom!=='all')r=r.filter((c:any)=>(c.anyTeam?.name||'')===gTeamCustom);if(gSort==='rarity')return[...r].sort((a:any,b:any)=>(RARITY_ORDER[a.rarityTyped]??9)-(RARITY_ORDER[b.rarityTyped]??9));if(gSort==='name')return[...r].sort((a:any,b:any)=>(a.anyPlayer?.lastName||'').localeCompare(b.anyPlayer?.lastName||''));return[...r].sort((a:any,b:any)=>parseFloat(String(b.averageScore||0))-parseFloat(String(a.averageScore||0)));},[cards,applyFilters,gSport,gCountry,gTeamCustom,gSort]);
 
   const goldGrad='linear-gradient(160deg,#a86f15 0%,#d9a52e 22%,#f7da80 48%,#e8b84a 68%,#b8801a 100%)';
   const fBtn=(a:boolean):React.CSSProperties=>({padding:'0.4rem 0.6rem',borderRadius:'0.15rem',border:'none',borderLeft:a?'2px solid #f5d76e':'2px solid rgba(255,255,255,0.08)',background:a?'rgba(245,215,110,0.12)':'rgba(255,255,255,0.025)',color:a?'#f5d76e':'#cfd8e6',cursor:'pointer',fontSize:'0.76rem',fontWeight:a?700:500,transition:'all 0.12s'});
