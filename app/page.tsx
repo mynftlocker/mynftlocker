@@ -215,7 +215,7 @@ const FootTeamMenu=({countries,teamsByCountry,country,team,onPickCountry,onPickT
   if(mergedByCountry['fr']&&!mergedCountries.includes('fr'))mergedCountries.push('fr');
   const effectiveTeams=(c:string)=>mergedByCountry[c]||[];
   const label=team!=='all'?team:(country!=='all'?countryFR(country):'Toutes les equipes');
-  const sortedCountries=[...new Set(mergedCountries)].sort((a:string,b:string)=>countryFR(a).localeCompare(countryFR(b),'fr'));
+  const sortedCountries=[...new Set<string>(mergedCountries)].sort((a:string,b:string)=>countryFR(a).localeCompare(countryFR(b),'fr'));
   const enter=()=>{
     const el=ref.current;
     if(el){const r=el.getBoundingClientRect();setPosL(r.right);setPosT(r.top);}
