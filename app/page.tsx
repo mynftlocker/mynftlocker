@@ -189,7 +189,7 @@ const COUNTRY_FR: Record<string,string> = {
   'germany':'Allemagne','ghana':'Ghana','greece':'Grèce',
   'hungary':'Hongrie','india':'Inde','iran':'Iran',
   'ireland':'Irlande','israel':'Israël','italy':'Italie',
-  'ivory-coast':'Côte d'Ivoire','japan':'Japon','kenya':'Kenya',
+  'ivory-coast':'Cote d Ivoire','japan':'Japon','kenya':'Kenya',
   'mexico':'Mexique','morocco':'Maroc','netherlands':'Pays-Bas',
   'nigeria':'Nigéria','norway':'Norvège','paraguay':'Paraguay',
   'peru':'Pérou','poland':'Pologne','portugal':'Portugal',
