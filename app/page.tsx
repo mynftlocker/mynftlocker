@@ -178,42 +178,100 @@ const FilterMenu=({title,options,current,onSelect}:any)=>{
   );
 };
 
+const COUNTRY_FR: Record<string,string> = {
+  'albania':'Albanie','argentina':'Argentine','australia':'Australie',
+  'austria':'Autriche','belgium':'Belgique','bolivia':'Bolivie',
+  'brazil':'Bresil','bulgaria':'Bulgarie','cameroon':'Cameroun',
+  'chile':'Chili','china':'Chine','colombia':'Colombie',
+  'croatia':'Croatie','czech-republic':'Republique Tcheque',
+  'denmark':'Danemark','ecuador':'Equateur','egypt':'Egypte',
+  'england':'Angleterre','finland':'Finlande','france':'France',
+  'germany':'Allemagne','ghana':'Ghana','greece':'Grece',
+  'hungary':'Hongrie','india':'Inde','iran':'Iran',
+  'ireland':'Irlande','israel':'Israel','italy':'Italie',
+  'ivory-coast':'Cote d Ivoire','japan':'Japon','kenya':'Kenya',
+  'mexico':'Mexique','morocco':'Maroc','netherlands':'Pays-Bas',
+  'nigeria':'Nigeria','norway':'Norvege','paraguay':'Paraguay',
+  'peru':'Perou','poland':'Pologne','portugal':'Portugal',
+  'romania':'Roumanie','russia':'Russie','saudi-arabia':'Arabie Saoudite',
+  'scotland':'Ecosse','senegal':'Senegal','serbia':'Serbie',
+  'slovakia':'Slovaquie','south-africa':'Afrique du Sud',
+  'south-korea':'Coree du Sud','spain':'Espagne','sweden':'Suede',
+  'switzerland':'Suisse','tunisia':'Tunisie','turkey':'Turquie',
+  'ukraine':'Ukraine','united-arab-emirates':'Emirats Arabes Unis',
+  'united-states':'Etats-Unis','uruguay':'Uruguay','venezuela':'Venezuela',
+  'wales':'Pays de Galles',
+};
+const countryFR=(slug:string)=>COUNTRY_FR[slug]||(slug.split('-').map((w:string)=>w.charAt(0).toUpperCase()+w.slice(1)).join(' '));
+
 const FootTeamMenu=({countries,teamsByCountry,country,team,onPickCountry,onPickTeam}:any)=>{
   const [open,setOpen]=useState(false);
   const [mounted,setMounted]=useState(false);
-  const [step,setStep]=useState('country');
+  const [hoveredCountry,setHoveredCountry]=useState<string|null>(null);
   useEffect(()=>{setMounted(true);},[]);
   const ref=useRef<HTMLDivElement>(null);
-  const [pos,setPos]=useState({left:0,top:0,maxH:340});
-  const cap=(s:string)=>s.charAt(0).toUpperCase()+s.slice(1).replace(/-/g,' ');
-  const label=team!=='all'?team:(country!=='all'?cap(country):'Toutes les équipes');
-  const enter=()=>{const el=ref.current;if(el){const r=el.getBoundingClientRect();const h=Math.min(340,window.innerHeight-16);const top=Math.max(8,Math.min(r.top,window.innerHeight-h-8));setPos({left:r.right,top,maxH:h});}setStep(country!=='all'&&team!=='all'?'team':'country');setOpen(true);};
-  const btn=(sel:boolean):React.CSSProperties=>({display:'block',width:'100%',textAlign:'left',padding:'0.4rem 0.7rem',borderRadius:'0.25rem',border:'none',borderLeft:sel?'2px solid #f5d76e':'2px solid transparent',cursor:'pointer',fontSize:'0.8rem',fontWeight:sel?700:500,background:sel?'rgba(245,215,110,0.12)':'transparent',color:sel?'#f5d76e':'#cfd8e6',transition:'background 0.1s'});
+  const [posL,setPosL]=useState(220);
+  const [posT,setPosT]=useState(0);
+  const label=team!=='all'?team:(country!=='all'?countryFR(country):'Toutes les equipes');
+  const sortedCountries=[...countries].sort((a:string,b:string)=>countryFR(a).localeCompare(countryFR(b),'fr'));
+  const enter=()=>{
+    const el=ref.current;
+    if(el){const r=el.getBoundingClientRect();setPosL(r.right);setPosT(r.top);}
+    setOpen(true);
+  };
+  const btnStyle=(sel:boolean):React.CSSProperties=>({
+    display:'block',width:'100%',textAlign:'left',padding:'0.4rem 0.7rem',
+    borderRadius:'0.25rem',border:'none',
+    borderLeft:sel?'2px solid #f5d76e':'2px solid transparent',
+    cursor:'pointer',fontSize:'0.8rem',fontWeight:sel?700:500,
+    background:sel?'rgba(245,215,110,0.12)':'transparent',
+    color:sel?'#f5d76e':'#cfd8e6',transition:'background 0.1s',
+  });
+  const menuBase:React.CSSProperties={
+    overflowY:'auto',minWidth:'190px',
+    background:'#080a0e',border:'1px solid #6fc3e8',
+    borderRadius:'0.4rem',padding:'0.3rem',
+    boxShadow:'0 14px 38px rgba(0,0,0,0.7),0 0 14px rgba(111,195,232,0.18)',
+    zIndex:9999,
+  };
   return(
-    <div ref={ref} style={{position:'relative',marginBottom:'0.15rem'}} onMouseEnter={enter} onMouseLeave={()=>setOpen(false)}>
+    <div ref={ref} style={{position:'relative',marginBottom:'0.15rem'}}
+      onMouseEnter={enter}
+      onMouseLeave={()=>{setOpen(false);setHoveredCountry(null);}}>
       <div style={{width:'100%',padding:'0.35rem 0.5rem',borderRadius:'0.15rem',background:open?'rgba(111,195,232,0.08)':'transparent',borderLeft:open?'2px solid #6fc3e8':'2px solid transparent',cursor:'default',transition:'all 0.12s'}}>
-        <p style={{fontSize:'0.64rem',fontWeight:800,letterSpacing:'0.14em',textTransform:'uppercase',color:'#eaf2ff',margin:'0 0 0.05rem'}}>Équipe</p>
+        <p style={{fontSize:'0.64rem',fontWeight:800,letterSpacing:'0.14em',textTransform:'uppercase',color:'#eaf2ff',margin:'0 0 0.05rem'}}>Equipe</p>
         <p style={{fontSize:'0.8rem',fontWeight:500,color:open?'#6fc3e8':'#ffffff',opacity:open?1:0.6,margin:0,display:'flex',alignItems:'center',justifyContent:'space-between'}}>{label} <span style={{fontSize:'0.7rem',opacity:0.7}}>›</span></p>
       </div>
       {open&&mounted&&createPortal(
-        <div className='thin-sb' style={{position:'fixed',left:pos.left+'px',top:pos.top+'px',maxHeight:pos.maxH+'px',overflowY:'auto',minWidth:'200px',background:'#080a0e',border:'1px solid #6fc3e8',borderRadius:'0.4rem',padding:'0.3rem',boxShadow:'0 14px 38px rgba(0,0,0,0.7),0 0 14px rgba(111,195,232,0.18)',zIndex:9999}}>
-          {step==='country'?(
-            <>
-              <p style={{fontSize:'0.58rem',fontWeight:800,letterSpacing:'0.12em',textTransform:'uppercase',color:'#6fc3e8',margin:'0.1rem 0.4rem 0.3rem'}}>1 · Pays</p>
-              <button style={btn(country==='all')} onClick={()=>{onPickCountry('all');onPickTeam('all');setOpen(false);}}>Tous les pays</button>
-              {countries.map((co:string)=>(
-                <button key={co} style={btn(co===country)} onClick={()=>{onPickCountry(co);setStep('team');}}>{cap(co)}<span style={{float:'right',opacity:0.55}}>›</span></button>
+        <div style={{position:'fixed',left:posL+'px',top:posT+'px',display:'flex',gap:'4px',zIndex:9999}}
+          onMouseEnter={()=>{}}
+          onMouseLeave={()=>{setOpen(false);setHoveredCountry(null);}}>
+          {/* Menu Pays */}
+          <div className='thin-sb' style={{...menuBase,maxHeight:Math.min(360,window.innerHeight-posT-16)+'px'}}>
+            <button style={btnStyle(country==='all'&&team==='all')}
+              onClick={()=>{onPickCountry('all');onPickTeam('all');setHoveredCountry(null);}}>
+              Toutes les equipes
+            </button>
+            {sortedCountries.map((c:string)=>(
+              <button key={c}
+                style={{...btnStyle(country===c),display:'flex',justifyContent:'space-between',alignItems:'center'}}
+                onMouseEnter={()=>setHoveredCountry(c)}
+                onClick={()=>{onPickCountry(c);setHoveredCountry(c);}}>
+                <span>{countryFR(c)}</span>
+                <span style={{opacity:0.4,fontSize:'0.7rem',marginLeft:'0.5rem'}}>›</span>
+              </button>
+            ))}
+          </div>
+          {/* Menu Equipes — apparait a droite au survol d un pays */}
+          {hoveredCountry&&(teamsByCountry[hoveredCountry]||[]).length>0&&(
+            <div className='thin-sb' style={{...menuBase,maxHeight:Math.min(360,window.innerHeight-posT-16)+'px'}}>
+              {(teamsByCountry[hoveredCountry]||[]).map((t:string)=>(
+                <button key={t} style={btnStyle(team===t)}
+                  onClick={()=>{onPickCountry(hoveredCountry);onPickTeam(t);}}>
+                  {t}
+                </button>
               ))}
-            </>
-          ):(
-            <>
-              <button style={{display:'block',width:'100%',textAlign:'left',padding:'0.35rem 0.7rem',border:'none',background:'transparent',color:'#6fc3e8',fontWeight:700,fontSize:'0.74rem',cursor:'pointer'}} onClick={()=>setStep('country')}>‹ Retour aux pays</button>
-              <p style={{fontSize:'0.58rem',fontWeight:800,letterSpacing:'0.12em',textTransform:'uppercase',color:'#6fc3e8',margin:'0.2rem 0.4rem 0.3rem'}}>2 · {cap(country)}</p>
-              <button style={btn(team==='all')} onClick={()=>{onPickTeam('all');setOpen(false);}}>Toutes les équipes</button>
-              {(teamsByCountry[country]||[]).map((t:string)=>(
-                <button key={t} style={btn(t===team)} onClick={()=>{onPickTeam(t);setOpen(false);}}>{t}</button>
-              ))}
-            </>
+            </div>
           )}
         </div>
       ,document.body)}
@@ -221,17 +279,7 @@ const FootTeamMenu=({countries,teamsByCountry,country,team,onPickCountry,onPickT
   );
 };
 
-const NBA_CONF:Record<string,string>={
-  'Atlanta Hawks':'Est','Boston Celtics':'Est','Brooklyn Nets':'Est','Charlotte Hornets':'Est',
-  'Chicago Bulls':'Est','Cleveland Cavaliers':'Est','Detroit Pistons':'Est','Indiana Pacers':'Est',
-  'Miami Heat':'Est','Milwaukee Bucks':'Est','New York Knicks':'Est','Orlando Magic':'Est',
-  'Philadelphia 76ers':'Est','Toronto Raptors':'Est','Washington Wizards':'Est',
-  'Dallas Mavericks':'Ouest','Denver Nuggets':'Ouest','Golden State Warriors':'Ouest',
-  'Houston Rockets':'Ouest','Los Angeles Clippers':'Ouest','Los Angeles Lakers':'Ouest',
-  'Memphis Grizzlies':'Ouest','Minnesota Timberwolves':'Ouest','New Orleans Pelicans':'Ouest',
-  'Oklahoma City Thunder':'Ouest','Phoenix Suns':'Ouest','Portland Trail Blazers':'Ouest',
-  'Sacramento Kings':'Ouest','San Antonio Spurs':'Ouest','Utah Jazz':'Ouest',
-};
+
 export default function Home() {
   const [slug, setSlug] = useState('');
   const [acctOpen, setAcctOpen] = useState(false);
