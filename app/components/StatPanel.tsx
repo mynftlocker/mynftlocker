@@ -1,5 +1,5 @@
 'use client';
-import { memo, useState, useEffect } from 'react';
+import { memo, useState, useEffect, Fragment } from 'react';
 
 export const RARITY_GLOW: Record<string,string> = {
   common:'0 0 9px 1px rgba(220,220,255,0.55)',
@@ -71,12 +71,15 @@ export const StatPanel=memo(({card,onClose,isClosing=false,placement='scene'}:an
   const [countedAvg,setCountedAvg]=useState('0');
   const [nbaStats,setNbaStats]=useState<any>(null);
   const [nbaLoading,setNbaLoading]=useState(false);
+  const [footStats,setFootStats]=useState<any>(null);
+  const [footLoading,setFootLoading]=useState(false);
 
   const _full=(card.name.split('•')[0]||'').replace(/\d{4}-\d{2}/,'').trim();
   useEffect(()=>{let i=0;let iv:any;const t=setTimeout(()=>{iv=setInterval(()=>{i++;setTypedName(ln.slice(0,i));if(i>=ln.length)clearInterval(iv);},45);},600);return()=>{clearTimeout(t);clearInterval(iv);};},[ln]);
   useEffect(()=>{if(avgNum==null)return;let step=0;let iv:any;const t=setTimeout(()=>{iv=setInterval(()=>{step++;const cur=Math.min((avgNum/20)*step,avgNum);setCountedAvg(cur%1===0?String(Math.round(cur)):cur.toFixed(1));if(step>=20)clearInterval(iv);},40);},700);return()=>{clearTimeout(t);clearInterval(iv);};},[avgNum]);
 
   useEffect(()=>{if(!card.anyPlayer?.lastName)return;setNbaLoading(true);fetch(`/api/player-stats?name=${encodeURIComponent(_full||card.anyPlayer.lastName)}&season=${card.seasonYear||0}`).then(r=>r.json()).then(d=>{if(!d.error)setNbaStats(d);}).catch(()=>{}).finally(()=>setNbaLoading(false));},[]);
+  useEffect(()=>{if(isNBA(card))return;const nm=_full||card.anyPlayer?.lastName;if(!nm)return;setFootLoading(true);fetch(`/api/player-stats-foot?name=${encodeURIComponent(nm)}`).then(r=>r.json()).then(d=>{if(!d.error&&d.rows)setFootStats(d);}).catch(()=>{}).finally(()=>setFootLoading(false));},[]);
 ;
 
   const CY='#40e8ff';const CYS='0 0 8px rgba(64,232,255,0.5)';
@@ -141,8 +144,31 @@ export const StatPanel=memo(({card,onClose,isClosing=false,placement='scene'}:an
           </>
         ):(
           <>
-            <p style={{margin:'0 0 0.3rem',fontSize:'0.52rem',fontWeight:900,color:'rgba(64,232,255,0.6)',letterSpacing:'0.2em',textTransform:'uppercase'}}>CLUB STATS · {card.seasonYear&&card.seasonYear>2000?String(card.seasonYear)+'-'+String(card.seasonYear+1).slice(2):'2025-26'}</p>
-            <p style={{margin:0,fontSize:'0.58rem',color:'rgba(64,232,255,0.28)',letterSpacing:'0.06em'}}>stats non disponibles</p>
+            <p style={{margin:'0 0 0.3rem',fontSize:'0.52rem',fontWeight:900,color:'rgba(64,232,255,0.6)',letterSpacing:'0.2em',textTransform:'uppercase'}}>STATS · {card.seasonYear&&card.seasonYear>2000?String(card.seasonYear)+'-'+String(card.seasonYear+1).slice(2):'2025-26'}</p>
+            {footLoading&&<p style={{margin:0,fontSize:'0.62rem',color:'rgba(64,232,255,0.42)',letterSpacing:'0.14em'}}>CHARGEMENT...</p>}
+            {!footLoading&&footStats&&footStats.rows&&(
+              <div style={{width:'100%'}}>
+                <div style={{display:'grid',gridTemplateColumns:'1.6fr repeat(6,1fr)',gap:'0.1rem 0.12rem',alignItems:'center'}}>
+                  {([''].concat(['TITU','B','PD','TC','CJ','CR'])).map((h,i)=>(
+                    <span key={'h'+i} style={{fontSize:'0.42rem',fontWeight:800,color:'rgba(64,232,255,0.55)',textAlign:i===0?'left':'center',letterSpacing:'0.04em'}}>{h}</span>
+                  ))}
+                  {footStats.rows.map((row:any,ri:number)=>(
+                    <Fragment key={'r'+ri}>
+                      <span style={{fontSize:'0.5rem',fontWeight:700,color:'rgba(64,232,255,0.85)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{row.label}</span>
+                      {[row.titu,row.b,row.pd,row.tc,row.cj,row.cr].map((v:any,ci:number)=>(
+                        <span key={'c'+ci} style={{fontSize:'0.6rem',fontWeight:700,color:CY,textAlign:'center',textShadow:'0 0 4px rgba(64,232,255,0.25)'}}>{v||'-'}</span>
+                      ))}
+                    </Fragment>
+                  ))}
+                  <span style={{fontSize:'0.5rem',fontWeight:900,color:'#f5d76e',whiteSpace:'nowrap',borderTop:'1px solid rgba(245,215,110,0.3)',paddingTop:'0.12rem',marginTop:'0.06rem'}}>TOTAL</span>
+                  {[footStats.total.titu,footStats.total.b,footStats.total.pd,footStats.total.tc,footStats.total.cj,footStats.total.cr].map((v:any,ci:number)=>(
+                    <span key={'t'+ci} style={{fontSize:'0.62rem',fontWeight:900,color:'#f5d76e',textAlign:'center',textShadow:'0 0 5px rgba(245,215,110,0.4)',borderTop:'1px solid rgba(245,215,110,0.3)',paddingTop:'0.12rem',marginTop:'0.06rem'}}>{v||'-'}</span>
+                  ))}
+                </div>
+                <p style={{margin:'0.25rem 0 0',fontSize:'0.38rem',color:'rgba(64,232,255,0.3)',letterSpacing:'0.04em',textAlign:'right'}}>TITU = titularisations · source ESPN</p>
+              </div>
+            )}
+            {!footLoading&&!footStats&&<p style={{margin:0,fontSize:'0.58rem',color:'rgba(64,232,255,0.28)',letterSpacing:'0.06em'}}>stats non disponibles</p>}
           </>
         )}
       </div>
