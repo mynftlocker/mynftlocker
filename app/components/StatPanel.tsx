@@ -187,11 +187,11 @@ export const StatPanel=memo(({card,onClose,isClosing=false,placement='scene'}:an
             <img src="https://a.espncdn.com/favicon.ico" alt="E" style={{width:'14px',height:'14px',objectFit:'contain'}}/> ESPN
           </a>
         )}
-        {!isNBA(card)&&(
-          <a href={'https://www.transfermarkt.com/schnellsuche/ergebnis/schnellsuche?query='+encodeURIComponent(_full||card.anyPlayer?.lastName||'')}
+        {!isNBA(card)&&footStats?._id&&(
+          <a href={'https://www.espn.com/soccer/player/_/id/'+footStats._id+'/'+(_full||card.anyPlayer?.lastName||'').toLowerCase().replace(/\s+/g,'-')}
             target='_blank' rel='noopener noreferrer' className='stat-link-btn'
-            style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',gap:'0.3rem',padding:'0.3rem 0',borderRadius:'0.25rem',border:'1px solid rgba(64,232,255,0.5)',background:'rgba(64,232,255,0.06)',color:'#ffffff',fontSize:'0.55rem',fontWeight:800,letterSpacing:'0.1em',textDecoration:'none',cursor:'pointer'}}>
-            <span style={{fontSize:'0.75rem',fontWeight:900,color:'#1d6fa4'}}>TM</span> TRANSFERMARKT
+            style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',gap:'0.3rem',padding:'0.3rem 0',borderRadius:'0.25rem',border:'1px solid rgba(64,232,255,0.5)',background:'rgba(64,232,255,0.06)',color:'#e05050',fontSize:'0.55rem',fontWeight:800,letterSpacing:'0.1em',textDecoration:'none',cursor:'pointer'}}>
+            <img src="https://a.espncdn.com/favicon.ico" alt="E" style={{width:'14px',height:'14px',objectFit:'contain'}}/> ESPN
           </a>
         )}
       </div>
