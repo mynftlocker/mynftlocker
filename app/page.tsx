@@ -627,14 +627,14 @@ export default function Home() {
                   <div style={{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'rotateY(180deg)'}}>
                     <img src='/logo-back.png' alt='myNFTlocker dos'
                       style={{width:'100%',height:'100%',display:'block',objectFit:'contain',background:'transparent',
-                        filter:'drop-shadow(0 0 18px rgba(0,200,235,0.28))'}}
+                        filter:openPhase===1?'drop-shadow(0 0 24px rgba(0,225,255,0.85)) drop-shadow(0 0 48px rgba(0,225,255,0.5)) drop-shadow(0 0 85px rgba(0,225,255,0.22))':'drop-shadow(0 0 18px rgba(0,200,235,0.28))'}}
                       onError={(e)=>{(e.target as HTMLImageElement).style.display='none';}}/>
                   </div>
                 </div>
                 {/* LASER independant du flip : reste visible recto ET verso */}
                 {openPhase===1&&(
                   <svg viewBox='0 0 280 375' preserveAspectRatio='none' style={{position:'absolute',inset:0,width:'100%',height:'100%',overflow:'visible',pointerEvents:'none',zIndex:5}}>
-                    <rect x='8' y='8' width='264' height='359' rx='12'
+                    <rect x='8' y='-4' width='264' height='363' rx='12'
                       fill='none' stroke='#00ffff' strokeWidth='2' pathLength='1000'
                       style={{strokeDasharray:'70 930',strokeDashoffset:0,filter:'drop-shadow(0 0 5px rgba(0,225,255,0.95)) drop-shadow(0 0 10px rgba(0,225,255,0.55))',animation:'scannerLaser 2.2s linear infinite'}}/>
                   </svg>
