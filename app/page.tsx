@@ -507,7 +507,7 @@ export default function Home() {
     const isFoot=gSport==='foot';
     const activeHof=isFoot?hofFoot:hof;
     const pool = teamApi===HOF_KEY
-      ? applyFilters(cards.filter(c=>activeHof.includes(c.slug)))
+      ? cards.filter(c=>activeHof.includes(c.slug))
       : applyFilters(cards.filter(c=>(isFoot?!isNBA(c):isNBA(c))&&c.anyTeam?.name===teamApi));
     const byL10=(a:any,b:any)=>(b.averageScore??-1)-(a.averageScore??-1);
     // Epingles = cartes exactes (doublons autorises), dans l'ordre d'epinglage
