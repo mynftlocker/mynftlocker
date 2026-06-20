@@ -695,7 +695,7 @@ export default function Home() {
           {/* MODE VESTIAIRE */}
           {mode==='locker'&&(
             <div style={{maxWidth:'1320px',margin:'0 auto',padding:'0 1rem'}}>
-              <LockerRoomScene cards={lockerCards} startIndex={lockerStart} hof={gSport==='foot'?hofFoot:hof} flippedSlug={flippedSlug} onFlip={handleFlip} onStar={handleStar} onPin={(s:string)=>handlePin(teamApi,s)} pinnedSlugs={lineup[teamApi]||[]} onPrev={handlePrev} onNext={()=>handleNext(lockerCards.length)} total={lockerCards.length} teamApi={teamApi} teamList={teamList} onTeamChange={handleTeamChange}/>
+              <LockerRoomScene cards={lockerCards} startIndex={lockerStart} hof={gSport==='foot'?hofFoot:hof} flippedSlug={flippedSlug} onFlip={handleFlip} onStar={handleStar} onPin={(s:string)=>handlePin(teamApi,s)} pinnedSlugs={lineup[teamApi]||[]} onPrev={handlePrev} onNext={()=>handleNext(lockerCards.length)} total={lockerCards.length} teamApi={teamApi} teamList={teamList} onTeamChange={handleTeamChange} sport={gSport}/>
             </div>
           )}
 

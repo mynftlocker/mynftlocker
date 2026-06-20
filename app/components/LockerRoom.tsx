@@ -82,10 +82,11 @@ interface Props{
   pinnedSlugs:string[];
   onPrev:()=>void; onNext:()=>void; total:number;
   teamApi:string; teamList:{api:string;display:string;count:number}[];
+  sport?:string;
   onTeamChange:(api:string)=>void;
 }
 
-export default function LockerRoomScene({cards=[],startIndex,hof=[],flippedSlug,onFlip,onStar,onPin,pinnedSlugs=[],onPrev,onNext,total,teamApi,teamList=[],onTeamChange}:Props){
+export default function LockerRoomScene({cards=[],startIndex,hof=[],flippedSlug,onFlip,onStar,onPin,pinnedSlugs=[],onPrev,onNext,total,teamApi,teamList=[],onTeamChange,sport='nba'}:Props){
   const visible=cards.slice(startIndex,startIndex+5);
   const panelCard=flippedSlug?(cards.find((c:any)=>c.slug===flippedSlug)||null):null;
   const laserSlot=flippedSlug?visible.findIndex((c:any)=>c.slug===flippedSlug):-1;
@@ -96,7 +97,8 @@ export default function LockerRoomScene({cards=[],startIndex,hof=[],flippedSlug,
   const from=total===0?0:startIndex+1;const to=Math.min(startIndex+5,total);
   const isHofView = teamApi==='__HOF__';
   const info=TEAM_BY_API[teamApi];
-  const img=isHofView?'locker-hof.png':(info?info.img:FALLBACK_IMG);
+  const isFoot=sport==='foot';
+  const img=isHofView?(isFoot?'locker-foot.jpg':'locker-hof.png'):(isFoot?'locker-foot.jpg':(info?info.img:FALLBACK_IMG));
   const displayName=isHofView?'HALL OF FAME':(info?info.display:teamApi);
   const nameLines=isHofView?['HALL OF','FAME']:(CITY_CLUB[teamApi]||[displayName,'']);
   // index equipe courante pour fleches equipe
