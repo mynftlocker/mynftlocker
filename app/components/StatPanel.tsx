@@ -2,11 +2,11 @@
 import { memo, useState, useEffect, Fragment } from 'react';
 
 export const RARITY_GLOW: Record<string,string> = {
-  common:'0 0 9px 1px rgba(220,220,255,0.55)',
-  limited:'0 0 11px 1px rgba(234,179,8,0.95)',
-  rare:'0 0 12px 1px rgba(59,130,246,0.95)',
-  super_rare:'0 0 13px 2px rgba(239,68,68,0.97)',
-  unique:'0 0 15px 2px rgba(168,85,247,1)',
+  common:'0 0 18px 3px rgba(225,228,255,0.75), 0 0 36px 8px rgba(190,200,255,0.35)',
+  limited:'0 0 20px 4px rgba(234,179,8,0.95), 0 0 42px 10px rgba(234,179,8,0.45)',
+  rare:'0 0 20px 4px rgba(239,68,68,0.97), 0 0 44px 11px rgba(239,68,68,0.5)',
+  super_rare:'0 0 20px 4px rgba(59,130,246,0.97), 0 0 44px 11px rgba(59,130,246,0.5)',
+  unique:'0 0 24px 5px rgba(168,85,247,1), 0 0 50px 12px rgba(168,85,247,0.55)',
 };
 export const RARITY_COLOR: Record<string,string> = {
   common:'#9ca3af',limited:'#eab308',rare:'#3b82f6',super_rare:'#ef4444',unique:'#a855f7',
