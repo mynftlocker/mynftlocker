@@ -131,7 +131,8 @@ export default function LockerRoomScene({cards=[],startIndex,hof=[],flippedSlug,
           {[...Array(14)].map((_,i)=>{const lx=(i*67)%96+2;const sz=1.5+(i%3);const dur=7+(i%5)*2;const dl=(i%7);const tp=8+((i*53)%58);return <div key={i} style={{position:'absolute',left:lx+'%',top:tp+'%',width:sz+'px',height:sz+'px',borderRadius:'50%',background:'rgba(255,238,200,0.7)',filter:'blur(0.5px)',boxShadow:'0 0 4px rgba(255,230,180,0.6)',animation:'mnflFloat '+dur+'s ease-in-out '+dl+'s infinite'}}/>;})}
         </div>
 
-        {/* NOM EQUIPE — 2 lignes ville/club */}
+        {/* NOM EQUIPE — 2 lignes ville/club (NBA uniquement : le decor foot n'a pas de zone titre) */}
+        {!isFoot&&(
         <div style={{position:'absolute',left:TEAM_X+'%',top:TEAM_Y+'%',transform:'translate(-50%,-50%)',zIndex:15,textAlign:'center',width:'27%',lineHeight:1.05}}>
           <div style={{fontSize:'1.7vw',fontWeight:900,letterSpacing:'0.12em',textTransform:'uppercase',fontFamily:'Georgia,serif',color:'#ffd060',textShadow:'0 0 8px rgba(255,200,60,0.9),0 0 20px rgba(255,160,0,0.7)',whiteSpace:'nowrap'}}>
             {nameLines[0]}
@@ -140,6 +141,7 @@ export default function LockerRoomScene({cards=[],startIndex,hof=[],flippedSlug,
             {nameLines[1]}
           </div>
         </div>
+        )}
 
         {/* RAIL JOUEURS : glisse au changement de page/equipe */}
         <div style={{position:'absolute',inset:0,zIndex:10}}>
