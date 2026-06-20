@@ -113,20 +113,11 @@ export default function LockerRoomScene({cards=[],startIndex,hof=[],flippedSlug,
 
   return(
     <div>
-      {/* ===== SELECTEUR EQUIPE (Variante B minimaliste) ===== */}
-      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',width:'440px',maxWidth:'90%',margin:'0 auto 0.5rem',position:'relative',paddingBottom:'0.35rem',borderBottom:'1px solid rgba(111,195,232,0.22)',boxShadow:'0 8px 16px -10px rgba(111,195,232,0.5)'}}>
-        <button disabled={!prevTeam} onClick={()=>{if(prevTeam){setSlideDir('right');setSlideKey(k=>k+1);onTeamChange(prevTeam.api);}}} style={{flex:'0 0 auto',background:'transparent',border:'none',color:prevTeam?'#e8c456':'#39495c',fontSize:'2.1rem',lineHeight:1,cursor:prevTeam?'pointer':'default',padding:'0 0.4rem',transition:'all 0.15s',textShadow:prevTeam?'0 0 8px rgba(245,200,90,0.35)':'none'}} onMouseEnter={e=>{if(prevTeam)(e.currentTarget as HTMLElement).style.textShadow='0 0 16px rgba(245,200,90,0.9)';}} onMouseLeave={e=>{if(prevTeam)(e.currentTarget as HTMLElement).style.textShadow='0 0 8px rgba(245,200,90,0.35)';}}>‹</button>
-        <div onClick={()=>setListOpen(o=>!o)} style={{flex:1,minWidth:0,textAlign:'center',cursor:'pointer',fontSize:'1.1rem',fontWeight:900,letterSpacing:'0.1em',color:listOpen?'#ffe27a':'#f5d76e',fontFamily:'Georgia,serif',textShadow:'0 0 16px rgba(245,200,90,0.5),0 2px 5px rgba(0,0,0,0.7)',transition:'color 0.15s',userSelect:'none',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',textTransform:'uppercase'}} onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.color='#ffe27a';}} onMouseLeave={e=>{if(!listOpen)(e.currentTarget as HTMLElement).style.color='#f5d76e';}}>
-          {curTeam?teamLbl(curTeam):teamApi} <span style={{fontSize:'0.7rem',opacity:0.7}}>{listOpen?'▲':'▼'}</span>
+      {/* ===== BANDEAU TITRE (unifie NBA + Foot, navigation via sidebar) ===== */}
+      <div className='mnfl-title-banner' style={{display:'flex',alignItems:'center',justifyContent:'center',width:'520px',maxWidth:'92%',margin:'0 auto 0.5rem',position:'relative',padding:'0.4rem 1.5rem 0.5rem',borderRadius:'0.4rem',background:'linear-gradient(180deg,rgba(12,16,22,0.85),rgba(8,10,14,0.6))',border:'1px solid rgba(245,215,110,0.22)',borderBottom:'1px solid rgba(245,215,110,0.4)',boxShadow:'0 8px 22px -10px rgba(0,0,0,0.7),0 0 18px -6px rgba(245,200,90,0.18)'}}>
+        <div style={{textAlign:'center',fontSize:'1.15rem',fontWeight:900,letterSpacing:'0.12em',color:'#f5d76e',fontFamily:'Georgia,serif',textShadow:'0 0 16px rgba(245,200,90,0.5),0 2px 5px rgba(0,0,0,0.8)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',textTransform:'uppercase'}}>
+          {isHofView?'\uD83C\uDFC6 HALL OF FAME':displayName}{curTeam?(' ('+curTeam.count+')'):''}
         </div>
-        <button disabled={!nextTeam} onClick={()=>{if(nextTeam){setSlideDir('left');setSlideKey(k=>k+1);onTeamChange(nextTeam.api);}}} style={{flex:'0 0 auto',background:'transparent',border:'none',color:nextTeam?'#e8c456':'#39495c',fontSize:'2.1rem',lineHeight:1,cursor:nextTeam?'pointer':'default',padding:'0 0.4rem',transition:'all 0.15s',textShadow:nextTeam?'0 0 8px rgba(245,200,90,0.35)':'none'}} onMouseEnter={e=>{if(nextTeam)(e.currentTarget as HTMLElement).style.textShadow='0 0 16px rgba(245,200,90,0.9)';}} onMouseLeave={e=>{if(nextTeam)(e.currentTarget as HTMLElement).style.textShadow='0 0 8px rgba(245,200,90,0.35)';}}>›</button>
-        {listOpen&&(
-          <div onMouseLeave={()=>setListOpen(false)} className='thin-sb' style={{position:'absolute',top:'100%',left:'50%',transform:'translateX(-50%)',marginTop:'8px',width:'270px',maxHeight:'62vh',overflowY:'auto',background:'#080a0e',border:'1px solid #6fc3e8',borderRadius:'0.5rem',padding:'0.3rem',zIndex:200,boxShadow:'0 16px 44px rgba(0,0,0,0.8),0 0 16px rgba(111,195,232,0.2)'}}>
-            {teamList.map(t=>(
-              <button key={t.api} onClick={()=>{setSlideDir('left');setSlideKey(k=>k+1);onTeamChange(t.api);setListOpen(false);}} style={{display:'block',width:'100%',textAlign:'center',padding:'0.42rem 0.6rem',borderRadius:'0.25rem',border:'none',cursor:'pointer',fontSize:'0.82rem',fontWeight:t.api===teamApi?700:500,background:t.api===teamApi?'rgba(245,215,110,0.12)':'transparent',color:t.api===teamApi?'#f5d76e':'#cfd8e6',fontFamily:'Georgia,serif',marginBottom:'1px'}} onMouseEnter={e=>{if(t.api!==teamApi)(e.currentTarget as HTMLElement).style.background='rgba(111,195,232,0.12)';}} onMouseLeave={e=>{if(t.api!==teamApi)(e.currentTarget as HTMLElement).style.background='transparent';}}>{teamLbl(t)}</button>
-            ))}
-          </div>
-        )}
       </div>
 
       {/* ===== SCENE VESTIAIRE ===== */}
