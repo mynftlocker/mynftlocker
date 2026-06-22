@@ -53,8 +53,8 @@ const SLOTS_FOOT = [
   {left:23.8, w:10.5},
   {left:37.2, w:10.5},
   {left:50.7, w:10.5},
-  {left:64.2, w:10.5},
-  {left:77.6, w:10.5},
+  {left:63.9, w:10.5},
+  {left:77.3, w:10.5},
 ];
 const PLATE_X_FOOT = [22.9, 36.7, 50.6, 64.4, 78.2];
 // ===== HAUTEURS FOOT INDEPENDANTES (NE PAS lier a la NBA) =====
