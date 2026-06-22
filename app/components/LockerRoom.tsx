@@ -50,13 +50,13 @@ const PLATE_TOP = 73.0;
 const PLATE_X = [20.6, 35.2, 49.9, 64.6, 79.3];
 // ===== POSITIONS FOOT (decor locker-foot.jpg, casiers mesures sur 2688px) =====
 const SLOTS_FOOT = [
-  {left:11.72, w:6.8},
-  {left:18.79, w:6.8},
-  {left:25.86, w:6.8},
-  {left:32.92, w:6.8},
-  {left:39.99, w:6.8},
+  {left:20.8, w:10.5},
+  {left:35.4, w:10.5},
+  {left:50.0, w:10.5},
+  {left:64.7, w:10.5},
+  {left:79.2, w:10.5},
 ];
-const PLATE_X_FOOT = [11.72, 18.79, 25.86, 32.92, 39.99];
+const PLATE_X_FOOT = [20.6, 35.2, 49.9, 64.6, 79.3];
 const TEAM_X = 50.0;
 const TEAM_Y = 15.4;
 
