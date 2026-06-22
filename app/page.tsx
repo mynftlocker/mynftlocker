@@ -252,9 +252,9 @@ const FootTeamMenu=({countries,teamsByCountry,country,team,onPickCountry,onPickT
               onClick={()=>{onPickCountry('all');onPickTeam('all');setHoveredCountry(null);}}>
               Tous les championnats
             </button>
-            <button style={{...btnStyle(team==='__HOF__'),color:'#f5d76e',fontWeight:700}}
+            <button style={btnStyle(team==='__HOF__')}
               onClick={()=>{onPickTeam('__HOF__');setHoveredCountry(null);setOpen(false);}}>
-              🏆 Hall of Fame
+              Hall of Fame
             </button>
             {sortedCountries.map((c:string)=>(
               <button key={c}
