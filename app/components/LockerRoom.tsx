@@ -35,7 +35,7 @@ const CITY_CLUB: Record<string,[string,string]> = {
   'Washington Wizards':['WASHINGTON','WIZARDS'],
 };
 
-const plateFs=(l:number)=>l<=7?'0.8vw':l<=9?'0.7vw':l<=11?'0.58vw':l<=13?'0.5vw':'0.44vw';
+const plateFs=(l:number)=>l<=7?'0.8vw':l<=9?'0.72vw':l<=11?'0.64vw':l<=13?'0.5vw':'0.44vw';
 
 // ===== POSITIONS VALIDEES (NE PAS TOUCHER) =====
 const CARD_TOP = 31.7;
