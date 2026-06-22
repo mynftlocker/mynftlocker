@@ -252,6 +252,10 @@ const FootTeamMenu=({countries,teamsByCountry,country,team,onPickCountry,onPickT
               onClick={()=>{onPickCountry('all');onPickTeam('all');setHoveredCountry(null);}}>
               Tous les championnats
             </button>
+            <button style={{...btnStyle(team==='__HOF__'),color:'#f5d76e',fontWeight:700}}
+              onClick={()=>{onPickTeam('__HOF__');setHoveredCountry(null);setOpen(false);}}>
+              🏆 Hall of Fame
+            </button>
             {sortedCountries.map((c:string)=>(
               <button key={c}
                 style={{...btnStyle(country===c),display:'flex',justifyContent:'space-between',alignItems:'center'}}
@@ -597,7 +601,7 @@ export default function Home() {
             {gSport==='nba'?(
               <FilterMenu title='Équipe' options={(galleryTeamList as string[]).map((n:string)=>({value:n,label:n==='all'?'Toutes les équipes':n}))} current={gTeamCustom} onSelect={(v:string)=>{setGTeamCustom(v);if(mode==='locker'){if(v==='all'){setTeamApi(HOF_KEY);localStorage.removeItem('mnfl_team_chosen');}else{setTeamApi(v);localStorage.setItem('mnfl_team_chosen','1');}setLockerStart(0);setFlippedSlug(null);}}}/>
             ):(
-              <FootTeamMenu countries={footCountries} teamsByCountry={teamsByCountry} country={gCountry} team={gTeamCustom} onPickCountry={(v:string)=>{setGCountry(v);setGTeamCustom('all');}} onPickTeam={(v:string)=>{setGTeamCustom(v);if(mode==='locker'&&v!=='all'){setTeamApi(v);setLockerStart(0);setFlippedSlug(null);localStorage.setItem('mnfl_team_chosen','1');}}}/>
+              <FootTeamMenu countries={footCountries} teamsByCountry={teamsByCountry} country={gCountry} team={gTeamCustom} onPickCountry={(v:string)=>{setGCountry(v);setGTeamCustom('all');}} onPickTeam={(v:string)=>{if(v==='__HOF__'){setGTeamCustom('all');if(mode==='locker'){setTeamApi(HOF_KEY);setLockerStart(0);setFlippedSlug(null);localStorage.removeItem('mnfl_team_chosen');}return;}setGTeamCustom(v);if(mode==='locker'&&v!=='all'){setTeamApi(v);setLockerStart(0);setFlippedSlug(null);localStorage.setItem('mnfl_team_chosen','1');}}}/>
             )}
             <FilterMenu title='Saison' options={seasonOpts} current={fSeason} onSelect={setFSeason}/>
             <FilterMenu title='Rareté' options={rarityOpts} current={fRarity} onSelect={setFRarity}/>
