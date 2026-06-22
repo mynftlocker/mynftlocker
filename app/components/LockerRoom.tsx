@@ -57,6 +57,9 @@ const SLOTS_FOOT = [
   {left:77.6, w:10.5},
 ];
 const PLATE_X_FOOT = [22.9, 36.7, 50.6, 64.4, 78.2];
+// ===== HAUTEURS FOOT INDEPENDANTES (NE PAS lier a la NBA) =====
+const CARD_TOP_FOOT = 31.7;   // hauteur haut des cartes foot. Augmenter = descend.
+const PLATE_TOP_FOOT = 71.0;  // hauteur des noms foot. Augmenter = descend, diminuer = monte.
 const TEAM_X = 50.0;
 const TEAM_Y = 15.4;
 
@@ -109,6 +112,8 @@ export default function LockerRoomScene({cards=[],startIndex,hof=[],flippedSlug,
   const isFoot=sport==='foot';
   const SL = isFoot?SLOTS_FOOT:SLOTS;
   const PLX = isFoot?PLATE_X_FOOT:PLATE_X;
+  const CT = isFoot?CARD_TOP_FOOT:CARD_TOP;
+  const PT = isFoot?PLATE_TOP_FOOT:PLATE_TOP;
   const img=isHofView?(isFoot?'locker-foot.jpg':'locker-hof.png'):(isFoot?'locker-foot.jpg':(info?info.img:FALLBACK_IMG));
   const displayName=isHofView?'HALL OF FAME':(info?info.display:teamApi);
   const nameLines=isHofView?['HALL OF','FAME']:(CITY_CLUB[teamApi]||[displayName,'']);
@@ -158,7 +163,7 @@ export default function LockerRoomScene({cards=[],startIndex,hof=[],flippedSlug,
         <div style={{position:'absolute',inset:0,zIndex:10}}>
         {/* CARTES */}
         {visible.map((card,i)=>(
-          <div key={card.slug} style={{position:'absolute',left:SL[i].left+'%',top:CARD_TOP+'%',width:SL[i].w+'%',transform:'translateX(-50%)',zIndex:10,filter:'drop-shadow(0 16px 11px rgba(0,0,0,0.6))',transition:'left 0.45s cubic-bezier(0.2,0.8,0.3,1),top 0.45s',animation:'mnflBuild 0.85s ease-out backwards',animationDelay:(i*0.06)+'s'}}>
+          <div key={card.slug} style={{position:'absolute',left:SL[i].left+'%',top:CT+'%',width:SL[i].w+'%',transform:'translateX(-50%)',zIndex:10,filter:'drop-shadow(0 16px 11px rgba(0,0,0,0.6))',transition:'left 0.45s cubic-bezier(0.2,0.8,0.3,1),top 0.45s',animation:'mnflBuild 0.85s ease-out backwards',animationDelay:(i*0.06)+'s'}}>
             <LockerCard card={card} isFlipped={flippedSlug===card.slug} isStarred={hof.includes(card.slug)} isPinned={pinnedSlugs.includes(card.slug)} onFlip={handleCardFlip} onStar={onStar} onPin={onPin}/>
             {flippedSlug===card.slug&&(<svg style={{position:'absolute',top:0,left:0,width:'100%',height:'100%',zIndex:22,pointerEvents:'none',overflow:'visible'}}><rect x='0' y='0' width='100%' height='100%' rx='6' pathLength='1000' fill='none' stroke='#40e8ff' strokeWidth='2.5' style={{filter:'drop-shadow(0 0 9px rgba(64,232,255,0.9))',strokeDasharray:'1000',strokeDashoffset:'1000',animation:'mnflCardTrace 1.4s ease-in-out 0.5s both'}}/></svg>)}
           </div>
@@ -166,7 +171,7 @@ export default function LockerRoomScene({cards=[],startIndex,hof=[],flippedSlug,
 
         {/* NOMS PLAQUES */}
         {visible.map((card,i)=>(
-          <div key={'p'+card.slug} style={{position:'absolute',left:PLX[i]+'%',top:PLATE_TOP+'%',width:'7%',transform:'translate(-50%,-50%)',zIndex:15,textAlign:'center',overflow:'hidden',transition:'left 0.45s cubic-bezier(0.2,0.8,0.3,1)'}}>
+          <div key={'p'+card.slug} style={{position:'absolute',left:PLX[i]+'%',top:PT+'%',width:'7%',transform:'translate(-50%,-50%)',zIndex:15,textAlign:'center',overflow:'hidden',transition:'left 0.45s cubic-bezier(0.2,0.8,0.3,1)'}}>
             <span style={{fontSize:plateFs((card.anyPlayer?.lastName||parseCard(card.name).lastName).length),fontWeight:900,color:'#1a0d00',letterSpacing:'0.03em',textTransform:'uppercase',fontFamily:'Georgia,serif',textShadow:'0 1px 1px rgba(255,230,150,0.55),0 -1px 0 rgba(0,0,0,0.25)',whiteSpace:'nowrap'}}>
               {(card.anyPlayer?.lastName||parseCard(card.name).lastName).toUpperCase()}
             </span>
