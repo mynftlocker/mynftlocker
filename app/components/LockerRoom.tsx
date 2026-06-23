@@ -144,7 +144,7 @@ export default function LockerRoomScene({cards=[],startIndex,hof=[],flippedSlug,
 
         {/* LOGO SOL (medaillon myNFTlocker, foot uniquement, perspective) */}
         {isFoot&&(
-          <img src='/logo-sol.png' alt='myNFTlocker' style={{position:'absolute',left:'50%',top:'85%',width:'17%',transform:'translate(-50%,-50%) perspective(600px) rotateX(58deg)',transformOrigin:'center',zIndex:6,pointerEvents:'none',opacity:0.92,filter:'drop-shadow(0 12px 18px rgba(0,0,0,0.55))'}} onError={(e)=>{(e.target as HTMLImageElement).style.display='none';}}/>
+          <img src='/logo-sol.png' alt='myNFTlocker' style={{position:'absolute',left:'50%',top:'88%',width:'17%',transform:'translate(-50%,-50%) perspective(600px) rotateX(62deg)',transformOrigin:'center',zIndex:6,pointerEvents:'none',opacity:0.92,filter:'drop-shadow(0 12px 18px rgba(0,0,0,0.55))'}} onError={(e)=>{(e.target as HTMLImageElement).style.display='none';}}/>
         )}
 
         {/* PARTICULES (poussiere dans les faisceaux) */}
