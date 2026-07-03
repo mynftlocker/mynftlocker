@@ -48,7 +48,7 @@ const SLOTS = [
 ];
 const PLATE_TOP = 73.0;
 const PLATE_X = [20.6, 35.2, 49.9, 64.6, 79.3];
-// ===== POSITIONS FOOT (decor locker-foot.jpg, casiers mesures sur 2688px) =====
+// ===== POSITIONS FOOT (decor locker-foot.png, casiers mesures sur 2688px) =====
 const SLOTS_FOOT = [
   {left:23.8, w:10.5},
   {left:37.2, w:10.5},
@@ -114,7 +114,7 @@ export default function LockerRoomScene({cards=[],startIndex,hof=[],flippedSlug,
   const PLX = isFoot?PLATE_X_FOOT:PLATE_X;
   const CT = isFoot?CARD_TOP_FOOT:CARD_TOP;
   const PT = isFoot?PLATE_TOP_FOOT:PLATE_TOP;
-  const img=isHofView?(isFoot?'locker-foot.jpg':'locker-hof.png'):(isFoot?'locker-foot.jpg':(info?info.img:FALLBACK_IMG));
+  const img=isHofView?(isFoot?'locker-foot.jpg':'locker-hof.png'):(isFoot?'locker-foot.png':(info?info.img:FALLBACK_IMG));
   const displayName=isHofView?'HALL OF FAME':(info?info.display:teamApi);
   const nameLines=isHofView?['HALL OF','FAME']:(CITY_CLUB[teamApi]||[displayName,'']);
   // index equipe courante pour fleches equipe
