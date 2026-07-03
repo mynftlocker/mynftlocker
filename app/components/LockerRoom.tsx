@@ -137,7 +137,7 @@ export default function LockerRoomScene({cards=[],startIndex,hof=[],flippedSlug,
       </div>
 
       {/* ===== SCENE VESTIAIRE ===== */}
-      <div style={{position:'relative',width:'100%',maxWidth:'calc((100vh - 110px) * 1.792)',aspectRatio:'1376 / 768',margin:'0 auto',overflow:'hidden',background:'#0a0503',borderRadius:'18px',border:'1px solid rgba(255,255,255,0.05)',boxShadow:'0 30px 90px rgba(0,0,0,0.85), 0 0 0 1px rgba(0,0,0,0.6), inset 0 0 130px rgba(0,0,0,0.5)'}}>
+      <div style={{position:'relative',width:'100%',maxWidth:'min(calc((100vh - 110px) * 1.792), 100%)',aspectRatio:'1376 / 768',margin:'0 auto',overflow:'hidden',background:'#0a0503',borderRadius:'18px',border:'1px solid rgba(255,255,255,0.05)',boxShadow:'0 30px 90px rgba(0,0,0,0.85), 0 0 0 1px rgba(0,0,0,0.6), inset 0 0 130px rgba(0,0,0,0.5)'}}>
         <img src={'/'+img} alt='vestiaire' onError={(e)=>{(e.target as HTMLImageElement).src='/'+FALLBACK_IMG;}}
           style={{position:'absolute',top:0,left:0,width:'100%',height:'100%',objectFit:'fill'}}
         />
