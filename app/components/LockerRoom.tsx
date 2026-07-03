@@ -142,11 +142,6 @@ export default function LockerRoomScene({cards=[],startIndex,hof=[],flippedSlug,
           style={{position:'absolute',top:0,left:0,width:'100%',height:'100%',objectFit:'fill'}}
         />
 
-        {/* LOGO SOL (medaillon myNFTlocker, foot uniquement, perspective) */}
-        {isFoot&&(
-          <img src='/logo-sol.png' alt='myNFTlocker' style={{position:'absolute',left:'50%',top:'88%',width:'17%',transform:'translate(-50%,-50%) perspective(600px) rotateX(62deg)',transformOrigin:'center',zIndex:6,pointerEvents:'none',opacity:0.92,filter:'drop-shadow(0 12px 18px rgba(0,0,0,0.55))'}} onError={(e)=>{(e.target as HTMLImageElement).style.display='none';}}/>
-        )}
-
         {/* PARTICULES (poussiere dans les faisceaux) */}
         <div style={{position:'absolute',inset:0,zIndex:5,pointerEvents:'none',overflow:'hidden'}}>
           {[...Array(14)].map((_,i)=>{const lx=(i*67)%96+2;const sz=1.5+(i%3);const dur=7+(i%5)*2;const dl=(i%7);const tp=8+((i*53)%58);return <div key={i} style={{position:'absolute',left:lx+'%',top:tp+'%',width:sz+'px',height:sz+'px',borderRadius:'50%',background:'rgba(255,238,200,0.7)',filter:'blur(0.5px)',boxShadow:'0 0 4px rgba(255,230,180,0.6)',animation:'mnflFloat '+dur+'s ease-in-out '+dl+'s infinite'}}/>;})}
