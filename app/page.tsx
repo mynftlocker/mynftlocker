@@ -419,7 +419,7 @@ export default function Home() {
       const query=`query{user(slug:"${slug}"){cards(first:25${after}){nodes{__typename slug name rarityTyped pictureUrl anyPlayer{lastName shirtNumber}anyTeam{name ...on Club{country{slug}}}...on NBACard{seasonYear specialEdition power xp averageScore(type:LAST_TEN_PLAYED_SO5_AVERAGE_SCORE)}}pageInfo{hasNextPage endCursor}}}}`;
       // 1. Essai direct navigateur (IP residentielle)
       try{
-        const r=await fetch(SORARE_URL,{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({query}),signal:AbortSignal.timeout(9000)});
+        const r=await fetch(SORARE_URL,{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({query}),signal:AbortSignal.timeout(20000)});
         if(r.ok){
           const j=await r.json();
           if(!j.errors&&j?.data?.user?.cards){const c=j.data.user.cards;return{cards:c.nodes,hasNextPage:c.pageInfo.hasNextPage,cursor:c.pageInfo.endCursor};}
@@ -438,8 +438,8 @@ export default function Home() {
       while(more){
         pageNum++;
         let data:any=null;
-        for(let attempt=0;attempt<3;attempt++){
-          if(attempt>0)await sleep(1500*attempt);
+        for(let attempt=0;attempt<6;attempt++){
+          if(attempt>0)await sleep(1200*attempt);
           data=await fetchPage(cur);
           if(data)break;
           console.error('Page'+pageNum+' attempt'+(attempt+1)+' failed');
