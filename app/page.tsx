@@ -159,7 +159,7 @@ const FilterMenu=({title,options,current,onSelect}:any)=>{
   const [pos,setPos]=useState({left:0,top:0,maxH:320});
   const ref=useRef<HTMLDivElement>(null);
   const cur=options.find((o:any)=>o.value===current);
-  const enter=()=>{const el=ref.current;if(el){const r=el.getBoundingClientRect();const need=options.length*36+14;const avail=window.innerHeight-16;const h=Math.min(need,avail);const top=Math.max(8,Math.min(r.top,window.innerHeight-h-8));setPos({left:r.right,top,maxH:h});}setOpen(true);};
+  const enter=()=>{const el=ref.current;if(el){const r=el.getBoundingClientRect();const need=options.length*36+14;const avail=window.innerHeight-16;const h=Math.min(need,avail);const top=Math.max(8,Math.min(r.top,window.innerHeight-h-8));const MENU_W=200;let left=r.right;if(left+MENU_W>window.innerWidth-8){left=Math.max(8,r.left-MENU_W);if(left<8)left=window.innerWidth-MENU_W-8;}setPos({left,top,maxH:h});}setOpen(true);};
   return(
     <div ref={ref} style={{position:'relative',marginBottom:'0.15rem'}} onMouseEnter={enter} onMouseLeave={()=>setOpen(false)}>
       {/* Declencheur pleine largeur : reste sombre, fine ligne au survol */}
