@@ -738,7 +738,28 @@ export default function Home() {
             <span style={{color:'#f5d76e',fontWeight:800,fontSize:'1rem',letterSpacing:'0.05em'}}>FILTRES</span>
             <button onClick={()=>setFiltersOpen(false)} style={{background:'transparent',border:'1px solid rgba(64,232,255,0.4)',color:'#40e8ff',borderRadius:'0.4rem',padding:'0.3rem 0.7rem',cursor:'pointer',fontSize:'0.8rem'}}>Fermer</button>
           </div>
-          <p style={{color:'#7a8898',fontSize:'0.85rem'}}>Les filtres arrivent ici (etape suivante).</p>
+          <div style={{flex:1,overflowY:'auto'}}>
+          <div style={{textAlign:'left',flex:1,minHeight:0,display:'flex',flexDirection:'column' as const,gap:0,borderTop:'1px solid rgba(255,255,255,0.06)',paddingTop:'0.3rem'}}>
+            <FilterMenu title='Sport' options={[{value:'nba',label:'NBA'},{value:'foot',label:'Football'}]} current={gSport} onSelect={(v:string)=>{setGSport(v as any);setGLeague('all');setGTeamCustom('all');setFSpecial('all');setTeamApi(HOF_KEY);setLockerStart(0);setFlippedSlug(null);localStorage.removeItem('mnfl_team_chosen');}}/>
+            <div style={{padding:'0.2rem 0.5rem'}}>
+              <p style={{fontSize:'0.64rem',fontWeight:800,letterSpacing:'0.14em',textTransform:'uppercase',color:'#eaf2ff',margin:'0 0 0.2rem'}}>Joueur</p>
+              <input style={{width:'100%',boxSizing:'border-box',background:'rgba(255,255,255,0.05)',color:'#e8eefc',padding:'0.3rem 0.5rem',borderRadius:'0.15rem',border:'1px solid rgba(255,255,255,0.12)',outline:'none',fontSize:'0.76rem'}} placeholder='Rechercher...' value={fPlayer} onChange={e=>setFPlayer(e.target.value)}/>
+            </div>
+            {gSport==='nba'?(
+              <FilterMenu title='Équipe' options={(galleryTeamList as string[]).map((n:string)=>({value:n,label:n==='all'?'Hall of Fame':n}))} current={gTeamCustom} onSelect={(v:string)=>{setGTeamCustom(v);if(mode==='locker'){if(v==='all'){setTeamApi(HOF_KEY);localStorage.removeItem('mnfl_team_chosen');}else{setTeamApi(v);localStorage.setItem('mnfl_team_chosen','1');}setLockerStart(0);setFlippedSlug(null);}}}/>
+            ):(
+              <FootTeamMenu countries={footCountries} teamsByCountry={teamsByCountry} country={gCountry} team={gTeamCustom} onPickCountry={(v:string)=>{setGCountry(v);setGTeamCustom('all');}} onPickTeam={(v:string)=>{if(v==='__HOF__'){setGTeamCustom('all');if(mode==='locker'){setTeamApi(HOF_KEY);setLockerStart(0);setFlippedSlug(null);localStorage.removeItem('mnfl_team_chosen');}return;}setGTeamCustom(v);if(mode==='locker'&&v!=='all'){setTeamApi(v);setLockerStart(0);setFlippedSlug(null);localStorage.setItem('mnfl_team_chosen','1');}}}/>
+            )}
+            <FilterMenu title='Saison' options={seasonOpts} current={fSeason} onSelect={setFSeason}/>
+            <FilterMenu title='Rareté' options={rarityOpts} current={fRarity} onSelect={setFRarity}/>
+            <FilterMenu title='Édition de la carte' options={specialOpts} current={fSpecial} onSelect={setFSpecial}/>
+            <FilterMenu title='Tri' options={mode==='locker'?[{value:'majeur',label:'L10 Max'},{value:'manual',label:'Manuel'},{value:'collection',label:'Alphabétique'}]:[{value:'default',label:'Défaut'},{value:'rarity',label:'Rareté'},{value:'score',label:'Score L10'},{value:'name',label:'Nom'}]} current={mode==='locker'?lockerSort:gSort} onSelect={(v:string)=>{if(mode==='locker'){setLockerSort(v as any);}else{setGSort(v as any);}}}/>
+            {mode==='locker'&&(
+              <button onClick={()=>handleSetDefault(teamApi)} style={{width:'100%',boxSizing:'border-box' as const,padding:'0.3rem',background:'rgba(212,175,55,0.12)',border:'1px solid rgba(212,175,55,0.35)',borderRadius:'0.18rem',color:'#e8c84a',fontSize:'0.64rem',cursor:'pointer',letterSpacing:'0.08em',marginTop:'0.3rem'}}>⭐ Équipe par défaut</button>
+            )}
+          </div>
+          </div>
+          <button onClick={()=>setFiltersOpen(false)} style={{marginTop:'0.8rem',width:'100%',padding:'0.8rem',background:'linear-gradient(160deg,#00b4d8,#0077b6)',border:'none',borderRadius:'0.5rem',color:'#fff',fontSize:'0.95rem',fontWeight:800,letterSpacing:'0.05em',cursor:'pointer',boxShadow:'0 0 18px rgba(64,232,255,0.4)'}}>Voir les résultats</button>
         </div>
       )}
 
