@@ -39,3 +39,10 @@ html, body { max-width: 100%; overflow-x: hidden; }
 .mnfl-filters-sheet > div > div > div { padding-top: 0.5rem !important; padding-bottom: 0.5rem !important; margin-bottom: 0.2rem !important; }
 /* Champ de recherche joueur plus grand */
 .mnfl-filters-sheet input { font-size: 0.9rem !important; padding: 0.55rem 0.6rem !important; }
+
+
+/* ===== Bascule vestiaire desktop / mobile carrousel ===== */
+@media(max-width:768px){
+  .mnfl-desktop-scene{display:none!important}
+  .mnfl-mobile-scene{display:block!important}
+}

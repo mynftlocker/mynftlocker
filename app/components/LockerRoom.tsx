@@ -136,8 +136,8 @@ export default function LockerRoomScene({cards=[],startIndex,hof=[],flippedSlug,
         </div>
       </div>
 
-      {/* ===== SCENE VESTIAIRE ===== */}
-      <div style={{position:'relative',width:'100%',maxWidth:'min(calc((100vh - 110px) * 1.792), 100vw - 16px)',aspectRatio:'1376 / 768',margin:'0 auto',overflow:'hidden',background:'#0a0503',borderRadius:'18px',border:'1px solid rgba(255,255,255,0.05)',boxShadow:'0 30px 90px rgba(0,0,0,0.85), 0 0 0 1px rgba(0,0,0,0.6), inset 0 0 130px rgba(0,0,0,0.5)'}}>
+      {/* ===== SCENE VESTIAIRE DESKTOP (masquee <768px) ===== */}
+      <div className='mnfl-desktop-scene' style={{position:'relative',width:'100%',maxWidth:'min(calc((100vh - 110px) * 1.792), 100vw - 16px)',aspectRatio:'1376 / 768',margin:'0 auto',overflow:'hidden',background:'#0a0503',borderRadius:'18px',border:'1px solid rgba(255,255,255,0.05)',boxShadow:'0 30px 90px rgba(0,0,0,0.85), 0 0 0 1px rgba(0,0,0,0.6), inset 0 0 130px rgba(0,0,0,0.5)'}}>
         <img src={'/'+img} alt='vestiaire' onError={(e)=>{(e.target as HTMLImageElement).src='/'+FALLBACK_IMG;}}
           style={{position:'absolute',top:0,left:0,width:'100%',height:'100%',objectFit:'fill'}}
         />
@@ -195,6 +195,33 @@ export default function LockerRoomScene({cards=[],startIndex,hof=[],flippedSlug,
         <div style={{position:'absolute',bottom:'1.5%',left:'50%',transform:'translateX(-50%)',color:'rgba(255,220,100,0.85)',fontSize:'0.75rem',letterSpacing:'0.15em',zIndex:10,textShadow:'0 1px 4px rgba(0,0,0,0.9)'}}>
           {from}-{to} / {total}
         </div>
+      </div>
+
+      {/* ===== SCENE VESTIAIRE MOBILE (carrousel 1 carte, visible <768px) ===== */}
+      {/* TODO: remplacer locker-foot.png par un vrai decor foot vertical quand pret */}
+      <div className='mnfl-mobile-scene' style={{display:'none',position:'relative',width:'100%',margin:'0 auto'}}>
+        <div style={{display:'flex',overflowX:'auto',scrollSnapType:'x mandatory',WebkitOverflowScrolling:'touch',borderRadius:'16px',border:'1px solid rgba(255,255,255,0.06)'}}>
+          {visible.map((card,i)=>{
+            const mobileImg = isFoot?'locker-foot.png':'locker-NBA-mobile.png';
+            const lastName = (card.anyPlayer?.lastName||parseCard(card.name).lastName).toUpperCase();
+            return(
+              <div key={'m'+card.slug} style={{flex:'0 0 100%',scrollSnapAlign:'center',position:'relative',aspectRatio:'9 / 16',background:'#0a0503'}}>
+                <img src={'/'+mobileImg} alt='vestiaire' onError={(e)=>{(e.target as HTMLImageElement).src='/'+FALLBACK_IMG;}}
+                  style={{position:'absolute',top:0,left:0,width:'100%',height:'100%',objectFit:'fill'}}
+                />
+                <div onClick={()=>handleCardFlip(card.slug)} style={{position:'absolute',left:'50%',top:'9%',width:'58%',transform:'translateX(-50%)',zIndex:10}}>
+                  <LockerCard card={card} isFlipped={flippedSlug===card.slug} isStarred={hof.includes(card.slug)} isPinned={pinnedSlugs.includes(card.slug)} onFlip={handleCardFlip} onStar={onStar} onPin={onPin}/>
+                </div>
+                <div style={{position:'absolute',left:'50%',top:'75%',width:'40%',transform:'translate(-50%,-50%)',zIndex:15,textAlign:'center'}}>
+                  <span style={{fontSize:'0.95rem',fontWeight:900,color:'#1a0d00',letterSpacing:'0.03em',fontFamily:'Georgia,serif',textShadow:'0 1px 1px rgba(255,230,150,0.55)',whiteSpace:'nowrap'}}>{lastName}</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        {hasPrev&&<button onClick={onPrev} style={{position:'absolute',left:'2%',top:'50%',transform:'translateY(-50%)',background:'rgba(0,0,0,0.5)',border:'1px solid rgba(245,200,90,0.4)',borderRadius:'50%',width:'34px',height:'34px',color:'#f5d76e',fontSize:'1.3rem',zIndex:20}}>‹</button>}
+        {hasNext&&<button onClick={onNext} style={{position:'absolute',right:'2%',top:'50%',transform:'translateY(-50%)',background:'rgba(0,0,0,0.5)',border:'1px solid rgba(245,200,90,0.4)',borderRadius:'50%',width:'34px',height:'34px',color:'#f5d76e',fontSize:'1.3rem',zIndex:20}}>›</button>}
+        <div style={{position:'absolute',bottom:'1%',left:'50%',transform:'translateX(-50%)',color:'rgba(255,220,100,0.85)',fontSize:'0.7rem',letterSpacing:'0.15em',zIndex:20}}>{from}-{to} / {total}</div>
       </div>
     </div>
   );
