@@ -45,4 +45,5 @@ html, body { max-width: 100%; overflow-x: hidden; }
 @media(max-width:768px){
   .mnfl-desktop-scene{display:none!important}
   .mnfl-mobile-scene{display:block!important}
+  .mnfl-title-banner{position:fixed!important;top:8px!important;left:50%!important;right:auto!important;transform:translateX(-50%)!important;z-index:35!important;margin:0!important}
 }

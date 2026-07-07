@@ -1,5 +1,5 @@
 'use client';
-import { memo, useState } from 'react';
+import { memo, useState, useRef, useEffect } from 'react';
 import { TEAM_BY_API, FALLBACK_IMG } from '../lib-teams';
 import { StatPanel, CardBack, RARITY_GLOW, RARITY_COLOR, RARITY_FILL, parseCard } from './StatPanel';
 const CITY_CLUB: Record<string,[string,string]> = {
@@ -124,6 +124,8 @@ export default function LockerRoomScene({cards=[],startIndex,hof=[],flippedSlug,
   const [listOpen,setListOpen]=useState(false);
   const [slideDir,setSlideDir]=useState<'left'|'right'|null>(null);
   const [slideKey,setSlideKey]=useState(0);
+  const carouselRef = useRef<HTMLDivElement>(null);
+  useEffect(() => { if (carouselRef.current) carouselRef.current.scrollLeft = 0; }, [startIndex, teamApi]);
 
   const teamLbl=(t:any)=>{const d=TEAM_BY_API[t.api];const n=d?d.display:(t.api==='__HOF__'?'\uD83C\uDFC6 HALL OF FAME':t.api);return n+' ('+t.count+')';};
   const curTeam=teamList.find(t=>t.api===teamApi);
@@ -202,7 +204,7 @@ export default function LockerRoomScene({cards=[],startIndex,hof=[],flippedSlug,
       {/* TODO: remplacer locker-foot.png par un vrai decor foot vertical quand pret */}
       <div className='mnfl-mobile-scene' style={{display:'none',position:'fixed',top:'84px',bottom:'70px',left:0,right:0,zIndex:30}}>
         <div style={{position:'relative',height:'100%',width:'100vw',maxWidth:'100vw',overflow:'hidden',background:'#0a0503'}}>
-        <div style={{display:'flex',width:'100vw',maxWidth:'100vw',height:'100%',overflowX:'auto',overflowY:'hidden',scrollSnapType:'x mandatory',WebkitOverflowScrolling:'touch',touchAction:'pan-x'}}>
+        <div ref={carouselRef} style={{display:'flex',width:'100vw',maxWidth:'100vw',height:'100%',overflowX:'auto',overflowY:'hidden',overflowAnchor:'none',scrollSnapType:'x mandatory',WebkitOverflowScrolling:'touch',touchAction:'pan-x'}}>
           {visible.map((card,i)=>{
             const mobileImg = isFoot?'locker-foot.png':'locker-NBA-mobile.png';
             const lastName = (card.anyPlayer?.lastName||parseCard(card.name).lastName).toUpperCase();
@@ -211,10 +213,10 @@ export default function LockerRoomScene({cards=[],startIndex,hof=[],flippedSlug,
                 <img src={'/'+mobileImg} alt='vestiaire' onError={(e)=>{(e.target as HTMLImageElement).src='/'+FALLBACK_IMG;}}
                   style={{position:'absolute',top:0,left:0,width:'100%',height:'100%',objectFit:'fill'}}
                 />
-                <div onClick={()=>handleCardFlip(card.slug)} style={{position:'absolute',left:'50%',top:'13%',width:'58%',transform:'translateX(-50%)',zIndex:10}}>
+                <div onClick={()=>handleCardFlip(card.slug)} style={{position:'absolute',left:'50%',top:'16%',width:'46%',transform:'translateX(-50%)',zIndex:10}}>
                   <LockerCard card={card} isFlipped={flippedSlug===card.slug} isStarred={hof.includes(card.slug)} isPinned={pinnedSlugs.includes(card.slug)} onFlip={handleCardFlip} onStar={onStar} onPin={onPin}/>
                 </div>
-                <div style={{position:'absolute',left:'50%',top:'78%',width:'40%',transform:'translate(-50%,-50%)',zIndex:15,textAlign:'center'}}>
+                <div style={{position:'absolute',left:'50%',top:'81%',width:'40%',transform:'translate(-50%,-50%)',zIndex:15,textAlign:'center'}}>
                   <span style={{fontSize:'0.95rem',fontWeight:900,color:'#1a0d00',letterSpacing:'0.03em',fontFamily:'Georgia,serif',textShadow:'0 1px 1px rgba(255,230,150,0.55)',whiteSpace:'nowrap'}}>{lastName}</span>
                 </div>
               </div>
