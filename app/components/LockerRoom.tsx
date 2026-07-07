@@ -1,5 +1,5 @@
 'use client';
-import { memo, useState } from 'react';
+import { memo, useState, useEffect } from 'react';
 import { TEAM_BY_API, FALLBACK_IMG } from '../lib-teams';
 import { StatPanel, CardBack, RARITY_GLOW, RARITY_COLOR, RARITY_FILL, parseCard } from './StatPanel';
 const CITY_CLUB: Record<string,[string,string]> = {
@@ -124,6 +124,12 @@ export default function LockerRoomScene({cards=[],startIndex,hof=[],flippedSlug,
   const [listOpen,setListOpen]=useState(false);
   const [slideDir,setSlideDir]=useState<'left'|'right'|null>(null);
   const [slideKey,setSlideKey]=useState(0);
+  // DEBUG TEMPORAIRE - a retirer une fois le bug identifie
+  const [dbg,setDbg]=useState('');
+  useEffect(()=>{
+    const m=()=>setDbg('ecran:'+window.innerWidth+'x'+window.innerHeight+' page:'+document.body.scrollWidth+'x'+document.body.scrollHeight);
+    m(); window.addEventListener('resize',m); return ()=>window.removeEventListener('resize',m);
+  },[]);
   const teamLbl=(t:any)=>{const d=TEAM_BY_API[t.api];const n=d?d.display:(t.api==='__HOF__'?'\uD83C\uDFC6 HALL OF FAME':t.api);return n+' ('+t.count+')';};
   const curTeam=teamList.find(t=>t.api===teamApi);
 
@@ -200,6 +206,7 @@ export default function LockerRoomScene({cards=[],startIndex,hof=[],flippedSlug,
       {/* ===== SCENE VESTIAIRE MOBILE (carrousel 1 carte, visible <768px) ===== */}
       {/* TODO: remplacer locker-foot.png par un vrai decor foot vertical quand pret */}
       <div className='mnfl-mobile-scene' style={{display:'none',position:'fixed',top:'84px',bottom:'70px',left:0,right:0,zIndex:30}}>
+        <div style={{position:'fixed',top:0,left:0,background:'#ff00ff',color:'#fff',fontSize:'11px',padding:'4px 6px',zIndex:9999}}>{dbg}</div>
         <div style={{position:'relative',height:'100%',width:'100vw',maxWidth:'100vw',overflow:'hidden',background:'#0a0503'}}>
         <div style={{display:'flex',width:'100vw',maxWidth:'100vw',height:'100%',overflowX:'auto',overflowY:'hidden',scrollSnapType:'x mandatory',WebkitOverflowScrolling:'touch',touchAction:'pan-x'}}>
           {visible.map((card,i)=>{
