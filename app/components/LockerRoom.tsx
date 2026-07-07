@@ -127,7 +127,8 @@ export default function LockerRoomScene({cards=[],startIndex,hof=[],flippedSlug,
   // DEBUG TEMPORAIRE - a retirer une fois le bug identifie
   const [dbg,setDbg]=useState('');
   useEffect(()=>{
-    const m=()=>setDbg('ecran:'+window.innerWidth+'x'+window.innerHeight+' page:'+document.body.scrollWidth+'x'+document.body.scrollHeight);
+    const w=(sel:string)=>{const el=document.querySelector(sel) as HTMLElement|null;return el?Math.round(el.getBoundingClientRect().width)+'px':'absent';};
+    const m=()=>setDbg('ecran:'+window.innerWidth+' page:'+document.body.scrollWidth+' | banner:'+w('.mnfl-title-banner')+' scene:'+w('.mnfl-mobile-scene')+' bottombar:'+w('.mnfl-bottombar')+' content:'+w('.mnfl-content'));
     m(); window.addEventListener('resize',m); return ()=>window.removeEventListener('resize',m);
   },[]);
   const teamLbl=(t:any)=>{const d=TEAM_BY_API[t.api];const n=d?d.display:(t.api==='__HOF__'?'\uD83C\uDFC6 HALL OF FAME':t.api);return n+' ('+t.count+')';};
