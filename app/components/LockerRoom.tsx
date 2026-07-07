@@ -199,20 +199,20 @@ export default function LockerRoomScene({cards=[],startIndex,hof=[],flippedSlug,
 
       {/* ===== SCENE VESTIAIRE MOBILE (carrousel 1 carte, visible <768px) ===== */}
       {/* TODO: remplacer locker-foot.png par un vrai decor foot vertical quand pret */}
-      <div className='mnfl-mobile-scene' style={{display:'none',position:'relative',width:'100%',margin:'0 auto'}}>
-        <div style={{display:'flex',overflowX:'auto',scrollSnapType:'x mandatory',WebkitOverflowScrolling:'touch',borderRadius:'16px',border:'1px solid rgba(255,255,255,0.06)'}}>
+      <div className='mnfl-mobile-scene' style={{display:'none',position:'relative',width:'min(100%, calc((100dvh - 150px) * 9 / 16))',height:'calc(100dvh - 150px)',margin:'0 auto',overflow:'hidden',borderRadius:'16px',border:'1px solid rgba(255,255,255,0.06)'}}>
+        <div style={{display:'flex',width:'100%',height:'100%',overflowX:'auto',overflowY:'hidden',scrollSnapType:'x mandatory',WebkitOverflowScrolling:'touch',touchAction:'pan-x'}}>
           {visible.map((card,i)=>{
             const mobileImg = isFoot?'locker-foot.png':'locker-NBA-mobile.png';
             const lastName = (card.anyPlayer?.lastName||parseCard(card.name).lastName).toUpperCase();
             return(
-              <div key={'m'+card.slug} style={{flex:'0 0 100%',scrollSnapAlign:'center',position:'relative',aspectRatio:'9 / 16',background:'#0a0503'}}>
+              <div key={'m'+card.slug} style={{flex:'0 0 100%',scrollSnapAlign:'center',position:'relative',height:'100%',background:'#0a0503'}}>
                 <img src={'/'+mobileImg} alt='vestiaire' onError={(e)=>{(e.target as HTMLImageElement).src='/'+FALLBACK_IMG;}}
                   style={{position:'absolute',top:0,left:0,width:'100%',height:'100%',objectFit:'fill'}}
                 />
-                <div onClick={()=>handleCardFlip(card.slug)} style={{position:'absolute',left:'50%',top:'9%',width:'58%',transform:'translateX(-50%)',zIndex:10}}>
+                <div onClick={()=>handleCardFlip(card.slug)} style={{position:'absolute',left:'50%',top:'13%',width:'58%',transform:'translateX(-50%)',zIndex:10}}>
                   <LockerCard card={card} isFlipped={flippedSlug===card.slug} isStarred={hof.includes(card.slug)} isPinned={pinnedSlugs.includes(card.slug)} onFlip={handleCardFlip} onStar={onStar} onPin={onPin}/>
                 </div>
-                <div style={{position:'absolute',left:'50%',top:'75%',width:'40%',transform:'translate(-50%,-50%)',zIndex:15,textAlign:'center'}}>
+                <div style={{position:'absolute',left:'50%',top:'78%',width:'40%',transform:'translate(-50%,-50%)',zIndex:15,textAlign:'center'}}>
                   <span style={{fontSize:'0.95rem',fontWeight:900,color:'#1a0d00',letterSpacing:'0.03em',fontFamily:'Georgia,serif',textShadow:'0 1px 1px rgba(255,230,150,0.55)',whiteSpace:'nowrap'}}>{lastName}</span>
                 </div>
               </div>
