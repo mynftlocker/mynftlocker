@@ -199,7 +199,8 @@ export default function LockerRoomScene({cards=[],startIndex,hof=[],flippedSlug,
 
       {/* ===== SCENE VESTIAIRE MOBILE (carrousel 1 carte, visible <768px) ===== */}
       {/* TODO: remplacer locker-foot.png par un vrai decor foot vertical quand pret */}
-      <div className='mnfl-mobile-scene' style={{display:'none',position:'relative',width:'min(100%, calc((100dvh - 150px) * 9 / 16))',height:'calc(100dvh - 150px)',margin:'0 auto',overflow:'hidden',borderRadius:'16px',border:'1px solid rgba(255,255,255,0.06)'}}>
+      <div style={{display:'flex',justifyContent:'center',width:'100%'}}>
+      <div className='mnfl-mobile-scene' style={{display:'none',position:'relative',width:'min(100vw, calc((100svh - 136px) * 9 / 16))',height:'calc(100svh - 136px)',overflow:'hidden',borderRadius:'16px',border:'1px solid rgba(255,255,255,0.06)'}}>
         <div style={{display:'flex',width:'100%',height:'100%',overflowX:'auto',overflowY:'hidden',scrollSnapType:'x mandatory',WebkitOverflowScrolling:'touch',touchAction:'pan-x'}}>
           {visible.map((card,i)=>{
             const mobileImg = isFoot?'locker-foot.png':'locker-NBA-mobile.png';
@@ -222,6 +223,7 @@ export default function LockerRoomScene({cards=[],startIndex,hof=[],flippedSlug,
         {hasPrev&&<button onClick={onPrev} style={{position:'absolute',left:'2%',top:'50%',transform:'translateY(-50%)',background:'rgba(0,0,0,0.5)',border:'1px solid rgba(245,200,90,0.4)',borderRadius:'50%',width:'34px',height:'34px',color:'#f5d76e',fontSize:'1.3rem',zIndex:20}}>‹</button>}
         {hasNext&&<button onClick={onNext} style={{position:'absolute',right:'2%',top:'50%',transform:'translateY(-50%)',background:'rgba(0,0,0,0.5)',border:'1px solid rgba(245,200,90,0.4)',borderRadius:'50%',width:'34px',height:'34px',color:'#f5d76e',fontSize:'1.3rem',zIndex:20}}>›</button>}
         <div style={{position:'absolute',bottom:'1%',left:'50%',transform:'translateX(-50%)',color:'rgba(255,220,100,0.85)',fontSize:'0.7rem',letterSpacing:'0.15em',zIndex:20}}>{from}-{to} / {total}</div>
+      </div>
       </div>
     </div>
   );
