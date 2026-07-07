@@ -130,7 +130,7 @@ export default function LockerRoomScene({cards=[],startIndex,hof=[],flippedSlug,
   return(
     <div>
       {/* ===== BANDEAU TITRE (unifie NBA + Foot, navigation via sidebar) ===== */}
-      <div className='mnfl-title-banner' style={{display:'flex',alignItems:'center',justifyContent:'center',width:'520px',maxWidth:'92%',margin:'0 auto 0.5rem',position:'relative',padding:'0.4rem 1.5rem 0.5rem',borderRadius:'0.4rem',background:'linear-gradient(180deg,rgba(12,16,22,0.85),rgba(8,10,14,0.6))',border:'1px solid rgba(245,215,110,0.22)',borderBottom:'1px solid rgba(245,215,110,0.4)',boxShadow:'0 8px 22px -10px rgba(0,0,0,0.7),0 0 18px -6px rgba(245,200,90,0.18)'}}>
+      <div className='mnfl-title-banner' style={{display:'flex',alignItems:'center',justifyContent:'center',width:'520px',maxWidth:'92%',overflow:'hidden',margin:'0 auto 0.5rem',position:'relative',padding:'0.4rem 1.5rem 0.5rem',borderRadius:'0.4rem',background:'linear-gradient(180deg,rgba(12,16,22,0.85),rgba(8,10,14,0.6))',border:'1px solid rgba(245,215,110,0.22)',borderBottom:'1px solid rgba(245,215,110,0.4)',boxShadow:'0 8px 22px -10px rgba(0,0,0,0.7),0 0 18px -6px rgba(245,200,90,0.18)'}}>
         <div style={{textAlign:'center',fontSize:'1.15rem',fontWeight:900,letterSpacing:'0.12em',color:'#f5d76e',fontFamily:'Georgia,serif',textShadow:'0 0 16px rgba(245,200,90,0.5),0 2px 5px rgba(0,0,0,0.8)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',textTransform:'uppercase'}}>
           {isHofView?'\uD83C\uDFC6 HALL OF FAME':displayName}{curTeam?(' ('+curTeam.count+')'):''}
         </div>
