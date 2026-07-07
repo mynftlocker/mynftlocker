@@ -1,5 +1,5 @@
 'use client';
-import { memo, useState, useEffect } from 'react';
+import { memo, useState } from 'react';
 import { TEAM_BY_API, FALLBACK_IMG } from '../lib-teams';
 import { StatPanel, CardBack, RARITY_GLOW, RARITY_COLOR, RARITY_FILL, parseCard } from './StatPanel';
 const CITY_CLUB: Record<string,[string,string]> = {
@@ -124,18 +124,6 @@ export default function LockerRoomScene({cards=[],startIndex,hof=[],flippedSlug,
   const [listOpen,setListOpen]=useState(false);
   const [slideDir,setSlideDir]=useState<'left'|'right'|null>(null);
   const [slideKey,setSlideKey]=useState(0);
-  // Mesure reelle du viewport mobile (JS, fiable sur tous navigateurs, contrairement a dvh/svh)
-  const [vh, setVh] = useState(0);
-  useEffect(() => {
-    const measure = () => setVh(window.visualViewport ? window.visualViewport.height : window.innerHeight);
-    measure();
-    window.addEventListener('resize', measure);
-    window.addEventListener('orientationchange', measure);
-    return () => { window.removeEventListener('resize', measure); window.removeEventListener('orientationchange', measure); };
-  }, []);
-  const MOBILE_RESERVED = 136; // bandeau titre (~58) + barre du bas (62) + marges (16)
-  const mobileSceneH = vh ? vh - MOBILE_RESERVED : 0;
-  const mobileSceneW = vh ? Math.min(typeof window!=='undefined'?window.innerWidth:9999, mobileSceneH * 9 / 16) : 0;
   const teamLbl=(t:any)=>{const d=TEAM_BY_API[t.api];const n=d?d.display:(t.api==='__HOF__'?'\uD83C\uDFC6 HALL OF FAME':t.api);return n+' ('+t.count+')';};
   const curTeam=teamList.find(t=>t.api===teamApi);
 
@@ -211,7 +199,8 @@ export default function LockerRoomScene({cards=[],startIndex,hof=[],flippedSlug,
 
       {/* ===== SCENE VESTIAIRE MOBILE (carrousel 1 carte, visible <768px) ===== */}
       {/* TODO: remplacer locker-foot.png par un vrai decor foot vertical quand pret */}
-      <div className='mnfl-mobile-scene' style={{display:'none',position:'relative',width: mobileSceneW ? mobileSceneW+'px' : '100%',height: mobileSceneH ? mobileSceneH+'px' : '60vh',margin:'0 auto',overflow:'hidden',borderRadius:'16px',border:'1px solid rgba(255,255,255,0.06)',visibility: vh ? 'visible' : 'hidden'}}>
+      <div className='mnfl-mobile-scene' style={{display:'none',position:'fixed',top:'84px',bottom:'70px',left:0,right:0,zIndex:30}}>
+        <div style={{position:'relative',height:'100%',aspectRatio:'9 / 16',maxWidth:'100%',margin:'0 auto',overflow:'hidden',borderRadius:'16px',border:'1px solid rgba(255,255,255,0.06)',background:'#0a0503'}}>
         <div style={{display:'flex',width:'100%',height:'100%',overflowX:'auto',overflowY:'hidden',scrollSnapType:'x mandatory',WebkitOverflowScrolling:'touch',touchAction:'pan-x'}}>
           {visible.map((card,i)=>{
             const mobileImg = isFoot?'locker-foot.png':'locker-NBA-mobile.png';
@@ -234,6 +223,7 @@ export default function LockerRoomScene({cards=[],startIndex,hof=[],flippedSlug,
         {hasPrev&&<button onClick={onPrev} style={{position:'absolute',left:'2%',top:'50%',transform:'translateY(-50%)',background:'rgba(0,0,0,0.5)',border:'1px solid rgba(245,200,90,0.4)',borderRadius:'50%',width:'34px',height:'34px',color:'#f5d76e',fontSize:'1.3rem',zIndex:20}}>‹</button>}
         {hasNext&&<button onClick={onNext} style={{position:'absolute',right:'2%',top:'50%',transform:'translateY(-50%)',background:'rgba(0,0,0,0.5)',border:'1px solid rgba(245,200,90,0.4)',borderRadius:'50%',width:'34px',height:'34px',color:'#f5d76e',fontSize:'1.3rem',zIndex:20}}>›</button>}
         <div style={{position:'absolute',bottom:'1%',left:'50%',transform:'translateX(-50%)',color:'rgba(255,220,100,0.85)',fontSize:'0.7rem',letterSpacing:'0.15em',zIndex:20}}>{from}-{to} / {total}</div>
+        </div>
       </div>
     </div>
   );
