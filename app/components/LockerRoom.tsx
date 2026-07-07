@@ -200,13 +200,13 @@ export default function LockerRoomScene({cards=[],startIndex,hof=[],flippedSlug,
       {/* ===== SCENE VESTIAIRE MOBILE (carrousel 1 carte, visible <768px) ===== */}
       {/* TODO: remplacer locker-foot.png par un vrai decor foot vertical quand pret */}
       <div className='mnfl-mobile-scene' style={{display:'none',position:'fixed',top:'84px',bottom:'70px',left:0,right:0,zIndex:30}}>
-        <div style={{position:'relative',height:'100%',aspectRatio:'9 / 16',maxWidth:'100%',margin:'0 auto',overflow:'hidden',borderRadius:'16px',border:'1px solid rgba(255,255,255,0.06)',background:'#0a0503'}}>
-        <div style={{display:'flex',width:'100%',height:'100%',overflowX:'auto',overflowY:'hidden',scrollSnapType:'x mandatory',WebkitOverflowScrolling:'touch',touchAction:'pan-x'}}>
+        <div style={{position:'relative',height:'100%',width:'100vw',maxWidth:'100vw',overflow:'hidden',background:'#0a0503'}}>
+        <div style={{display:'flex',width:'100vw',maxWidth:'100vw',height:'100%',overflowX:'auto',overflowY:'hidden',scrollSnapType:'x mandatory',WebkitOverflowScrolling:'touch',touchAction:'pan-x'}}>
           {visible.map((card,i)=>{
             const mobileImg = isFoot?'locker-foot.png':'locker-NBA-mobile.png';
             const lastName = (card.anyPlayer?.lastName||parseCard(card.name).lastName).toUpperCase();
             return(
-              <div key={'m'+card.slug} style={{flex:'0 0 100%',scrollSnapAlign:'center',position:'relative',height:'100%',background:'#0a0503'}}>
+              <div key={'m'+card.slug} style={{flex:'0 0 100vw',width:'100vw',scrollSnapAlign:'center',position:'relative',height:'100%',background:'#0a0503'}}>
                 <img src={'/'+mobileImg} alt='vestiaire' onError={(e)=>{(e.target as HTMLImageElement).src='/'+FALLBACK_IMG;}}
                   style={{position:'absolute',top:0,left:0,width:'100%',height:'100%',objectFit:'fill'}}
                 />
