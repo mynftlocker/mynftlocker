@@ -71,7 +71,7 @@ const LockerCard=memo(({card,isFlipped,isStarred,isPinned,onFlip,onStar,onPin}:a
   const rc=RARITY_COLOR[card.rarityTyped]||'#9ca3af';
   return(
     <div style={{perspective:'900px',cursor:'pointer',width:'100%'}} onClick={()=>onFlip(card.slug)} onMouseEnter={()=>setHover(true)} onMouseLeave={()=>setHover(false)}>
-      <div style={{position:'relative',transformStyle:'preserve-3d',transition:'transform 0.4s cubic-bezier(0.2,0.8,0.3,1),box-shadow 0.3s ease',transform:(isFlipped?'rotateY(180deg)':'rotateY(0deg)')+((hover&&!isFlipped)?' translateY(-12px) scale(1.035)':''),boxShadow:isFlipped?'0 0 12px 3px rgba(64,232,255,0.45),0 0 24px 6px rgba(64,232,255,0.2)':((hover&&!isFlipped)?glow+', 0 22px 40px -8px rgba(0,0,0,0.7)':glow),borderRadius:'0.4rem',background:fill,...({['--rc']:rc,animation:isFlipped?'mnflCyanPulse 2.2s ease-in-out infinite':undefined} as any)}}>
+      <div style={{position:'relative',transformStyle:'preserve-3d',transition:'transform 0.4s cubic-bezier(0.2,0.8,0.3,1),box-shadow 0.3s ease',transform:(isFlipped?'rotateY(180deg)':'rotateY(0deg)')+((hover&&!isFlipped)?' translateY(-12px) scale(1.035)':''),boxShadow:isFlipped?'0 0 12px 3px rgba(64,232,255,0.45),0 0 24px 6px rgba(64,232,255,0.2)':((hover&&!isFlipped)?glow+', 0 22px 40px -8px rgba(0,0,0,0.7)':glow),borderRadius:'0.4rem',background:fill,...({['--rc']:rc,animation:isFlipped?'mnflCyanPulse 2.2s ease-in-out infinite':(hover?undefined:'mnflIdleFloat 5s ease-in-out infinite')} as any)}}>
         <div style={{backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',borderRadius:'0.4rem',overflow:'hidden'}}>
           <button title='Titulaire du 5 majeur' style={{position:'absolute',top:'5px',left:'5px',background:isPinned?'#c9a227dd':'#00000088',border:'none',borderRadius:'50%',width:'22px',height:'22px',cursor:'pointer',fontSize:'11px',display:'flex',alignItems:'center',justifyContent:'center',zIndex:10,opacity:(hover||isPinned)?1:0,transition:'opacity 0.2s',pointerEvents:(hover||isPinned)?'auto':'none'}}
             onClick={e=>{e.stopPropagation();onPin(card.slug);}}>📌</button>
@@ -226,7 +226,7 @@ export default function LockerRoomScene({cards=[],startIndex,hof=[],flippedSlug,
                 <img src={'/'+mobileImg} alt='vestiaire' onError={(e)=>{(e.target as HTMLImageElement).src='/'+FALLBACK_IMG;}}
                   style={{position:'absolute',top:0,left:0,width:'100%',height:'100%',objectFit:'fill'}}
                 />
-                <div onClick={()=>handleCardFlip(card.slug)} style={{position:'absolute',left:'50%',top:'16%',width:'46%',transform:'translateX(-50%)',zIndex:10}}>
+                <div style={{position:'absolute',left:'50%',top:'16%',width:'46%',transform:'translateX(-50%)',zIndex:10}}>
                   <LockerCard card={card} isFlipped={flippedSlug===card.slug} isStarred={hof.includes(card.slug)} isPinned={pinnedSlugs.includes(card.slug)} onFlip={handleCardFlip} onStar={onStar} onPin={onPin}/>
                 </div>
                 <div style={{position:'absolute',left:'50%',top:'81%',width:'40%',transform:'translate(-50%,-50%)',zIndex:15,textAlign:'center'}}>
