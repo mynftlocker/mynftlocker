@@ -74,7 +74,7 @@ const StatsBtnDebug=({onClick}:{onClick:()=>void})=>{
   },[]);
   return(<>
     <div style={{position:'absolute',right:'2%',bottom:'20%',background:'#ff00ff',color:'#fff',fontSize:'10px',padding:'2px 5px',zIndex:9999}}>{info}</div>
-    <button ref={ref} onClick={onClick} style={{position:'absolute',right:'6%',bottom:'9%',width:'38px',height:'38px',borderRadius:'50%',background:'rgba(8,11,16,0.72)',border:'1px solid rgba(64,232,255,0.5)',boxShadow:'0 0 10px rgba(64,232,255,0.35)',color:'#40e8ff',fontSize:'1rem',display:'flex',alignItems:'center',justifyContent:'center',zIndex:22,cursor:'pointer'}}>📊</button>
+    <button ref={ref} onClick={onClick} style={{position:'absolute',right:'13%',bottom:'9%',width:'38px',height:'38px',borderRadius:'50%',background:'rgba(8,11,16,0.72)',border:'1px solid rgba(64,232,255,0.5)',boxShadow:'0 0 10px rgba(64,232,255,0.35)',color:'#40e8ff',fontSize:'1rem',display:'flex',alignItems:'center',justifyContent:'center',zIndex:22,cursor:'pointer'}}>📊</button>
   </>);
 };
 const LockerCard=memo(({card,isFlipped,isStarred,isPinned,onFlip,onStar,onPin}:any)=>{
