@@ -40,7 +40,8 @@ export default function GalleryView({cards}:{cards:any[]}){
           {cards.map(c=>(<GalleryCard key={c.slug} card={c} isFlipped={activeSlug===c.slug} onFlip={handleFlip}/>))}
         </div>
       )}
-      {activeCard&&<StatPanel key={activeCard.slug} card={activeCard} isClosing={isClosing} onClose={startClose} placement='overlay'/>}
+      {activeCard&&(<div className='mnfl-gallery-stat-desktop'>{<StatPanel key={activeCard.slug} card={activeCard} isClosing={isClosing} onClose={startClose} placement='overlay'/>}</div>)}
+      {activeCard&&(<div className='mnfl-gallery-stat-mobile'>{<StatPanel key={'m'+activeCard.slug} card={activeCard} isClosing={isClosing} onClose={startClose} placement='galleryMobile'/>}</div>)}
     </div>
   );
 }

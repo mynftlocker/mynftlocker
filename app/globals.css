@@ -47,3 +47,11 @@ html, body { max-width: 100%; overflow-x: hidden; }
   .mnfl-mobile-scene{display:block!important}
   .mnfl-title-banner{position:fixed!important;top:8px!important;left:50%!important;right:auto!important;transform:translateX(-50%)!important;z-index:35!important;margin:0!important}
 }
+
+
+/* ===== Panneau stats galerie : desktop vs mobile ===== */
+.mnfl-gallery-stat-mobile{display:none;}
+@media(max-width:768px){
+  .mnfl-gallery-stat-desktop{display:none!important;}
+  .mnfl-gallery-stat-mobile{display:block!important;}
+}
