@@ -64,19 +64,6 @@ const TEAM_X = 50.0;
 const TEAM_Y = 15.4;
 
 
-const BUILD_TAG = '1783500840880'; // tampon: doit changer a chaque deploiement
-const StatsBtnDebug=({onClick}:{onClick:()=>void})=>{
-  const ref=useRef<HTMLButtonElement>(null);
-  const [info,setInfo]=useState('');
-  useEffect(()=>{
-    const m=()=>{const el=ref.current;if(!el)return;const r=el.getBoundingClientRect();setInfo('bottomPx:'+Math.round(window.innerHeight-r.bottom)+' build:'+BUILD_TAG);};
-    m(); window.addEventListener('resize',m); return ()=>window.removeEventListener('resize',m);
-  },[]);
-  return(<>
-    <div style={{position:'absolute',right:'2%',bottom:'20%',background:'#ff00ff',color:'#fff',fontSize:'10px',padding:'2px 5px',zIndex:9999}}>{info}</div>
-    <button ref={ref} onClick={onClick} style={{position:'absolute',right:'16%',bottom:'2%',width:'38px',height:'38px',borderRadius:'50%',background:'rgba(8,11,16,0.72)',border:'1px solid rgba(64,232,255,0.5)',boxShadow:'0 0 10px rgba(64,232,255,0.35)',color:'#40e8ff',fontSize:'1rem',display:'flex',alignItems:'center',justifyContent:'center',zIndex:22,cursor:'pointer'}}>📊</button>
-  </>);
-};
 const LockerCard=memo(({card,isFlipped,isStarred,isPinned,onFlip,onStar,onPin}:any)=>{
   const [hover,setHover]=useState(false);
   const glow=RARITY_GLOW[card.rarityTyped]||RARITY_GLOW.common;
@@ -252,7 +239,7 @@ export default function LockerRoomScene({cards=[],startIndex,hof=[],flippedSlug,
         {mobileIdx>0&&<button onClick={()=>mobileGoto(-1)} style={{position:'absolute',left:'2%',top:'46%',transform:'translateY(-50%)',background:'transparent',border:'none',color:'rgba(232,196,86,0.65)',fontSize:'2.2rem',lineHeight:1,cursor:'pointer',padding:'0.5rem',zIndex:20,textShadow:'0 0 8px rgba(0,0,0,0.8)'}}>‹</button>}
         {mobileIdx<cards.length-1&&<button onClick={()=>mobileGoto(1)} style={{position:'absolute',right:'2%',top:'46%',transform:'translateY(-50%)',background:'transparent',border:'none',color:'rgba(232,196,86,0.65)',fontSize:'2.2rem',lineHeight:1,cursor:'pointer',padding:'0.5rem',zIndex:20,textShadow:'0 0 8px rgba(0,0,0,0.8)'}}>›</button>}
         <div style={{position:'absolute',bottom:'1%',left:'50%',transform:'translateX(-50%)',color:'rgba(255,220,100,0.85)',fontSize:'0.7rem',letterSpacing:'0.15em',zIndex:20}}>{mobileIdx+1} / {cards.length}</div>
-        {!mobileStatsCard&&<StatsBtnDebug onClick={()=>setMobileStatsSlug(cards[mobileIdx]?.slug||null)}/>}
+        {!mobileStatsCard&&<button onClick={()=>setMobileStatsSlug(cards[mobileIdx]?.slug||null)} style={{position:'absolute',right:'6%',bottom:'2%',width:'38px',height:'38px',borderRadius:'50%',background:'rgba(8,11,16,0.72)',border:'1px solid rgba(64,232,255,0.5)',boxShadow:'0 0 10px rgba(64,232,255,0.35)',color:'#40e8ff',fontSize:'1rem',display:'flex',alignItems:'center',justifyContent:'center',zIndex:22,cursor:'pointer'}}>📊</button>}
         {mobileStatsCard&&<StatPanel card={mobileStatsCard} isClosing={mobileStatsClosing} onClose={startMobileStatsClose} placement='mobile'/>}
         </div>
       </div>
