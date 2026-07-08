@@ -125,9 +125,8 @@ export default function LockerRoomScene({cards=[],startIndex,hof=[],flippedSlug,
   const [slideDir,setSlideDir]=useState<'left'|'right'|null>(null);
   const [slideKey,setSlideKey]=useState(0);
   const carouselRef = useRef<HTMLDivElement>(null);
-  useEffect(() => { if (carouselRef.current) carouselRef.current.scrollLeft = 0; }, [startIndex, teamApi]);
   const [mobileIdx, setMobileIdx] = useState(0);
-  useEffect(() => { setMobileIdx(0); }, [startIndex, teamApi]);
+  useEffect(() => { setMobileIdx(0); if(carouselRef.current) carouselRef.current.scrollLeft=0; }, [teamApi]); // SWIPE CONTINU: reset uniquement au changement d'equipe
   useEffect(() => {
     const el = carouselRef.current; if (!el) return;
     let raf: number;
@@ -135,15 +134,11 @@ export default function LockerRoomScene({cards=[],startIndex,hof=[],flippedSlug,
     el.addEventListener('scroll', onScroll, { passive: true });
     return () => { el.removeEventListener('scroll', onScroll); cancelAnimationFrame(raf); };
   }, []);
-  const mobileGoto = (dir: number) => { // CROSS-GROUPE : franchit le lot de 5 en bout de course
-    if (dir>0 && mobileIdx>=visible.length-1) { if (hasNext) onNext(); return; }
-    if (dir<0 && mobileIdx<=0) { if (hasPrev) onPrev(); return; }
-    const el = carouselRef.current; if (!el) return; el.scrollBy({ left: dir * window.innerWidth, behavior: 'smooth' });
-  };
+  const mobileGoto = (dir: number) => { const el = carouselRef.current; if (!el) return; el.scrollBy({ left: dir * window.innerWidth, behavior: 'smooth' }); };
   const [mobileStatsSlug, setMobileStatsSlug] = useState<string|null>(null);
   const [mobileStatsClosing, setMobileStatsClosing] = useState(false);
   const startMobileStatsClose = () => { setMobileStatsClosing(true); setTimeout(() => { setMobileStatsSlug(null); setMobileStatsClosing(false); }, 600); };
-  const mobileStatsCard = mobileStatsSlug ? (visible.find(c=>c.slug===mobileStatsSlug) || null) : null;
+  const mobileStatsCard = mobileStatsSlug ? (cards.find(c=>c.slug===mobileStatsSlug) || null) : null;
 
   const teamLbl=(t:any)=>{const d=TEAM_BY_API[t.api];const n=d?d.display:(t.api==='__HOF__'?'\uD83C\uDFC6 HALL OF FAME':t.api);return n+' ('+t.count+')';};
   const curTeam=teamList.find(t=>t.api===teamApi);
@@ -223,7 +218,7 @@ export default function LockerRoomScene({cards=[],startIndex,hof=[],flippedSlug,
       <div className='mnfl-mobile-scene' style={{display:'none',position:'fixed',top:'84px',bottom:'70px',left:0,right:0,zIndex:30}}>
         <div style={{position:'relative',height:'100%',width:'100vw',maxWidth:'100vw',overflow:'hidden',background:'#0a0503'}}>
         <div ref={carouselRef} style={{display:'flex',width:'100vw',maxWidth:'100vw',height:'100%',overflowX:'auto',overflowY:'hidden',overflowAnchor:'none',scrollSnapType:'x mandatory',scrollBehavior:'smooth',WebkitOverflowScrolling:'touch',touchAction:'pan-x'}}>
-          {visible.map((card,i)=>{
+          {cards.map((card,i)=>{
             const mobileImg = isFoot?'locker-foot.png':'locker-NBA-mobile.png';
             const lastName = (card.anyPlayer?.lastName||parseCard(card.name).lastName).toUpperCase();
             return(
@@ -241,10 +236,10 @@ export default function LockerRoomScene({cards=[],startIndex,hof=[],flippedSlug,
             );
           })}
         </div>
-        {(mobileIdx>0||hasPrev)&&<button onClick={()=>mobileGoto(-1)} style={{position:'absolute',left:'2%',top:'46%',transform:'translateY(-50%)',background:'transparent',border:'none',color:'rgba(232,196,86,0.65)',fontSize:'2.2rem',lineHeight:1,cursor:'pointer',padding:'0.5rem',zIndex:20,textShadow:'0 0 8px rgba(0,0,0,0.8)'}}>‹</button>}
-        {(mobileIdx<visible.length-1||hasNext)&&<button onClick={()=>mobileGoto(1)} style={{position:'absolute',right:'2%',top:'46%',transform:'translateY(-50%)',background:'transparent',border:'none',color:'rgba(232,196,86,0.65)',fontSize:'2.2rem',lineHeight:1,cursor:'pointer',padding:'0.5rem',zIndex:20,textShadow:'0 0 8px rgba(0,0,0,0.8)'}}>›</button>}
-        <div style={{position:'absolute',bottom:'1%',left:'50%',transform:'translateX(-50%)',color:'rgba(255,220,100,0.85)',fontSize:'0.7rem',letterSpacing:'0.15em',zIndex:20}}>{from}-{to} / {total}</div>
-        {!mobileStatsCard&&<button onClick={()=>setMobileStatsSlug(visible[mobileIdx]?.slug||null)} style={{position:'absolute',right:'6%',bottom:'3%',width:'38px',height:'38px',borderRadius:'50%',background:'rgba(8,11,16,0.72)',border:'1px solid rgba(64,232,255,0.5)',boxShadow:'0 0 10px rgba(64,232,255,0.35)',color:'#40e8ff',fontSize:'1rem',display:'flex',alignItems:'center',justifyContent:'center',zIndex:22,cursor:'pointer'}}>📊</button>}
+        {mobileIdx>0&&<button onClick={()=>mobileGoto(-1)} style={{position:'absolute',left:'2%',top:'46%',transform:'translateY(-50%)',background:'transparent',border:'none',color:'rgba(232,196,86,0.65)',fontSize:'2.2rem',lineHeight:1,cursor:'pointer',padding:'0.5rem',zIndex:20,textShadow:'0 0 8px rgba(0,0,0,0.8)'}}>‹</button>}
+        {mobileIdx<cards.length-1&&<button onClick={()=>mobileGoto(1)} style={{position:'absolute',right:'2%',top:'46%',transform:'translateY(-50%)',background:'transparent',border:'none',color:'rgba(232,196,86,0.65)',fontSize:'2.2rem',lineHeight:1,cursor:'pointer',padding:'0.5rem',zIndex:20,textShadow:'0 0 8px rgba(0,0,0,0.8)'}}>›</button>}
+        <div style={{position:'absolute',bottom:'1%',left:'50%',transform:'translateX(-50%)',color:'rgba(255,220,100,0.85)',fontSize:'0.7rem',letterSpacing:'0.15em',zIndex:20}}>{mobileIdx+1} / {cards.length}</div>
+        {!mobileStatsCard&&<button onClick={()=>setMobileStatsSlug(cards[mobileIdx]?.slug||null)} style={{position:'absolute',right:'6%',bottom:'9%',width:'38px',height:'38px',borderRadius:'50%',background:'rgba(8,11,16,0.72)',border:'1px solid rgba(64,232,255,0.5)',boxShadow:'0 0 10px rgba(64,232,255,0.35)',color:'#40e8ff',fontSize:'1rem',display:'flex',alignItems:'center',justifyContent:'center',zIndex:22,cursor:'pointer'}}>📊</button>}
         {mobileStatsCard&&<StatPanel card={mobileStatsCard} isClosing={mobileStatsClosing} onClose={startMobileStatsClose} placement='mobile'/>}
         </div>
       </div>
