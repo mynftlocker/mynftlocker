@@ -72,7 +72,7 @@ const LockerCard=memo(({card,isFlipped,isStarred,isPinned,onFlip,onStar,onPin,mo
   const fill=RARITY_FILL[card.rarityTyped]||RARITY_FILL.common;
   const rc=RARITY_COLOR[card.rarityTyped]||'#9ca3af';
   return(
-    <div style={{perspective:'900px',cursor:'pointer',width:'100%',...(mobile&&!isFlipped?{animation:'mnflIdleFloat 5s ease-in-out infinite'}:{})}} onClick={()=>{ if(mobile){ setCardTapped(t=>!t); } else { onFlip(card.slug); } }} onMouseEnter={()=>{if(!mobile)setHover(true);}} onMouseLeave={()=>{if(!mobile)setHover(false);}}>
+    <div style={{perspective:'900px',cursor:'pointer',width:'100%',containerType:'inline-size',...(mobile&&!isFlipped?{animation:'mnflIdleFloat 5s ease-in-out infinite'}:{})}} onClick={()=>{ if(mobile){ setCardTapped(t=>!t); } else { onFlip(card.slug); } }} onMouseEnter={()=>{if(!mobile)setHover(true);}} onMouseLeave={()=>{if(!mobile)setHover(false);}}>
       <div style={{position:'relative',transformStyle:'preserve-3d',transition:'transform 0.4s cubic-bezier(0.2,0.8,0.3,1),box-shadow 0.3s ease',transform:(isFlipped?'rotateY(180deg)':'rotateY(0deg)')+((active&&!isFlipped&&!mobile)?' translateY(-12px) scale(1.035)':''),boxShadow:isFlipped?'0 0 12px 3px rgba(64,232,255,0.45),0 0 24px 6px rgba(64,232,255,0.2)':((active&&!isFlipped)?glow+', 0 22px 40px -8px rgba(0,0,0,0.7)':glow),borderRadius:'0.4rem',background:fill,...({['--rc']:rc,animation:isFlipped?'mnflCyanPulse 2.2s ease-in-out infinite':undefined} as any)}}>
         <div style={{backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',borderRadius:'0.4rem',overflow:'hidden'}}>
           <button title='Titulaire du 5 majeur' style={{position:'absolute',top:'5px',left:'5px',background:isPinned?'#c9a227dd':'#00000088',border:'none',borderRadius:'50%',width:'22px',height:'22px',cursor:'pointer',fontSize:'11px',display:'flex',alignItems:'center',justifyContent:'center',zIndex:10,opacity:(active||isPinned)?1:0,transition:'opacity 0.2s',pointerEvents:(active||isPinned)?'auto':'none'}}
@@ -83,7 +83,7 @@ const LockerCard=memo(({card,isFlipped,isStarred,isPinned,onFlip,onStar,onPin,mo
           </button>
           <img src={card.pictureUrl} alt={card.name} style={{width:'100%',height:'auto',display:'block'}}/>
         </div>
-        <CardBack card={card} rc={rc}/>
+        <CardBack card={card} rc={rc} mobile={mobile}/>
       </div>
     </div>
   );
