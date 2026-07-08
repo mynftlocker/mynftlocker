@@ -136,6 +136,10 @@ export default function LockerRoomScene({cards=[],startIndex,hof=[],flippedSlug,
     return () => { el.removeEventListener('scroll', onScroll); cancelAnimationFrame(raf); };
   }, []);
   const mobileGoto = (dir: number) => { const el = carouselRef.current; if (!el) return; el.scrollBy({ left: dir * window.innerWidth, behavior: 'smooth' }); };
+  const [mobileStatsSlug, setMobileStatsSlug] = useState<string|null>(null);
+  const [mobileStatsClosing, setMobileStatsClosing] = useState(false);
+  const startMobileStatsClose = () => { setMobileStatsClosing(true); setTimeout(() => { setMobileStatsSlug(null); setMobileStatsClosing(false); }, 600); };
+  const mobileStatsCard = mobileStatsSlug ? (visible.find(c=>c.slug===mobileStatsSlug) || null) : null;
 
   const teamLbl=(t:any)=>{const d=TEAM_BY_API[t.api];const n=d?d.display:(t.api==='__HOF__'?'\uD83C\uDFC6 HALL OF FAME':t.api);return n+' ('+t.count+')';};
   const curTeam=teamList.find(t=>t.api===teamApi);
@@ -236,6 +240,8 @@ export default function LockerRoomScene({cards=[],startIndex,hof=[],flippedSlug,
         {mobileIdx>0&&<button onClick={()=>mobileGoto(-1)} style={{position:'absolute',left:'2%',top:'46%',transform:'translateY(-50%)',background:'transparent',border:'none',color:'rgba(232,196,86,0.65)',fontSize:'2.2rem',lineHeight:1,cursor:'pointer',padding:'0.5rem',zIndex:20,textShadow:'0 0 8px rgba(0,0,0,0.8)'}}>‹</button>}
         {mobileIdx<visible.length-1&&<button onClick={()=>mobileGoto(1)} style={{position:'absolute',right:'2%',top:'46%',transform:'translateY(-50%)',background:'transparent',border:'none',color:'rgba(232,196,86,0.65)',fontSize:'2.2rem',lineHeight:1,cursor:'pointer',padding:'0.5rem',zIndex:20,textShadow:'0 0 8px rgba(0,0,0,0.8)'}}>›</button>}
         <div style={{position:'absolute',bottom:'1%',left:'50%',transform:'translateX(-50%)',color:'rgba(255,220,100,0.85)',fontSize:'0.7rem',letterSpacing:'0.15em',zIndex:20}}>{from}-{to} / {total}</div>
+        {!mobileStatsCard&&<button onClick={()=>setMobileStatsSlug(visible[mobileIdx]?.slug||null)} style={{position:'absolute',right:'6%',bottom:'6%',width:'38px',height:'38px',borderRadius:'50%',background:'rgba(8,11,16,0.72)',border:'1px solid rgba(64,232,255,0.5)',boxShadow:'0 0 10px rgba(64,232,255,0.35)',color:'#40e8ff',fontSize:'1rem',display:'flex',alignItems:'center',justifyContent:'center',zIndex:22,cursor:'pointer'}}>📊</button>}
+        {mobileStatsCard&&<StatPanel card={mobileStatsCard} isClosing={mobileStatsClosing} onClose={startMobileStatsClose} placement='mobile'/>}
         </div>
       </div>
     </div>

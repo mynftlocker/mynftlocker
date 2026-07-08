@@ -86,8 +86,11 @@ export const StatPanel=memo(({card,onClose,isClosing=false,placement='scene'}:an
   const sep:React.CSSProperties={borderBottom:'1px solid rgba(64,232,255,0.16)',paddingBottom:'0.42rem',marginBottom:'0.42rem',flexShrink:0};
   const fv=(v:any,t:string)=>{if(v==null)return '—';const n=Number(v);if(t==='pct')return n.toFixed(1)+'%';if(t==='pm')return(n>=0?'+':'')+n.toFixed(1);if(t==='int')return String(Math.round(n));return n.toFixed(1);};
   const isOverlay=placement==='overlay';
+  const isMobile=placement==='mobile';
   const posStyle:React.CSSProperties=isOverlay
     ? {position:'fixed',right:'1%',top:'5%',width:'22.2vw',maxHeight:'89vh',zIndex:200}
+    : isMobile
+    ? {position:'absolute',left:'4%',right:'4%',top:'3%',maxHeight:'94%',zIndex:80}
     : {position:'absolute',right:'1%',top:'5%',width:'30%',maxHeight:'89%',zIndex:50};
   const deployDelay=isOverlay?'0.1s':'0.45s';
   return(
