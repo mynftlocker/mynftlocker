@@ -64,18 +64,20 @@ const TEAM_X = 50.0;
 const TEAM_Y = 15.4;
 
 
-const LockerCard=memo(({card,isFlipped,isStarred,isPinned,onFlip,onStar,onPin}:any)=>{
+const LockerCard=memo(({card,isFlipped,isStarred,isPinned,onFlip,onStar,onPin,mobile}:any)=>{
   const [hover,setHover]=useState(false);
+  const [cardTapped,setCardTapped]=useState(false);
+  const active = mobile ? cardTapped : hover;
   const glow=RARITY_GLOW[card.rarityTyped]||RARITY_GLOW.common;
   const fill=RARITY_FILL[card.rarityTyped]||RARITY_FILL.common;
   const rc=RARITY_COLOR[card.rarityTyped]||'#9ca3af';
   return(
-    <div style={{perspective:'900px',cursor:'pointer',width:'100%'}} onClick={()=>onFlip(card.slug)} onMouseEnter={()=>setHover(true)} onMouseLeave={()=>setHover(false)}>
-      <div style={{position:'relative',transformStyle:'preserve-3d',transition:'transform 0.4s cubic-bezier(0.2,0.8,0.3,1),box-shadow 0.3s ease',transform:(isFlipped?'rotateY(180deg)':'rotateY(0deg)')+((hover&&!isFlipped)?' translateY(-12px) scale(1.035)':''),boxShadow:isFlipped?'0 0 12px 3px rgba(64,232,255,0.45),0 0 24px 6px rgba(64,232,255,0.2)':((hover&&!isFlipped)?glow+', 0 22px 40px -8px rgba(0,0,0,0.7)':glow),borderRadius:'0.4rem',background:fill,...({['--rc']:rc,animation:isFlipped?'mnflCyanPulse 2.2s ease-in-out infinite':(hover?undefined:'mnflIdleFloat 5s ease-in-out infinite')} as any)}}>
+    <div style={{perspective:'900px',cursor:'pointer',width:'100%',...(mobile&&!isFlipped?{animation:'mnflIdleFloat 5s ease-in-out infinite'}:{})}} onClick={()=>{ if(mobile){ setCardTapped(t=>!t); } else { onFlip(card.slug); } }} onMouseEnter={()=>{if(!mobile)setHover(true);}} onMouseLeave={()=>{if(!mobile)setHover(false);}}>
+      <div style={{position:'relative',transformStyle:'preserve-3d',transition:'transform 0.4s cubic-bezier(0.2,0.8,0.3,1),box-shadow 0.3s ease',transform:(isFlipped?'rotateY(180deg)':'rotateY(0deg)')+((active&&!isFlipped&&!mobile)?' translateY(-12px) scale(1.035)':''),boxShadow:isFlipped?'0 0 12px 3px rgba(64,232,255,0.45),0 0 24px 6px rgba(64,232,255,0.2)':((active&&!isFlipped)?glow+', 0 22px 40px -8px rgba(0,0,0,0.7)':glow),borderRadius:'0.4rem',background:fill,...({['--rc']:rc,animation:isFlipped?'mnflCyanPulse 2.2s ease-in-out infinite':undefined} as any)}}>
         <div style={{backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',borderRadius:'0.4rem',overflow:'hidden'}}>
-          <button title='Titulaire du 5 majeur' style={{position:'absolute',top:'5px',left:'5px',background:isPinned?'#c9a227dd':'#00000088',border:'none',borderRadius:'50%',width:'22px',height:'22px',cursor:'pointer',fontSize:'11px',display:'flex',alignItems:'center',justifyContent:'center',zIndex:10,opacity:(hover||isPinned)?1:0,transition:'opacity 0.2s',pointerEvents:(hover||isPinned)?'auto':'none'}}
+          <button title='Titulaire du 5 majeur' style={{position:'absolute',top:'5px',left:'5px',background:isPinned?'#c9a227dd':'#00000088',border:'none',borderRadius:'50%',width:'22px',height:'22px',cursor:'pointer',fontSize:'11px',display:'flex',alignItems:'center',justifyContent:'center',zIndex:10,opacity:(active||isPinned)?1:0,transition:'opacity 0.2s',pointerEvents:(active||isPinned)?'auto':'none'}}
             onClick={e=>{e.stopPropagation();onPin(card.slug);}}>📌</button>
-          <button style={{position:'absolute',top:'5px',right:'5px',background:isStarred?'#7c3aedcc':'#00000088',border:'none',borderRadius:'50%',width:'22px',height:'22px',cursor:'pointer',fontSize:'11px',display:'flex',alignItems:'center',justifyContent:'center',zIndex:10,opacity:(hover||isStarred)?1:0,transition:'opacity 0.2s',pointerEvents:(hover||isStarred)?'auto':'none'}}
+          <button style={{position:'absolute',top:'5px',right:'5px',background:isStarred?'#7c3aedcc':'#00000088',border:'none',borderRadius:'50%',width:'22px',height:'22px',cursor:'pointer',fontSize:'11px',display:'flex',alignItems:'center',justifyContent:'center',zIndex:10,opacity:(active||isStarred)?1:0,transition:'opacity 0.2s',pointerEvents:(active||isStarred)?'auto':'none'}}
             onClick={e=>{e.stopPropagation();onStar(card.slug);}}>
             {isStarred?'⭐':'☆'}
           </button>
@@ -227,7 +229,7 @@ export default function LockerRoomScene({cards=[],startIndex,hof=[],flippedSlug,
                   style={{position:'absolute',top:0,left:0,width:'100%',height:'100%',objectFit:'fill'}}
                 />
                 <div style={{position:'absolute',left:'50%',top:'16%',width:'46%',transform:'translateX(-50%)',zIndex:10}}>
-                  <LockerCard card={card} isFlipped={flippedSlug===card.slug} isStarred={hof.includes(card.slug)} isPinned={pinnedSlugs.includes(card.slug)} onFlip={handleCardFlip} onStar={onStar} onPin={onPin}/>
+                  <LockerCard card={card} isFlipped={flippedSlug===card.slug} isStarred={hof.includes(card.slug)} isPinned={pinnedSlugs.includes(card.slug)} onFlip={handleCardFlip} onStar={onStar} onPin={onPin} mobile={true}/>
                 </div>
                 <div style={{position:'absolute',left:'50%',top:'81%',width:'40%',transform:'translate(-50%,-50%)',zIndex:15,textAlign:'center'}}>
                   <span style={{fontSize:'0.95rem',fontWeight:900,color:'#1a0d00',letterSpacing:'0.03em',fontFamily:'Georgia,serif',textShadow:'0 1px 1px rgba(255,230,150,0.55)',whiteSpace:'nowrap'}}>{lastName}</span>
@@ -240,6 +242,7 @@ export default function LockerRoomScene({cards=[],startIndex,hof=[],flippedSlug,
         {mobileIdx<cards.length-1&&<button onClick={()=>mobileGoto(1)} style={{position:'absolute',right:'2%',top:'46%',transform:'translateY(-50%)',background:'transparent',border:'none',color:'rgba(232,196,86,0.65)',fontSize:'2.2rem',lineHeight:1,cursor:'pointer',padding:'0.5rem',zIndex:20,textShadow:'0 0 8px rgba(0,0,0,0.8)'}}>›</button>}
         <div style={{position:'absolute',bottom:'1%',left:'50%',transform:'translateX(-50%)',color:'rgba(255,220,100,0.85)',fontSize:'0.7rem',letterSpacing:'0.15em',zIndex:20}}>{mobileIdx+1} / {cards.length}</div>
         {!mobileStatsCard&&<button onClick={()=>setMobileStatsSlug(cards[mobileIdx]?.slug||null)} style={{position:'absolute',right:'6%',bottom:'2%',width:'38px',height:'38px',borderRadius:'50%',background:'rgba(8,11,16,0.72)',border:'1px solid rgba(64,232,255,0.5)',boxShadow:'0 0 10px rgba(64,232,255,0.35)',color:'#40e8ff',fontSize:'1rem',display:'flex',alignItems:'center',justifyContent:'center',zIndex:22,cursor:'pointer'}}>📊</button>}
+        {!mobileStatsCard&&<button onClick={()=>handleCardFlip(cards[mobileIdx]?.slug)} style={{position:'absolute',left:'6%',bottom:'2%',width:'38px',height:'38px',borderRadius:'50%',background:'rgba(8,11,16,0.72)',border:'1px solid rgba(64,232,255,0.5)',boxShadow:'0 0 10px rgba(64,232,255,0.35)',color:'#40e8ff',fontSize:'1.1rem',display:'flex',alignItems:'center',justifyContent:'center',zIndex:22,cursor:'pointer'}}>⇄</button>}
         {mobileStatsCard&&<StatPanel card={mobileStatsCard} isClosing={mobileStatsClosing} onClose={startMobileStatsClose} placement='mobile'/>}
         </div>
       </div>
