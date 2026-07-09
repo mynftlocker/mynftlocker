@@ -3,9 +3,12 @@ import { memo, useState, useEffect } from 'react';
 import { StatPanel, CardBack, RARITY_GLOW, RARITY_COLOR, RARITY_FILL } from './StatPanel';
 
 // Carte galerie : flip 3D + halo cyan + trace (memes animations que le vestiaire)
-const GalleryCard=memo(({card,isFlipped,onFlip}:any)=>{
+const scaleGlow=(glowStr:string,scale:number)=>glowStr.replace(/(\d+(?:\.\d+)?)px/g,(_,n)=>(parseFloat(n)*scale).toFixed(1)+'px');
+const glowScaleFor=(cols:number)=>cols<=3?1:cols===4?0.8:cols===5?0.65:cols===6?0.55:cols===7?0.48:0.42;
+const GalleryCard=memo(({card,isFlipped,onFlip,glowScale}:any)=>{
   const [hover,setHover]=useState(false);
-  const glow=RARITY_GLOW[card.rarityTyped]||RARITY_GLOW.common;
+  const glowRaw=RARITY_GLOW[card.rarityTyped]||RARITY_GLOW.common;
+  const glow=scaleGlow(glowRaw,glowScale??1);
   const fill=RARITY_FILL[card.rarityTyped]||RARITY_FILL.common;
   const rc=RARITY_COLOR[card.rarityTyped]||'#9ca3af';
   return(
@@ -52,7 +55,7 @@ export default function GalleryView({cards}:{cards:any[]}){
           <button onClick={()=>changeCols(1)} disabled={galleryCols>=8} style={{width:'26px',height:'26px',borderRadius:'0.3rem',background:'rgba(64,232,255,0.1)',border:'1px solid rgba(64,232,255,0.4)',color:'#40e8ff',cursor:galleryCols>=8?'not-allowed':'pointer',opacity:galleryCols>=8?0.4:1,fontSize:'1rem',lineHeight:1}}>+</button>
         </div>
         <div style={{display:'grid',gridTemplateColumns:'repeat('+galleryCols+',1fr)',gap:'1.4rem'}}>
-          {cards.map(c=>(<GalleryCard key={c.slug} card={c} isFlipped={activeSlug===c.slug} onFlip={handleFlip}/>))}
+          {cards.map(c=>(<GalleryCard key={c.slug} card={c} isFlipped={activeSlug===c.slug} onFlip={handleFlip} glowScale={glowScaleFor(galleryCols)}/>))}
         </div>
         </>
       )}
