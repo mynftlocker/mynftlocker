@@ -339,10 +339,10 @@ export default function Home() {
   const [defaultTeam, setDefaultTeam] = useState('');
 
   useEffect(() => {
-    const savedF=localStorage.getItem('mynftlocker_hof_foot');
+    const savedF=localStorage.getItem('mynftlocker_hof_foot_'+slug);
     if(savedF){try{setHofFoot(JSON.parse(savedF));}catch{}}
-    const saved=localStorage.getItem('mynftlocker_hof')||localStorage.getItem('myNFTlocker_hof');
-    if(saved){setHof(JSON.parse(saved));localStorage.setItem('mynftlocker_hof',saved);}
+    const saved=localStorage.getItem('mynftlocker_hof_'+slug)||localStorage.getItem('myNFTlocker_hof_'+slug);
+    if(saved){setHof(JSON.parse(saved));localStorage.setItem('mynftlocker_hof_'+slug,saved);}
   }, []);
 
   useEffect(()=>{const h=(e:MouseEvent)=>{mouseXYRef.current={x:(e.clientX/window.innerWidth-0.5)*2,y:(e.clientY/window.innerHeight-0.5)*2};};window.addEventListener('mousemove',h);return()=>window.removeEventListener('mousemove',h);},[]);
@@ -353,13 +353,13 @@ export default function Home() {
     if(cards.length===0) return;
     if(loading) return;
     if(localStorage.getItem('mynftlocker_hof_init')) return;
-    const savedHof=localStorage.getItem('mynftlocker_hof');
+    const savedHof=localStorage.getItem('mynftlocker_hof_'+slug);
     if(savedHof && JSON.parse(savedHof).length>0){ localStorage.setItem('mynftlocker_hof_init','done'); return; }
     const nba=cards.filter(c=>isNBA(c));
     const top5=dedupeByPlayer(nba).sort((a:any,b:any)=>(b.averageScore??-1)-(a.averageScore??-1)).slice(0,5).map((c:any)=>c.slug);
     if(top5.length===0) return;
     setHof(top5);
-    localStorage.setItem('mynftlocker_hof',JSON.stringify(top5));
+    localStorage.setItem('mynftlocker_hof_'+slug,JSON.stringify(top5));
     localStorage.setItem('mynftlocker_hof_init','done');
     if(!localStorage.getItem('mynftlocker_default_team')) setTeamApi(HOF_KEY);
   },[cards,loading]);
@@ -369,13 +369,13 @@ export default function Home() {
     if(cards.length===0) return;
     if(loading) return;
     if(localStorage.getItem('mynftlocker_hoffoot_init')) return;
-    const savedF=localStorage.getItem('mynftlocker_hof_foot');
+    const savedF=localStorage.getItem('mynftlocker_hof_foot_'+slug);
     if(savedF && JSON.parse(savedF).length>0){ localStorage.setItem('mynftlocker_hoffoot_init','done'); return; }
     const foot=cards.filter(c=>!isNBA(c));
     const top5=dedupeByPlayer(foot).sort((a:any,b:any)=>(b.averageScore??-1)-(a.averageScore??-1)).slice(0,5).map((c:any)=>c.slug);
     if(top5.length===0) return;
     setHofFoot(top5);
-    localStorage.setItem('mynftlocker_hof_foot',JSON.stringify(top5));
+    localStorage.setItem('mynftlocker_hof_foot_'+slug,JSON.stringify(top5));
     localStorage.setItem('mynftlocker_hoffoot_init','done');
   },[cards,loading]);
 
@@ -383,15 +383,15 @@ export default function Home() {
     const card=cards.find(c=>c.slug===s);
     const isFootCard=card?!isNBA(card):false;
     if(isFootCard){
-      setHofFoot(prev=>{const next=prev.includes(s)?prev.filter(x=>x!==s):[...prev,s];localStorage.setItem('mynftlocker_hof_foot',JSON.stringify(next));return next;});
+      setHofFoot(prev=>{const next=prev.includes(s)?prev.filter(x=>x!==s):[...prev,s];localStorage.setItem('mynftlocker_hof_foot_'+slug,JSON.stringify(next));return next;});
     } else {
-      setHof(prev=>{const next=prev.includes(s)?prev.filter(x=>x!==s):[...prev,s];localStorage.setItem('mynftlocker_hof',JSON.stringify(next));return next;});
+      setHof(prev=>{const next=prev.includes(s)?prev.filter(x=>x!==s):[...prev,s];localStorage.setItem('mynftlocker_hof_'+slug,JSON.stringify(next));return next;});
     }
   },[cards]);
   const handleFlip=useCallback((s:string)=>{setFlippedSlug(f=>f===s?null:s);},[]);
   const handlePrev=useCallback(()=>{setLockerStart(s=>Math.max(0,s-1));setFlippedSlug(null);},[]);
   const handleNext=useCallback((tot:number)=>{setLockerStart(s=>Math.min(s+1,Math.max(0,tot-5)));setFlippedSlug(null);},[]);
-  const handleTeamChange=useCallback((api:string)=>{setTeamApi(api);setLockerStart(0);setFlippedSlug(null);if(api!=='__HOF__')localStorage.setItem('mnfl_team_chosen','1');else localStorage.removeItem('mnfl_team_chosen');},[]);
+  const handleTeamChange=useCallback((api:string)=>{setTeamApi(api);setLockerStart(0);setFlippedSlug(null);if(api!=='__HOF__')localStorage.setItem('mnfl_team_chosen_'+slug,'1');else localStorage.removeItem('mnfl_team_chosen_'+slug);},[]);
   useEffect(()=>{ const s=localStorage.getItem('mynftlocker_lineup'); if(s){try{setLineup(JSON.parse(s));}catch{}} },[]);
   useEffect(()=>{ setDefaultTeam(localStorage.getItem('mynftlocker_default_team')||''); },[]);
   const handleSetDefault=useCallback((api:string)=>{ localStorage.setItem('mynftlocker_default_team',api); setDefaultTeam(api); },[]);
@@ -511,7 +511,7 @@ export default function Home() {
     return list;
   },[cards,hof,hofFoot,gSport]);
   const leagueOptions=useMemo(()=>{if(gSport==='nba')return[{v:'all',l:'NBA'}];return[{v:'all',l:'Toutes les ligues'}];},[gSport]);
-  useEffect(()=>{ if(teamList.length===0)return;const hofInList=teamList.find(t=>t.api==='__HOF__');if(hofInList&&teamApi!=='__HOF__'&&!localStorage.getItem('mnfl_team_chosen')){setTeamApi('__HOF__');return;}if(!teamList.find(t=>t.api===teamApi)){setTeamApi(hofInList?'__HOF__':teamList[0].api);} },[teamList,teamApi]);
+  useEffect(()=>{ if(teamList.length===0)return;const hofInList=teamList.find(t=>t.api==='__HOF__');if(hofInList&&teamApi!=='__HOF__'&&!localStorage.getItem('mnfl_team_chosen_'+slug)){setTeamApi('__HOF__');return;}if(!teamList.find(t=>t.api===teamApi)){setTeamApi(hofInList?'__HOF__':teamList[0].api);} },[teamList,teamApi]);
 
   // Vestiaire : epingles prioritaires, puis remplissage, puis TOUTES les cartes
   const lockerCards=useMemo(()=>{
@@ -600,15 +600,15 @@ export default function Home() {
         {/* FILTRES — ordre: Sport, Joueur, Equipe, Saison, Rarete, Edition, Tri */}
         {cards.length>0&&(
           <div style={{textAlign:'left',flex:1,minHeight:0,display:'flex',flexDirection:'column' as const,gap:0,borderTop:'1px solid rgba(255,255,255,0.06)',paddingTop:'0.3rem'}}>
-            <FilterMenu title='Sport' options={[{value:'nba',label:'NBA'},{value:'foot',label:'Football'}]} current={gSport} onSelect={(v:string)=>{setGSport(v as any);setGLeague('all');setGTeamCustom('all');setFSpecial('all');setTeamApi(HOF_KEY);setLockerStart(0);setFlippedSlug(null);localStorage.removeItem('mnfl_team_chosen');}}/>
+            <FilterMenu title='Sport' options={[{value:'nba',label:'NBA'},{value:'foot',label:'Football'}]} current={gSport} onSelect={(v:string)=>{setGSport(v as any);setGLeague('all');setGTeamCustom('all');setFSpecial('all');setTeamApi(HOF_KEY);setLockerStart(0);setFlippedSlug(null);localStorage.removeItem('mnfl_team_chosen_'+slug);}}/>
             <div style={{padding:'0.2rem 0.5rem'}}>
               <p style={{fontSize:'0.64rem',fontWeight:800,letterSpacing:'0.14em',textTransform:'uppercase',color:'#eaf2ff',margin:'0 0 0.2rem'}}>Joueur</p>
               <input style={{width:'100%',boxSizing:'border-box',background:'rgba(255,255,255,0.05)',color:'#e8eefc',padding:'0.3rem 0.5rem',borderRadius:'0.15rem',border:'1px solid rgba(255,255,255,0.12)',outline:'none',fontSize:'0.76rem'}} placeholder='Rechercher...' value={fPlayer} onChange={e=>setFPlayer(e.target.value)}/>
             </div>
             {gSport==='nba'?(
-              <FilterMenu title='Équipe' options={(galleryTeamList as string[]).map((n:string)=>({value:n,label:n==='all'?'Hall of Fame':n}))} current={gTeamCustom} onSelect={(v:string)=>{setGTeamCustom(v);if(mode==='locker'){if(v==='all'){setTeamApi(HOF_KEY);localStorage.removeItem('mnfl_team_chosen');}else{setTeamApi(v);localStorage.setItem('mnfl_team_chosen','1');}setLockerStart(0);setFlippedSlug(null);}}}/>
+              <FilterMenu title='Équipe' options={(galleryTeamList as string[]).map((n:string)=>({value:n,label:n==='all'?'Hall of Fame':n}))} current={gTeamCustom} onSelect={(v:string)=>{setGTeamCustom(v);if(mode==='locker'){if(v==='all'){setTeamApi(HOF_KEY);localStorage.removeItem('mnfl_team_chosen_'+slug);}else{setTeamApi(v);localStorage.setItem('mnfl_team_chosen_'+slug,'1');}setLockerStart(0);setFlippedSlug(null);}}}/>
             ):(
-              <FootTeamMenu countries={footCountries} teamsByCountry={teamsByCountry} country={gCountry} team={gTeamCustom} onPickCountry={(v:string)=>{setGCountry(v);setGTeamCustom('all');}} onPickTeam={(v:string)=>{if(v==='__HOF__'){setGTeamCustom('all');if(mode==='locker'){setTeamApi(HOF_KEY);setLockerStart(0);setFlippedSlug(null);localStorage.removeItem('mnfl_team_chosen');}return;}setGTeamCustom(v);if(mode==='locker'&&v!=='all'){setTeamApi(v);setLockerStart(0);setFlippedSlug(null);localStorage.setItem('mnfl_team_chosen','1');}}}/>
+              <FootTeamMenu countries={footCountries} teamsByCountry={teamsByCountry} country={gCountry} team={gTeamCustom} onPickCountry={(v:string)=>{setGCountry(v);setGTeamCustom('all');}} onPickTeam={(v:string)=>{if(v==='__HOF__'){setGTeamCustom('all');if(mode==='locker'){setTeamApi(HOF_KEY);setLockerStart(0);setFlippedSlug(null);localStorage.removeItem('mnfl_team_chosen_'+slug);}return;}setGTeamCustom(v);if(mode==='locker'&&v!=='all'){setTeamApi(v);setLockerStart(0);setFlippedSlug(null);localStorage.setItem('mnfl_team_chosen_'+slug,'1');}}}/>
             )}
             <FilterMenu title='Saison' options={seasonOpts} current={fSeason} onSelect={setFSeason}/>
             <FilterMenu title='Rareté' options={rarityOpts} current={fRarity} onSelect={setFRarity}/>
@@ -746,15 +746,15 @@ export default function Home() {
           </div>
           <div style={{flex:1,overflowY:'auto'}}>
           <div style={{textAlign:'left',flex:1,minHeight:0,display:'flex',flexDirection:'column' as const,gap:0,borderTop:'1px solid rgba(255,255,255,0.06)',paddingTop:'0.3rem'}}>
-            <FilterMenu title='Sport' options={[{value:'nba',label:'NBA'},{value:'foot',label:'Football'}]} current={gSport} onSelect={(v:string)=>{setGSport(v as any);setGLeague('all');setGTeamCustom('all');setFSpecial('all');setTeamApi(HOF_KEY);setLockerStart(0);setFlippedSlug(null);localStorage.removeItem('mnfl_team_chosen');}}/>
+            <FilterMenu title='Sport' options={[{value:'nba',label:'NBA'},{value:'foot',label:'Football'}]} current={gSport} onSelect={(v:string)=>{setGSport(v as any);setGLeague('all');setGTeamCustom('all');setFSpecial('all');setTeamApi(HOF_KEY);setLockerStart(0);setFlippedSlug(null);localStorage.removeItem('mnfl_team_chosen_'+slug);}}/>
             <div style={{padding:'0.2rem 0.5rem'}}>
               <p style={{fontSize:'0.64rem',fontWeight:800,letterSpacing:'0.14em',textTransform:'uppercase',color:'#eaf2ff',margin:'0 0 0.2rem'}}>Joueur</p>
               <input style={{width:'100%',boxSizing:'border-box',background:'rgba(255,255,255,0.05)',color:'#e8eefc',padding:'0.3rem 0.5rem',borderRadius:'0.15rem',border:'1px solid rgba(255,255,255,0.12)',outline:'none',fontSize:'0.76rem'}} placeholder='Rechercher...' value={fPlayer} onChange={e=>setFPlayer(e.target.value)}/>
             </div>
             {gSport==='nba'?(
-              <FilterMenu title='Équipe' options={(galleryTeamList as string[]).map((n:string)=>({value:n,label:n==='all'?'Hall of Fame':n}))} current={gTeamCustom} onSelect={(v:string)=>{setGTeamCustom(v);if(mode==='locker'){if(v==='all'){setTeamApi(HOF_KEY);localStorage.removeItem('mnfl_team_chosen');}else{setTeamApi(v);localStorage.setItem('mnfl_team_chosen','1');}setLockerStart(0);setFlippedSlug(null);}}}/>
+              <FilterMenu title='Équipe' options={(galleryTeamList as string[]).map((n:string)=>({value:n,label:n==='all'?'Hall of Fame':n}))} current={gTeamCustom} onSelect={(v:string)=>{setGTeamCustom(v);if(mode==='locker'){if(v==='all'){setTeamApi(HOF_KEY);localStorage.removeItem('mnfl_team_chosen_'+slug);}else{setTeamApi(v);localStorage.setItem('mnfl_team_chosen_'+slug,'1');}setLockerStart(0);setFlippedSlug(null);}}}/>
             ):(
-              <FootTeamMenu countries={footCountries} teamsByCountry={teamsByCountry} country={gCountry} team={gTeamCustom} onPickCountry={(v:string)=>{setGCountry(v);setGTeamCustom('all');}} onPickTeam={(v:string)=>{if(v==='__HOF__'){setGTeamCustom('all');if(mode==='locker'){setTeamApi(HOF_KEY);setLockerStart(0);setFlippedSlug(null);localStorage.removeItem('mnfl_team_chosen');}return;}setGTeamCustom(v);if(mode==='locker'&&v!=='all'){setTeamApi(v);setLockerStart(0);setFlippedSlug(null);localStorage.setItem('mnfl_team_chosen','1');}}}/>
+              <FootTeamMenu countries={footCountries} teamsByCountry={teamsByCountry} country={gCountry} team={gTeamCustom} onPickCountry={(v:string)=>{setGCountry(v);setGTeamCustom('all');}} onPickTeam={(v:string)=>{if(v==='__HOF__'){setGTeamCustom('all');if(mode==='locker'){setTeamApi(HOF_KEY);setLockerStart(0);setFlippedSlug(null);localStorage.removeItem('mnfl_team_chosen_'+slug);}return;}setGTeamCustom(v);if(mode==='locker'&&v!=='all'){setTeamApi(v);setLockerStart(0);setFlippedSlug(null);localStorage.setItem('mnfl_team_chosen_'+slug,'1');}}}/>
             )}
             <FilterMenu title='Saison' options={seasonOpts} current={fSeason} onSelect={setFSeason}/>
             <FilterMenu title='Rareté' options={rarityOpts} current={fRarity} onSelect={setFRarity}/>
