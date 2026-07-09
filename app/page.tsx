@@ -513,7 +513,14 @@ export default function Home() {
     return list;
   },[cards,hof,hofFoot,gSport]);
   const leagueOptions=useMemo(()=>{if(gSport==='nba')return[{v:'all',l:'NBA'}];return[{v:'all',l:'Toutes les ligues'}];},[gSport]);
-  useEffect(()=>{ if(teamList.length===0)return;const hofInList=teamList.find(t=>t.api==='__HOF__');if(hofInList&&teamApi!=='__HOF__'&&!localStorage.getItem('mnfl_team_chosen_'+slug)){setTeamApi('__HOF__');return;}if(!teamList.find(t=>t.api===teamApi)){setTeamApi(hofInList?'__HOF__':teamList[0].api);} },[teamList,teamApi]);
+  useEffect(()=>{
+    if(teamList.length===0)return;
+    const hofInList=teamList.find(t=>t.api==='__HOF__');
+    const chosenFlag=localStorage.getItem('mnfl_team_chosen_'+slug);
+    console.log('DEBUG TEAMLIST', {cardsLen:cards.length, loading, teamApi, hofInList:!!hofInList, hofCount:hofInList?hofInList.count:0, chosenFlag, teamListFirst5:teamList.slice(0,5).map(t=>t.api)});
+    if(hofInList&&teamApi!=='__HOF__'&&!chosenFlag){setTeamApi('__HOF__');return;}
+    if(!teamList.find(t=>t.api===teamApi)){setTeamApi(hofInList?'__HOF__':teamList[0].api);}
+  },[teamList,teamApi]);
 
   // Vestiaire : epingles prioritaires, puis remplissage, puis TOUTES les cartes
   const lockerCards=useMemo(()=>{
