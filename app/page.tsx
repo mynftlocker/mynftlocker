@@ -517,7 +517,7 @@ export default function Home() {
     if(teamList.length===0)return;
     const hofInList=teamList.find(t=>t.api==='__HOF__');
     const chosenFlag=localStorage.getItem('mnfl_team_chosen_'+slug);
-    console.log('DEBUG TEAMLIST', {cardsLen:cards.length, loading, teamApi, hofInList:!!hofInList, hofCount:hofInList?hofInList.count:0, chosenFlag, teamListFirst5:teamList.slice(0,5).map(t=>t.api), hofLen:hof.length, hofFootLen:hofFoot.length, hofSample:hof.slice(0,3), cardsSampleSlugs:cards.slice(0,3).map((c:any)=>c.slug), localStorageHof:localStorage.getItem('mynftlocker_hof_'+slug)});
+    console.log('DEBUG TEAMLIST ' + JSON.stringify({cardsLen:cards.length, loading, teamApi, hofInList:!!hofInList, hofCount:hofInList?hofInList.count:0, chosenFlag, hofLen:hof.length, hofFootLen:hofFoot.length, hofSample:hof.slice(0,5), cardsSampleSlugs:cards.slice(0,3).map((c:any)=>c.slug), localStorageHofRaw:localStorage.getItem('mynftlocker_hof_'+slug)}));
     if(hofInList&&teamApi!=='__HOF__'&&!chosenFlag){setTeamApi('__HOF__');return;}
     if(!teamList.find(t=>t.api===teamApi)){setTeamApi(hofInList?'__HOF__':teamList[0].api);}
   },[teamList,teamApi]);
