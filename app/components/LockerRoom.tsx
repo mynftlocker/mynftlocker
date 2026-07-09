@@ -221,7 +221,7 @@ export default function LockerRoomScene({cards=[],startIndex,hof=[],flippedSlug,
         <div style={{position:'relative',height:'100%',width:'100vw',maxWidth:'100vw',overflow:'hidden',background:'#0a0503'}}>
         <div ref={carouselRef} style={{display:'flex',width:'100vw',maxWidth:'100vw',height:'100%',overflowX:'auto',overflowY:'hidden',overflowAnchor:'none',scrollSnapType:'x mandatory',scrollBehavior:'smooth',WebkitOverflowScrolling:'touch',touchAction:'pan-x'}}>
           {cards.map((card,i)=>{
-            const mobileImg = isFoot?'locker-foot.png':'locker-NBA-mobile.png';
+            const mobileImg = isFoot?'locker-foot-mobile.png':'locker-NBA-mobile.png';
             const lastName = (card.anyPlayer?.lastName||parseCard(card.name).lastName).toUpperCase();
             return(
               <div key={'m'+card.slug} style={{flex:'0 0 100vw',width:'100vw',scrollSnapAlign:'center',position:'relative',height:'100%',background:'#0a0503'}}>
