@@ -611,11 +611,12 @@ export default function Home() {
         <div style={{display:'flex',flexDirection:'column' as const,gap:'0.2rem',marginBottom:'0.25rem'}}>
           <div onClick={()=>setAcctOpen(o=>!o)} style={{display:'flex',alignItems:'center',gap:'0.5rem',padding:'0.3rem 0.4rem',borderRadius:'0.3rem',cursor:'pointer',background:'rgba(255,255,255,0.03)',border:'1px solid rgba(111,195,232,0.18)',transition:'all 0.15s'}} onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.background='rgba(111,195,232,0.08)';}} onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.background='rgba(255,255,255,0.03)';}}>
             <div style={{width:'28px',height:'28px',flexShrink:0,borderRadius:'50%',background:'radial-gradient(circle at 35% 30%,#1a1c24,#0a0b0f)',border:'1.5px solid #6fc3e8',boxShadow:'0 0 10px rgba(111,195,232,0.5)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'0.78rem',fontWeight:900,color:'#6fc3e8'}}>{(slug||'?').trim().charAt(0).toUpperCase()||'?'}</div>
-            {cards.length>0&&(()=>{const b=collectionBadge(cards.length);return(<div title={cards.length+' cartes'} style={{width:'30px',height:'30px',flexShrink:0,borderRadius:'50%',background:b.bg,border:'2px solid '+b.border,boxShadow:'0 0 10px '+b.glow,display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden'}}><img src={'/'+b.img} alt='' style={{width:'80%',height:'80%',objectFit:'contain'}} onError={(e)=>{(e.target as HTMLImageElement).style.display='none';}}/></div>);})()}
             <div style={{flex:1,minWidth:0,textAlign:'left'}}>
               <p style={{margin:0,fontSize:'0.72rem',fontWeight:700,color:'#eaf2ff',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{cards.length>0?'Ma collection':'Mon compte'}</p>
               <p style={{margin:0,fontSize:'0.56rem',color:'#7a8898'}}>{cards.length>0?(cards.length+' cartes'):'Identifiant Sorare'}</p>
             </div>
+            {/* BADGE REPOSITIONNE : plus grand, sans cercle, juste avant le chevron */}
+            {cards.length>0&&(()=>{const b=collectionBadge(cards.length);return(<img title={cards.length+' cartes'} src={'/'+b.img} alt='' style={{width:'40px',height:'40px',flexShrink:0,objectFit:'contain',filter:'drop-shadow(0 0 6px '+b.glow+')'}} onError={(e)=>{(e.target as HTMLImageElement).style.display='none';}}/>);})()}
             <span style={{fontSize:'0.6rem',color:'#6fc3e8',opacity:0.8}}>{(acctOpen||cards.length===0)?'▲':'▼'}</span>
           </div>
           {(acctOpen||cards.length===0)&&(
@@ -785,11 +786,12 @@ export default function Home() {
               <img src='/logo-pack.png' alt='myNFTlocker' style={{height:'62px',width:'auto',flexShrink:0,filter:'drop-shadow(0 6px 18px rgba(0,0,0,0.6))'}} onError={(e)=>{(e.target as HTMLImageElement).style.display='none';}}/>
               <div onClick={()=>setAcctOpen(o=>!o)} style={{flex:1,minWidth:0,display:'flex',alignItems:'center',gap:'0.5rem',padding:'0.4rem 0.5rem',borderRadius:'0.3rem',cursor:'pointer',background:'rgba(255,255,255,0.03)',border:'1px solid rgba(111,195,232,0.18)'}}>
               <div style={{width:'32px',height:'32px',flexShrink:0,borderRadius:'50%',background:'radial-gradient(circle at 35% 30%,#1a1c24,#0a0b0f)',border:'1.5px solid #6fc3e8',boxShadow:'0 0 10px rgba(111,195,232,0.5)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'0.85rem',fontWeight:900,color:'#6fc3e8'}}>{(slug||'?').trim().charAt(0).toUpperCase()||'?'}</div>
-              {cards.length>0&&(()=>{const b=collectionBadge(cards.length);return(<div title={cards.length+' cartes'} style={{width:'34px',height:'34px',flexShrink:0,borderRadius:'50%',background:b.bg,border:'2px solid '+b.border,boxShadow:'0 0 10px '+b.glow,display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden'}}><img src={'/'+b.img} alt='' style={{width:'80%',height:'80%',objectFit:'contain'}} onError={(e)=>{(e.target as HTMLImageElement).style.display='none';}}/></div>);})()}
               <div style={{flex:1,minWidth:0,textAlign:'left'}}>
                 <p style={{margin:0,fontSize:'0.8rem',fontWeight:700,color:'#eaf2ff',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{cards.length>0?'Ma collection':'Mon compte'}</p>
                 <p style={{margin:0,fontSize:'0.62rem',color:'#7a8898'}}>{cards.length>0?(cards.length+' cartes'):'Identifiant Sorare'}</p>
               </div>
+              {/* BADGE REPOSITIONNE : plus grand, sans cercle, juste avant le chevron */}
+              {cards.length>0&&(()=>{const b=collectionBadge(cards.length);return(<img title={cards.length+' cartes'} src={'/'+b.img} alt='' style={{width:'46px',height:'46px',flexShrink:0,objectFit:'contain',filter:'drop-shadow(0 0 6px '+b.glow+')'}} onError={(e)=>{(e.target as HTMLImageElement).style.display='none';}}/>);})()}
               <span style={{fontSize:'0.65rem',color:'#6fc3e8',opacity:0.8}}>{(acctOpen||cards.length===0)?'▲':'▼'}</span>
               </div>
             </div>
