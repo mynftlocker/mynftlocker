@@ -47,9 +47,9 @@ export default function GalleryView({cards}:{cards:any[]}){
         <>
         <div style={{display:'flex',alignItems:'center',justifyContent:'flex-end',gap:'0.5rem',marginBottom:'0.8rem'}}>
           <span style={{fontSize:'0.7rem',color:'rgba(207,216,230,0.6)',letterSpacing:'0.05em',textTransform:'uppercase' as const}}>Taille</span>
-          <button onClick={()=>changeCols(1)} disabled={galleryCols<=1} style={{width:'26px',height:'26px',borderRadius:'0.3rem',background:'rgba(64,232,255,0.1)',border:'1px solid rgba(64,232,255,0.4)',color:'#40e8ff',cursor:galleryCols<=1?'not-allowed':'pointer',opacity:galleryCols<=1?0.4:1,fontSize:'1rem',lineHeight:1}}>−</button>
+          <button onClick={()=>changeCols(-1)} disabled={galleryCols<=1} style={{width:'26px',height:'26px',borderRadius:'0.3rem',background:'rgba(64,232,255,0.1)',border:'1px solid rgba(64,232,255,0.4)',color:'#40e8ff',cursor:galleryCols<=1?'not-allowed':'pointer',opacity:galleryCols<=1?0.4:1,fontSize:'1rem',lineHeight:1}}>−</button>
           <span style={{fontSize:'0.75rem',color:'#eaf2ff',minWidth:'14px',textAlign:'center' as const}}>{galleryCols}</span>
-          <button onClick={()=>changeCols(-1)} disabled={galleryCols>=8} style={{width:'26px',height:'26px',borderRadius:'0.3rem',background:'rgba(64,232,255,0.1)',border:'1px solid rgba(64,232,255,0.4)',color:'#40e8ff',cursor:galleryCols>=8?'not-allowed':'pointer',opacity:galleryCols>=8?0.4:1,fontSize:'1rem',lineHeight:1}}>+</button>
+          <button onClick={()=>changeCols(1)} disabled={galleryCols>=8} style={{width:'26px',height:'26px',borderRadius:'0.3rem',background:'rgba(64,232,255,0.1)',border:'1px solid rgba(64,232,255,0.4)',color:'#40e8ff',cursor:galleryCols>=8?'not-allowed':'pointer',opacity:galleryCols>=8?0.4:1,fontSize:'1rem',lineHeight:1}}>+</button>
         </div>
         <div style={{display:'grid',gridTemplateColumns:'repeat('+galleryCols+',1fr)',gap:'1.4rem'}}>
           {cards.map(c=>(<GalleryCard key={c.slug} card={c} isFlipped={activeSlug===c.slug} onFlip={handleFlip}/>))}
