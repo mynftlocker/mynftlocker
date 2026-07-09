@@ -423,7 +423,7 @@ export default function Home() {
     const SORARE_URL='https://api.sorare.com/federation/graphql';
     const fetchPage=async(cursor:string|null):Promise<{cards:any[],hasNextPage:boolean,cursor:string|null}|null>=>{
       const after=cursor?`, after: "${cursor}"` :'';
-      const query=`query{user(slug:"${slug}"){cards(first:25${after}){nodes{__typename slug name rarityTyped pictureUrl anyPlayer{lastName shirtNumber}anyTeam{name ...on Club{country{slug}}}...on NBACard{seasonYear specialEdition power xp averageScore(type:LAST_TEN_PLAYED_SO5_AVERAGE_SCORE)}}pageInfo{hasNextPage endCursor}}}}`;
+      const query=`query{user(slug:"${slug}"){cards(first:25${after}){nodes{__typename slug name rarityTyped pictureUrl videoUrl anyPlayer{lastName shirtNumber}anyTeam{name ...on Club{country{slug}}}...on NBACard{seasonYear specialEdition power xp averageScore(type:LAST_TEN_PLAYED_SO5_AVERAGE_SCORE)}}pageInfo{hasNextPage endCursor}}}}`;
       // 1. Essai direct navigateur (IP residentielle)
       try{
         const r=await fetch(SORARE_URL,{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({query}),signal:AbortSignal.timeout(20000)});
@@ -452,7 +452,7 @@ export default function Home() {
           console.error('Page'+pageNum+' attempt'+(attempt+1)+' failed');
         }
         if(!data){if(all.length===0){setError('Joueur introuvable');setOpenPhase(0);}break;}
-        all.push(...data.cards);
+        all.push(...data.cards); if(pageNum===1){const withVideo=data.cards.filter((c:any)=>c.videoUrl); if(withVideo.length>0) console.log('DEBUG videoUrl trouve sur '+withVideo.length+' carte(s):', withVideo.map((c:any)=>({name:c.name,url:c.videoUrl})));}
         setCards([...all]);
         more=data.hasNextPage;
         cur=data.cursor;
