@@ -770,25 +770,26 @@ export default function Home() {
 
       {/* ===== PANNEAU FILTRES MOBILE (placeholder Etape 2, rempli Etape 3) ===== */}
       {filtersOpen&&(
-        <div className='mnfl-filters-sheet' style={{position:'fixed',left:0,right:0,bottom:'62px',top:0,background:'rgba(5,7,11,0.97)',backdropFilter:'blur(10px)',zIndex:59,display:'none',flexDirection:'column' as const,padding:'1rem',overflowY:'auto'}}>
+        <div className='mnfl-filters-sheet' style={{position:'fixed',left:0,right:0,bottom:'62px',top:0,background:'rgba(5,7,11,0.97)',backdropFilter:'blur(10px)',zIndex:59,display:'none',flexDirection:'column' as const,padding:'0.6rem 1rem 0.6rem',overflowY:'auto'}}>
           {/* LOGO+COMPTE MOBILE : identique au sidebar desktop, absent sur mobile jusqu'ici */}
-          <div style={{textAlign:'center',marginBottom:'0.3rem'}}>
-            <img src='/logo-pack.png' alt='myNFTlocker' style={{display:'inline-block',height:'56px',width:'auto',filter:'drop-shadow(0 6px 18px rgba(0,0,0,0.6))'}} onError={(e)=>{(e.target as HTMLImageElement).style.display='none';}}/>
-          </div>
-          <div style={{display:'flex',flexDirection:'column' as const,gap:'0.15rem',marginBottom:'0.4rem'}}>
-            <div onClick={()=>setAcctOpen(o=>!o)} style={{display:'flex',alignItems:'center',gap:'0.5rem',padding:'0.4rem 0.5rem',borderRadius:'0.3rem',cursor:'pointer',background:'rgba(255,255,255,0.03)',border:'1px solid rgba(111,195,232,0.18)'}}>
+          <div style={{display:'flex',flexDirection:'column' as const,gap:'0.15rem',marginBottom:'0.35rem'}}>
+            {/* LOGO+COMPTE FUSIONNES sur une seule ligne (gain de hauteur + logo plus visible) */}
+            <div style={{display:'flex',alignItems:'center',gap:'0.6rem'}}>
+              <img src='/logo-pack.png' alt='myNFTlocker' style={{height:'62px',width:'auto',flexShrink:0,filter:'drop-shadow(0 6px 18px rgba(0,0,0,0.6))'}} onError={(e)=>{(e.target as HTMLImageElement).style.display='none';}}/>
+              <div onClick={()=>setAcctOpen(o=>!o)} style={{flex:1,minWidth:0,display:'flex',alignItems:'center',gap:'0.5rem',padding:'0.4rem 0.5rem',borderRadius:'0.3rem',cursor:'pointer',background:'rgba(255,255,255,0.03)',border:'1px solid rgba(111,195,232,0.18)'}}>
               <div style={{width:'32px',height:'32px',flexShrink:0,borderRadius:'50%',background:'radial-gradient(circle at 35% 30%,#1a1c24,#0a0b0f)',border:'1.5px solid #6fc3e8',boxShadow:'0 0 10px rgba(111,195,232,0.5)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'0.85rem',fontWeight:900,color:'#6fc3e8'}}>{(slug||'?').trim().charAt(0).toUpperCase()||'?'}</div>
               <div style={{flex:1,minWidth:0,textAlign:'left'}}>
                 <p style={{margin:0,fontSize:'0.8rem',fontWeight:700,color:'#eaf2ff',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{cards.length>0?'Ma collection':'Mon compte'}</p>
                 <p style={{margin:0,fontSize:'0.62rem',color:'#7a8898'}}>{cards.length>0?(cards.length+' cartes'):'Identifiant Sorare'}</p>
               </div>
               <span style={{fontSize:'0.65rem',color:'#6fc3e8',opacity:0.8}}>{(acctOpen||cards.length===0)?'▲':'▼'}</span>
+              </div>
             </div>
             {(acctOpen||cards.length===0)&&(
               <input style={{background:'rgba(255,255,255,0.05)',color:'#cfe4fb',padding:'0.4rem 0.6rem',borderRadius:'0.2rem',border:'1px solid rgba(255,255,255,0.1)',outline:'none',fontSize:'0.85rem',boxSizing:'border-box' as const}} placeholder='ton-slug-sorare' value={slug} onChange={e=>setSlug(e.target.value)} onKeyDown={e=>e.key==='Enter'&&fetchCards()}/>
             )}
           </div>
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'1rem'}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'0.4rem'}}>
             <span style={{color:'#f5d76e',fontWeight:800,fontSize:'1rem',letterSpacing:'0.05em'}}>FILTRES</span>
             <button onClick={()=>setFiltersOpen(false)} style={{background:'transparent',border:'1px solid rgba(64,232,255,0.4)',color:'#40e8ff',borderRadius:'0.4rem',padding:'0.3rem 0.7rem',cursor:'pointer',fontSize:'0.8rem'}}>Fermer</button>
           </div>
