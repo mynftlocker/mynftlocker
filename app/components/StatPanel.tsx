@@ -26,8 +26,8 @@ export const parseCard=(name:string)=>{
 export const nfs=(l:number)=>l<=5?'1.45rem':l<=7?'1.2rem':l<=9?'1rem':l<=11?'0.82rem':l<=13?'0.7rem':'0.6rem';
 
 export const CardBack=memo(({card,rc,mobile}:any)=>{
-  const sz=(remStr:string,px:number)=>mobile?(Math.round(px/140*10000)/100)+'cqw':remStr;
-  const nfsCard=(l:number)=>mobile?(l<=5?'16.57cqw':l<=7?'13.71cqw':l<=9?'11.43cqw':l<=11?'9.37cqw':l<=13?'8.0cqw':'6.86cqw'):nfs(l);
+  const sz=(remStr:string,px:number)=>mobile?(Math.round(px/115*10000)/100)+'cqw':remStr;
+  const nfsCard=(l:number)=>mobile?(l<=5?'20.17cqw':l<=7?'16.70cqw':l<=9?'13.91cqw':l<=11?'11.41cqw':l<=13?'9.74cqw':'8.35cqw'):nfs(l);
   const {season,serial}=parseCard(card.name);
   const ln=(card.anyPlayer?.lastName||parseCard(card.name).lastName).toUpperCase();
   const sn=card.anyPlayer?.shirtNumber??null;
