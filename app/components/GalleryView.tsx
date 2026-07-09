@@ -1,5 +1,5 @@
 "use client";
-import { memo, useState, useEffect } from 'react';
+import { memo, useState, useEffect, useRef } from 'react';
 import { StatPanel, CardBack, RARITY_GLOW, RARITY_COLOR, RARITY_FILL } from './StatPanel';
 
 // Carte galerie : flip 3D + halo cyan + trace (memes animations que le vestiaire)
@@ -36,6 +36,28 @@ export default function GalleryView({cards}:{cards:any[]}){
     setGalleryCols(w<480?2:w<768?3:w<1100?4:5);
   },[]);
   const changeCols=(delta:number)=>{setGalleryCols(c=>{const next=Math.min(8,Math.max(1,c+delta));localStorage.setItem('mnfl_gallery_cols',String(next));return next;});};
+  const gridRef=useRef<HTMLDivElement>(null);
+  useEffect(()=>{
+    const el=gridRef.current; if(!el) return;
+    let startDist=0, active=false;
+    const dist=(t:TouchList)=>{const dx=t[0].clientX-t[1].clientX,dy=t[0].clientY-t[1].clientY;return Math.sqrt(dx*dx+dy*dy);};
+    const onStart=(e:TouchEvent)=>{ if(e.touches.length===2){ startDist=dist(e.touches); active=true; } };
+    const onMove=(e:TouchEvent)=>{
+      if(e.touches.length===2 && active){
+        e.preventDefault();
+        const d=dist(e.touches); const delta=d-startDist; const THRESHOLD=55;
+        if(Math.abs(delta)>THRESHOLD){
+          changeCols(delta>0?-1:1); // ecarter les doigts = zoom avant = moins de colonnes ; pincer = plus de colonnes
+          startDist=d;
+        }
+      }
+    };
+    const onEnd=()=>{active=false;};
+    el.addEventListener('touchstart',onStart,{passive:true});
+    el.addEventListener('touchmove',onMove,{passive:false});
+    el.addEventListener('touchend',onEnd,{passive:true});
+    return ()=>{ el.removeEventListener('touchstart',onStart); el.removeEventListener('touchmove',onMove); el.removeEventListener('touchend',onEnd); };
+  },[]);
   const [isClosing,setIsClosing]=useState(false);
   const startClose=()=>{setIsClosing(true);setTimeout(()=>{setActiveSlug(null);setIsClosing(false);},600);};
   const handleFlip=(slug:string)=>{if(slug===activeSlug){startClose();}else{setActiveSlug(slug);setIsClosing(false);}};
@@ -55,7 +77,7 @@ export default function GalleryView({cards}:{cards:any[]}){
           <span style={{fontSize:'0.75rem',color:'#eaf2ff',minWidth:'14px',textAlign:'center' as const}}>{galleryCols}</span>
           <button onClick={()=>changeCols(1)} disabled={galleryCols>=8} style={{width:'26px',height:'26px',borderRadius:'0.3rem',background:'rgba(64,232,255,0.1)',border:'1px solid rgba(64,232,255,0.4)',color:'#40e8ff',cursor:galleryCols>=8?'not-allowed':'pointer',opacity:galleryCols>=8?0.4:1,fontSize:'1rem',lineHeight:1}}>+</button>
         </div>
-        <div style={{display:'grid',gridTemplateColumns:'repeat('+galleryCols+',1fr)',gap:gapFor(galleryCols)}}>
+        <div ref={gridRef} style={{display:'grid',gridTemplateColumns:'repeat('+galleryCols+',1fr)',gap:gapFor(galleryCols),touchAction:'pan-y'}}>
           {cards.map(c=>(<GalleryCard key={c.slug} card={c} isFlipped={activeSlug===c.slug} onFlip={handleFlip} glowScale={glowScaleFor(galleryCols)}/>))}
         </div>
         </>
