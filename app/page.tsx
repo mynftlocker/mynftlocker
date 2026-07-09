@@ -339,11 +339,12 @@ export default function Home() {
   const [defaultTeam, setDefaultTeam] = useState('');
 
   useEffect(() => {
+    if(!slug) return;
     const savedF=localStorage.getItem('mynftlocker_hof_foot_'+slug);
     if(savedF){try{setHofFoot(JSON.parse(savedF));}catch{}}
     const saved=localStorage.getItem('mynftlocker_hof_'+slug)||localStorage.getItem('myNFTlocker_hof_'+slug);
     if(saved){setHof(JSON.parse(saved));localStorage.setItem('mynftlocker_hof_'+slug,saved);}
-  }, []);
+  }, [slug]);
 
   useEffect(()=>{const h=(e:MouseEvent)=>{mouseXYRef.current={x:(e.clientX/window.innerWidth-0.5)*2,y:(e.clientY/window.innerHeight-0.5)*2};};window.addEventListener('mousemove',h);return()=>window.removeEventListener('mousemove',h);},[]);
   useEffect(()=>{let i=0;let iv:any;const t=setTimeout(()=>{iv=setInterval(()=>{i++;setTypedIntro(INTRO_TEXT.slice(0,i));if(i>=INTRO_TEXT.length)clearInterval(iv);},55);},600);return()=>{clearTimeout(t);clearInterval(iv);};},[]);
@@ -513,14 +514,7 @@ export default function Home() {
     return list;
   },[cards,hof,hofFoot,gSport]);
   const leagueOptions=useMemo(()=>{if(gSport==='nba')return[{v:'all',l:'NBA'}];return[{v:'all',l:'Toutes les ligues'}];},[gSport]);
-  useEffect(()=>{
-    if(teamList.length===0)return;
-    const hofInList=teamList.find(t=>t.api==='__HOF__');
-    const chosenFlag=localStorage.getItem('mnfl_team_chosen_'+slug);
-    console.log('DEBUG TEAMLIST ' + JSON.stringify({cardsLen:cards.length, loading, teamApi, hofInList:!!hofInList, hofCount:hofInList?hofInList.count:0, chosenFlag, hofLen:hof.length, hofFootLen:hofFoot.length, hofSample:hof.slice(0,5), cardsSampleSlugs:cards.slice(0,3).map((c:any)=>c.slug), localStorageHofRaw:localStorage.getItem('mynftlocker_hof_'+slug)}));
-    if(hofInList&&teamApi!=='__HOF__'&&!chosenFlag){setTeamApi('__HOF__');return;}
-    if(!teamList.find(t=>t.api===teamApi)){setTeamApi(hofInList?'__HOF__':teamList[0].api);}
-  },[teamList,teamApi]);
+  useEffect(()=>{ if(teamList.length===0)return;const hofInList=teamList.find(t=>t.api==='__HOF__');if(hofInList&&teamApi!=='__HOF__'&&!localStorage.getItem('mnfl_team_chosen_'+slug)){setTeamApi('__HOF__');return;}if(!teamList.find(t=>t.api===teamApi)){setTeamApi(hofInList?'__HOF__':teamList[0].api);} },[teamList,teamApi]);
 
   // Vestiaire : epingles prioritaires, puis remplissage, puis TOUTES les cartes
   const lockerCards=useMemo(()=>{
