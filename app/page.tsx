@@ -218,7 +218,13 @@ const FootTeamMenu=({countries,teamsByCountry,country,team,onPickCountry,onPickT
   const sortedCountries=[...new Set<string>(mergedCountries)].sort((a:string,b:string)=>{if(a==='__NATIONAL__')return 1;if(b==='__NATIONAL__')return -1;return countryFR(a).localeCompare(countryFR(b),'fr');});
   const enter=()=>{
     const el=ref.current;
-    if(el){const r=el.getBoundingClientRect();setPosL(r.right);setPosT(r.top);}
+    if(el){
+      const r=el.getBoundingClientRect();
+      const FOOT_MENU_W=400; // cascade pays+clubs cote a cote (2 x 190px + marge)
+      let left=r.right;
+      if(left+FOOT_MENU_W>window.innerWidth-8){left=Math.max(8,window.innerWidth-FOOT_MENU_W-8);}
+      setPosL(left);setPosT(r.top);
+    }
     setOpen(true);
   };
   const btnStyle=(sel:boolean):React.CSSProperties=>({
