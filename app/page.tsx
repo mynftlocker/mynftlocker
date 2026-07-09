@@ -772,10 +772,10 @@ export default function Home() {
       {filtersOpen&&(
         <div className='mnfl-filters-sheet' style={{position:'fixed',left:0,right:0,bottom:'62px',top:0,background:'rgba(5,7,11,0.97)',backdropFilter:'blur(10px)',zIndex:59,display:'none',flexDirection:'column' as const,padding:'1rem',overflowY:'auto'}}>
           {/* LOGO+COMPTE MOBILE : identique au sidebar desktop, absent sur mobile jusqu'ici */}
-          <div style={{textAlign:'center',marginBottom:'0.6rem'}}>
-            <img src='/logo-pack.png' alt='myNFTlocker' style={{display:'inline-block',height:'80px',width:'auto',filter:'drop-shadow(0 6px 18px rgba(0,0,0,0.6))'}} onError={(e)=>{(e.target as HTMLImageElement).style.display='none';}}/>
+          <div style={{textAlign:'center',marginBottom:'0.3rem'}}>
+            <img src='/logo-pack.png' alt='myNFTlocker' style={{display:'inline-block',height:'56px',width:'auto',filter:'drop-shadow(0 6px 18px rgba(0,0,0,0.6))'}} onError={(e)=>{(e.target as HTMLImageElement).style.display='none';}}/>
           </div>
-          <div style={{display:'flex',flexDirection:'column' as const,gap:'0.2rem',marginBottom:'0.8rem'}}>
+          <div style={{display:'flex',flexDirection:'column' as const,gap:'0.15rem',marginBottom:'0.4rem'}}>
             <div onClick={()=>setAcctOpen(o=>!o)} style={{display:'flex',alignItems:'center',gap:'0.5rem',padding:'0.4rem 0.5rem',borderRadius:'0.3rem',cursor:'pointer',background:'rgba(255,255,255,0.03)',border:'1px solid rgba(111,195,232,0.18)'}}>
               <div style={{width:'32px',height:'32px',flexShrink:0,borderRadius:'50%',background:'radial-gradient(circle at 35% 30%,#1a1c24,#0a0b0f)',border:'1.5px solid #6fc3e8',boxShadow:'0 0 10px rgba(111,195,232,0.5)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'0.85rem',fontWeight:900,color:'#6fc3e8'}}>{(slug||'?').trim().charAt(0).toUpperCase()||'?'}</div>
               <div style={{flex:1,minWidth:0,textAlign:'left'}}>

@@ -36,7 +36,7 @@ html, body { max-width: 100%; overflow-x: hidden; }
 /* Valeurs selectionnees (NBA, Hall of Fame, Toutes saisons...) */
 .mnfl-filters-sheet p:last-child { font-size: 0.9rem !important; }
 /* Espacement vertical des modules (zones tactiles plus grandes) */
-.mnfl-filters-sheet > div > div > div { padding-top: 0.5rem !important; padding-bottom: 0.5rem !important; margin-bottom: 0.2rem !important; }
+.mnfl-filters-sheet > div > div > div { padding-top: 0.3rem !important; padding-bottom: 0.3rem !important; margin-bottom: 0.05rem !important; }
 /* Champ de recherche joueur plus grand */
 .mnfl-filters-sheet input { font-size: 0.9rem !important; padding: 0.55rem 0.6rem !important; }
 
