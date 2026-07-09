@@ -32,8 +32,7 @@ export default function GalleryView({cards}:{cards:any[]}){
   useEffect(()=>{
     const saved=localStorage.getItem('mnfl_gallery_cols');
     if(saved){setGalleryCols(Math.min(8,Math.max(1,parseInt(saved,10)||4)));return;}
-    const w=window.innerWidth;
-    setGalleryCols(w<480?2:w<768?3:w<1100?4:5);
+    setGalleryCols(4);
   },[]);
   const changeCols=(delta:number)=>{setGalleryCols(c=>{const next=Math.min(8,Math.max(1,c+delta));localStorage.setItem('mnfl_gallery_cols',String(next));return next;});};
   const gridRef=useRef<HTMLDivElement>(null);
