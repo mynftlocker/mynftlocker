@@ -4,6 +4,7 @@ import { StatPanel, CardBack, RARITY_GLOW, RARITY_COLOR, RARITY_FILL } from './S
 
 // Carte galerie : flip 3D + halo cyan + trace (memes animations que le vestiaire)
 const scaleGlow=(glowStr:string,scale:number)=>glowStr.replace(/(\d+(?:\.\d+)?)px/g,(_,n)=>(parseFloat(n)*scale).toFixed(1)+'px');
+const gapFor=(cols:number)=>cols<=3?'1.4rem':cols===4?'1rem':cols===5?'0.75rem':cols===6?'0.55rem':cols===7?'0.42rem':'0.32rem';
 const glowScaleFor=(cols:number)=>cols<=3?1:cols===4?0.8:cols===5?0.65:cols===6?0.55:cols===7?0.48:0.42;
 const GalleryCard=memo(({card,isFlipped,onFlip,glowScale}:any)=>{
   const [hover,setHover]=useState(false);
@@ -54,7 +55,7 @@ export default function GalleryView({cards}:{cards:any[]}){
           <span style={{fontSize:'0.75rem',color:'#eaf2ff',minWidth:'14px',textAlign:'center' as const}}>{galleryCols}</span>
           <button onClick={()=>changeCols(1)} disabled={galleryCols>=8} style={{width:'26px',height:'26px',borderRadius:'0.3rem',background:'rgba(64,232,255,0.1)',border:'1px solid rgba(64,232,255,0.4)',color:'#40e8ff',cursor:galleryCols>=8?'not-allowed':'pointer',opacity:galleryCols>=8?0.4:1,fontSize:'1rem',lineHeight:1}}>+</button>
         </div>
-        <div style={{display:'grid',gridTemplateColumns:'repeat('+galleryCols+',1fr)',gap:'1.4rem'}}>
+        <div style={{display:'grid',gridTemplateColumns:'repeat('+galleryCols+',1fr)',gap:gapFor(galleryCols)}}>
           {cards.map(c=>(<GalleryCard key={c.slug} card={c} isFlipped={activeSlug===c.slug} onFlip={handleFlip} glowScale={glowScaleFor(galleryCols)}/>))}
         </div>
         </>
