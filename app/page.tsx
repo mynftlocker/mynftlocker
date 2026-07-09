@@ -160,6 +160,18 @@ const FilterMenu=({title,options,current,onSelect}:any)=>{
   const ref=useRef<HTMLDivElement>(null);
   const cur=options.find((o:any)=>o.value===current);
   const enter=()=>{const el=ref.current;if(el){const r=el.getBoundingClientRect();const need=options.length*36+14;const avail=window.innerHeight-16;const h=Math.min(need,avail);const top=Math.max(8,Math.min(r.top,window.innerHeight-h-8));const MENU_W=200;let left=r.right;if(left+MENU_W>window.innerWidth-8){left=Math.max(8,r.left-MENU_W);if(left<8)left=window.innerWidth-MENU_W-8;}setPos({left,top,maxH:h});}setOpen(true);};
+  const menuRef=useRef<HTMLDivElement>(null);
+  useEffect(()=>{
+    if(!open) return;
+    const onOutside=(e:PointerEvent)=>{
+      const t=e.target as Node;
+      if(ref.current&&ref.current.contains(t)) return;
+      if(menuRef.current&&menuRef.current.contains(t)) return;
+      setOpen(false);
+    };
+    document.addEventListener('pointerdown',onOutside);
+    return ()=>document.removeEventListener('pointerdown',onOutside);
+  },[open]);
   return(
     <div ref={ref} style={{position:'relative',marginBottom:'0.15rem'}} onMouseEnter={enter} onMouseLeave={()=>setOpen(false)}>
       {/* Declencheur pleine largeur : reste sombre, fine ligne au survol */}
@@ -168,7 +180,7 @@ const FilterMenu=({title,options,current,onSelect}:any)=>{
         <p style={{fontSize:'0.8rem',fontWeight:500,color:open?'#6fc3e8':'#ffffff',opacity:open?1:0.6,margin:0,transition:'all 0.12s',display:'flex',alignItems:'center',justifyContent:'space-between'}}>{cur?cur.label:'—'} <span style={{fontSize:'0.7rem',opacity:0.7}}>›</span></p>
       </div>
       {open&&mounted&&createPortal(
-        <div className='thin-sb' style={{position:'fixed',left:pos.left+'px',top:pos.top+'px',maxHeight:pos.maxH+'px',overflowY:'auto',minWidth:'190px',background:'#080a0e',border:'1px solid #6fc3e8',borderRadius:'0.4rem',padding:'0.3rem',boxShadow:'0 14px 38px rgba(0,0,0,0.7),0 0 14px rgba(111,195,232,0.18)',zIndex:9999}}>
+        <div ref={menuRef} className='thin-sb' style={{position:'fixed',left:pos.left+'px',top:pos.top+'px',maxHeight:pos.maxH+'px',overflowY:'auto',minWidth:'190px',background:'#080a0e',border:'1px solid #6fc3e8',borderRadius:'0.4rem',padding:'0.3rem',boxShadow:'0 14px 38px rgba(0,0,0,0.7),0 0 14px rgba(111,195,232,0.18)',zIndex:9999}}>
             {options.map((o:any)=>(
               <button key={o.value} onClick={()=>onSelect(o.value)} style={{display:'block',width:'100%',textAlign:'left',padding:'0.4rem 0.7rem',borderRadius:'0.25rem',border:'none',borderLeft:o.value===current?'2px solid #f5d76e':'2px solid transparent',cursor:'pointer',fontSize:'0.8rem',fontWeight:o.value===current?700:500,background:o.value===current?'rgba(245,215,110,0.12)':'transparent',color:o.value===current?'#f5d76e':'#cfd8e6',transition:'background 0.1s'}} onMouseEnter={e=>{if(o.value!==current)(e.currentTarget as HTMLElement).style.background='rgba(111,195,232,0.12)';}} onMouseLeave={e=>{if(o.value!==current)(e.currentTarget as HTMLElement).style.background='transparent';}}>{o.label}</button>
             ))}
