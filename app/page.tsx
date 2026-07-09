@@ -411,10 +411,10 @@ export default function Home() {
   useEffect(()=>{ if(!slug) return; setDefaultTeam(localStorage.getItem('mynftlocker_default_team_'+slug)||''); },[slug]);
   const handleSetDefault=useCallback((api:string)=>{ localStorage.setItem('mynftlocker_default_team_'+slug,api); setDefaultTeam(api); },[slug]);
   const collectionBadge=(n:number)=>{
-    if(n>=2500) return {emoji:'🐋',border:'#f5d76e',glow:'rgba(245,215,110,0.65)',bg:'radial-gradient(circle at 35% 30%,#3a2c05,#0a0603)'};
-    if(n>=1500) return {emoji:'🐋',border:'#40e8ff',glow:'rgba(64,232,255,0.6)',bg:'radial-gradient(circle at 35% 30%,#0a1c24,#040a0d)'};
-    if(n>=500) return {emoji:'🐬',border:'#40e8ff',glow:'rgba(64,232,255,0.55)',bg:'radial-gradient(circle at 35% 30%,#0a1c24,#040a0d)'};
-    return {emoji:'🐟',border:'#40e8ff',glow:'rgba(64,232,255,0.5)',bg:'radial-gradient(circle at 35% 30%,#0a1c24,#040a0d)'};
+    if(n>=2500) return {emoji:'🐋',border:'#fff3cf',glow:'rgba(245,215,110,0.8)',bg:'radial-gradient(circle at 35% 30%,#f5d76e,#b8860b)'};
+    if(n>=1500) return {emoji:'🐋',border:'#cdf5ff',glow:'rgba(64,232,255,0.75)',bg:'radial-gradient(circle at 35% 30%,#6fe0ff,#0088aa)'};
+    if(n>=500) return {emoji:'🐬',border:'#cdf5ff',glow:'rgba(64,232,255,0.7)',bg:'radial-gradient(circle at 35% 30%,#6fe0ff,#0088aa)'};
+    return {emoji:'🐟',border:'#cdf5ff',glow:'rgba(64,232,255,0.65)',bg:'radial-gradient(circle at 35% 30%,#6fe0ff,#0088aa)'};
   };
   const clearDefault=useCallback(()=>{ localStorage.removeItem('mynftlocker_default_team_'+slug); setDefaultTeam(''); },[slug]);
   const resetFilters=useCallback(()=>{
@@ -611,7 +611,7 @@ export default function Home() {
         <div style={{display:'flex',flexDirection:'column' as const,gap:'0.2rem',marginBottom:'0.25rem'}}>
           <div onClick={()=>setAcctOpen(o=>!o)} style={{display:'flex',alignItems:'center',gap:'0.5rem',padding:'0.3rem 0.4rem',borderRadius:'0.3rem',cursor:'pointer',background:'rgba(255,255,255,0.03)',border:'1px solid rgba(111,195,232,0.18)',transition:'all 0.15s'}} onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.background='rgba(111,195,232,0.08)';}} onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.background='rgba(255,255,255,0.03)';}}>
             <div style={{width:'28px',height:'28px',flexShrink:0,borderRadius:'50%',background:'radial-gradient(circle at 35% 30%,#1a1c24,#0a0b0f)',border:'1.5px solid #6fc3e8',boxShadow:'0 0 10px rgba(111,195,232,0.5)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'0.78rem',fontWeight:900,color:'#6fc3e8'}}>{(slug||'?').trim().charAt(0).toUpperCase()||'?'}</div>
-            {cards.length>0&&(()=>{const b=collectionBadge(cards.length);return(<div title={cards.length+' cartes'} style={{width:'24px',height:'24px',flexShrink:0,borderRadius:'50%',background:b.bg,border:'1.5px solid '+b.border,boxShadow:'0 0 8px '+b.glow,display:'flex',alignItems:'center',justifyContent:'center',fontSize:'0.7rem'}}>{b.emoji}</div>);})()}
+            {cards.length>0&&(()=>{const b=collectionBadge(cards.length);return(<div title={cards.length+' cartes'} style={{width:'30px',height:'30px',flexShrink:0,borderRadius:'50%',background:b.bg,border:'2px solid '+b.border,boxShadow:'0 0 10px '+b.glow,display:'flex',alignItems:'center',justifyContent:'center',fontSize:'0.9rem'}}>{b.emoji}</div>);})()}
             <div style={{flex:1,minWidth:0,textAlign:'left'}}>
               <p style={{margin:0,fontSize:'0.72rem',fontWeight:700,color:'#eaf2ff',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{cards.length>0?'Ma collection':'Mon compte'}</p>
               <p style={{margin:0,fontSize:'0.56rem',color:'#7a8898'}}>{cards.length>0?(cards.length+' cartes'):'Identifiant Sorare'}</p>
@@ -785,7 +785,7 @@ export default function Home() {
               <img src='/logo-pack.png' alt='myNFTlocker' style={{height:'62px',width:'auto',flexShrink:0,filter:'drop-shadow(0 6px 18px rgba(0,0,0,0.6))'}} onError={(e)=>{(e.target as HTMLImageElement).style.display='none';}}/>
               <div onClick={()=>setAcctOpen(o=>!o)} style={{flex:1,minWidth:0,display:'flex',alignItems:'center',gap:'0.5rem',padding:'0.4rem 0.5rem',borderRadius:'0.3rem',cursor:'pointer',background:'rgba(255,255,255,0.03)',border:'1px solid rgba(111,195,232,0.18)'}}>
               <div style={{width:'32px',height:'32px',flexShrink:0,borderRadius:'50%',background:'radial-gradient(circle at 35% 30%,#1a1c24,#0a0b0f)',border:'1.5px solid #6fc3e8',boxShadow:'0 0 10px rgba(111,195,232,0.5)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'0.85rem',fontWeight:900,color:'#6fc3e8'}}>{(slug||'?').trim().charAt(0).toUpperCase()||'?'}</div>
-              {cards.length>0&&(()=>{const b=collectionBadge(cards.length);return(<div title={cards.length+' cartes'} style={{width:'28px',height:'28px',flexShrink:0,borderRadius:'50%',background:b.bg,border:'1.5px solid '+b.border,boxShadow:'0 0 8px '+b.glow,display:'flex',alignItems:'center',justifyContent:'center',fontSize:'0.8rem'}}>{b.emoji}</div>);})()}
+              {cards.length>0&&(()=>{const b=collectionBadge(cards.length);return(<div title={cards.length+' cartes'} style={{width:'34px',height:'34px',flexShrink:0,borderRadius:'50%',background:b.bg,border:'2px solid '+b.border,boxShadow:'0 0 10px '+b.glow,display:'flex',alignItems:'center',justifyContent:'center',fontSize:'1rem'}}>{b.emoji}</div>);})()}
               <div style={{flex:1,minWidth:0,textAlign:'left'}}>
                 <p style={{margin:0,fontSize:'0.8rem',fontWeight:700,color:'#eaf2ff',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{cards.length>0?'Ma collection':'Mon compte'}</p>
                 <p style={{margin:0,fontSize:'0.62rem',color:'#7a8898'}}>{cards.length>0?(cards.length+' cartes'):'Identifiant Sorare'}</p>
