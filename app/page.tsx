@@ -616,7 +616,7 @@ export default function Home() {
               <p style={{margin:0,fontSize:'0.56rem',color:'#7a8898'}}>{cards.length>0?(cards.length+' cartes'):'Identifiant Sorare'}</p>
             </div>
             {/* BADGE REPOSITIONNE : plus grand, sans cercle, juste avant le chevron */}
-            {cards.length>0&&(()=>{const b=collectionBadge(cards.length);return(<img title={cards.length+' cartes'} src={'/'+b.img} alt='' style={{width:'40px',height:'40px',flexShrink:0,objectFit:'contain',filter:'drop-shadow(0 0 6px '+b.glow+')'}} onError={(e)=>{(e.target as HTMLImageElement).style.display='none';}}/>);})()}
+            {cards.length>0&&(()=>{const b=collectionBadge(cards.length);return(<img title={cards.length+' cartes'} src={'/'+b.img} alt='' style={{width:'40px',height:'40px',flexShrink:0,objectFit:'contain'}} onError={(e)=>{(e.target as HTMLImageElement).style.display='none';}}/>);})()}
             <span style={{fontSize:'0.6rem',color:'#6fc3e8',opacity:0.8}}>{(acctOpen||cards.length===0)?'▲':'▼'}</span>
           </div>
           {(acctOpen||cards.length===0)&&(
@@ -791,7 +791,7 @@ export default function Home() {
                 <p style={{margin:0,fontSize:'0.62rem',color:'#7a8898'}}>{cards.length>0?(cards.length+' cartes'):'Identifiant Sorare'}</p>
               </div>
               {/* BADGE REPOSITIONNE : plus grand, sans cercle, juste avant le chevron */}
-              {cards.length>0&&(()=>{const b=collectionBadge(cards.length);return(<img title={cards.length+' cartes'} src={'/'+b.img} alt='' style={{width:'46px',height:'46px',flexShrink:0,objectFit:'contain',filter:'drop-shadow(0 0 6px '+b.glow+')'}} onError={(e)=>{(e.target as HTMLImageElement).style.display='none';}}/>);})()}
+              {cards.length>0&&(()=>{const b=collectionBadge(cards.length);return(<img title={cards.length+' cartes'} src={'/'+b.img} alt='' style={{width:'46px',height:'46px',flexShrink:0,objectFit:'contain'}} onError={(e)=>{(e.target as HTMLImageElement).style.display='none';}}/>);})()}
               <span style={{fontSize:'0.65rem',color:'#6fc3e8',opacity:0.8}}>{(acctOpen||cards.length===0)?'▲':'▼'}</span>
               </div>
             </div>
