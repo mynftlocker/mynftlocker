@@ -374,7 +374,7 @@ export default function Home() {
     setHof(top5);
     localStorage.setItem('mynftlocker_hof_'+slug,JSON.stringify(top5));
     localStorage.setItem('mynftlocker_hof_init_'+slug,'done');
-    if(!localStorage.getItem('mynftlocker_default_team')) setTeamApi(HOF_KEY);
+    if(!localStorage.getItem('mynftlocker_default_team_'+slug)) setTeamApi(HOF_KEY);
   },[cards,loading]);
 
   // Init auto du HOF Foot (top 5 cartes foot par L10) — une seule fois
@@ -408,8 +408,14 @@ export default function Home() {
   useEffect(()=>{ const s=localStorage.getItem('mynftlocker_lineup'); if(s){try{setLineup(JSON.parse(s));}catch{}} },[]);
   // SCROLL RESET MODE : remonte en haut a chaque changement d'onglet (Vestiaire/Galerie)
   useEffect(()=>{ window.scrollTo(0,0); const cEl=document.querySelector('.mnfl-content'); if(cEl) cEl.scrollTop=0; },[mode]);
-  useEffect(()=>{ setDefaultTeam(localStorage.getItem('mynftlocker_default_team')||''); },[]);
-  const handleSetDefault=useCallback((api:string)=>{ localStorage.setItem('mynftlocker_default_team',api); setDefaultTeam(api); },[]);
+  useEffect(()=>{ if(!slug) return; setDefaultTeam(localStorage.getItem('mynftlocker_default_team_'+slug)||''); },[slug]);
+  const handleSetDefault=useCallback((api:string)=>{ localStorage.setItem('mynftlocker_default_team_'+slug,api); setDefaultTeam(api); },[slug]);
+  const clearDefault=useCallback(()=>{ localStorage.removeItem('mynftlocker_default_team_'+slug); setDefaultTeam(''); },[slug]);
+  const resetFilters=useCallback(()=>{
+    setGSport('nba');setGLeague('all');setGTeamCustom('all');setGCountry('all');setFSpecial('all');
+    setTeamApi(HOF_KEY);setLockerStart(0);setFlippedSlug(null);
+    localStorage.removeItem('mnfl_team_chosen_'+slug);
+  },[slug]);
   const handlePin=useCallback((team:string,slug:string)=>{
     setLineup(prev=>{
       const cur=prev[team]||[];
@@ -526,7 +532,14 @@ export default function Home() {
     return list;
   },[cards,hof,hofFoot,gSport]);
   const leagueOptions=useMemo(()=>{if(gSport==='nba')return[{v:'all',l:'NBA'}];return[{v:'all',l:'Toutes les ligues'}];},[gSport]);
-  useEffect(()=>{ if(teamList.length===0)return;const hofInList=teamList.find(t=>t.api==='__HOF__');if(hofInList&&teamApi!=='__HOF__'&&!localStorage.getItem('mnfl_team_chosen_'+slug)){setTeamApi('__HOF__');return;}if(!teamList.find(t=>t.api===teamApi)){setTeamApi(hofInList?'__HOF__':teamList[0].api);} },[teamList,teamApi]);
+  useEffect(()=>{
+    if(teamList.length===0)return;
+    const hofInList=teamList.find(t=>t.api==='__HOF__');
+    const savedDefault=localStorage.getItem('mynftlocker_default_team_'+slug);
+    if(teamApi===''&&savedDefault&&teamList.find(t=>t.api===savedDefault)){setTeamApi(savedDefault);return;}
+    if(hofInList&&teamApi!=='__HOF__'&&!localStorage.getItem('mnfl_team_chosen_'+slug)&&!savedDefault){setTeamApi('__HOF__');return;}
+    if(!teamList.find(t=>t.api===teamApi)){setTeamApi(hofInList?'__HOF__':teamList[0].api);}
+  },[teamList,teamApi]);
 
   // Vestiaire : epingles prioritaires, puis remplissage, puis TOUTES les cartes
   const lockerCards=useMemo(()=>{
@@ -630,7 +643,10 @@ export default function Home() {
             <FilterMenu title='Édition de la carte' options={specialOpts} current={fSpecial} onSelect={setFSpecial}/>
             <FilterMenu title='Tri' options={mode==='locker'?[{value:'majeur',label:'L10 Max'},{value:'manual',label:'Manuel'},{value:'collection',label:'Alphabétique'}]:[{value:'default',label:'Défaut'},{value:'rarity',label:'Rareté'},{value:'score',label:'Score L10'},{value:'name',label:'Nom'}]} current={mode==='locker'?lockerSort:gSort} onSelect={(v:string)=>{if(mode==='locker'){setLockerSort(v as any);}else{setGSort(v as any);}}}/>
             {mode==='locker'&&(
-              <button onClick={()=>handleSetDefault(teamApi)} style={{width:'100%',boxSizing:'border-box' as const,padding:'0.3rem',background:'rgba(212,175,55,0.12)',border:'1px solid rgba(212,175,55,0.35)',borderRadius:'0.18rem',color:'#e8c84a',fontSize:'0.64rem',cursor:'pointer',letterSpacing:'0.08em',marginTop:'0.3rem'}}>⭐ Équipe par défaut</button>
+              <>
+              <button onClick={resetFilters} style={{width:'100%',boxSizing:'border-box' as const,padding:'0.3rem',background:'rgba(111,195,232,0.1)',border:'1px solid rgba(111,195,232,0.35)',borderRadius:'0.18rem',color:'#6fc3e8',fontSize:'0.64rem',cursor:'pointer',letterSpacing:'0.08em',marginTop:'0.5rem'}}>↺ Réinitialiser les filtres</button>
+              <button onClick={()=>handleSetDefault(teamApi)} style={{width:'100%',boxSizing:'border-box' as const,padding:'0.3rem',background:'rgba(212,175,55,0.12)',border:'1px solid rgba(212,175,55,0.35)',borderRadius:'0.18rem',color:'#e8c84a',fontSize:'0.64rem',cursor:'pointer',letterSpacing:'0.08em',marginTop:'0.3rem'}}>{defaultTeam===teamApi&&teamApi?'⭐ Par defaut : '+(teamApi==='__HOF__'?'Hall of Fame':teamApi):'⭐ Définir comme équipe par défaut'}</button>
+              </>
             )}
           </div>
         )}
@@ -776,7 +792,10 @@ export default function Home() {
             <FilterMenu title='Édition de la carte' options={specialOpts} current={fSpecial} onSelect={setFSpecial}/>
             <FilterMenu title='Tri' options={mode==='locker'?[{value:'majeur',label:'L10 Max'},{value:'manual',label:'Manuel'},{value:'collection',label:'Alphabétique'}]:[{value:'default',label:'Défaut'},{value:'rarity',label:'Rareté'},{value:'score',label:'Score L10'},{value:'name',label:'Nom'}]} current={mode==='locker'?lockerSort:gSort} onSelect={(v:string)=>{if(mode==='locker'){setLockerSort(v as any);}else{setGSort(v as any);}}}/>
             {mode==='locker'&&(
-              <button onClick={()=>handleSetDefault(teamApi)} style={{width:'100%',boxSizing:'border-box' as const,padding:'0.3rem',background:'rgba(212,175,55,0.12)',border:'1px solid rgba(212,175,55,0.35)',borderRadius:'0.18rem',color:'#e8c84a',fontSize:'0.64rem',cursor:'pointer',letterSpacing:'0.08em',marginTop:'0.3rem'}}>⭐ Équipe par défaut</button>
+              <>
+              <button onClick={resetFilters} style={{width:'100%',boxSizing:'border-box' as const,padding:'0.3rem',background:'rgba(111,195,232,0.1)',border:'1px solid rgba(111,195,232,0.35)',borderRadius:'0.18rem',color:'#6fc3e8',fontSize:'0.64rem',cursor:'pointer',letterSpacing:'0.08em',marginTop:'0.5rem'}}>↺ Réinitialiser les filtres</button>
+              <button onClick={()=>handleSetDefault(teamApi)} style={{width:'100%',boxSizing:'border-box' as const,padding:'0.3rem',background:'rgba(212,175,55,0.12)',border:'1px solid rgba(212,175,55,0.35)',borderRadius:'0.18rem',color:'#e8c84a',fontSize:'0.64rem',cursor:'pointer',letterSpacing:'0.08em',marginTop:'0.3rem'}}>{defaultTeam===teamApi&&teamApi?'⭐ Par defaut : '+(teamApi==='__HOF__'?'Hall of Fame':teamApi):'⭐ Définir comme équipe par défaut'}</button>
+              </>
             )}
           </div>
           </div>
