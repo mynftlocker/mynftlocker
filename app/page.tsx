@@ -352,15 +352,15 @@ export default function Home() {
   useEffect(()=>{
     if(cards.length===0) return;
     if(loading) return;
-    if(localStorage.getItem('mynftlocker_hof_init')) return;
+    if(localStorage.getItem('mynftlocker_hof_init_'+slug)) return;
     const savedHof=localStorage.getItem('mynftlocker_hof_'+slug);
-    if(savedHof && JSON.parse(savedHof).length>0){ localStorage.setItem('mynftlocker_hof_init','done'); return; }
+    if(savedHof && JSON.parse(savedHof).length>0){ localStorage.setItem('mynftlocker_hof_init_'+slug,'done'); return; }
     const nba=cards.filter(c=>isNBA(c));
     const top5=dedupeByPlayer(nba).sort((a:any,b:any)=>(b.averageScore??-1)-(a.averageScore??-1)).slice(0,5).map((c:any)=>c.slug);
     if(top5.length===0) return;
     setHof(top5);
     localStorage.setItem('mynftlocker_hof_'+slug,JSON.stringify(top5));
-    localStorage.setItem('mynftlocker_hof_init','done');
+    localStorage.setItem('mynftlocker_hof_init_'+slug,'done');
     if(!localStorage.getItem('mynftlocker_default_team')) setTeamApi(HOF_KEY);
   },[cards,loading]);
 
@@ -368,15 +368,15 @@ export default function Home() {
   useEffect(()=>{
     if(cards.length===0) return;
     if(loading) return;
-    if(localStorage.getItem('mynftlocker_hoffoot_init')) return;
+    if(localStorage.getItem('mynftlocker_hoffoot_init_'+slug)) return;
     const savedF=localStorage.getItem('mynftlocker_hof_foot_'+slug);
-    if(savedF && JSON.parse(savedF).length>0){ localStorage.setItem('mynftlocker_hoffoot_init','done'); return; }
+    if(savedF && JSON.parse(savedF).length>0){ localStorage.setItem('mynftlocker_hoffoot_init_'+slug,'done'); return; }
     const foot=cards.filter(c=>!isNBA(c));
     const top5=dedupeByPlayer(foot).sort((a:any,b:any)=>(b.averageScore??-1)-(a.averageScore??-1)).slice(0,5).map((c:any)=>c.slug);
     if(top5.length===0) return;
     setHofFoot(top5);
     localStorage.setItem('mynftlocker_hof_foot_'+slug,JSON.stringify(top5));
-    localStorage.setItem('mynftlocker_hoffoot_init','done');
+    localStorage.setItem('mynftlocker_hoffoot_init_'+slug,'done');
   },[cards,loading]);
 
   const handleStar=useCallback((s:string)=>{
@@ -393,6 +393,8 @@ export default function Home() {
   const handleNext=useCallback((tot:number)=>{setLockerStart(s=>Math.min(s+1,Math.max(0,tot-5)));setFlippedSlug(null);},[]);
   const handleTeamChange=useCallback((api:string)=>{setTeamApi(api);setLockerStart(0);setFlippedSlug(null);if(api!=='__HOF__')localStorage.setItem('mnfl_team_chosen_'+slug,'1');else localStorage.removeItem('mnfl_team_chosen_'+slug);},[]);
   useEffect(()=>{ const s=localStorage.getItem('mynftlocker_lineup'); if(s){try{setLineup(JSON.parse(s));}catch{}} },[]);
+  // SCROLL RESET MODE : remonte en haut a chaque changement d'onglet (Vestiaire/Galerie)
+  useEffect(()=>{ window.scrollTo(0,0); const cEl=document.querySelector('.mnfl-content'); if(cEl) cEl.scrollTop=0; },[mode]);
   useEffect(()=>{ setDefaultTeam(localStorage.getItem('mynftlocker_default_team')||''); },[]);
   const handleSetDefault=useCallback((api:string)=>{ localStorage.setItem('mynftlocker_default_team',api); setDefaultTeam(api); },[]);
   const handlePin=useCallback((team:string,slug:string)=>{
