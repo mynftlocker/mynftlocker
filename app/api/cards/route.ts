@@ -3,7 +3,7 @@ export async function GET(request:NextRequest){
   const slug=request.nextUrl.searchParams.get('slug')||'';
   const cursor=request.nextUrl.searchParams.get('cursor')||'';
   const after=cursor?`,after:"${cursor}"`:'';
-  const query=`query{user(slug:"${slug}"){cards(first:25${after}){nodes{
+  const query=`query{user(slug:"${slug}"){cards(first:50${after}){nodes{
     __typename slug name rarityTyped pictureUrl
     anyPlayer{lastName shirtNumber}
     anyTeam{name ...on Club{country{slug}}}
