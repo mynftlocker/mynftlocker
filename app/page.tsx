@@ -451,16 +451,8 @@ export default function Home() {
     const fetchPage=async(cursor:string|null):Promise<{cards:any[],hasNextPage:boolean,cursor:string|null}|null>=>{
       const after=cursor?`, after: "${cursor}"` :'';
       const query=`query{user(slug:"${slug}"){cards(first:50${after}){nodes{__typename slug name rarityTyped pictureUrl anyPlayer{lastName shirtNumber}anyTeam{name ...on Club{country{slug}}}...on NBACard{seasonYear specialEdition power xp averageScore(type:LAST_TEN_PLAYED_SO5_AVERAGE_SCORE)}}pageInfo{hasNextPage endCursor}}}}`;
-      // 1. Essai direct navigateur (IP residentielle)
-      try{
-        const r=await fetch(SORARE_URL,{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({query}),signal:AbortSignal.timeout(20000)});
-        if(r.ok){
-          const j=await r.json();
-          if(!j.errors&&j?.data?.user?.cards){const c=j.data.user.cards;return{cards:c.nodes,hasNextPage:c.pageInfo.hasNextPage,cursor:c.pageInfo.endCursor};}
-          console.warn('[Sorare direct]',j.errors?.[0]?.message);
-        }
-      }catch(e){console.warn('[Sorare direct CORS/timeout]',String(e));}
-      // 2. Fallback route Vercel
+      // CORS SKIP : l'essai direct navigateur echoue systematiquement (CORS Sorare), tente 0 fois, va direct au fallback qui marche
+      // 1. Route Vercel (seule voie fonctionnelle, confirmee sur des dizaines de tests)
       const url='/api/cards?slug='+encodeURIComponent(slug)+(cursor?'&cursor='+encodeURIComponent(cursor):'');
       const r2=await fetch(url);
       if(!r2.ok)return null;
