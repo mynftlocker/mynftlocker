@@ -773,6 +773,13 @@ export default function Home() {
 
           {/* MODE GALERIE */}
     
+      {mode==='gallery'&&(
+            <div style={{...galleryBg,minHeight:'100vh'}}>
+              <GalleryView cards={filteredGallery}/>
+            </div>
+          )}
+          </div>
+        )}
       {authOpen&&(
         <div style={{position:'fixed',inset:0,zIndex:99999,display:'flex',alignItems:'center',justifyContent:'center',background:authClosing?'transparent':'rgba(0,0,0,0.6)',backdropFilter:authClosing?'none':'blur(4px)',transition:'background 0.3s'}} onClick={()=>!authClosing&&startAuthClose()}>
           <div onClick={e=>e.stopPropagation()} style={{width:'320px',maxWidth:'88vw',background:'repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(64,232,255,0.03) 2px,rgba(64,232,255,0.03) 3px),linear-gradient(rgba(2,10,22,0.97),rgba(2,10,22,0.97))',border:'1px solid rgba(64,232,255,0.5)',boxShadow:'0 0 40px rgba(64,232,255,0.15),inset 0 0 60px rgba(0,0,0,0.5)',clipPath:authClosing?'none':'polygon(14px 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,0 100%,0 14px)',padding:'1.3rem 1.2rem',fontFamily:'Courier New,Consolas,monospace',animation:authClosing?'mnflClose 0.45s cubic-bezier(0.7,0,0.95,1) both':'mnflDeploy 0.55s ease-out backwards',backdropFilter:authClosing?'none':'blur(12px)'}}>
@@ -792,13 +799,6 @@ export default function Home() {
           </div>
         </div>
       )}
-      {mode==='gallery'&&(
-            <div style={{...galleryBg,minHeight:'100vh'}}>
-              <GalleryView cards={filteredGallery}/>
-            </div>
-          )}
-          </div>
-        )}
       {showFlash&&(<div style={{position:'fixed',inset:0,zIndex:999,background:'radial-gradient(ellipse at center,rgba(255,255,255,1) 0%,rgba(64,232,255,0.7) 40%,rgba(5,10,20,0.95) 100%)',animation:'introFlash 0.8s ease-in-out forwards',pointerEvents:'none'}}/>)}
       </div>
 
