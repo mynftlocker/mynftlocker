@@ -15,8 +15,13 @@ export async function POST(request: NextRequest) {
     if (!email || typeof email !== 'string' || !email.includes('@')) {
       return NextResponse.json({ error: 'email_invalide' }, { status: 400 });
     }
-    if (!password || typeof password !== 'string' || password.length < 6) {
-      return NextResponse.json({ error: 'mot_de_passe_trop_court' }, { status: 400 });
+    const pwdOk = typeof password === 'string'
+      && password.length >= 8
+      && /[A-Z]/.test(password)
+      && /[0-9]/.test(password)
+      && /[^A-Za-z0-9]/.test(password);
+    if (!pwdOk) {
+      return NextResponse.json({ error: 'mot_de_passe_invalide' }, { status: 400 });
     }
 
     const emailKey = 'user:' + email.toLowerCase().trim();
