@@ -493,9 +493,13 @@ export default function Home() {
   const [authPassword,setAuthPassword]=useState('');
   const [authError,setAuthError]=useState('');
   const [authLoading,setAuthLoading]=useState(false);
+  const [justLoggedIn,setJustLoggedIn]=useState(false);
   useEffect(()=>{
-    fetch('/api/auth/me').then(r=>r.json()).then(d=>{ if(d.loggedIn){ setCurrentUser({pseudo:d.pseudo,email:d.email,sorareSlug:d.sorareSlug}); if(d.sorareSlug&&!slug) setSlug(d.sorareSlug); } }).catch(()=>{});
+    fetch('/api/auth/me').then(r=>r.json()).then(d=>{ if(d.loggedIn){ setCurrentUser({pseudo:d.pseudo,email:d.email,sorareSlug:d.sorareSlug}); if(d.sorareSlug){ setSlug(d.sorareSlug); setJustLoggedIn(true); } } }).catch(()=>{});
   },[]);
+  useEffect(()=>{
+    if(justLoggedIn&&slug&&openPhase===0){ fragStartedRef.current=false; setOpenPhase(1); fetchCards(); setJustLoggedIn(false); }
+  },[justLoggedIn,slug]);
   const startAuthClose=()=>{ setAuthClosing(true); setTimeout(()=>{ setAuthOpen(false); setAuthClosing(false); setAuthError(''); },450); };
   const submitAuth=async()=>{
     setAuthError(''); setAuthLoading(true);
@@ -506,9 +510,9 @@ export default function Home() {
       const d = await r.json();
       if(!r.ok){ setAuthError(d.error==='email_deja_utilise'?'Cet email est deja utilise.':d.error==='identifiants_invalides'?'Email ou mot de passe incorrect.':d.error==='mot_de_passe_invalide'?'Mot de passe : 8 caracteres min, 1 majuscule, 1 chiffre, 1 caractere special.':'Une erreur est survenue.'); setAuthLoading(false); return; }
       setCurrentUser({pseudo:d.pseudo,email:d.email,sorareSlug:d.sorareSlug});
-      if(d.sorareSlug&&!slug) setSlug(d.sorareSlug);
       setAuthLoading(false);
       startAuthClose();
+      if(d.sorareSlug){ setSlug(d.sorareSlug); setJustLoggedIn(true); }
     }catch(e){ setAuthError('Connexion au serveur impossible.'); setAuthLoading(false); }
   };
   useEffect(()=>{if(showFlash&&error){setShowFlash(false);setOpenPhase(0);}},[showFlash,error]);
@@ -749,8 +753,17 @@ export default function Home() {
                 <input className='intro-input' value={slug} onChange={e=>setSlug(e.target.value)} onKeyDown={e=>e.key==='Enter'&&handleIntroClick()} placeholder='ton-slug-sorare' style={{background:'transparent',border:'none',borderBottom:'1px solid rgba(64,232,255,0.42)',color:'#40e8ff',fontSize:'0.9rem',padding:'0.4rem 0.3rem',width:'290px',maxWidth:'78vw',textAlign:'center',fontFamily:'Courier New,monospace',letterSpacing:'0.07em',marginBottom:'1.6rem',transition:'border-color 0.2s,box-shadow 0.2s',caretColor:'#40e8ff',animation:'introInputGlow 2.5s ease-in-out 1.5s infinite'}}/>
                 <button className='intro-btn' onClick={handleIntroClick} disabled={!slug||loading} style={{background:'transparent',border:'1px solid rgba(64,232,255,0.45)',color:'#40e8ff',padding:'0.68rem 3rem',fontSize:'0.78rem',fontWeight:700,letterSpacing:'0.25em',textTransform:'uppercase',cursor:slug&&!loading?'pointer':'not-allowed',fontFamily:'Courier New,monospace',clipPath:'polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px)',transition:'all 0.2s',opacity:slug&&!loading?1:0.35}}>{loading?'CHARGEMENT...':'▶ OUVRIR'}</button>
                 {error&&<p style={{color:'#fca5a5',fontSize:'0.7rem',marginTop:'1rem',fontFamily:'Courier New,monospace'}}>{error}</p>}
-                {!currentUser&&<button onClick={()=>{setAuthMode('signup');setAuthOpen(true);}} style={{background:'transparent',border:'1px solid rgba(64,232,255,0.22)',color:'rgba(64,232,255,0.75)',padding:'0.4rem 1.4rem',fontSize:'0.62rem',fontWeight:600,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer',fontFamily:'Courier New,monospace',marginTop:'0.9rem',borderRadius:'2px'}}>Creer un compte</button>}
-                {currentUser&&<p style={{color:'rgba(64,232,255,0.6)',fontSize:'0.62rem',letterSpacing:'0.1em',fontFamily:'Courier New,monospace',marginTop:'0.9rem'}}>Connecte : {currentUser.pseudo}</p>}
+                {!currentUser&&(
+                  <>
+                    <div style={{display:'flex',alignItems:'center',gap:'0.7rem',margin:'1.2rem 0 0.7rem',width:'220px',maxWidth:'70vw'}}>
+                      <div style={{flex:1,height:'1px',background:'rgba(64,232,255,0.25)'}}/>
+                      <span style={{fontSize:'0.55rem',letterSpacing:'0.2em',color:'rgba(64,232,255,0.45)',fontFamily:'Courier New,monospace'}}>OU</span>
+                      <div style={{flex:1,height:'1px',background:'rgba(64,232,255,0.25)'}}/>
+                    </div>
+                    <button onClick={()=>{setAuthMode('login');setAuthOpen(true);}} style={{background:'rgba(64,232,255,0.08)',border:'1px solid rgba(64,232,255,0.5)',color:'#40e8ff',padding:'0.5rem 2.2rem',fontSize:'0.7rem',fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer',fontFamily:'Courier New,monospace',borderRadius:'2px'}}>Connexion</button>
+                    <p style={{fontSize:'0.6rem',color:'rgba(207,228,251,0.5)',fontFamily:'Courier New,monospace',marginTop:'0.6rem'}}>Pas de compte ? <span onClick={()=>{setAuthMode('signup');setAuthOpen(true);}} style={{color:'#40e8ff',cursor:'pointer',textDecoration:'underline'}}>Creer un compte</span></p>
+                  </>
+                )}
               </div>
             )}
             {openPhase>=1&&(
