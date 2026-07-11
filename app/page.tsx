@@ -483,6 +483,34 @@ export default function Home() {
     setLoading(false);
   };
   const handleIntroClick=useCallback(()=>{if(!slug||loading||openPhase>0)return;fragStartedRef.current=false;setOpenPhase(1);fetchCards();},[slug,loading,openPhase]);
+  // ===== AUTH : compte myNFTlocker (inscription/connexion) =====
+  const [currentUser,setCurrentUser]=useState<{pseudo:string;email:string;sorareSlug:string|null}|null>(null);
+  const [authOpen,setAuthOpen]=useState(false);
+  const [authClosing,setAuthClosing]=useState(false);
+  const [authMode,setAuthMode]=useState<'signup'|'login'>('signup');
+  const [authPseudo,setAuthPseudo]=useState('');
+  const [authEmail,setAuthEmail]=useState('');
+  const [authPassword,setAuthPassword]=useState('');
+  const [authError,setAuthError]=useState('');
+  const [authLoading,setAuthLoading]=useState(false);
+  useEffect(()=>{
+    fetch('/api/auth/me').then(r=>r.json()).then(d=>{ if(d.loggedIn){ setCurrentUser({pseudo:d.pseudo,email:d.email,sorareSlug:d.sorareSlug}); if(d.sorareSlug&&!slug) setSlug(d.sorareSlug); } }).catch(()=>{});
+  },[]);
+  const startAuthClose=()=>{ setAuthClosing(true); setTimeout(()=>{ setAuthOpen(false); setAuthClosing(false); setAuthError(''); },450); };
+  const submitAuth=async()=>{
+    setAuthError(''); setAuthLoading(true);
+    try{
+      const endpoint = authMode==='signup' ? '/api/auth/signup' : '/api/auth/login';
+      const body = authMode==='signup' ? {pseudo:authPseudo,email:authEmail,password:authPassword,sorareSlug:slug||undefined} : {email:authEmail,password:authPassword};
+      const r = await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+      const d = await r.json();
+      if(!r.ok){ setAuthError(d.error==='email_deja_utilise'?'Cet email est deja utilise.':d.error==='identifiants_invalides'?'Email ou mot de passe incorrect.':d.error==='mot_de_passe_trop_court'?'Mot de passe trop court (6 caracteres min).':'Une erreur est survenue.'); setAuthLoading(false); return; }
+      setCurrentUser({pseudo:d.pseudo,email:d.email,sorareSlug:d.sorareSlug});
+      if(d.sorareSlug&&!slug) setSlug(d.sorareSlug);
+      setAuthLoading(false);
+      startAuthClose();
+    }catch(e){ setAuthError('Connexion au serveur impossible.'); setAuthLoading(false); }
+  };
   useEffect(()=>{if(showFlash&&error){setShowFlash(false);setOpenPhase(0);}},[showFlash,error]);
   useEffect(()=>{if(!showFlash)return;const t=setTimeout(()=>setShowFlash(false),650);return()=>clearTimeout(t);},[showFlash]);
   useEffect(()=>{if(openPhase===1&&!loading&&cards.length>0&&!fragStartedRef.current){
@@ -721,6 +749,8 @@ export default function Home() {
                 <input className='intro-input' value={slug} onChange={e=>setSlug(e.target.value)} onKeyDown={e=>e.key==='Enter'&&handleIntroClick()} placeholder='ton-slug-sorare' style={{background:'transparent',border:'none',borderBottom:'1px solid rgba(64,232,255,0.42)',color:'#40e8ff',fontSize:'0.9rem',padding:'0.4rem 0.3rem',width:'290px',maxWidth:'78vw',textAlign:'center',fontFamily:'Courier New,monospace',letterSpacing:'0.07em',marginBottom:'1.6rem',transition:'border-color 0.2s,box-shadow 0.2s',caretColor:'#40e8ff',animation:'introInputGlow 2.5s ease-in-out 1.5s infinite'}}/>
                 <button className='intro-btn' onClick={handleIntroClick} disabled={!slug||loading} style={{background:'transparent',border:'1px solid rgba(64,232,255,0.45)',color:'#40e8ff',padding:'0.68rem 3rem',fontSize:'0.78rem',fontWeight:700,letterSpacing:'0.25em',textTransform:'uppercase',cursor:slug&&!loading?'pointer':'not-allowed',fontFamily:'Courier New,monospace',clipPath:'polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px)',transition:'all 0.2s',opacity:slug&&!loading?1:0.35}}>{loading?'CHARGEMENT...':'▶ OUVRIR'}</button>
                 {error&&<p style={{color:'#fca5a5',fontSize:'0.7rem',marginTop:'1rem',fontFamily:'Courier New,monospace'}}>{error}</p>}
+                {!currentUser&&<button onClick={()=>{setAuthMode('signup');setAuthOpen(true);}} style={{background:'transparent',border:'1px solid rgba(64,232,255,0.22)',color:'rgba(64,232,255,0.75)',padding:'0.4rem 1.4rem',fontSize:'0.62rem',fontWeight:600,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer',fontFamily:'Courier New,monospace',marginTop:'0.9rem',borderRadius:'2px'}}>Creer un compte</button>}
+                {currentUser&&<p style={{color:'rgba(64,232,255,0.6)',fontSize:'0.62rem',letterSpacing:'0.1em',fontFamily:'Courier New,monospace',marginTop:'0.9rem'}}>Connecte : {currentUser.pseudo}</p>}
               </div>
             )}
             {openPhase>=1&&(
@@ -742,7 +772,27 @@ export default function Home() {
           )}
 
           {/* MODE GALERIE */}
-          {mode==='gallery'&&(
+    
+      {authOpen&&(
+        <div style={{position:'fixed',inset:0,zIndex:500,display:'flex',alignItems:'center',justifyContent:'center',background:authClosing?'transparent':'rgba(0,0,0,0.6)',backdropFilter:authClosing?'none':'blur(4px)',transition:'background 0.3s'}} onClick={()=>!authClosing&&startAuthClose()}>
+          <div onClick={e=>e.stopPropagation()} style={{width:'320px',maxWidth:'88vw',background:'repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(64,232,255,0.03) 2px,rgba(64,232,255,0.03) 3px),linear-gradient(rgba(2,10,22,0.97),rgba(2,10,22,0.97))',border:'1px solid rgba(64,232,255,0.5)',boxShadow:'0 0 40px rgba(64,232,255,0.15),inset 0 0 60px rgba(0,0,0,0.5)',clipPath:authClosing?'none':'polygon(14px 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,0 100%,0 14px)',padding:'1.3rem 1.2rem',fontFamily:'Courier New,Consolas,monospace',animation:authClosing?'mnflClose 0.45s cubic-bezier(0.7,0,0.95,1) both':'mnflDeploy 0.55s ease-out backwards',backdropFilter:authClosing?'none':'blur(12px)'}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'1rem'}}>
+              <span style={{color:'#40e8ff',fontSize:'0.85rem',fontWeight:700,letterSpacing:'0.1em'}}>{authMode==='signup'?'CREER UN COMPTE':'SE CONNECTER'}</span>
+              <button onClick={startAuthClose} style={{background:'transparent',border:'1px solid rgba(64,232,255,0.35)',borderRadius:'50%',width:'20px',height:'20px',color:'#40e8ff',cursor:'pointer',fontSize:'0.55rem'}}>✕</button>
+            </div>
+            {authMode==='signup'&&<input value={authPseudo} onChange={e=>setAuthPseudo(e.target.value)} placeholder='Pseudo' style={{width:'100%',boxSizing:'border-box' as const,background:'rgba(255,255,255,0.05)',border:'1px solid rgba(64,232,255,0.3)',color:'#cfe4fb',padding:'0.5rem 0.6rem',fontSize:'0.8rem',marginBottom:'0.6rem',fontFamily:'Courier New,monospace',outline:'none'}}/>}
+            <input value={authEmail} onChange={e=>setAuthEmail(e.target.value)} placeholder='Email' type='email' style={{width:'100%',boxSizing:'border-box' as const,background:'rgba(255,255,255,0.05)',border:'1px solid rgba(64,232,255,0.3)',color:'#cfe4fb',padding:'0.5rem 0.6rem',fontSize:'0.8rem',marginBottom:'0.6rem',fontFamily:'Courier New,monospace',outline:'none'}}/>
+            <input value={authPassword} onChange={e=>setAuthPassword(e.target.value)} placeholder='Mot de passe' type='password' onKeyDown={e=>e.key==='Enter'&&submitAuth()} style={{width:'100%',boxSizing:'border-box' as const,background:'rgba(255,255,255,0.05)',border:'1px solid rgba(64,232,255,0.3)',color:'#cfe4fb',padding:'0.5rem 0.6rem',fontSize:'0.8rem',marginBottom:'0.8rem',fontFamily:'Courier New,monospace',outline:'none'}}/>
+            {authError&&<p style={{color:'#fca5a5',fontSize:'0.66rem',marginBottom:'0.6rem'}}>{authError}</p>}
+            <button onClick={submitAuth} disabled={authLoading} style={{width:'100%',background:'rgba(64,232,255,0.12)',border:'1px solid rgba(64,232,255,0.5)',color:'#40e8ff',padding:'0.55rem',fontSize:'0.72rem',fontWeight:700,letterSpacing:'0.15em',textTransform:'uppercase',cursor:authLoading?'not-allowed':'pointer',fontFamily:'Courier New,monospace',opacity:authLoading?0.5:1}}>{authLoading?'...':(authMode==='signup'?'S\'inscrire':'Se connecter')}</button>
+            <p style={{textAlign:'center',marginTop:'0.8rem',fontSize:'0.66rem',color:'rgba(207,228,251,0.6)'}}>
+              {authMode==='signup'?'Deja un compte ? ':'Pas encore de compte ? '}
+              <span onClick={()=>{setAuthMode(authMode==='signup'?'login':'signup');setAuthError('');}} style={{color:'#40e8ff',cursor:'pointer',textDecoration:'underline'}}>{authMode==='signup'?'Se connecter':'S\'inscrire'}</span>
+            </p>
+          </div>
+        </div>
+      )}
+      {mode==='gallery'&&(
             <div style={{...galleryBg,minHeight:'100vh'}}>
               <GalleryView cards={filteredGallery}/>
             </div>
