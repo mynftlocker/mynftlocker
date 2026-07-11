@@ -489,6 +489,7 @@ export default function Home() {
   const [authClosing,setAuthClosing]=useState(false);
   const [authMode,setAuthMode]=useState<'signup'|'login'>('signup');
   const [authPseudo,setAuthPseudo]=useState('');
+  const [authSlugField,setAuthSlugField]=useState('');
   const [authEmail,setAuthEmail]=useState('');
   const [authPassword,setAuthPassword]=useState('');
   const [authError,setAuthError]=useState('');
@@ -505,10 +506,10 @@ export default function Home() {
     setAuthError(''); setAuthLoading(true);
     try{
       const endpoint = authMode==='signup' ? '/api/auth/signup' : '/api/auth/login';
-      const body = authMode==='signup' ? {pseudo:authPseudo,email:authEmail,password:authPassword,sorareSlug:slug||undefined} : {email:authEmail,password:authPassword};
+      const body = authMode==='signup' ? {pseudo:authPseudo,email:authEmail,password:authPassword,sorareSlug:authSlugField||undefined} : {email:authEmail,password:authPassword};
       const r = await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
       const d = await r.json();
-      if(!r.ok){ setAuthError(d.error==='email_deja_utilise'?'Cet email est deja utilise.':d.error==='identifiants_invalides'?'Email ou mot de passe incorrect.':d.error==='mot_de_passe_invalide'?'Mot de passe : 8 caracteres min, 1 majuscule, 1 chiffre, 1 caractere special.':'Une erreur est survenue.'); setAuthLoading(false); return; }
+      if(!r.ok){ setAuthError(d.error==='email_deja_utilise'?'Cet email est deja utilise.':d.error==='identifiants_invalides'?'Email ou mot de passe incorrect.':d.error==='mot_de_passe_invalide'?'Mot de passe : 8 caracteres min, 1 majuscule, 1 chiffre, 1 caractere special.':d.error==='slug_requis'?'Le slug Sorare est obligatoire.':'Une erreur est survenue.'); setAuthLoading(false); return; }
       setCurrentUser({pseudo:d.pseudo,email:d.email,sorareSlug:d.sorareSlug});
       setAuthLoading(false);
       startAuthClose();
@@ -761,7 +762,7 @@ export default function Home() {
                       <div style={{flex:1,height:'1px',background:'rgba(64,232,255,0.25)'}}/>
                     </div>
                     <button onClick={()=>{setAuthMode('login');setAuthOpen(true);}} style={{background:'rgba(64,232,255,0.08)',border:'1px solid rgba(64,232,255,0.5)',color:'#40e8ff',padding:'0.5rem 2.2rem',fontSize:'0.7rem',fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer',fontFamily:'Courier New,monospace',borderRadius:'2px'}}>Connexion</button>
-                    <p style={{fontSize:'0.6rem',color:'rgba(207,228,251,0.5)',fontFamily:'Courier New,monospace',marginTop:'0.6rem'}}>Pas de compte ? <span onClick={()=>{setAuthMode('signup');setAuthOpen(true);}} style={{color:'#40e8ff',cursor:'pointer',textDecoration:'underline'}}>Creer un compte</span></p>
+                    <p style={{fontSize:'0.6rem',color:'rgba(207,228,251,0.5)',fontFamily:'Courier New,monospace',marginTop:'0.6rem'}}>Pas de compte ? <span onClick={()=>{setAuthMode('signup');setAuthSlugField(slug||'');setAuthOpen(true);}} style={{color:'#40e8ff',cursor:'pointer',textDecoration:'underline'}}>Creer un compte</span></p>
                   </>
                 )}
               </div>
@@ -801,6 +802,7 @@ export default function Home() {
               <button onClick={startAuthClose} style={{background:'transparent',border:'1px solid rgba(64,232,255,0.35)',borderRadius:'50%',width:'20px',height:'20px',color:'#40e8ff',cursor:'pointer',fontSize:'0.55rem'}}>✕</button>
             </div>
             {authMode==='signup'&&<input value={authPseudo} onChange={e=>setAuthPseudo(e.target.value)} placeholder='Pseudo' style={{width:'100%',boxSizing:'border-box' as const,background:'rgba(255,255,255,0.05)',border:'1px solid rgba(64,232,255,0.3)',color:'#cfe4fb',padding:'0.5rem 0.6rem',fontSize:'0.8rem',marginBottom:'0.6rem',fontFamily:'Courier New,monospace',outline:'none'}}/>}
+            {authMode==='signup'&&<input value={authSlugField} onChange={e=>setAuthSlugField(e.target.value)} placeholder='Slug Sorare (ex: pseudo-email-com)' style={{width:'100%',boxSizing:'border-box' as const,background:'rgba(255,255,255,0.05)',border:'1px solid rgba(64,232,255,0.3)',color:'#cfe4fb',padding:'0.5rem 0.6rem',fontSize:'0.8rem',marginBottom:'0.6rem',fontFamily:'Courier New,monospace',outline:'none'}}/>}
             <input value={authEmail} onChange={e=>setAuthEmail(e.target.value)} placeholder='Email' type='email' style={{width:'100%',boxSizing:'border-box' as const,background:'rgba(255,255,255,0.05)',border:'1px solid rgba(64,232,255,0.3)',color:'#cfe4fb',padding:'0.5rem 0.6rem',fontSize:'0.8rem',marginBottom:'0.6rem',fontFamily:'Courier New,monospace',outline:'none'}}/>
             <input value={authPassword} onChange={e=>setAuthPassword(e.target.value)} placeholder='Mot de passe' type='password' onKeyDown={e=>e.key==='Enter'&&submitAuth()} style={{width:'100%',boxSizing:'border-box' as const,background:'rgba(255,255,255,0.05)',border:'1px solid rgba(64,232,255,0.3)',color:'#cfe4fb',padding:'0.5rem 0.6rem',fontSize:'0.8rem',marginBottom:authMode==='signup'?'0.3rem':'0.8rem',fontFamily:'Courier New,monospace',outline:'none'}}/>
             {authMode==='signup'&&<p style={{fontSize:'0.58rem',color:'rgba(207,228,251,0.45)',marginBottom:'0.7rem',lineHeight:1.4}}>8 caracteres min, 1 majuscule, 1 chiffre, 1 caractere special.</p>}

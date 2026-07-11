@@ -23,6 +23,9 @@ export async function POST(request: NextRequest) {
     if (!pwdOk) {
       return NextResponse.json({ error: 'mot_de_passe_invalide' }, { status: 400 });
     }
+    if (!sorareSlug || typeof sorareSlug !== 'string' || sorareSlug.trim().length < 2) {
+      return NextResponse.json({ error: 'slug_requis' }, { status: 400 });
+    }
 
     const emailKey = 'user:' + email.toLowerCase().trim();
     const existing = await redis.get(emailKey);
