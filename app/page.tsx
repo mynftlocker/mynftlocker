@@ -774,7 +774,7 @@ export default function Home() {
           {/* MODE GALERIE */}
     
       {authOpen&&(
-        <div style={{position:'fixed',inset:0,zIndex:500,display:'flex',alignItems:'center',justifyContent:'center',background:authClosing?'transparent':'rgba(0,0,0,0.6)',backdropFilter:authClosing?'none':'blur(4px)',transition:'background 0.3s'}} onClick={()=>!authClosing&&startAuthClose()}>
+        <div style={{position:'fixed',inset:0,zIndex:99999,display:'flex',alignItems:'center',justifyContent:'center',background:authClosing?'transparent':'rgba(0,0,0,0.6)',backdropFilter:authClosing?'none':'blur(4px)',transition:'background 0.3s'}} onClick={()=>!authClosing&&startAuthClose()}>
           <div onClick={e=>e.stopPropagation()} style={{width:'320px',maxWidth:'88vw',background:'repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(64,232,255,0.03) 2px,rgba(64,232,255,0.03) 3px),linear-gradient(rgba(2,10,22,0.97),rgba(2,10,22,0.97))',border:'1px solid rgba(64,232,255,0.5)',boxShadow:'0 0 40px rgba(64,232,255,0.15),inset 0 0 60px rgba(0,0,0,0.5)',clipPath:authClosing?'none':'polygon(14px 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,0 100%,0 14px)',padding:'1.3rem 1.2rem',fontFamily:'Courier New,Consolas,monospace',animation:authClosing?'mnflClose 0.45s cubic-bezier(0.7,0,0.95,1) both':'mnflDeploy 0.55s ease-out backwards',backdropFilter:authClosing?'none':'blur(12px)'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'1rem'}}>
               <span style={{color:'#40e8ff',fontSize:'0.85rem',fontWeight:700,letterSpacing:'0.1em'}}>{authMode==='signup'?'CREER UN COMPTE':'SE CONNECTER'}</span>
