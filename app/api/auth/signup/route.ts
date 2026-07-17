@@ -53,7 +53,10 @@ export async function POST(request: NextRequest) {
     try {
       await sendVerificationEmail(user.email, verifyUrl);
     } catch (emailErr) {
-      // Le compte est créé mais l'email n'est pas parti : on le signale clairement plutôt que de faire semblant.
+      // L'email n'est pas parti : on annule proprement la creation (compte + token de verif),
+      // pour ne jamais laisser de compte fantome qui bloquerait l'adresse email.
+      await redis.del(emailKey);
+      await redis.del('verify:' + verifyToken);
       return NextResponse.json({ error: 'email_non_envoye', detail: String(emailErr) }, { status: 502 });
     }
 
