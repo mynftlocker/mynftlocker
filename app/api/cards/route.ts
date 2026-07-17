@@ -22,7 +22,7 @@ export async function GET(request:NextRequest){
     const jwt=process.env.SORARE_JWT||'';
     const aud=process.env.SORARE_AUD||'';
     if(jwt&&aud){headers['Authorization']=`Bearer ${jwt}`;headers['JWT-AUD']=aud;}
-    const r=await fetch('https://api.sorare.com/federation/graphql',{method:'POST',headers,body:JSON.stringify({query}),signal:AbortSignal.timeout(8000)});
+    const r=await fetch('https://api.sorare.com/graphql',{method:'POST',headers,body:JSON.stringify({query}),signal:AbortSignal.timeout(8000)});
     if(!r.ok)return NextResponse.json({error:'sorare_error'},{status:502});
     const j=await r.json();
     if(j.errors?.length)return NextResponse.json({error:j.errors[0].message},{status:400});
