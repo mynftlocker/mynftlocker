@@ -25,6 +25,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'identifiants_invalides' }, { status: 401 });
     }
 
+    if (!user.emailVerified) {
+      return NextResponse.json({ error: 'email_non_verifie' }, { status: 403 });
+    }
     const token = crypto.randomBytes(32).toString('hex');
     await redis.set('session:' + token, emailKey, { ex: 60 * 60 * 24 * SESSION_DAYS });
 
