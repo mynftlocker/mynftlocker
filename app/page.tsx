@@ -823,7 +823,7 @@ export default function Home() {
                 onMouseLeave={()=>setAuthShowPassword(false)}
                 onTouchStart={()=>setAuthShowPassword(true)}
                 onTouchEnd={()=>setAuthShowPassword(false)}
-                style={{position:'absolute',right:'0.5rem',top:'50%',transform:'translateY(-50%)',cursor:'pointer',fontSize:'0.8rem',color:'rgba(207,228,251,0.5)',userSelect:'none' as const}}>👁</span>
+                style={{position:'absolute',right:'0.6rem',top:'50%',transform:'translateY(-50%)',cursor:'pointer',fontSize:'1.15rem',color:'rgba(64,232,255,0.85)',userSelect:'none' as const}}>👁</span>
             </div>
             {authMode==='signup'&&<input value={authPasswordConfirm} onChange={e=>setAuthPasswordConfirm(e.target.value)} placeholder='Confirmer le mot de passe' type={authShowPassword?'text':'password'} onKeyDown={e=>e.key==='Enter'&&submitAuth()} style={{width:'100%',boxSizing:'border-box' as const,background:'rgba(255,255,255,0.05)',border:'1px solid '+(authPasswordConfirm&&authPassword!==authPasswordConfirm?'rgba(252,165,165,0.6)':'rgba(64,232,255,0.3)'),color:'#cfe4fb',padding:'0.5rem 0.6rem',fontSize:'0.8rem',marginBottom:'0.3rem',fontFamily:'Courier New,monospace',outline:'none'}}/>}
             {authMode==='signup'&&<p style={{fontSize:'0.58rem',color:'rgba(207,228,251,0.45)',marginBottom:'0.7rem',lineHeight:1.4}}>8 caracteres min, 1 majuscule, 1 chiffre, 1 caractere special.</p>}
