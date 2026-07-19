@@ -315,6 +315,7 @@ export default function Home() {
   const [slug, setSlug] = useState('');
   const [logoFlipped, setLogoFlipped] = useState(false);
   const [acctOpen, setAcctOpen] = useState(false);
+  const [slugPanelOpen, setSlugPanelOpen] = useState(false);
   const [cards, setCards] = useState<any[]>([]);
   const [hof, setHof] = useState<string[]>([]);
   const [hofFoot, setHofFoot] = useState<string[]>([]);
@@ -653,9 +654,9 @@ export default function Home() {
             </div>
             {/* BADGE REPOSITIONNE : plus grand, sans cercle, juste avant le chevron */}
             {cards.length>0&&(()=>{const b=collectionBadge(cards.length);return(<img title={cards.length+' cartes'} src={'/'+b.img} alt='' style={{width:'40px',height:'40px',flexShrink:0,objectFit:'contain'}} onError={(e)=>{(e.target as HTMLImageElement).style.display='none';}}/>);})()}
-            <span style={{fontSize:'0.6rem',color:'#6fc3e8',opacity:0.8}}>{(acctOpen||cards.length===0)?'▲':'▼'}</span>
+            <span onClick={e=>{e.stopPropagation();setSlugPanelOpen(o=>!o);}} title='Changer de galerie consultee' style={{fontSize:'0.85rem',color:slugPanelOpen?'#f5d76e':'#6fc3e8',opacity:0.85,padding:'0.1rem 0.3rem',cursor:'pointer'}}>⇄</span>
           </div>
-          {(acctOpen||cards.length===0)&&(
+          {(slugPanelOpen||cards.length===0)&&(
             <input style={{background:'rgba(255,255,255,0.05)',color:'#cfe4fb',padding:'0.28rem 0.55rem',borderRadius:'0.15rem',border:'1px solid rgba(255,255,255,0.1)',outline:'none',fontSize:'0.76rem',boxSizing:'border-box'}} placeholder='ton-slug-sorare' value={slug} onChange={e=>setSlug(e.target.value)} onKeyDown={e=>e.key==='Enter'&&fetchCards()}/>
           )}
         </div>
@@ -872,10 +873,10 @@ export default function Home() {
               </div>
               {/* BADGE REPOSITIONNE : plus grand, sans cercle, juste avant le chevron */}
               {cards.length>0&&(()=>{const b=collectionBadge(cards.length);return(<img title={cards.length+' cartes'} src={'/'+b.img} alt='' style={{width:'46px',height:'46px',flexShrink:0,objectFit:'contain'}} onError={(e)=>{(e.target as HTMLImageElement).style.display='none';}}/>);})()}
-              <span style={{fontSize:'0.65rem',color:'#6fc3e8',opacity:0.8}}>{(acctOpen||cards.length===0)?'▲':'▼'}</span>
+              <span onClick={e=>{e.stopPropagation();setSlugPanelOpen(o=>!o);}} title='Changer de galerie consultee' style={{fontSize:'0.9rem',color:slugPanelOpen?'#f5d76e':'#6fc3e8',opacity:0.85,padding:'0.1rem 0.3rem',cursor:'pointer'}}>⇄</span>
               </div>
             </div>
-            {(acctOpen||cards.length===0)&&(
+            {(slugPanelOpen||cards.length===0)&&(
               <input style={{background:'rgba(255,255,255,0.05)',color:'#cfe4fb',padding:'0.4rem 0.6rem',borderRadius:'0.2rem',border:'1px solid rgba(255,255,255,0.1)',outline:'none',fontSize:'0.85rem',boxSizing:'border-box' as const}} placeholder='ton-slug-sorare' value={slug} onChange={e=>setSlug(e.target.value)} onKeyDown={e=>e.key==='Enter'&&fetchCards()}/>
             )}
           </div>
