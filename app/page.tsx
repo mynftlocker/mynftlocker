@@ -492,6 +492,8 @@ export default function Home() {
   const [authSlugField,setAuthSlugField]=useState('');
   const [authEmail,setAuthEmail]=useState('');
   const [authPassword,setAuthPassword]=useState('');
+  const [authPasswordConfirm,setAuthPasswordConfirm]=useState('');
+  const [authShowPassword,setAuthShowPassword]=useState(false);
   const [authError,setAuthError]=useState('');
   const [authLoading,setAuthLoading]=useState(false);
   const [justLoggedIn,setJustLoggedIn]=useState(false);
@@ -503,6 +505,7 @@ export default function Home() {
   },[justLoggedIn,slug]);
   const startAuthClose=()=>{ setAuthClosing(true); setTimeout(()=>{ setAuthOpen(false); setAuthClosing(false); setAuthError(''); },450); };
   const submitAuth=async()=>{
+    if(authMode==='signup'&&authPassword!==authPasswordConfirm){ setAuthError('Les mots de passe ne correspondent pas.'); return; }
     setAuthError(''); setAuthLoading(true);
     try{
       const endpoint = authMode==='signup' ? '/api/auth/signup' : '/api/auth/login';
@@ -804,7 +807,11 @@ export default function Home() {
             {authMode==='signup'&&<input value={authPseudo} onChange={e=>setAuthPseudo(e.target.value)} placeholder='Pseudo' style={{width:'100%',boxSizing:'border-box' as const,background:'rgba(255,255,255,0.05)',border:'1px solid rgba(64,232,255,0.3)',color:'#cfe4fb',padding:'0.5rem 0.6rem',fontSize:'0.8rem',marginBottom:'0.6rem',fontFamily:'Courier New,monospace',outline:'none'}}/>}
             {authMode==='signup'&&<input value={authSlugField} onChange={e=>setAuthSlugField(e.target.value)} placeholder='Slug Sorare (ex: pseudo-email-com)' style={{width:'100%',boxSizing:'border-box' as const,background:'rgba(255,255,255,0.05)',border:'1px solid rgba(64,232,255,0.3)',color:'#cfe4fb',padding:'0.5rem 0.6rem',fontSize:'0.8rem',marginBottom:'0.6rem',fontFamily:'Courier New,monospace',outline:'none'}}/>}
             <input value={authEmail} onChange={e=>setAuthEmail(e.target.value)} placeholder='Email' type='email' style={{width:'100%',boxSizing:'border-box' as const,background:'rgba(255,255,255,0.05)',border:'1px solid rgba(64,232,255,0.3)',color:'#cfe4fb',padding:'0.5rem 0.6rem',fontSize:'0.8rem',marginBottom:'0.6rem',fontFamily:'Courier New,monospace',outline:'none'}}/>
-            <input value={authPassword} onChange={e=>setAuthPassword(e.target.value)} placeholder='Mot de passe' type='password' onKeyDown={e=>e.key==='Enter'&&submitAuth()} style={{width:'100%',boxSizing:'border-box' as const,background:'rgba(255,255,255,0.05)',border:'1px solid rgba(64,232,255,0.3)',color:'#cfe4fb',padding:'0.5rem 0.6rem',fontSize:'0.8rem',marginBottom:authMode==='signup'?'0.3rem':'0.8rem',fontFamily:'Courier New,monospace',outline:'none'}}/>
+            <div style={{position:'relative',marginBottom:authMode==='signup'?'0.3rem':'0.8rem'}}>
+              <input value={authPassword} onChange={e=>setAuthPassword(e.target.value)} placeholder='Mot de passe' type={authShowPassword?'text':'password'} onKeyDown={e=>e.key==='Enter'&&submitAuth()} style={{width:'100%',boxSizing:'border-box' as const,background:'rgba(255,255,255,0.05)',border:'1px solid rgba(64,232,255,0.3)',color:'#cfe4fb',padding:'0.5rem 2rem 0.5rem 0.6rem',fontSize:'0.8rem',fontFamily:'Courier New,monospace',outline:'none'}}/>
+              <span onClick={()=>setAuthShowPassword(v=>!v)} style={{position:'absolute',right:'0.5rem',top:'50%',transform:'translateY(-50%)',cursor:'pointer',fontSize:'0.75rem',color:'rgba(207,228,251,0.5)',userSelect:'none' as const}}>{authShowPassword?'🙈':'👁️'}</span>
+            </div>
+            {authMode==='signup'&&<input value={authPasswordConfirm} onChange={e=>setAuthPasswordConfirm(e.target.value)} placeholder='Confirmer le mot de passe' type={authShowPassword?'text':'password'} onKeyDown={e=>e.key==='Enter'&&submitAuth()} style={{width:'100%',boxSizing:'border-box' as const,background:'rgba(255,255,255,0.05)',border:'1px solid '+(authPasswordConfirm&&authPassword!==authPasswordConfirm?'rgba(252,165,165,0.6)':'rgba(64,232,255,0.3)'),color:'#cfe4fb',padding:'0.5rem 0.6rem',fontSize:'0.8rem',marginBottom:'0.3rem',fontFamily:'Courier New,monospace',outline:'none'}}/>}
             {authMode==='signup'&&<p style={{fontSize:'0.58rem',color:'rgba(207,228,251,0.45)',marginBottom:'0.7rem',lineHeight:1.4}}>8 caracteres min, 1 majuscule, 1 chiffre, 1 caractere special.</p>}
             {authError&&<p style={{color:'#fca5a5',fontSize:'0.66rem',marginBottom:'0.6rem'}}>{authError}</p>}
             <button onClick={submitAuth} disabled={authLoading} style={{width:'100%',background:'rgba(64,232,255,0.12)',border:'1px solid rgba(64,232,255,0.5)',color:'#40e8ff',padding:'0.55rem',fontSize:'0.72rem',fontWeight:700,letterSpacing:'0.15em',textTransform:'uppercase',cursor:authLoading?'not-allowed':'pointer',fontFamily:'Courier New,monospace',opacity:authLoading?0.5:1}}>{authLoading?'...':(authMode==='signup'?'S\'inscrire':'Se connecter')}</button>
