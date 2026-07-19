@@ -316,6 +316,7 @@ export default function Home() {
   const [logoFlipped, setLogoFlipped] = useState(false);
   const [acctOpen, setAcctOpen] = useState(false);
   const [slugPanelOpen, setSlugPanelOpen] = useState(false);
+  const [acctMenuSection, setAcctMenuSection] = useState<string|null>(null);
   const [cards, setCards] = useState<any[]>([]);
   const [hof, setHof] = useState<string[]>([]);
   const [hofFoot, setHofFoot] = useState<string[]>([]);
@@ -646,6 +647,7 @@ export default function Home() {
 
         {/* COMPTE */}
         <div style={{display:'flex',flexDirection:'column' as const,gap:'0.2rem',marginBottom:'0.25rem'}}>
+          <div style={{position:'relative'}}>
           <div onClick={()=>setAcctOpen(o=>!o)} style={{display:'flex',alignItems:'center',gap:'0.5rem',padding:'0.3rem 0.4rem',borderRadius:'0.3rem',cursor:'pointer',background:'rgba(255,255,255,0.03)',border:'1px solid rgba(111,195,232,0.18)',transition:'all 0.15s'}} onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.background='rgba(111,195,232,0.08)';}} onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.background='rgba(255,255,255,0.03)';}}>
             <div style={{width:'28px',height:'28px',flexShrink:0,borderRadius:'50%',background:'radial-gradient(circle at 35% 30%,#1a1c24,#0a0b0f)',border:'1.5px solid #6fc3e8',boxShadow:'0 0 10px rgba(111,195,232,0.5)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'0.78rem',fontWeight:900,color:'#6fc3e8'}}>{(slug||'?').trim().charAt(0).toUpperCase()||'?'}</div>
             <div style={{flex:1,minWidth:0,textAlign:'left'}}>
@@ -659,6 +661,21 @@ export default function Home() {
           {(slugPanelOpen||cards.length===0)&&(
             <input style={{background:'rgba(255,255,255,0.05)',color:'#cfe4fb',padding:'0.28rem 0.55rem',borderRadius:'0.15rem',border:'1px solid rgba(255,255,255,0.1)',outline:'none',fontSize:'0.76rem',boxSizing:'border-box'}} placeholder='ton-slug-sorare' value={slug} onChange={e=>setSlug(e.target.value)} onKeyDown={e=>e.key==='Enter'&&fetchCards()}/>
           )}
+          {acctOpen&&(
+            <div className='thin-sb' style={{position:'absolute',top:'100%',left:0,right:0,marginTop:'0.3rem',background:'#0a0d12',border:'1px solid rgba(111,195,232,0.35)',borderRadius:'0.35rem',boxShadow:'0 10px 28px rgba(0,0,0,0.6)',zIndex:200,overflow:'hidden'}}>
+              {[
+              {key:'infos',label:'Informations personnelles'},
+              {key:'auth',label:'Authentification'},
+              {key:'abo',label:'Abonnement'},
+              {key:'confidentialite',label:'Confidentialite & donnees'},
+              {key:'aide',label:'Aide / Contact'},
+              {key:'deconnexion',label:'Se deconnecter'},
+            ].map(item=>(
+                <div key={item.key} onClick={()=>{setAcctMenuSection(item.key);setAcctOpen(false);}} style={{padding:'0.5rem 0.7rem',fontSize:'0.72rem',color:item.key==='deconnexion'?'#fca5a5':'#cfe4fb',cursor:'pointer',borderBottom:'1px solid rgba(255,255,255,0.05)',transition:'background 0.12s'}} onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.background='rgba(111,195,232,0.1)';}} onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.background='transparent';}}>{item.label}</div>
+              ))}
+            </div>
+          )}
+          </div>
         </div>
 
         {/* NAV Vestiaire / Galerie */}
