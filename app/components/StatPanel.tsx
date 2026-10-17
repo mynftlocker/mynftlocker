@@ -36,7 +36,17 @@ export const CardBack=memo(({card,rc,mobile}:any)=>{
   // ETOILES Sorare : vraie note "gameplayTierStars" (Float 1-5 par demi-crans) recuperee sur la fiche joueur.
   const sv=card.anyPlayer?.gameplayTierStars;
   const stars=(sv==null||isNaN(Number(sv)))?null:Math.max(0,Math.min(5,Number(sv)));
-  const starPct=stars==null?0:(stars/5*100);
+  // Pentagone d'etoiles facon Sorare : arrangement par tier + couleur hexagone selon le tier (orange bas -> cyan haut).
+  const starN=stars==null?0:Math.min(5,Math.max(1,Math.ceil(stars)));
+  const starFull=stars==null?0:Math.floor(stars);
+  const STAR_LAYOUTS:Record<number,number[][]>={1:[[50,50]],2:[[34,50],[66,50]],3:[[33,36],[67,36],[50,67]],4:[[34,35],[66,35],[34,67],[66,67]],5:[[32,33],[68,33],[32,69],[68,69],[50,51]]};
+  const starPos:number[][]=stars==null?[]:(STAR_LAYOUTS[starN]||[]);
+  const STAR_PATH='M12 1.6l2.95 7.03 7.6.62-5.78 4.96 1.75 7.42L12 17.7l-6.52 3.93 1.75-7.42L1.45 9.25l7.6-.62z';
+  const starUid=('s'+(card.slug||'')).replace(/[^A-Za-z0-9]/g,'').slice(-12)+starN;
+  const lerp=(a:number,b:number,t:number)=>Math.round(a+(b-a)*t);
+  const tT=stars==null?0:Math.max(0,Math.min(1,(stars-1)/4));
+  const tierCol='rgb('+lerp(255,0,tT)+','+lerp(126,243,tT)+','+lerp(52,235,tT)+')';
+  const starFrac=(i:number)=>stars==null?0:(i<starFull?1:((stars-starFull)>=0.5?0.5:1));
   const fv=(v:any,t:string)=>{if(v==null)return '—';const n=Number(v);if(t==='pct')return n.toFixed(1)+'%';if(t==='pm')return(n>=0?'+':'')+n.toFixed(1);return n.toFixed(1);};
   return(
     <div style={{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'rotateY(180deg)',borderRadius:'0.4rem',overflow:'hidden',background:'radial-gradient(ellipse 130% 90% at 50% 0%,#191b24 0%,#0c0d14 60%,#06070d 100%)',display:'flex',flexDirection:'column' as const,border:'1px solid '+rc+'44'}}>
@@ -53,10 +63,22 @@ export const CardBack=memo(({card,rc,mobile}:any)=>{
         <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:sz('0.45rem',7.2),lineHeight:1}}>
           <span style={{fontSize:sz('1.4rem',22.4),fontWeight:900,color:'#fff',lineHeight:1,textShadow:score?('0 0 14px '+rc+'aa'):'none'}}>{score||'—'}</span>
           {stars!=null&&(
-            <span style={{position:'relative',display:'inline-block',fontSize:sz('1rem',16),lineHeight:1,whiteSpace:'nowrap'}}>
-              <span style={{color:'rgba(255,255,255,0.18)'}}>★★★★★</span>
-              <span style={{position:'absolute',left:0,top:0,width:starPct+'%',overflow:'hidden',color:'#f5d76e',whiteSpace:'nowrap',textShadow:'0 0 6px rgba(245,215,110,0.7)'}}>★★★★★</span>
-            </span>
+            <svg viewBox='0 0 100 100' style={{width:sz('2rem',32),height:sz('2rem',32),flexShrink:0,overflow:'visible'}}>
+              <defs>
+                <linearGradient id={'gold'+starUid} x1='0' y1='0' x2='0' y2='1'>
+                  <stop offset='0' stopColor='#fff6b0'/><stop offset='0.45' stopColor='#f5d76e'/><stop offset='1' stopColor='#c9870f'/>
+                </linearGradient>
+              </defs>
+              <polygon points='50,3 92,27 92,73 50,97 8,73 8,27' fill={tierCol} fillOpacity='0.22' stroke={tierCol} strokeWidth='4' strokeOpacity='0.9'/>
+              {starPos.map((p,i)=>{
+                const f=starFrac(i);const sc=1.15;const off=12*sc;const cid='c'+starUid+i;
+                return(<g key={i} transform={'translate('+(p[0]-off)+','+(p[1]-off)+') scale('+sc+')'}>
+                  <path d={STAR_PATH} fill='rgba(255,255,255,0.16)'/>
+                  <clipPath id={cid}><rect x='0' y='0' width={24*f} height='24'/></clipPath>
+                  <path d={STAR_PATH} fill={'url(#gold'+starUid+')'} clipPath={'url(#'+cid+')'} style={{filter:'drop-shadow(0 0 1.5px rgba(245,215,110,0.7))'}}/>
+                </g>);
+              })}
+            </svg>
           )}
         </div>
         <p style={{margin:'3px 0 0',fontSize:sz('0.42rem',6.72),color:rc,textTransform:'uppercase',fontWeight:800,letterSpacing:'0.1em'}}>MOYENNE L10</p>
