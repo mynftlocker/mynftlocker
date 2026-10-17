@@ -529,6 +529,12 @@ export default function Home() {
       if(d.sorareSlug){ setSlug(d.sorareSlug); setJustLoggedIn(true); }
     }catch(e){ setAuthError('Connexion au serveur impossible.'); setAuthLoading(false); }
   };
+  const handleLogout=async()=>{
+    try{ await fetch('/api/auth/logout',{method:'POST'}); }catch(e){}
+    setCurrentUser(null);
+    setAcctOpen(false);
+    setAcctMenuSection(null);
+  };
   useEffect(()=>{if(showFlash&&error){setShowFlash(false);setOpenPhase(0);}},[showFlash,error]);
   useEffect(()=>{if(!showFlash)return;const t=setTimeout(()=>setShowFlash(false),650);return()=>clearTimeout(t);},[showFlash]);
   useEffect(()=>{if(openPhase===1&&!loading&&cards.length>0&&!fragStartedRef.current){
@@ -677,7 +683,7 @@ export default function Home() {
               {key:'aide',label:'Aide / Contact'},
               {key:'deconnexion',label:'Se deconnecter'},
             ].map(item=>(
-                <div key={item.key} onClick={()=>{setAcctMenuSection(item.key);setAcctOpen(false);}} style={{padding:'0.5rem 0.7rem',fontSize:'0.72rem',color:item.key==='deconnexion'?'#fca5a5':'#cfe4fb',cursor:'pointer',borderBottom:'1px solid rgba(255,255,255,0.05)',transition:'background 0.12s'}} onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.background='rgba(111,195,232,0.1)';}} onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.background='transparent';}}>{item.label}</div>
+                <div key={item.key} onClick={()=>{if(item.key==='deconnexion'){handleLogout();}else{setAcctMenuSection(item.key);setAcctOpen(false);}}} style={{padding:'0.5rem 0.7rem',fontSize:'0.72rem',color:item.key==='deconnexion'?'#fca5a5':'#cfe4fb',cursor:'pointer',borderBottom:'1px solid rgba(255,255,255,0.05)',transition:'background 0.12s'}} onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.background='rgba(111,195,232,0.1)';}} onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.background='transparent';}}>{item.label}</div>
               ))}
             </div>
           )}
@@ -722,6 +728,44 @@ export default function Home() {
 
       {/* ===== CONTENU ===== */}
       <div className='mnfl-content' style={{flex:1,marginLeft:'220px',minHeight:'100vh'}}>
+        {acctMenuSection&&(()=>{
+          const SECTIONS:Record<string,string>={infos:'Informations personnelles',auth:'Authentification',abo:'Abonnement',confidentialite:'Confidentialite & donnees',aide:'Aide / Contact'};
+          const title=SECTIONS[acctMenuSection]||'Mon compte';
+          const rowStyle:React.CSSProperties={display:'flex',justifyContent:'space-between',alignItems:'center',gap:'1rem',padding:'0.85rem 1rem',background:'rgba(255,255,255,0.03)',border:'1px solid rgba(111,195,232,0.18)',borderRadius:'0.4rem',marginBottom:'0.6rem'};
+          const labelStyle:React.CSSProperties={fontSize:'0.72rem',color:'#7a8898',letterSpacing:'0.04em',textTransform:'uppercase'};
+          const valStyle:React.CSSProperties={fontSize:'0.9rem',color:'#eaf2ff',fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'};
+          return(
+          <div style={{position:'fixed',inset:0,left:'220px',zIndex:120,background:'radial-gradient(ellipse 120% 90% at 50% -10%,#0d111a 0%,#080b10 55%,#040507 100%)',overflow:'auto',padding:'2.5rem 2rem'}} className='thin-sb mnfl-account-panel'>
+            <div style={{maxWidth:'620px',margin:'0 auto'}}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'1.6rem',borderBottom:'1px solid rgba(111,195,232,0.25)',paddingBottom:'1rem'}}>
+                <h1 style={{margin:0,fontSize:'1.35rem',fontWeight:800,color:'#eaf2ff',letterSpacing:'0.02em'}}>{title}</h1>
+                <button onClick={()=>setAcctMenuSection(null)} title='Fermer' style={{background:'rgba(255,255,255,0.05)',border:'1px solid rgba(111,195,232,0.35)',borderRadius:'50%',width:'34px',height:'34px',color:'#6fc3e8',cursor:'pointer',fontSize:'0.85rem',flexShrink:0}}>✕</button>
+              </div>
+              {acctMenuSection==='infos'&&(currentUser?(
+                <div>
+                  <div style={rowStyle}><span style={labelStyle}>Pseudo</span><span style={valStyle}>{currentUser.pseudo}</span></div>
+                  <div style={rowStyle}><span style={labelStyle}>Adresse email</span><span style={valStyle}>{currentUser.email}</span></div>
+                  <div style={rowStyle}><span style={labelStyle}>Mot de passe</span><span style={valStyle}>••••••••</span></div>
+                  <div style={rowStyle}><span style={labelStyle}>Slug Sorare</span><span style={valStyle}>{currentUser.sorareSlug||'—'}</span></div>
+                  <p style={{fontSize:'0.72rem',color:'#7a8898',marginTop:'1rem',lineHeight:1.6}}>La modification de ces informations arrive prochainement.</p>
+                </div>
+              ):(
+                <div style={{textAlign:'center',padding:'2.5rem 1rem'}}>
+                  <p style={{color:'#cfe4fb',fontSize:'0.95rem',marginBottom:'1.4rem'}}>Tu n'es pas connecte a un compte myNFTlocker.</p>
+                  <button onClick={()=>{setAcctMenuSection(null);setAuthMode('login');setAuthOpen(true);}} style={{background:'rgba(64,232,255,0.12)',border:'1px solid rgba(64,232,255,0.5)',color:'#40e8ff',padding:'0.6rem 2rem',fontSize:'0.78rem',fontWeight:700,letterSpacing:'0.12em',textTransform:'uppercase',cursor:'pointer',borderRadius:'3px'}}>Se connecter</button>
+                </div>
+              ))}
+              {acctMenuSection!=='infos'&&(
+                <div style={{textAlign:'center',padding:'3rem 1rem'}}>
+                  <div style={{fontSize:'2.2rem',marginBottom:'1rem',opacity:0.5}}>🚧</div>
+                  <p style={{color:'#cfe4fb',fontSize:'1rem',fontWeight:600,marginBottom:'0.5rem'}}>Bientot disponible</p>
+                  <p style={{color:'#7a8898',fontSize:'0.8rem',lineHeight:1.6,maxWidth:'360px',margin:'0 auto'}}>{acctMenuSection==='auth'?'Tu pourras bientot connecter ton compte Sorare officiel ici.':acctMenuSection==='abo'?'Les formules d’abonnement seront proposees ici le moment venu.':acctMenuSection==='confidentialite'?'Gestion de tes donnees et suppression de compte a venir.':'Un espace d’aide et de contact arrive prochainement.'}</p>
+                </div>
+              )}
+            </div>
+          </div>
+          );
+        })()}
         {openPhase<3&&!showFlash&&(
           <div style={{position:'fixed',inset:0,zIndex:100,display:'flex',flexDirection:'column' as const,alignItems:'center',justifyContent:'safe center',overflow:'auto'}} className='thin-sb'>
             <StarCanvas phase={openPhase} burst={false}/>
