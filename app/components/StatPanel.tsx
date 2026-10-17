@@ -33,6 +33,11 @@ export const CardBack=memo(({card,rc,mobile}:any)=>{
   const sn=card.anyPlayer?.shirtNumber??null;
   const bonus=card.power?('+'+Math.round((parseFloat(card.power)-1)*100)+'%'):null;
   const score=card.averageScore!=null?String(card.averageScore):null;
+  // ETOILES Sorare (1 a 5 par demi-crans), basees sur le score L10.
+  // BAREME PROVISOIRE a caler sur les vraies valeurs Sorare apres le 20/10 (une seule ligne a ajuster) :
+  const l10Num=card.averageScore!=null?parseFloat(String(card.averageScore)):null;
+  const stars=(l10Num==null||isNaN(l10Num))?null:Math.max(1,Math.min(5,Math.round((l10Num/60)*5*2)/2));
+  const starPct=stars==null?0:(stars/5*100);
   const fv=(v:any,t:string)=>{if(v==null)return '—';const n=Number(v);if(t==='pct')return n.toFixed(1)+'%';if(t==='pm')return(n>=0?'+':'')+n.toFixed(1);return n.toFixed(1);};
   return(
     <div style={{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'rotateY(180deg)',borderRadius:'0.4rem',overflow:'hidden',background:'radial-gradient(ellipse 130% 90% at 50% 0%,#191b24 0%,#0c0d14 60%,#06070d 100%)',display:'flex',flexDirection:'column' as const,border:'1px solid '+rc+'44'}}>
@@ -46,8 +51,16 @@ export const CardBack=memo(({card,rc,mobile}:any)=>{
         <p style={{margin:'2px 0 0',fontSize:sz('0.5rem',8),color:'#9aa3b2',fontWeight:700,letterSpacing:'0.05em'}}>{sn!==null?('#'+sn):''}{(sn!==null&&serial)?'  ·  ':''}{serial||''}</p>
       </div>
       <div style={{borderTop:'1px solid rgba(255,255,255,0.06)',padding:'0.4rem 0.3rem',textAlign:'center'}}>
-        <p style={{margin:0,fontSize:sz('1.4rem',22.4),fontWeight:900,color:'#fff',lineHeight:1,textShadow:score?('0 0 14px '+rc+'aa'):'none'}}>{score||'—'}</p>
-        <p style={{margin:'2px 0 0',fontSize:sz('0.42rem',6.72),color:rc,textTransform:'uppercase',fontWeight:800,letterSpacing:'0.1em'}}>MOY. L10</p>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:sz('0.45rem',7.2),lineHeight:1}}>
+          <span style={{fontSize:sz('1.4rem',22.4),fontWeight:900,color:'#fff',lineHeight:1,textShadow:score?('0 0 14px '+rc+'aa'):'none'}}>{score||'—'}</span>
+          {stars!=null&&(
+            <span style={{position:'relative',display:'inline-block',fontSize:sz('1rem',16),lineHeight:1,whiteSpace:'nowrap'}}>
+              <span style={{color:'rgba(255,255,255,0.18)'}}>★★★★★</span>
+              <span style={{position:'absolute',left:0,top:0,width:starPct+'%',overflow:'hidden',color:'#f5d76e',whiteSpace:'nowrap',textShadow:'0 0 6px rgba(245,215,110,0.7)'}}>★★★★★</span>
+            </span>
+          )}
+        </div>
+        <p style={{margin:'3px 0 0',fontSize:sz('0.42rem',6.72),color:rc,textTransform:'uppercase',fontWeight:800,letterSpacing:'0.1em'}}>MOYENNE L10</p>
       </div>
       <div style={{display:'flex',gap:'0.3rem',padding:'0.3rem 0.4rem 0.45rem'}}>
         <span style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',height:'1.05rem',borderRadius:'0.3rem',border:'1px solid '+rc+'55',background:rc+'15',fontSize:sz('0.46rem',7.36),fontWeight:800,color:rc,letterSpacing:'0.02em',whiteSpace:'nowrap'}}>BONUS {bonus||'—'}</span>
