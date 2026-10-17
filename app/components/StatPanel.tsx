@@ -62,7 +62,7 @@ export const CardBack=memo(({card,rc,mobile}:any)=>{
       <div style={{borderTop:'1px solid rgba(255,255,255,0.06)',padding:'0.4rem 0.3rem',textAlign:'center'}}>
         <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:sz('0.45rem',7.2),lineHeight:1}}>
           <span style={{fontSize:sz('1.4rem',22.4),fontWeight:900,color:'#fff',lineHeight:1,textShadow:score?('0 0 14px '+rc+'aa'):'none'}}>{score||'—'}</span>
-          {stars!=null&&(
+          {stars!=null&&isNBA(card)&&(
             <svg viewBox='0 0 100 100' style={{width:sz('2rem',32),height:sz('2rem',32),flexShrink:0,overflow:'visible'}}>
               <defs>
                 <linearGradient id={'gold'+starUid} x1='0' y1='0' x2='0' y2='1'>
@@ -79,6 +79,16 @@ export const CardBack=memo(({card,rc,mobile}:any)=>{
                 </g>);
               })}
             </svg>
+          )}
+          {stars!=null&&!isNBA(card)&&(
+            <span style={{display:'inline-flex',alignItems:'center',gap:sz('0.08rem',1.3),flexShrink:0}}>
+              {Array.from({length:Math.max(1,Math.round(stars))}).map((_,i)=>(
+                <svg key={i} viewBox='0 0 24 24' style={{width:sz('0.9rem',14.4),height:sz('0.9rem',14.4),flexShrink:0}}>
+                  <defs><linearGradient id={'fg'+starUid+i} x1='0' y1='0' x2='0' y2='1'><stop offset='0' stopColor='#fff6b0'/><stop offset='0.45' stopColor='#f5d76e'/><stop offset='1' stopColor='#c9870f'/></linearGradient></defs>
+                  <path d={STAR_PATH} fill={'url(#fg'+starUid+i+')'} style={{filter:'drop-shadow(0 0 1.5px rgba(245,215,110,0.7))'}}/>
+                </svg>
+              ))}
+            </span>
           )}
         </div>
         <p style={{margin:'3px 0 0',fontSize:sz('0.42rem',6.72),color:rc,textTransform:'uppercase',fontWeight:800,letterSpacing:'0.1em'}}>MOYENNE L10</p>
