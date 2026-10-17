@@ -33,10 +33,9 @@ export const CardBack=memo(({card,rc,mobile}:any)=>{
   const sn=card.anyPlayer?.shirtNumber??null;
   const bonus=card.power?('+'+Math.round((parseFloat(card.power)-1)*100)+'%'):null;
   const score=card.averageScore!=null?String(card.averageScore):null;
-  // ETOILES Sorare (1 a 5 par demi-crans), basees sur le score L10.
-  // BAREME PROVISOIRE a caler sur les vraies valeurs Sorare apres le 20/10 (une seule ligne a ajuster) :
-  const l10Num=card.averageScore!=null?parseFloat(String(card.averageScore)):null;
-  const stars=(l10Num==null||isNaN(l10Num))?null:Math.max(1,Math.min(5,Math.round((l10Num/60)*5*2)/2));
+  // ETOILES Sorare : vraie note "gameplayTierStars" (Float 1-5 par demi-crans) recuperee sur la fiche joueur.
+  const sv=card.anyPlayer?.gameplayTierStars;
+  const stars=(sv==null||isNaN(Number(sv)))?null:Math.max(0,Math.min(5,Number(sv)));
   const starPct=stars==null?0:(stars/5*100);
   const fv=(v:any,t:string)=>{if(v==null)return '—';const n=Number(v);if(t==='pct')return n.toFixed(1)+'%';if(t==='pm')return(n>=0?'+':'')+n.toFixed(1);return n.toFixed(1);};
   return(

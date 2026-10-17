@@ -452,7 +452,7 @@ export default function Home() {
     const SORARE_URL='https://api.sorare.com/federation/graphql';
     const fetchPage=async(cursor:string|null):Promise<{cards:any[],hasNextPage:boolean,cursor:string|null}|null>=>{
       const after=cursor?`, after: "${cursor}"` :'';
-      const query=`query{user(slug:"${slug}"){cards(first:50${after}){nodes{__typename slug name rarityTyped pictureUrl anyPlayer{lastName shirtNumber}anyTeam{name ...on Club{country{slug}}}...on NBACard{seasonYear specialEdition power xp averageScore(type:LAST_TEN_PLAYED_SO5_AVERAGE_SCORE)}}pageInfo{hasNextPage endCursor}}}}`;
+      const query=`query{user(slug:"${slug}"){cards(first:50${after}){nodes{__typename slug name rarityTyped pictureUrl anyPlayer{lastName shirtNumber gameplayTierStars}anyTeam{name ...on Club{country{slug}}}...on NBACard{seasonYear specialEdition power xp averageScore(type:LAST_TEN_PLAYED_SO5_AVERAGE_SCORE)}}pageInfo{hasNextPage endCursor}}}}`;
       // CORS SKIP : l'essai direct navigateur echoue systematiquement (CORS Sorare), tente 0 fois, va direct au fallback qui marche
       // 1. Route Vercel (seule voie fonctionnelle, confirmee sur des dizaines de tests)
       const url='/api/cards?slug='+encodeURIComponent(slug)+(cursor?'&cursor='+encodeURIComponent(cursor):'');

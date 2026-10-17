@@ -5,7 +5,7 @@ export async function GET(request:NextRequest){
   const after=cursor?`,after:"${cursor}"`:'';
   const query=`query{user(slug:"${slug}"){cards(first:50${after}){nodes{
     __typename slug name rarityTyped pictureUrl
-    anyPlayer{lastName shirtNumber}
+    anyPlayer{lastName shirtNumber gameplayTierStars}
     anyTeam{name ...on Club{country{slug}}}
     ...on NBACard{
       seasonYear specialEdition power xp
