@@ -102,6 +102,33 @@ export const CardBack=memo(({card,rc,mobile}:any)=>{
 });
 CardBack.displayName='CardBack';
 
+// Note en etoiles reutilisable (tableau noir) : pentagone NBA / rangee foot, meme donnee gameplayTierStars.
+export const StarRating=({card,box}:{card:any;box:number})=>{
+  const sv=card?.anyPlayer?.gameplayTierStars;
+  const stars=(sv==null||isNaN(Number(sv)))?null:Math.max(0,Math.min(5,Number(sv)));
+  if(stars==null)return null;
+  const PATH='M12 1.6l2.95 7.03 7.6.62-5.78 4.96 1.75 7.42L12 17.7l-6.52 3.93 1.75-7.42L1.45 9.25l7.6-.62z';
+  const uid=('r'+(card.slug||'')).replace(/[^A-Za-z0-9]/g,'').slice(-10);
+  const grad=(id:string)=>(<linearGradient id={id} x1='0' y1='0' x2='0' y2='1'><stop offset='0' stopColor='#fff6b0'/><stop offset='0.45' stopColor='#f5d76e'/><stop offset='1' stopColor='#c9870f'/></linearGradient>);
+  if(isNBA(card)){
+    const starN=Math.min(5,Math.max(1,Math.ceil(stars)));
+    const starFull=Math.floor(stars);
+    const LAY:Record<number,number[][]>={1:[[50,50]],2:[[34,50],[66,50]],3:[[33,36],[67,36],[50,67]],4:[[34,35],[66,35],[34,67],[66,67]],5:[[32,33],[68,33],[32,69],[68,69],[50,51]]};
+    const pos=LAY[starN]||[];
+    const lerp=(a:number,b:number,t:number)=>Math.round(a+(b-a)*t);
+    const tT=Math.max(0,Math.min(1,(stars-1)/4));
+    const tierCol='rgb('+lerp(255,0,tT)+','+lerp(126,243,tT)+','+lerp(52,235,tT)+')';
+    const frac=(i:number)=>(i<starFull?1:((stars-starFull)>=0.5?0.5:1));
+    return(<svg viewBox='0 0 100 100' style={{width:box,height:box,flexShrink:0,overflow:'visible'}}>
+      <defs>{grad('g'+uid)}</defs>
+      <polygon points='50,3 92,27 92,73 50,97 8,73 8,27' fill={tierCol} fillOpacity='0.22' stroke={tierCol} strokeWidth='4' strokeOpacity='0.9'/>
+      {pos.map((p,i)=>{const f=frac(i);const sc=1.15;const off=12*sc;const cid='c'+uid+i;return(<g key={i} transform={'translate('+(p[0]-off)+','+(p[1]-off)+') scale('+sc+')'}><path d={PATH} fill='rgba(255,255,255,0.16)'/><clipPath id={cid}><rect x='0' y='0' width={24*f} height='24'/></clipPath><path d={PATH} fill={'url(#g'+uid+')'} clipPath={'url(#'+cid+')'} style={{filter:'drop-shadow(0 0 1.5px rgba(245,215,110,0.7))'}}/></g>);})}
+    </svg>);
+  }
+  const n=Math.max(1,Math.round(stars));const s=box/2.2;
+  return(<span style={{display:'inline-flex',gap:1.5,alignItems:'center',flexShrink:0}}>{Array.from({length:n}).map((_,i)=>(<svg key={i} viewBox='0 0 24 24' style={{width:s,height:s,flexShrink:0}}><defs>{grad('g'+uid+i)}</defs><path d={PATH} fill={'url(#g'+uid+i+')'} style={{filter:'drop-shadow(0 0 1.5px rgba(245,215,110,0.7))'}}/></svg>))}</span>);
+};
+
 export const StatPanel=memo(({card,onClose,isClosing=false,placement='scene'}:any)=>{
   const rc=RARITY_COLOR[card.rarityTyped]||'#9ca3af';
   const {season,serial}=parseCard(card.name);
@@ -163,8 +190,11 @@ export const StatPanel=memo(({card,onClose,isClosing=false,placement='scene'}:an
       </div>
       <div style={{...sep,display:'flex',alignItems:'stretch'}}>
         <div style={{width:'50%',textAlign:'center',display:'flex',flexDirection:'column' as const,justifyContent:'center',borderRight:'1px solid rgba(64,232,255,0.1)',paddingRight:'0.5rem'}}>
-          <p style={{margin:0,fontSize:'2.2rem',fontWeight:900,color:CY,lineHeight:1,textShadow:'0 0 22px '+CY}}>{countedAvg}</p>
-          <p style={{margin:'2px 0 0',fontSize:'0.52rem',color:'rgba(64,232,255,0.6)',letterSpacing:'0.2em',textTransform:'uppercase'}}>MOY. L10</p>
+          <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'0.4rem'}}>
+            <span style={{fontSize:'2.2rem',fontWeight:900,color:CY,lineHeight:1,textShadow:'0 0 22px '+CY}}>{countedAvg}</span>
+            <StarRating card={card} box={34}/>
+          </div>
+          <p style={{margin:'4px 0 0',fontSize:'0.52rem',color:'rgba(64,232,255,0.6)',letterSpacing:'0.2em',textTransform:'uppercase'}}>MOY. L10</p>
         </div>
         <div style={{width:'50%',display:'flex',flexDirection:'column' as const,gap:'0.24rem',paddingLeft:'0.5rem',justifyContent:'center'}}>
           {bonus&&<div style={{padding:'0.22rem 0.4rem',border:'1px solid rgba(64,232,255,0.28)',borderRadius:'0.25rem',background:'rgba(64,232,255,0.07)',display:'flex',justifyContent:'space-between',alignItems:'baseline'}}><span style={{fontSize:'0.52rem',color:'rgba(64,232,255,0.55)',letterSpacing:'0.1em'}}>BONUS</span><span style={{fontSize:'0.72rem',fontWeight:800,color:CY,textShadow:CYS}}>{bonus}</span></div>}
