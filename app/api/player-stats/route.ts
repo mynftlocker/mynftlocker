@@ -28,18 +28,17 @@ export async function GET(request: NextRequest) {
     // Matchs joues deduits : total minutes / moyenne minutes
     const gp = a.MINS_PLAYED ? Math.round(Number(t.MINS_PLAYED) / Number(a.MINS_PLAYED)) : null;
 
+    // EFF = indice d'efficacite standard (PTS+REB+AST+STL+BLK-TOV), calcule car Sorare n'expose pas de stat brute supplementaire.
+    const pts = av('POINTS'), reb = av('REBOUNDS'), ast = av('ASSISTS'), stl = av('STEALS'), blk = av('BLOCKS'), tov = av('TURNOVERS');
+    const eff = pts == null ? null : Math.round(((pts || 0) + (reb || 0) + (ast || 0) + (stl || 0) + (blk || 0) - (tov || 0)) * 10) / 10;
     const out = {
-      pts: av('POINTS'),
-      reb: av('REBOUNDS'),
-      ast: av('ASSISTS'),
-      stl: av('STEALS'),
-      blk: av('BLOCKS'),
-      tov: av('TURNOVERS'),
+      pts, reb, ast, stl, blk, tov,
       min: av('MINS_PLAYED'),
       tpm: av('THREE_POINTS_MADE'),
       dd: to('DOUBLE_DOUBLE'),
       td: to('TRIPLE_DOUBLE'),
       gp,
+      eff,
     };
     const hasData = out.pts != null || out.reb != null || out.ast != null;
     if (!hasData) return NextResponse.json({}, { status: 200 });
