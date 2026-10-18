@@ -658,7 +658,7 @@ export default function Home() {
 
         {/* HEADER logo (x3) */}
         <div style={{textAlign:'center',marginBottom:'0.2rem'}}>
-          <img src='/logo-pack.png' alt='myNFTlocker' style={{display:'inline-block',height:'126px',width:'auto',filter:'drop-shadow(0 6px 18px rgba(0,0,0,0.6))'}} onError={(e)=>{(e.target as HTMLImageElement).style.display='none';}}/>
+          <img src='/logo-pack.png' alt='myNFTlocker' title="Retour a l'accueil" onClick={()=>{setOpenPhase(0);setCards([]);setSlug('');setError('');setFlippedSlug(null);setMode('locker');setFiltersOpen(false);setAcctOpen(false);setSlugPanelOpen(false);}} style={{display:'inline-block',height:'126px',width:'auto',cursor:'pointer',filter:'drop-shadow(0 6px 18px rgba(0,0,0,0.6))'}} onError={(e)=>{(e.target as HTMLImageElement).style.display='none';}}/>
         </div>
 
         {/* COMPTE */}
@@ -668,7 +668,7 @@ export default function Home() {
           <div onClick={()=>setAcctOpen(o=>!o)} style={{display:'flex',alignItems:'center',gap:'0.5rem',padding:'0.35rem 0.4rem',borderRadius:'0.3rem',cursor:'pointer',background:'rgba(255,255,255,0.03)',border:'1px solid rgba(111,195,232,0.18)',transition:'all 0.15s'}} onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.background='rgba(111,195,232,0.08)';}} onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.background='rgba(255,255,255,0.03)';}}>
             <div style={{width:'28px',height:'28px',flexShrink:0,borderRadius:'50%',background:'radial-gradient(circle at 35% 30%,#1a1c24,#0a0b0f)',border:'1.5px solid #6fc3e8',boxShadow:'0 0 10px rgba(111,195,232,0.5)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'0.78rem',fontWeight:900,color:'#6fc3e8'}}>{(slug||'?').trim().charAt(0).toUpperCase()||'?'}</div>
             <div style={{flex:1,minWidth:0,textAlign:'left'}}>
-              <p style={{margin:0,fontSize:'0.74rem',fontWeight:700,color:'#eaf2ff',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{cards.length>0?'Ma collection':'Mon compte'}</p>
+              <p style={{margin:0,fontSize:'0.74rem',fontWeight:700,color:'#eaf2ff',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{cards.length>0?'Collection':'Mon compte'}</p>
             </div>
             <span style={{fontSize:'0.6rem',color:'#6fc3e8',opacity:0.85,flexShrink:0}}>{acctOpen?'▲':'▼'}</span>
           </div>
@@ -681,7 +681,10 @@ export default function Home() {
             </div>
           )}
           {(slugPanelOpen||cards.length===0)&&(
-            <input style={{width:'100%',background:'rgba(255,255,255,0.05)',color:'#cfe4fb',padding:'0.28rem 0.55rem',borderRadius:'0.15rem',border:'1px solid rgba(255,255,255,0.1)',outline:'none',fontSize:'0.76rem',boxSizing:'border-box'}} placeholder='ton-slug-sorare' value={slug} onChange={e=>setSlug(e.target.value.trim().toLowerCase())} onKeyDown={e=>e.key==='Enter'&&fetchCards()}/>
+            <div style={{display:'flex',gap:'0.3rem',alignItems:'stretch'}}>
+              <input style={{flex:1,minWidth:0,background:'rgba(255,255,255,0.05)',color:'#cfe4fb',padding:'0.28rem 0.55rem',borderRadius:'0.15rem',border:'1px solid rgba(255,255,255,0.1)',outline:'none',fontSize:'0.76rem',boxSizing:'border-box'}} placeholder='ton-slug-sorare' value={slug} onChange={e=>setSlug(e.target.value.trim().toLowerCase())} onKeyDown={e=>e.key==='Enter'&&fetchCards()}/>
+              <button onClick={()=>fetchCards()} title='Valider' disabled={!slug} style={{flexShrink:0,background:slug?'rgba(64,232,255,0.16)':'rgba(255,255,255,0.04)',border:'1px solid rgba(64,232,255,0.5)',color:'#40e8ff',borderRadius:'0.2rem',padding:'0 0.7rem',cursor:slug?'pointer':'not-allowed',opacity:slug?1:0.5,fontSize:'0.85rem',fontWeight:800}}>▶</button>
+            </div>
           )}
           {acctOpen&&(
             <div className='thin-sb' style={{position:'absolute',top:'100%',left:0,right:0,marginTop:'0.3rem',background:'#0a0d12',border:'1px solid rgba(111,195,232,0.35)',borderRadius:'0.35rem',boxShadow:'0 10px 28px rgba(0,0,0,0.6)',zIndex:200,overflow:'hidden'}}>
@@ -941,17 +944,17 @@ export default function Home() {
           <div style={{display:'flex',flexDirection:'column' as const,gap:'0.15rem',marginBottom:'0.35rem'}}>
             {/* LOGO+COMPTE FUSIONNES sur une seule ligne (gain de hauteur + logo plus visible) */}
             <div style={{display:'flex',alignItems:'center',gap:'0.6rem'}}>
-              <img src='/logo-pack.png' alt='myNFTlocker' style={{height:'62px',width:'auto',flexShrink:0,filter:'drop-shadow(0 6px 18px rgba(0,0,0,0.6))'}} onError={(e)=>{(e.target as HTMLImageElement).style.display='none';}}/>
+              <img src='/logo-pack.png' alt='myNFTlocker' title="Retour a l'accueil" onClick={()=>{setOpenPhase(0);setCards([]);setSlug('');setError('');setFlippedSlug(null);setMode('locker');setFiltersOpen(false);setAcctOpen(false);setSlugPanelOpen(false);}} style={{height:'62px',width:'auto',flexShrink:0,cursor:'pointer',filter:'drop-shadow(0 6px 18px rgba(0,0,0,0.6))'}} onError={(e)=>{(e.target as HTMLImageElement).style.display='none';}}/>
               <div onClick={()=>setAcctOpen(o=>!o)} style={{flex:1,minWidth:0,display:'flex',alignItems:'center',gap:'0.5rem',padding:'0.4rem 0.5rem',borderRadius:'0.3rem',cursor:'pointer',background:'rgba(255,255,255,0.03)',border:'1px solid rgba(111,195,232,0.18)'}}>
-              <div style={{width:'32px',height:'32px',flexShrink:0,borderRadius:'50%',background:'radial-gradient(circle at 35% 30%,#1a1c24,#0a0b0f)',border:'1.5px solid #6fc3e8',boxShadow:'0 0 10px rgba(111,195,232,0.5)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'0.85rem',fontWeight:900,color:'#6fc3e8'}}>{(slug||'?').trim().charAt(0).toUpperCase()||'?'}</div>
+              <div style={{width:'44px',height:'44px',flexShrink:0,borderRadius:'50%',background:'radial-gradient(circle at 35% 30%,#1a1c24,#0a0b0f)',border:'1.5px solid #6fc3e8',boxShadow:'0 0 10px rgba(111,195,232,0.5)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'1.1rem',fontWeight:900,color:'#6fc3e8'}}>{(slug||'?').trim().charAt(0).toUpperCase()||'?'}</div>
               <div style={{flex:1,minWidth:0,textAlign:'left'}}>
-                <p style={{margin:0,fontSize:'0.8rem',fontWeight:700,color:'#eaf2ff',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{cards.length>0?'Ma collection':'Mon compte'}</p>
+                <p style={{margin:0,fontSize:'0.8rem',fontWeight:700,color:'#eaf2ff',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{cards.length>0?'Collection':'Mon compte'}</p>
                 <p style={{margin:0,fontSize:'0.62rem',color:'#7a8898'}}>{cards.length>0?(cards.length+' cartes'):'Identifiant Sorare'}</p>
               </div>
               {/* BADGE REPOSITIONNE : plus grand, sans cercle, juste avant le chevron */}
               {cards.length>0&&(()=>{const b=collectionBadge(cards.length);return(<img title={cards.length+' cartes'} src={'/'+b.img} alt='' style={{width:'46px',height:'46px',flexShrink:0,objectFit:'contain'}} onError={(e)=>{(e.target as HTMLImageElement).style.display='none';}}/>);})()}
-              <span onClick={e=>{e.stopPropagation();setSlugPanelOpen(o=>!o);}} title='Changer de galerie consultee' style={{fontSize:'0.9rem',color:slugPanelOpen?'#f5d76e':'#6fc3e8',opacity:0.85,padding:'0.1rem 0.3rem',cursor:'pointer'}}>⇄</span>
-              <span style={{fontSize:'0.7rem',color:'#6fc3e8',opacity:0.85,flexShrink:0}}>{acctOpen?'▲':'▼'}</span>
+              <span onClick={e=>{e.stopPropagation();setSlugPanelOpen(o=>!o);}} title='Changer de galerie consultee' style={{fontSize:'1.5rem',lineHeight:1,color:slugPanelOpen?'#f5d76e':'#6fc3e8',opacity:0.95,padding:'0.35rem 0.5rem',borderRadius:'0.35rem',border:'1px solid rgba(111,195,232,0.35)',background:'rgba(111,195,232,0.06)',cursor:'pointer',flexShrink:0}}>⇄</span>
+              <span style={{fontSize:'1.1rem',color:'#6fc3e8',opacity:0.9,flexShrink:0,padding:'0.2rem'}}>{acctOpen?'▲':'▼'}</span>
               </div>
             </div>
             {acctOpen&&(
@@ -969,7 +972,10 @@ export default function Home() {
               </div>
             )}
             {(slugPanelOpen||cards.length===0)&&(
-              <input style={{background:'rgba(255,255,255,0.05)',color:'#cfe4fb',padding:'0.4rem 0.6rem',borderRadius:'0.2rem',border:'1px solid rgba(255,255,255,0.1)',outline:'none',fontSize:'0.85rem',boxSizing:'border-box' as const}} placeholder='ton-slug-sorare' value={slug} onChange={e=>setSlug(e.target.value.trim().toLowerCase())} onKeyDown={e=>e.key==='Enter'&&fetchCards()}/>
+              <div style={{display:'flex',gap:'0.4rem',alignItems:'stretch'}}>
+                <input style={{flex:1,minWidth:0,background:'rgba(255,255,255,0.05)',color:'#cfe4fb',padding:'0.5rem 0.6rem',borderRadius:'0.2rem',border:'1px solid rgba(255,255,255,0.1)',outline:'none',fontSize:'0.9rem',boxSizing:'border-box' as const}} placeholder='ton-slug-sorare' value={slug} onChange={e=>setSlug(e.target.value.trim().toLowerCase())} onKeyDown={e=>e.key==='Enter'&&fetchCards()}/>
+                <button onClick={()=>fetchCards()} title='Valider' disabled={!slug} style={{flexShrink:0,minWidth:'52px',background:slug?'rgba(64,232,255,0.18)':'rgba(255,255,255,0.04)',border:'1px solid rgba(64,232,255,0.55)',color:'#40e8ff',borderRadius:'0.3rem',padding:'0 0.9rem',cursor:slug?'pointer':'not-allowed',opacity:slug?1:0.5,fontSize:'1.1rem',fontWeight:800}}>▶</button>
+              </div>
             )}
           </div>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'0.4rem'}}>
