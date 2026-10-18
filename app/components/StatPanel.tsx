@@ -1,5 +1,5 @@
 'use client';
-import { memo, useState, useEffect, Fragment, useId } from 'react';
+import { memo, useState, useEffect, useId } from 'react';
 
 export const RARITY_GLOW: Record<string,string> = {
   common:'0 0 18px 3px rgba(225,228,255,0.75), 0 0 36px 8px rgba(190,200,255,0.35)',
@@ -142,6 +142,8 @@ export const StatPanel=memo(({card,onClose,isClosing=false,placement='scene'}:an
   const xp=card.xp?card.xp.toLocaleString():'—';
   const edition=card.specialEdition?card.specialEdition.replace(/_/g,' ').toUpperCase():'STANDARD';
   const nbaSeasonStr=card.seasonYear&&card.seasonYear>2000?String(card.seasonYear)+'-'+String(card.seasonYear+1).slice(2):'2025-26';
+  // Saison foot en cours (Sorare = total saison courante, juillet->juin)
+  const _fnow=new Date();const _fy=_fnow.getMonth()>=6?_fnow.getFullYear():_fnow.getFullYear()-1;const footSeasonStr=String(_fy)+'-'+String(_fy+1).slice(2);
   const [typedName,setTypedName]=useState('');
   const [countedAvg,setCountedAvg]=useState('0');
   const [nbaStats,setNbaStats]=useState<any>(null);
@@ -154,7 +156,7 @@ export const StatPanel=memo(({card,onClose,isClosing=false,placement='scene'}:an
   useEffect(()=>{if(avgNum==null)return;let step=0;let iv:any;const t=setTimeout(()=>{iv=setInterval(()=>{step++;const cur=Math.min((avgNum/20)*step,avgNum);setCountedAvg(cur%1===0?String(Math.round(cur)):cur.toFixed(1));if(step>=20)clearInterval(iv);},40);},700);return()=>{clearTimeout(t);clearInterval(iv);};},[avgNum]);
 
   useEffect(()=>{if(!card.anyPlayer?.lastName)return;setNbaLoading(true);fetch(`/api/player-stats?name=${encodeURIComponent(_full||card.anyPlayer.lastName)}&season=${card.seasonYear||0}`).then(r=>r.json()).then(d=>{if(!d.error)setNbaStats(d);}).catch(()=>{}).finally(()=>setNbaLoading(false));},[]);
-  useEffect(()=>{if(isNBA(card))return;const nm=_full||card.anyPlayer?.lastName;if(!nm)return;setFootLoading(true);fetch(`/api/player-stats-foot?name=${encodeURIComponent(nm)}`).then(r=>r.json()).then(d=>{if(!d.error&&d.rows)setFootStats(d);}).catch(()=>{}).finally(()=>setFootLoading(false));},[]);
+  useEffect(()=>{if(isNBA(card))return;const pslug=card.anyPlayer?.slug||card.slug.split('-').filter((_:any,i:number,a:any)=>i<a.length-3).join('-');if(!pslug)return;setFootLoading(true);fetch(`/api/player-stats-foot?slug=${encodeURIComponent(pslug)}`).then(r=>r.json()).then(d=>{if(d&&(d.goals!=null||d.mins!=null||d.matches!=null||d.cleanSheet!=null))setFootStats(d);}).catch(()=>{}).finally(()=>setFootLoading(false));},[]);
 ;
 
   const CY='#40e8ff';const CYS='0 0 8px rgba(64,232,255,0.5)';
@@ -228,28 +230,19 @@ export const StatPanel=memo(({card,onClose,isClosing=false,placement='scene'}:an
           </>
         ):(
           <>
-            <p style={{margin:'0 0 0.3rem',fontSize:'0.52rem',fontWeight:900,color:'rgba(64,232,255,0.6)',letterSpacing:'0.2em',textTransform:'uppercase'}}>STATS · {card.seasonYear&&card.seasonYear>2000?String(card.seasonYear)+'-'+String(card.seasonYear+1).slice(2):'2025-26'}</p>
+            <p style={{margin:'0 0 0.3rem',fontSize:'0.52rem',fontWeight:900,color:'rgba(64,232,255,0.6)',letterSpacing:'0.2em',textTransform:'uppercase'}}>STATS · {footSeasonStr}</p>
             {footLoading&&<p style={{margin:0,fontSize:'0.62rem',color:'rgba(64,232,255,0.42)',letterSpacing:'0.14em'}}>CHARGEMENT...</p>}
-            {!footLoading&&footStats&&footStats.rows&&(
+            {!footLoading&&footStats&&(
               <div style={{width:'100%'}}>
-                <div style={{display:'grid',gridTemplateColumns:'1.6fr repeat(6,1fr)',gap:'0.1rem 0.12rem',alignItems:'center'}}>
-                  {([''].concat(['TITU','B','PD','TC','CJ','CR'])).map((h,i)=>(
-                    <span key={'h'+i} style={{fontSize:'0.42rem',fontWeight:800,color:'rgba(64,232,255,0.55)',textAlign:i===0?'left':'center',letterSpacing:'0.04em'}}>{h}</span>
-                  ))}
-                  {footStats.rows.map((row:any,ri:number)=>(
-                    <Fragment key={'r'+ri}>
-                      <span style={{fontSize:'0.5rem',fontWeight:700,color:'rgba(64,232,255,0.85)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{row.label}</span>
-                      {[row.titu,row.b,row.pd,row.tc,row.cj,row.cr].map((v:any,ci:number)=>(
-                        <span key={'c'+ci} style={{fontSize:'0.6rem',fontWeight:700,color:CY,textAlign:'center',textShadow:'0 0 4px rgba(64,232,255,0.25)'}}>{v||'-'}</span>
-                      ))}
-                    </Fragment>
-                  ))}
-                  <span style={{fontSize:'0.5rem',fontWeight:900,color:'#f5d76e',whiteSpace:'nowrap',borderTop:'1px solid rgba(245,215,110,0.3)',paddingTop:'0.12rem',marginTop:'0.06rem'}}>TOTAL</span>
-                  {[footStats.total.titu,footStats.total.b,footStats.total.pd,footStats.total.tc,footStats.total.cj,footStats.total.cr].map((v:any,ci:number)=>(
-                    <span key={'t'+ci} style={{fontSize:'0.62rem',fontWeight:900,color:'#f5d76e',textAlign:'center',textShadow:'0 0 5px rgba(245,215,110,0.4)',borderTop:'1px solid rgba(245,215,110,0.3)',paddingTop:'0.12rem',marginTop:'0.06rem'}}>{v||'-'}</span>
+                <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:'0.18rem'}}>
+                  {([['⚽','Buts',footStats.goals],['👟','Passes décisives',footStats.assists],['🏟','Matchs joués',footStats.matches],['👕','Titularisations',footStats.starts],['🧤','Clean sheets',footStats.cleanSheet],['💪','Duels gagnés',footStats.duelWon],['🟨','Cartons jaunes',footStats.yellow],['🟥','Cartons rouges',footStats.red],['⏱','Minutes jouées',footStats.mins]] as [string,string,any][]).map(([pic,lab,v])=>(
+                    <div key={lab} title={lab} style={{textAlign:'center',padding:'0.2rem 0.08rem',border:'1px solid rgba(64,232,255,0.14)',borderRadius:'0.2rem',background:'rgba(64,232,255,0.04)'}}>
+                      <span style={{display:'block',fontSize:'0.8rem',lineHeight:1.1}}>{pic}</span>
+                      <span style={{display:'block',fontSize:'0.82rem',fontWeight:900,color:CY,textShadow:CYS,lineHeight:1.25}}>{v==null?'—':(lab==='Minutes jouées'?Math.round(Number(v)):v)}</span>
+                    </div>
                   ))}
                 </div>
-                <p style={{margin:'0.25rem 0 0',fontSize:'0.38rem',color:'rgba(64,232,255,0.3)',letterSpacing:'0.04em',textAlign:'right'}}>TITU = titularisations · source ESPN</p>
+                <p style={{margin:'0.3rem 0 0',fontSize:'0.38rem',color:'rgba(64,232,255,0.3)',letterSpacing:'0.04em',textAlign:'right'}}>total saison · source Sorare</p>
               </div>
             )}
             {!footLoading&&!footStats&&<p style={{margin:0,fontSize:'0.58rem',color:'rgba(64,232,255,0.28)',letterSpacing:'0.06em'}}>stats non disponibles</p>}
@@ -266,13 +259,6 @@ export const StatPanel=memo(({card,onClose,isClosing=false,placement='scene'}:an
         )}
         {isNBA(card)&&nbaStats?._id&&(
           <a href={'https://www.espn.com/nba/player/_/id/'+nbaStats._id+'/'+(_full||card.anyPlayer?.lastName||'').toLowerCase().replace(/\s+/g,'-')}
-            target='_blank' rel='noopener noreferrer' className='stat-link-btn'
-            style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',gap:'0.3rem',padding:'0.3rem 0',borderRadius:'0.25rem',border:'1px solid rgba(64,232,255,0.5)',background:'rgba(64,232,255,0.06)',color:'#e05050',fontSize:'0.55rem',fontWeight:800,letterSpacing:'0.1em',textDecoration:'none',cursor:'pointer'}}>
-            <img src="https://a.espncdn.com/favicon.ico" alt="E" style={{width:'14px',height:'14px',objectFit:'contain'}}/> ESPN
-          </a>
-        )}
-        {!isNBA(card)&&footStats?._id&&(
-          <a href={'https://www.espn.com/soccer/player/_/id/'+footStats._id+'/'+(_full||card.anyPlayer?.lastName||'').toLowerCase().replace(/\s+/g,'-')}
             target='_blank' rel='noopener noreferrer' className='stat-link-btn'
             style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',gap:'0.3rem',padding:'0.3rem 0',borderRadius:'0.25rem',border:'1px solid rgba(64,232,255,0.5)',background:'rgba(64,232,255,0.06)',color:'#e05050',fontSize:'0.55rem',fontWeight:800,letterSpacing:'0.1em',textDecoration:'none',cursor:'pointer'}}>
             <img src="https://a.espncdn.com/favicon.ico" alt="E" style={{width:'14px',height:'14px',objectFit:'contain'}}/> ESPN
