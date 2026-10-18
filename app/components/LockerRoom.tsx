@@ -203,7 +203,7 @@ export default function LockerRoomScene({cards=[],startIndex,hof=[],flippedSlug,
           <div key={'ice'+flippedSlug} style={{position:'absolute',left:'84%',top:'49%',transform:'translate(-50%,-50%)',width:'31%',height:'6px',background:'linear-gradient(to right,transparent 0%,rgba(0,255,255,0.5) 15%,#00ffff 40%,#ffffff 50%,#00ffff 60%,rgba(0,255,255,0.5) 85%,transparent 100%)',filter:'blur(0.8px)',zIndex:55,pointerEvents:'none',animation:'mnflIcebreaker 0.75s ease-out 0.62s both'}}/>
         )}
         {/* Icebreaker trace ci-dessus */}
-        {flippedSlug&&panelCard&&<StatPanel card={panelCard} isClosing={isClosing} onClose={startClose} placement='scene'/>}
+        {flippedSlug&&panelCard&&<StatPanel key={panelCard.slug} card={panelCard} isClosing={isClosing} onClose={startClose} placement='scene'/>}
 
         {/* FLECHES CARTES (navigation dans l'equipe) */}
         {hasPrev&&<button onClick={()=>{setSlideDir('right');setSlideKey(k=>k+1);onPrev();}} style={{position:'absolute',left:'0.6%',top:'43%',transform:'translateY(-50%)',background:'transparent',border:'none',color:'rgba(232,196,86,0.55)',fontSize:'2.4rem',lineHeight:1,cursor:'pointer',padding:'0.5rem',zIndex:20,transition:'all 0.15s',textShadow:'0 0 8px rgba(0,0,0,0.8)'}} onMouseEnter={e=>{const t=e.currentTarget as HTMLElement;t.style.color='#ffd75e';t.style.textShadow='0 0 16px rgba(245,200,90,0.9)';}} onMouseLeave={e=>{const t=e.currentTarget as HTMLElement;t.style.color='rgba(232,196,86,0.55)';t.style.textShadow='0 0 8px rgba(0,0,0,0.8)';}}>‹</button>}
@@ -243,7 +243,7 @@ export default function LockerRoomScene({cards=[],startIndex,hof=[],flippedSlug,
         <div style={{position:'absolute',bottom:'1%',left:'50%',transform:'translateX(-50%)',color:'rgba(255,220,100,0.85)',fontSize:'0.7rem',letterSpacing:'0.15em',zIndex:20}}>{mobileIdx+1} / {cards.length}</div>
         {!mobileStatsCard&&<button onClick={()=>setMobileStatsSlug(cards[mobileIdx]?.slug||null)} style={{position:'absolute',right:'6%',bottom:'2%',width:'38px',height:'38px',borderRadius:'50%',background:'rgba(8,11,16,0.72)',border:'1px solid rgba(64,232,255,0.5)',boxShadow:'0 0 10px rgba(64,232,255,0.35)',color:'#40e8ff',fontSize:'1rem',display:'flex',alignItems:'center',justifyContent:'center',zIndex:22,cursor:'pointer'}}>📊</button>}
         {!mobileStatsCard&&<button onClick={()=>handleCardFlip(cards[mobileIdx]?.slug)} style={{position:'absolute',left:'6%',bottom:'2%',width:'38px',height:'38px',borderRadius:'50%',background:'rgba(8,11,16,0.72)',border:'1px solid rgba(64,232,255,0.5)',boxShadow:'0 0 10px rgba(64,232,255,0.35)',color:'#40e8ff',fontSize:'1.1rem',display:'flex',alignItems:'center',justifyContent:'center',zIndex:22,cursor:'pointer'}}>⇄</button>}
-        {mobileStatsCard&&<StatPanel card={mobileStatsCard} isClosing={mobileStatsClosing} onClose={startMobileStatsClose} placement='mobile'/>}
+        {mobileStatsCard&&<StatPanel key={mobileStatsCard.slug} card={mobileStatsCard} isClosing={mobileStatsClosing} onClose={startMobileStatsClose} placement='mobile'/>}
         </div>
       </div>
     </div>
