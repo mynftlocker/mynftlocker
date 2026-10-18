@@ -34,17 +34,26 @@ function parseStats(data: any, sy: number) {
   const misc = cats.find((c) => c.name === 'miscellaneous');
   if (!avg) return null;
 
-  const target = seasonStr(sy); // ex: "2024-25"
-  // Choisir la ligne de la saison demandee, sinon la plus recente
-  const pickRow = (cat: any) => {
-    const rows: any[] = cat?.statistics || [];
-    if (!rows.length) return null;
-    if (target) { const m = rows.find((rr: any) => rr?.season?.displayName === target); if (m) return m; }
-    return rows[rows.length - 1];
+  // TOUJOURS la saison la plus recente disposant de donnees reelles (on ignore la saison de la carte)
+  const avgNames: string[] = avg?.names || [];
+  const ptsIdx = avgNames.indexOf('avgPoints');
+  const gpIdx = avgNames.indexOf('gamesPlayed');
+  const rowHasData = (r: any) => {
+    const st: any[] = r?.stats || [];
+    const pOk = ptsIdx >= 0 && st[ptsIdx] != null && st[ptsIdx] !== '';
+    const gOk = gpIdx >= 0 && parseFloat(String(st[gpIdx])) > 0;
+    return pOk || gOk;
   };
-  const avgRow = pickRow(avg);
-  const miscRow = pickRow(misc);
+  const avgRows: any[] = avg?.statistics || [];
+  let avgRow: any = null;
+  for (let i = avgRows.length - 1; i >= 0; i--) { if (rowHasData(avgRows[i])) { avgRow = avgRows[i]; break; } }
+  if (!avgRow) avgRow = avgRows[avgRows.length - 1] || null;
   if (!avgRow) return null;
+  // Aligner la ligne "miscellaneous" sur la MEME saison que la ligne retenue
+  const chosenSeason = avgRow?.season?.displayName;
+  const miscRows: any[] = misc?.statistics || [];
+  let miscRow: any = chosenSeason ? miscRows.find((rr: any) => rr?.season?.displayName === chosenSeason) : null;
+  if (!miscRow) miscRow = miscRows[miscRows.length - 1] || null;
 
   const num = (v: any) => { if (v == null || v === '') return null; const n = parseFloat(String(v).replace('%', '').replace(',', '.')); return isNaN(n) ? null : n; };
   const get = (cat: any, row: any, name: string) => {
@@ -67,7 +76,7 @@ function parseStats(data: any, sy: number) {
     dd: num(get(misc, miscRow, 'doubleDouble')),
     td: num(get(misc, miscRow, 'tripleDouble')),
     gp: num(get(avg, avgRow, 'gamesPlayed')),
-    season: avgRow?.season?.displayName || target || undefined,
+    season: avgRow?.season?.displayName || undefined,
   };
   if (out.pts == null && out.reb == null && out.ast == null) return null;
   return out;
