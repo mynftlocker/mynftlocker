@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 export async function GET(request:NextRequest){
-  const slug=request.nextUrl.searchParams.get('slug')||'';
+  const slug=(request.nextUrl.searchParams.get('slug')||'').trim().toLowerCase();
   const cursor=request.nextUrl.searchParams.get('cursor')||'';
   const after=cursor?`,after:"${cursor}"`:'';
   const query=`query{user(slug:"${slug}"){cards(first:50${after}){nodes{

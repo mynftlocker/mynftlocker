@@ -147,17 +147,22 @@ export const StatPanel=memo(({card,onClose,isClosing=false,placement='scene'}:an
   const [nbaLoading,setNbaLoading]=useState(false);
   const [footStats,setFootStats]=useState<any>(null);
   const [footLoading,setFootLoading]=useState(false);
+  const [sales,setSales]=useState<any>(null);
+  const [salesLoading,setSalesLoading]=useState(false);
 
   useEffect(()=>{let i=0;let iv:any;const t=setTimeout(()=>{iv=setInterval(()=>{i++;setTypedName(ln.slice(0,i));if(i>=ln.length)clearInterval(iv);},45);},600);return()=>{clearTimeout(t);clearInterval(iv);};},[ln]);
   useEffect(()=>{if(avgNum==null)return;let step=0;let iv:any;const t=setTimeout(()=>{iv=setInterval(()=>{step++;const cur=Math.min((avgNum/20)*step,avgNum);setCountedAvg(cur%1===0?String(Math.round(cur)):cur.toFixed(1));if(step>=20)clearInterval(iv);},40);},700);return()=>{clearTimeout(t);clearInterval(iv);};},[avgNum]);
 
   useEffect(()=>{if(!isNBA(card))return;const pslug=card.anyPlayer?.slug||card.slug.split('-').filter((_:any,i:number,a:any)=>i<a.length-3).join('-');if(!pslug)return;setNbaLoading(true);fetch(`/api/player-stats?slug=${encodeURIComponent(pslug)}`).then(r=>r.json()).then(d=>{if(d&&(d.pts!=null||d.reb!=null||d.ast!=null))setNbaStats(d);}).catch(()=>{}).finally(()=>setNbaLoading(false));},[]);
   useEffect(()=>{if(isNBA(card))return;const pslug=card.anyPlayer?.slug||card.slug.split('-').filter((_:any,i:number,a:any)=>i<a.length-3).join('-');if(!pslug)return;setFootLoading(true);fetch(`/api/player-stats-foot?slug=${encodeURIComponent(pslug)}`).then(r=>r.json()).then(d=>{if(d&&(d.goals!=null||d.mins!=null||d.matches!=null||d.cleanSheet!=null))setFootStats(d);}).catch(()=>{}).finally(()=>setFootLoading(false));},[]);
+  // Moyenne des 5 dernieres ventes de la carte (historique de propriete Sorare)
+  useEffect(()=>{if(!card.slug)return;setSalesLoading(true);fetch(`/api/card-sales?slug=${encodeURIComponent(card.slug)}`).then(r=>r.json()).then(d=>setSales(d)).catch(()=>{}).finally(()=>setSalesLoading(false));},[]);
 ;
 
   const CY='#40e8ff';const CYS='0 0 8px rgba(64,232,255,0.5)';
   const sep:React.CSSProperties={borderBottom:'1px solid rgba(64,232,255,0.16)',paddingBottom:'0.42rem',marginBottom:'0.42rem',flexShrink:0};
   const fv=(v:any,t:string)=>{if(v==null)return '—';const n=Number(v);if(t==='pct')return n.toFixed(1)+'%';if(t==='pm')return(n>=0?'+':'')+n.toFixed(1);if(t==='int')return String(Math.round(n));return n.toFixed(1);};
+  const salesVal=salesLoading?'…':(sales&&sales.count>0?(sales.avg.toFixed(2).replace('.',',')+' € ('+sales.count+')'):'—');
   const isOverlay=placement==='overlay';
   const isMobile=placement==='mobile';
   const isGalleryMobile=placement==='galleryMobile';
@@ -204,7 +209,7 @@ export const StatPanel=memo(({card,onClose,isClosing=false,placement='scene'}:an
       <div style={{...sep}}>
         <p style={{margin:'0 0 0.3rem',fontSize:'0.52rem',fontWeight:900,color:'rgba(64,232,255,0.6)',letterSpacing:'0.2em',textTransform:'uppercase'}}>CARTE</p>
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0.18rem 0.6rem'}}>
-          {([[' ÉQUIPE',team],[' SÉRIE',serial],[' SAISON',season],[' XP',xp],[' ÉDITION',edition]] as [string,string][]).map(([l,v])=>(
+          {([[' ÉQUIPE',team],[' SÉRIE',serial],[' SAISON',season],[' XP',xp],[' ÉDITION',edition],[' MOY. 5 VENTES',salesVal]] as [string,string][]).map(([l,v])=>(
             <div key={l} style={{minWidth:0}}>
               <span style={{display:'block',fontSize:'0.5rem',color:'rgba(64,232,255,0.4)',letterSpacing:'0.1em',textTransform:'uppercase'}}>{l}</span>
               <span style={{display:'block',fontSize:'0.72rem',fontWeight:700,color:CY,textShadow:'0 0 5px rgba(64,232,255,0.3)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{v}</span>

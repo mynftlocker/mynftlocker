@@ -349,6 +349,7 @@ export default function Home() {
   const [showFlash,setShowFlash]=useState(false);
   const fragStartedRef=useRef(false);
   const teamChosenRef=useRef(false);  // choix d'equipe scope SESSION (reset au rechargement) -> l'ouverture retombe sur le HOF
+  const sportAutoSetRef=useRef(false);  // auto-detection du sport apres chargement (compte 100% foot -> bascule sur Football)
   const [lockerSort, setLockerSort] = useState<'majeur'|'collection'|'manual'>('majeur');
   const [lineup, setLineup] = useState<Record<string,string[]>>({});
   const [defaultTeam, setDefaultTeam] = useState('');
@@ -440,7 +441,7 @@ export default function Home() {
 
   const fetchCards=async()=>{
     if(!slug)return;
-    setLoading(true);setError('');setFlippedSlug(null);setLockerStart(0);
+    setLoading(true);setError('');setFlippedSlug(null);setLockerStart(0);sportAutoSetRef.current=false;
     // Cache localStorage (TTL 1h)
     const CACHE_KEY='mnfl_v2_'+slug;
     try{
@@ -591,6 +592,14 @@ export default function Home() {
     if(hofInList&&teamApi!=='__HOF__'&&!teamChosenRef.current&&!savedDefault){setTeamApi('__HOF__');return;}
     if(!teamList.find(t=>t.api===teamApi)){setTeamApi(hofInList?'__HOF__':teamList[0].api);}
   },[teamList,teamApi]);
+  // Auto-detection du sport apres chargement complet : si le compte n'a aucune carte NBA mais des cartes foot, on bascule sur Football.
+  useEffect(()=>{
+    if(loading||cards.length===0||sportAutoSetRef.current)return;
+    sportAutoSetRef.current=true;
+    const hasNba=cards.some((c:any)=>isNBA(c));
+    const hasFoot=cards.some((c:any)=>!isNBA(c));
+    if(!hasNba&&hasFoot){setGSport('foot');setTeamApi(HOF_KEY);teamChosenRef.current=false;}
+  },[loading,cards]);
 
   // Vestiaire : epingles prioritaires, puis remplissage, puis TOUTES les cartes
   const lockerCards=useMemo(()=>{
@@ -672,7 +681,7 @@ export default function Home() {
             </div>
           )}
           {(slugPanelOpen||cards.length===0)&&(
-            <input style={{width:'100%',background:'rgba(255,255,255,0.05)',color:'#cfe4fb',padding:'0.28rem 0.55rem',borderRadius:'0.15rem',border:'1px solid rgba(255,255,255,0.1)',outline:'none',fontSize:'0.76rem',boxSizing:'border-box'}} placeholder='ton-slug-sorare' value={slug} onChange={e=>setSlug(e.target.value)} onKeyDown={e=>e.key==='Enter'&&fetchCards()}/>
+            <input style={{width:'100%',background:'rgba(255,255,255,0.05)',color:'#cfe4fb',padding:'0.28rem 0.55rem',borderRadius:'0.15rem',border:'1px solid rgba(255,255,255,0.1)',outline:'none',fontSize:'0.76rem',boxSizing:'border-box'}} placeholder='ton-slug-sorare' value={slug} onChange={e=>setSlug(e.target.value.trim().toLowerCase())} onKeyDown={e=>e.key==='Enter'&&fetchCards()}/>
           )}
           {acctOpen&&(
             <div className='thin-sb' style={{position:'absolute',top:'100%',left:0,right:0,marginTop:'0.3rem',background:'#0a0d12',border:'1px solid rgba(111,195,232,0.35)',borderRadius:'0.35rem',boxShadow:'0 10px 28px rgba(0,0,0,0.6)',zIndex:200,overflow:'hidden'}}>
@@ -960,7 +969,7 @@ export default function Home() {
               </div>
             )}
             {(slugPanelOpen||cards.length===0)&&(
-              <input style={{background:'rgba(255,255,255,0.05)',color:'#cfe4fb',padding:'0.4rem 0.6rem',borderRadius:'0.2rem',border:'1px solid rgba(255,255,255,0.1)',outline:'none',fontSize:'0.85rem',boxSizing:'border-box' as const}} placeholder='ton-slug-sorare' value={slug} onChange={e=>setSlug(e.target.value)} onKeyDown={e=>e.key==='Enter'&&fetchCards()}/>
+              <input style={{background:'rgba(255,255,255,0.05)',color:'#cfe4fb',padding:'0.4rem 0.6rem',borderRadius:'0.2rem',border:'1px solid rgba(255,255,255,0.1)',outline:'none',fontSize:'0.85rem',boxSizing:'border-box' as const}} placeholder='ton-slug-sorare' value={slug} onChange={e=>setSlug(e.target.value.trim().toLowerCase())} onKeyDown={e=>e.key==='Enter'&&fetchCards()}/>
             )}
           </div>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'0.4rem'}}>
