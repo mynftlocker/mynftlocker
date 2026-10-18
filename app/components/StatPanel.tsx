@@ -81,9 +81,9 @@ export const CardBack=memo(({card,rc,mobile}:any)=>{
             </svg>
           )}
           {stars!=null&&!isNBA(card)&&(
-            <span style={{display:'inline-flex',alignItems:'center',gap:sz('0.08rem',1.3),flexShrink:0}}>
+            <span style={{display:'inline-block',whiteSpace:'nowrap' as const,flexShrink:0,lineHeight:0}}>
               {Array.from({length:Math.max(1,Math.round(stars))}).map((_,i)=>(
-                <svg key={i} viewBox='0 0 24 24' style={{width:sz('0.9rem',14.4),height:sz('0.9rem',14.4),flexShrink:0}}>
+                <svg key={i} viewBox='0 0 24 24' width={14} height={14} style={{display:'inline-block',verticalAlign:'middle',width:sz('0.9rem',14.4),height:sz('0.9rem',14.4),marginLeft:i>0?sz('0.1rem',1.6):0}}>
                   <defs><linearGradient id={'fg'+starUid+i} x1='0' y1='0' x2='0' y2='1'><stop offset='0' stopColor='#fff6b0'/><stop offset='0.45' stopColor='#f5d76e'/><stop offset='1' stopColor='#c9870f'/></linearGradient></defs>
                   <path d={STAR_PATH} fill={'url(#fg'+starUid+i+')'} style={{filter:'drop-shadow(0 0 1.5px rgba(245,215,110,0.7))'}}/>
                 </svg>
@@ -126,7 +126,7 @@ export const StarRating=({card,box}:{card:any;box:number})=>{
     </svg>);
   }
   const n=Math.max(1,Math.round(stars));const s=box/2.2;
-  return(<span style={{display:'inline-flex',gap:1.5,alignItems:'center',flexShrink:0}}>{Array.from({length:n}).map((_,i)=>(<svg key={i} viewBox='0 0 24 24' style={{width:s,height:s,flexShrink:0}}><defs>{grad('g'+uid+i)}</defs><path d={PATH} fill={'url(#g'+uid+i+')'} style={{filter:'drop-shadow(0 0 1.5px rgba(245,215,110,0.7))'}}/></svg>))}</span>);
+  return(<span style={{display:'inline-block',whiteSpace:'nowrap' as const,flexShrink:0,lineHeight:0}}>{Array.from({length:n}).map((_,i)=>(<svg key={i} viewBox='0 0 24 24' width={Math.round(s)} height={Math.round(s)} style={{display:'inline-block',verticalAlign:'middle',width:s,height:s,marginLeft:i>0?2:0}}><defs>{grad('g'+uid+i)}</defs><path d={PATH} fill={'url(#g'+uid+i+')'} style={{filter:'drop-shadow(0 0 1.5px rgba(245,215,110,0.7))'}}/></svg>))}</span>);
 };
 
 export const StatPanel=memo(({card,onClose,isClosing=false,placement='scene'}:any)=>{
