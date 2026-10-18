@@ -6,7 +6,7 @@ export async function GET(request: NextRequest) {
   const slug = (request.nextUrl.searchParams.get('slug') || '').trim();
   if (!slug) return NextResponse.json({}, { status: 200 });
 
-  const query = `query{players(slugs:["${slug}"]){slug ...on Player{appearances allTotalStats{stat value}}}}`;
+  const query = `query{players(slugs:["${slug}"]){slug ...on Player{lastFifteenSo5Appearances allTotalStats{stat value}}}}`;
   try {
     const headers: Record<string, string> = { 'Content-Type': 'application/json', 'Accept': 'application/json' };
     const jwt = process.env.SORARE_JWT || '';
@@ -27,7 +27,8 @@ export async function GET(request: NextRequest) {
     const out = {
       goals: n('GOALS'),
       assists: n('GOAL_ASSIST'),
-      matches: p.appearances ?? null,
+      shots: n('ONTARGET_SCORING_ATT'),
+      matches: p.lastFifteenSo5Appearances ?? null,
       starts: n('GAME_STARTED'),
       cleanSheet: n('CLEAN_SHEET'),
       duelWon: n('DUEL_WON'),

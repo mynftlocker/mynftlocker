@@ -141,9 +141,6 @@ export const StatPanel=memo(({card,onClose,isClosing=false,placement='scene'}:an
   const team=card.anyTeam?.name||'—';
   const xp=card.xp?card.xp.toLocaleString():'—';
   const edition=card.specialEdition?card.specialEdition.replace(/_/g,' ').toUpperCase():'STANDARD';
-  const nbaSeasonStr=card.seasonYear&&card.seasonYear>2000?String(card.seasonYear)+'-'+String(card.seasonYear+1).slice(2):'2025-26';
-  // Saison foot en cours (Sorare = total saison courante, juillet->juin)
-  const _fnow=new Date();const _fy=_fnow.getMonth()>=6?_fnow.getFullYear():_fnow.getFullYear()-1;const footSeasonStr=String(_fy)+'-'+String(_fy+1).slice(2);
   const [typedName,setTypedName]=useState('');
   const [countedAvg,setCountedAvg]=useState('0');
   const [nbaStats,setNbaStats]=useState<any>(null);
@@ -151,11 +148,10 @@ export const StatPanel=memo(({card,onClose,isClosing=false,placement='scene'}:an
   const [footStats,setFootStats]=useState<any>(null);
   const [footLoading,setFootLoading]=useState(false);
 
-  const _full=(card.name.split('•')[0]||'').replace(/\d{4}-\d{2}/,'').trim();
   useEffect(()=>{let i=0;let iv:any;const t=setTimeout(()=>{iv=setInterval(()=>{i++;setTypedName(ln.slice(0,i));if(i>=ln.length)clearInterval(iv);},45);},600);return()=>{clearTimeout(t);clearInterval(iv);};},[ln]);
   useEffect(()=>{if(avgNum==null)return;let step=0;let iv:any;const t=setTimeout(()=>{iv=setInterval(()=>{step++;const cur=Math.min((avgNum/20)*step,avgNum);setCountedAvg(cur%1===0?String(Math.round(cur)):cur.toFixed(1));if(step>=20)clearInterval(iv);},40);},700);return()=>{clearTimeout(t);clearInterval(iv);};},[avgNum]);
 
-  useEffect(()=>{if(!card.anyPlayer?.lastName)return;setNbaLoading(true);fetch(`/api/player-stats?name=${encodeURIComponent(_full||card.anyPlayer.lastName)}&season=${card.seasonYear||0}`).then(r=>r.json()).then(d=>{if(!d.error)setNbaStats(d);}).catch(()=>{}).finally(()=>setNbaLoading(false));},[]);
+  useEffect(()=>{if(!isNBA(card))return;const pslug=card.anyPlayer?.slug||card.slug.split('-').filter((_:any,i:number,a:any)=>i<a.length-3).join('-');if(!pslug)return;setNbaLoading(true);fetch(`/api/player-stats?slug=${encodeURIComponent(pslug)}`).then(r=>r.json()).then(d=>{if(d&&(d.pts!=null||d.reb!=null||d.ast!=null))setNbaStats(d);}).catch(()=>{}).finally(()=>setNbaLoading(false));},[]);
   useEffect(()=>{if(isNBA(card))return;const pslug=card.anyPlayer?.slug||card.slug.split('-').filter((_:any,i:number,a:any)=>i<a.length-3).join('-');if(!pslug)return;setFootLoading(true);fetch(`/api/player-stats-foot?slug=${encodeURIComponent(pslug)}`).then(r=>r.json()).then(d=>{if(d&&(d.goals!=null||d.mins!=null||d.matches!=null||d.cleanSheet!=null))setFootStats(d);}).catch(()=>{}).finally(()=>setFootLoading(false));},[]);
 ;
 
@@ -219,30 +215,33 @@ export const StatPanel=memo(({card,onClose,isClosing=false,placement='scene'}:an
       <div style={{...sep,overflow:'hidden'}}>
         {isNBA(card)?(
           <>
-            <p style={{margin:'0 0 0.3rem',fontSize:'0.52rem',fontWeight:900,color:'rgba(64,232,255,0.6)',letterSpacing:'0.2em',textTransform:'uppercase'}}>NBA STATS · {nbaStats?.season||nbaSeasonStr}</p>
+            <p style={{margin:'0 0 0.3rem',fontSize:'0.52rem',fontWeight:900,color:'rgba(64,232,255,0.6)',letterSpacing:'0.2em',textTransform:'uppercase'}}>NBA · 10 DERNIERS MATCHS</p>
             {nbaLoading&&<p style={{margin:0,fontSize:'0.62rem',color:'rgba(64,232,255,0.42)',letterSpacing:'0.14em'}}>CHARGEMENT...</p>}
             {!nbaLoading&&nbaStats&&(
-              <div style={{display:'grid',gridTemplateColumns:'repeat(6,1fr)',gap:'0.18rem'}}>
-                {([[' PTS',nbaStats.pts,'dec'],[' AST',nbaStats.ast,'dec'],[' REB',nbaStats.reb,'dec'],[' STL',nbaStats.stl,'dec'],[' BLK',nbaStats.blk,'dec'],[' TOV',nbaStats.tov,'dec'],[' MIN',nbaStats.min,'dec'],[' FG%',nbaStats.fgp,'pct'],[' 3P%',nbaStats.tp,'pct'],[' FT%',nbaStats.ftp,'pct'],[' DD',nbaStats.dd,'int'],[' TD',nbaStats.td,'int']] as any[]).map(([l,v,t]:any)=>(<div key={l} style={{textAlign:'center',padding:'0.16rem 0.08rem',border:'1px solid rgba(64,232,255,0.14)',borderRadius:'0.2rem',background:'rgba(64,232,255,0.04)'}}><span style={{display:'block',fontSize:'0.4rem',color:'rgba(64,232,255,0.5)',letterSpacing:'0.04em',textTransform:'uppercase'}}>{l}</span><span style={{display:'block',fontSize:'0.76rem',fontWeight:900,color:CY,textShadow:CYS,lineHeight:1.15}}>{fv(v,t)}</span></div>))}
+              <div style={{width:'100%'}}>
+                <div style={{display:'grid',gridTemplateColumns:'repeat(6,1fr)',gap:'0.18rem'}}>
+                  {([[' PTS',nbaStats.pts,'dec'],[' REB',nbaStats.reb,'dec'],[' AST',nbaStats.ast,'dec'],[' STL',nbaStats.stl,'dec'],[' BLK',nbaStats.blk,'dec'],[' MIN',nbaStats.min,'dec'],[' TOV',nbaStats.tov,'dec'],[' 3PM',nbaStats.tpm,'dec'],[' DD',nbaStats.dd,'int'],[' TD',nbaStats.td,'int'],[' MJ',nbaStats.gp,'int']] as any[]).map(([l,v,t]:any)=>(<div key={l} style={{textAlign:'center',padding:'0.16rem 0.08rem',border:'1px solid rgba(64,232,255,0.14)',borderRadius:'0.2rem',background:'rgba(64,232,255,0.04)'}}><span style={{display:'block',fontSize:'0.4rem',color:'rgba(64,232,255,0.5)',letterSpacing:'0.04em',textTransform:'uppercase'}}>{l}</span><span style={{display:'block',fontSize:'0.76rem',fontWeight:900,color:CY,textShadow:CYS,lineHeight:1.15}}>{fv(v,t)}</span></div>))}
+                </div>
+                <p style={{margin:'0.3rem 0 0',fontSize:'0.38rem',color:'rgba(64,232,255,0.3)',letterSpacing:'0.04em',textAlign:'right'}}>aligné L10 · source Sorare</p>
               </div>
             )}
             {!nbaLoading&&!nbaStats&&<p style={{margin:0,fontSize:'0.58rem',color:'rgba(64,232,255,0.28)',letterSpacing:'0.06em'}}>stats non disponibles</p>}
           </>
         ):(
           <>
-            <p style={{margin:'0 0 0.3rem',fontSize:'0.52rem',fontWeight:900,color:'rgba(64,232,255,0.6)',letterSpacing:'0.2em',textTransform:'uppercase'}}>STATS · {footSeasonStr}</p>
+            <p style={{margin:'0 0 0.3rem',fontSize:'0.52rem',fontWeight:900,color:'rgba(64,232,255,0.6)',letterSpacing:'0.2em',textTransform:'uppercase'}}>FOOT · 15 DERNIERS MATCHS</p>
             {footLoading&&<p style={{margin:0,fontSize:'0.62rem',color:'rgba(64,232,255,0.42)',letterSpacing:'0.14em'}}>CHARGEMENT...</p>}
             {!footLoading&&footStats&&(
               <div style={{width:'100%'}}>
-                <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:'0.18rem'}}>
-                  {([['⚽','Buts',footStats.goals],['👟','Passes décisives',footStats.assists],['🏟','Matchs joués',footStats.matches],['👕','Titularisations',footStats.starts],['🧤','Clean sheets',footStats.cleanSheet],['💪','Duels gagnés',footStats.duelWon],['🟨','Cartons jaunes',footStats.yellow],['🟥','Cartons rouges',footStats.red],['⏱','Minutes jouées',footStats.mins]] as [string,string,any][]).map(([pic,lab,v])=>(
+                <div style={{display:'grid',gridTemplateColumns:'repeat(5,1fr)',gap:'0.18rem'}}>
+                  {([['⚽','Buts',footStats.goals],['👟','Passes décisives',footStats.assists],['🎯','Tirs cadrés',footStats.shots],['🏟','Matchs joués',footStats.matches],['👕','Titularisations',footStats.starts],['🧤','Clean sheets',footStats.cleanSheet],['💪','Duels gagnés',footStats.duelWon],['🟨','Cartons jaunes',footStats.yellow],['🟥','Cartons rouges',footStats.red],['⏱','Minutes jouées',footStats.mins]] as [string,string,any][]).map(([pic,lab,v])=>(
                     <div key={lab} title={lab} style={{textAlign:'center',padding:'0.2rem 0.08rem',border:'1px solid rgba(64,232,255,0.14)',borderRadius:'0.2rem',background:'rgba(64,232,255,0.04)'}}>
                       <span style={{display:'block',fontSize:'0.8rem',lineHeight:1.1}}>{pic}</span>
                       <span style={{display:'block',fontSize:'0.82rem',fontWeight:900,color:CY,textShadow:CYS,lineHeight:1.25}}>{v==null?'—':(lab==='Minutes jouées'?Math.round(Number(v)):v)}</span>
                     </div>
                   ))}
                 </div>
-                <p style={{margin:'0.3rem 0 0',fontSize:'0.38rem',color:'rgba(64,232,255,0.3)',letterSpacing:'0.04em',textAlign:'right'}}>total saison · source Sorare</p>
+                <p style={{margin:'0.3rem 0 0',fontSize:'0.38rem',color:'rgba(64,232,255,0.3)',letterSpacing:'0.04em',textAlign:'right'}}>aligné L10 · source Sorare</p>
               </div>
             )}
             {!footLoading&&!footStats&&<p style={{margin:0,fontSize:'0.58rem',color:'rgba(64,232,255,0.28)',letterSpacing:'0.06em'}}>stats non disponibles</p>}
@@ -250,18 +249,11 @@ export const StatPanel=memo(({card,onClose,isClosing=false,placement='scene'}:an
         )}
       </div>
       <div style={{display:'flex',gap:'0.4rem',marginBottom:'0.3rem',flexShrink:0}}>
-        {(nbaStats?._id||!isNBA(card))&&(
-          <a href={isNBA(card)?('https://sorare.com/fr/nba/players/'+card.slug.split('-').filter((_:any,i:number,a:any)=>i<a.length-3).join('-')+'?sale=true'):('https://sorare.com/fr/football/players/'+card.slug.split('-').filter((_:any,i:number,a:any)=>i<a.length-3).join('-')+'?sale=true')}
+        {card.slug&&(
+          <a href={isNBA(card)?('https://sorare.com/fr/nba/players/'+(card.anyPlayer?.slug||card.slug.split('-').filter((_:any,i:number,a:any)=>i<a.length-3).join('-'))+'?sale=true'):('https://sorare.com/fr/football/players/'+(card.anyPlayer?.slug||card.slug.split('-').filter((_:any,i:number,a:any)=>i<a.length-3).join('-'))+'?sale=true')}
             target='_blank' rel='noopener noreferrer' className='stat-link-btn'
             style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',gap:'0.3rem',padding:'0.3rem 0',borderRadius:'0.25rem',border:'1px solid rgba(64,232,255,0.5)',background:'rgba(64,232,255,0.06)',color:'#ffffff',fontSize:'0.55rem',fontWeight:800,letterSpacing:'0.1em',textDecoration:'none',cursor:'pointer'}}>
             <img src="/sorare-logo.png" alt="S" style={{width:'14px',height:'14px',borderRadius:'50%',objectFit:'cover'}} onError={(e:any)=>{e.target.style.display='none';}}/> SORARE
-          </a>
-        )}
-        {isNBA(card)&&nbaStats?._id&&(
-          <a href={'https://www.espn.com/nba/player/_/id/'+nbaStats._id+'/'+(_full||card.anyPlayer?.lastName||'').toLowerCase().replace(/\s+/g,'-')}
-            target='_blank' rel='noopener noreferrer' className='stat-link-btn'
-            style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',gap:'0.3rem',padding:'0.3rem 0',borderRadius:'0.25rem',border:'1px solid rgba(64,232,255,0.5)',background:'rgba(64,232,255,0.06)',color:'#e05050',fontSize:'0.55rem',fontWeight:800,letterSpacing:'0.1em',textDecoration:'none',cursor:'pointer'}}>
-            <img src="https://a.espncdn.com/favicon.ico" alt="E" style={{width:'14px',height:'14px',objectFit:'contain'}}/> ESPN
           </a>
         )}
       </div>

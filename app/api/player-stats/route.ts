@@ -1,107 +1,50 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
-const UA = {
-  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-  'Accept': 'application/json, text/plain, */*',
-  'Accept-Language': 'en-US,en;q=0.9',
-};
-const seasonStr = (sy: number) => (sy && sy > 2000 ? `${sy}-${String(sy + 1).slice(2)}` : '');
+// Stats NBA = source Sorare (moyennes sur la fenetre recente ~10 matchs, alignee avec le L10).
+// allAverageStats = moyennes par match ; allTotalStats = totaux (pour DD/TD comptes + deduire les matchs joues).
+export async function GET(request: NextRequest) {
+  const slug = (request.nextUrl.searchParams.get('slug') || '').trim();
+  if (!slug) return NextResponse.json({}, { status: 200 });
 
-// 1. Resoudre le nom du joueur en ID athlete ESPN (search/v2)
-async function findAthleteId(name: string): Promise<string | null> {
-  const url = `https://site.web.api.espn.com/apis/search/v2?limit=10&query=${encodeURIComponent(name)}`;
-  const r = await fetch(url, { headers: UA, signal: AbortSignal.timeout(4500) });
-  if (!r.ok) return null;
-  const j = await r.json();
-  const s = JSON.stringify(j);
-  const m1 = s.match(/l:46~a:(\d+)/);
-  const m2 = s.match(/nba\/player\/_\/id\/(\d+)/);
-  return (m1 && m1[1]) || (m2 && m2[1]) || null;
-}
-
-// 2. Recuperer les stats de l'athlete (endpoint /stats, decoupe par saison)
-async function getStats(id: string): Promise<any> {
-  const url = `https://site.web.api.espn.com/apis/common/v3/sports/basketball/nba/athletes/${id}/stats`;
-  const r = await fetch(url, { headers: UA, signal: AbortSignal.timeout(4500) });
-  if (!r.ok) return null;
-  return r.json();
-}
-
-function parseStats(data: any, sy: number) {
-  const cats: any[] = data?.categories || [];
-  if (!cats.length) return null;
-  const avg = cats.find((c) => c.name === 'averages');
-  const misc = cats.find((c) => c.name === 'miscellaneous');
-  if (!avg) return null;
-
-  // TOUJOURS la saison la plus recente disposant de donnees reelles (on ignore la saison de la carte)
-  const avgNames: string[] = avg?.names || [];
-  const ptsIdx = avgNames.indexOf('avgPoints');
-  const gpIdx = avgNames.indexOf('gamesPlayed');
-  const rowHasData = (r: any) => {
-    const st: any[] = r?.stats || [];
-    const pOk = ptsIdx >= 0 && st[ptsIdx] != null && st[ptsIdx] !== '';
-    const gOk = gpIdx >= 0 && parseFloat(String(st[gpIdx])) > 0;
-    return pOk || gOk;
-  };
-  const avgRows: any[] = avg?.statistics || [];
-  let avgRow: any = null;
-  for (let i = avgRows.length - 1; i >= 0; i--) { if (rowHasData(avgRows[i])) { avgRow = avgRows[i]; break; } }
-  if (!avgRow) avgRow = avgRows[avgRows.length - 1] || null;
-  if (!avgRow) return null;
-  // Aligner la ligne "miscellaneous" sur la MEME saison que la ligne retenue
-  const chosenSeason = avgRow?.season?.displayName;
-  const miscRows: any[] = misc?.statistics || [];
-  let miscRow: any = chosenSeason ? miscRows.find((rr: any) => rr?.season?.displayName === chosenSeason) : null;
-  if (!miscRow) miscRow = miscRows[miscRows.length - 1] || null;
-
-  const num = (v: any) => { if (v == null || v === '') return null; const n = parseFloat(String(v).replace('%', '').replace(',', '.')); return isNaN(n) ? null : n; };
-  const get = (cat: any, row: any, name: string) => {
-    if (!cat || !row) return null;
-    const i = (cat.names || []).indexOf(name);
-    return i >= 0 ? row.stats?.[i] : null;
-  };
-
-  const out = {
-    pts: num(get(avg, avgRow, 'avgPoints')),
-    ast: num(get(avg, avgRow, 'avgAssists')),
-    reb: num(get(avg, avgRow, 'avgRebounds')),
-    stl: num(get(avg, avgRow, 'avgSteals')),
-    blk: num(get(avg, avgRow, 'avgBlocks')),
-    tov: num(get(avg, avgRow, 'avgTurnovers')),
-    min: num(get(avg, avgRow, 'avgMinutes')),
-    fgp: num(get(avg, avgRow, 'fieldGoalPct')),
-    tp: num(get(avg, avgRow, 'threePointFieldGoalPct')),
-    ftp: num(get(avg, avgRow, 'freeThrowPct')),
-    dd: num(get(misc, miscRow, 'doubleDouble')),
-    td: num(get(misc, miscRow, 'tripleDouble')),
-    gp: num(get(avg, avgRow, 'gamesPlayed')),
-    season: avgRow?.season?.displayName || undefined,
-  };
-  if (out.pts == null && out.reb == null && out.ast == null) return null;
-  return out;
-}
-
-export async function GET(req: Request) {
-  const u = new URL(req.url);
-  const name = (u.searchParams.get('name') || '').trim();
-  const sy = parseInt(u.searchParams.get('season') || '0', 10);
-  const debug = u.searchParams.get('debug') === '1';
-  if (!name) return NextResponse.json({ error: 'name required' }, { status: 400 });
-
+  const query = `query{players(slugs:["${slug}"]){slug ...on NBAPlayer{allAverageStats{stat value} allTotalStats{stat value}}}}`;
   try {
-    const id = await findAthleteId(name);
-    if (!id) {
-      if (debug) return NextResponse.json({ stage: 'search', name, id: null });
-      return NextResponse.json({}, { status: 200 });
-    }
-    const data = await getStats(id);
-    const parsed = parseStats(data, sy);
-    if (debug) return NextResponse.json({ stage: 'stats', id, target: seasonStr(sy), parsed });
-    if (!parsed) return NextResponse.json({}, { status: 200 });
-    return NextResponse.json({ ...parsed, _id: id });
+    const headers: Record<string, string> = { 'Content-Type': 'application/json', 'Accept': 'application/json' };
+    const jwt = process.env.SORARE_JWT || '';
+    const aud = process.env.SORARE_AUD || '';
+    if (jwt && aud) { headers['Authorization'] = `Bearer ${jwt}`; headers['JWT-AUD'] = aud; }
+
+    const r = await fetch('https://api.sorare.com/graphql', {
+      method: 'POST', headers, body: JSON.stringify({ query }), signal: AbortSignal.timeout(8000),
+    });
+    if (!r.ok) return NextResponse.json({}, { status: 200 });
+    const j = await r.json();
+    const p = j?.data?.players?.[0];
+    if (!p) return NextResponse.json({}, { status: 200 });
+
+    const a: Record<string, number> = Object.fromEntries((p.allAverageStats || []).map((s: any) => [s.stat, s.value]));
+    const t: Record<string, number> = Object.fromEntries((p.allTotalStats || []).map((s: any) => [s.stat, s.value]));
+    const av = (k: string) => (a[k] == null ? null : Number(a[k]));
+    const to = (k: string) => (t[k] == null ? null : Number(t[k]));
+    // Matchs joues deduits : total minutes / moyenne minutes
+    const gp = a.MINS_PLAYED ? Math.round(Number(t.MINS_PLAYED) / Number(a.MINS_PLAYED)) : null;
+
+    const out = {
+      pts: av('POINTS'),
+      reb: av('REBOUNDS'),
+      ast: av('ASSISTS'),
+      stl: av('STEALS'),
+      blk: av('BLOCKS'),
+      tov: av('TURNOVERS'),
+      min: av('MINS_PLAYED'),
+      tpm: av('THREE_POINTS_MADE'),
+      dd: to('DOUBLE_DOUBLE'),
+      td: to('TRIPLE_DOUBLE'),
+      gp,
+    };
+    const hasData = out.pts != null || out.reb != null || out.ast != null;
+    if (!hasData) return NextResponse.json({}, { status: 200 });
+    return NextResponse.json(out);
   } catch (e) {
-    if (debug) return NextResponse.json({ error: String(e) });
     return NextResponse.json({}, { status: 200 });
   }
 }
