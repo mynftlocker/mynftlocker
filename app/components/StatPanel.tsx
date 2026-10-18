@@ -1,5 +1,5 @@
 'use client';
-import { memo, useState, useEffect, Fragment } from 'react';
+import { memo, useState, useEffect, Fragment, useId } from 'react';
 
 export const RARITY_GLOW: Record<string,string> = {
   common:'0 0 18px 3px rgba(225,228,255,0.75), 0 0 36px 8px rgba(190,200,255,0.35)',
@@ -26,6 +26,7 @@ export const parseCard=(name:string)=>{
 export const nfs=(l:number)=>l<=5?'1.45rem':l<=7?'1.2rem':l<=9?'1rem':l<=11?'0.82rem':l<=13?'0.7rem':'0.6rem';
 
 export const CardBack=memo(({card,rc,mobile}:any)=>{
+  const rid=useId().replace(/[^a-zA-Z0-9]/g,'');
   const sz=(remStr:string,px:number)=>mobile?(Math.round(px/115*10000)/100)+'cqw':remStr;
   const nfsCard=(l:number)=>mobile?(l<=5?'20.17cqw':l<=7?'16.70cqw':l<=9?'13.91cqw':l<=11?'11.41cqw':l<=13?'9.74cqw':'8.35cqw'):nfs(l);
   const {season,serial}=parseCard(card.name);
@@ -42,7 +43,7 @@ export const CardBack=memo(({card,rc,mobile}:any)=>{
   const STAR_LAYOUTS:Record<number,number[][]>={1:[[50,50]],2:[[34,50],[66,50]],3:[[33,36],[67,36],[50,67]],4:[[34,35],[66,35],[34,67],[66,67]],5:[[32,33],[68,33],[32,69],[68,69],[50,51]]};
   const starPos:number[][]=stars==null?[]:(STAR_LAYOUTS[starN]||[]);
   const STAR_PATH='M12 1.6l2.95 7.03 7.6.62-5.78 4.96 1.75 7.42L12 17.7l-6.52 3.93 1.75-7.42L1.45 9.25l7.6-.62z';
-  const starUid=('s'+(card.slug||'')).replace(/[^A-Za-z0-9]/g,'').slice(-12)+starN;
+  const starUid='s'+rid+starN;
   const lerp=(a:number,b:number,t:number)=>Math.round(a+(b-a)*t);
   const tT=stars==null?0:Math.max(0,Math.min(1,(stars-1)/4));
   const tierCol='rgb('+lerp(255,0,tT)+','+lerp(126,243,tT)+','+lerp(52,235,tT)+')';
@@ -104,11 +105,12 @@ CardBack.displayName='CardBack';
 
 // Note en etoiles reutilisable (tableau noir) : pentagone NBA / rangee foot, meme donnee gameplayTierStars.
 export const StarRating=({card,box}:{card:any;box:number})=>{
+  const rid=useId().replace(/[^a-zA-Z0-9]/g,'');
   const sv=card?.anyPlayer?.gameplayTierStars;
   const stars=(sv==null||isNaN(Number(sv)))?null:Math.max(0,Math.min(5,Number(sv)));
   if(stars==null)return null;
   const PATH='M12 1.6l2.95 7.03 7.6.62-5.78 4.96 1.75 7.42L12 17.7l-6.52 3.93 1.75-7.42L1.45 9.25l7.6-.62z';
-  const uid=('r'+(card.slug||'')).replace(/[^A-Za-z0-9]/g,'').slice(-10);
+  const uid='r'+rid;
   const grad=(id:string)=>(<linearGradient id={id} x1='0' y1='0' x2='0' y2='1'><stop offset='0' stopColor='#fff6b0'/><stop offset='0.45' stopColor='#f5d76e'/><stop offset='1' stopColor='#c9870f'/></linearGradient>);
   if(isNBA(card)){
     const starN=Math.min(5,Math.max(1,Math.ceil(stars)));
