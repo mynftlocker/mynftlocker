@@ -15,6 +15,25 @@ export const RARITY_FILL: Record<string,string> = {
   common:'#a8a8b5',limited:'#b48a14',rare:'#1e4ba8',super_rare:'#a82a2a',unique:'#7e3fc4',
 };
 export const isNBA=(c:any)=>c?.__typename==='NBACard';
+
+// Etoiles foot (tracés repris exactement de Sorare). 5 etoiles = entourees (cadre dore) + etincelles qui scintillent,
+// reutilise partout ou s'affichent des etoiles foot (stat panel, dos de carte, badge gradage galerie). s = taille d'une etoile (px ou cqw).
+const STAR16='M7.00001 0H9.00001L10.4871 4.57681L15.2994 4.57681L15.9175 6.47892L12.0242 9.30754L13.5113 13.8843L11.8933 15.0599L8.00002 12.2313L4.10677 15.0599L2.48873 13.8843L3.97581 9.30756L0.0825195 6.47893L0.700554 4.57682L5.51292 4.57681L7.00001 0Z';
+const SPARK184='M92 0C92 0 96 63.4731 108.263 75.7365C120.527 88 184 92 184 92C184 92 118.527 98 108.263 108.263C98 118.527 92 184 92 184C92 184 86.4731 119 75.7365 108.263C65 97.5269 0 92 0 92C0 92 63.9731 87.5 75.7365 75.7365C87.5 63.9731 92 0 92 0Z';
+const FOOT_SPARKS=[{l:'4%',t:'-22%',k:0.72,d:2.2,dl:0},{l:'34%',t:'60%',k:0.5,d:2.8,dl:0.5},{l:'60%',t:'-16%',k:0.64,d:2.4,dl:0.9},{l:'86%',t:'52%',k:0.5,d:2.6,dl:1.3},{l:'50%',t:'16%',k:0.4,d:3.0,dl:1.7}];
+export const FootStars=({n,s}:{n:number;s:string})=>{
+  const uid=useId().replace(/[^a-zA-Z0-9]/g,'');
+  const cnt=Math.max(1,Math.min(5,Math.round(n)));
+  const defs=(<svg width='0' height='0' aria-hidden style={{position:'absolute'}}><defs><linearGradient id={'fg'+uid} x1='0' y1='0' x2='0' y2='1'><stop offset='0' stopColor='#fff3b0'/><stop offset='0.5' stopColor='#ffd914'/><stop offset='1' stopColor='#c9870f'/></linearGradient></defs></svg>);
+  const row=Array.from({length:cnt}).map((_,i)=>(<svg key={i} viewBox='0 0 16 16' style={{width:s,height:s,display:'block',flexShrink:0}}><path d={STAR16} fill={'url(#fg'+uid+')'}/></svg>));
+  if(cnt<5){
+    return(<span style={{display:'inline-flex',alignItems:'center',gap:'calc('+s+' / 8)',lineHeight:0}}>{defs}{row}</span>);
+  }
+  return(<span style={{position:'relative',display:'inline-flex',alignItems:'center',gap:'calc('+s+' / 5)',lineHeight:0,padding:'calc('+s+' / 4) calc('+s+' / 2)',borderRadius:'999px',border:'1px solid rgba(255,217,20,0.45)',background:'radial-gradient(120% 140% at 50% 20%,rgba(255,217,20,0.14),rgba(255,217,20,0.03) 70%,transparent)',boxShadow:'0 0 10px -2px rgba(255,217,20,0.35),inset 0 0 6px -2px rgba(255,217,20,0.3)'}}>
+    {defs}{row}
+    {FOOT_SPARKS.map((o,i)=>(<span key={'sp'+i} style={{position:'absolute',left:o.l,top:o.t,color:'#fff',pointerEvents:'none',lineHeight:0,filter:'drop-shadow(0 0 2px rgba(255,236,150,0.9))',transform:'scale(0)',animation:'mnflTwinkle '+o.d+'s ease-in-out '+o.dl+'s infinite'}}><svg viewBox='0 0 184 184' style={{width:'calc('+s+' * '+o.k+')',height:'calc('+s+' * '+o.k+')',display:'block'}}><path fill='currentColor' d={SPARK184}/></svg></span>))}
+  </span>);
+};
 export const parseCard=(name:string)=>{
   const parts=name.split('•');const left=parts[0].trim();const right=(parts[1]||'').trim();
   const sm=left.match(/(\d{4}-\d{2})/);const season=sm?sm[1]:'';
@@ -82,14 +101,7 @@ export const CardBack=memo(({card,rc,mobile}:any)=>{
             </svg>
           )}
           {stars!=null&&!isNBA(card)&&(
-            <span style={{display:'inline-block',whiteSpace:'nowrap' as const,flexShrink:0,lineHeight:0}}>
-              {Array.from({length:Math.max(1,Math.round(stars))}).map((_,i)=>(
-                <svg key={i} viewBox='0 0 24 24' width={14} height={14} style={{display:'inline-block',verticalAlign:'middle',width:sz('0.9rem',14.4),height:sz('0.9rem',14.4),marginLeft:i>0?sz('0.1rem',1.6):0}}>
-                  <defs><linearGradient id={'fg'+starUid+i} x1='0' y1='0' x2='0' y2='1'><stop offset='0' stopColor='#fff6b0'/><stop offset='0.45' stopColor='#f5d76e'/><stop offset='1' stopColor='#c9870f'/></linearGradient></defs>
-                  <path d={STAR_PATH} fill={'url(#fg'+starUid+i+')'} style={{filter:'drop-shadow(0 0 1.5px rgba(245,215,110,0.7))'}}/>
-                </svg>
-              ))}
-            </span>
+            <FootStars n={Math.round(stars)} s={sz('0.9rem',14.4)}/>
           )}
         </div>
         <p style={{margin:'3px 0 0',fontSize:sz('0.42rem',6.72),color:rc,textTransform:'uppercase',fontWeight:800,letterSpacing:'0.1em'}}>MOYENNE L10</p>
@@ -127,8 +139,7 @@ export const StarRating=({card,box}:{card:any;box:number})=>{
       {pos.map((p,i)=>{const f=frac(i);const sc=1.15;const off=12*sc;const cid='c'+uid+i;return(<g key={i} transform={'translate('+(p[0]-off)+','+(p[1]-off)+') scale('+sc+')'}><path d={PATH} fill='rgba(255,255,255,0.16)'/><clipPath id={cid}><rect x='0' y='0' width={24*f} height='24'/></clipPath><path d={PATH} fill={'url(#g'+uid+')'} clipPath={'url(#'+cid+')'} style={{filter:'drop-shadow(0 0 1.5px rgba(245,215,110,0.7))'}}/></g>);})}
     </svg>);
   }
-  const n=Math.max(1,Math.round(stars));const s=box/2.2;
-  return(<span style={{display:'inline-block',whiteSpace:'nowrap' as const,flexShrink:0,lineHeight:0}}>{Array.from({length:n}).map((_,i)=>(<svg key={i} viewBox='0 0 24 24' width={Math.round(s)} height={Math.round(s)} style={{display:'inline-block',verticalAlign:'middle',width:s,height:s,marginLeft:i>0?2:0}}><defs>{grad('g'+uid+i)}</defs><path d={PATH} fill={'url(#g'+uid+i+')'} style={{filter:'drop-shadow(0 0 1.5px rgba(245,215,110,0.7))'}}/></svg>))}</span>);
+  return(<FootStars n={Math.round(stars)} s={Math.round(box/2.2)+'px'}/>);
 };
 
 export const StatPanel=memo(({card,onClose,isClosing=false,placement='scene'}:any)=>{

@@ -1,6 +1,49 @@
 "use client";
 import { memo, useState, useEffect, useRef } from 'react';
-import { StatPanel, CardBack, RARITY_GLOW, RARITY_COLOR, RARITY_FILL } from './StatPanel';
+import { StatPanel, CardBack, RARITY_GLOW, RARITY_COLOR, RARITY_FILL, parseCard, isNBA, FootStars } from './StatPanel';
+
+// Embleme rond myNFTlocker dessine (repli si /logo-rond.png absent) : anneau or + etoile centrale facon crest.
+const Emblem=({w}:{w:string})=>(
+  <svg viewBox='0 0 100 100' style={{width:w,height:w,flexShrink:0}}>
+    <defs><linearGradient id='mnflEmbG' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stopColor='#fff6b0'/><stop offset='0.5' stopColor='#f5d76e'/><stop offset='1' stopColor='#c9870f'/></linearGradient></defs>
+    <circle cx='50' cy='50' r='45' fill='rgba(0,0,0,0.4)' stroke='url(#mnflEmbG)' strokeWidth='6'/>
+    <circle cx='50' cy='50' r='33' fill='none' stroke='url(#mnflEmbG)' strokeWidth='1.6' strokeOpacity='0.55'/>
+    <g transform='translate(26,26) scale(2)'><path d='M12 1.6l2.95 7.03 7.6.62-5.78 4.96 1.75 7.42L12 17.7l-6.52 3.93 1.75-7.42L1.45 9.25l7.6-.62z' fill='url(#mnflEmbG)' style={{filter:'drop-shadow(0 0 1.5px rgba(245,215,110,0.6))'}}/></g>
+  </svg>
+);
+// Logo rond : vrai fichier public/logo-rond.png si present, sinon repli sur l'embleme dessine.
+const LogoMark=({w}:{w:string})=>{
+  const [err,setErr]=useState(false);
+  if(err) return <Emblem w={w}/>;
+  return <img src='/logo-rond.png' alt='' onError={()=>setErr(true)} style={{width:w,height:w,flexShrink:0,objectFit:'contain',display:'block',borderRadius:'50%'}}/>;
+};
+
+// Bloc etoiles du slab (pentagone NBA / rangee foot) dimensionne en cqw (meme donnee gameplayTierStars que le stat panel).
+const S_PATH='M12 1.6l2.95 7.03 7.6.62-5.78 4.96 1.75 7.42L12 17.7l-6.52 3.93 1.75-7.42L1.45 9.25l7.6-.62z';
+const SlabStars=({card,w}:{card:any;w:string})=>{
+  const sv=card?.anyPlayer?.gameplayTierStars;
+  const stars=(sv==null||isNaN(Number(sv)))?null:Math.max(0,Math.min(5,Number(sv)));
+  if(stars==null)return null;
+  const uid='sl'+String(card.slug||'').replace(/[^a-zA-Z0-9]/g,'');
+  const grad=(<linearGradient id={'g'+uid} x1='0' y1='0' x2='0' y2='1'><stop offset='0' stopColor='#fff6b0'/><stop offset='0.45' stopColor='#f5d76e'/><stop offset='1' stopColor='#c9870f'/></linearGradient>);
+  if(isNBA(card)){
+    const starN=Math.min(5,Math.max(1,Math.ceil(stars)));
+    const starFull=Math.floor(stars);
+    const LAY:Record<number,number[][]>={1:[[50,50]],2:[[34,50],[66,50]],3:[[33,36],[67,36],[50,67]],4:[[34,35],[66,35],[34,67],[66,67]],5:[[32,33],[68,33],[32,69],[68,69],[50,51]]};
+    const pos=LAY[starN]||[];
+    const lerp=(a:number,b:number,t:number)=>Math.round(a+(b-a)*t);
+    const tT=Math.max(0,Math.min(1,(stars-1)/4));
+    const tierCol='rgb('+lerp(255,0,tT)+','+lerp(126,243,tT)+','+lerp(52,235,tT)+')';
+    const frac=(i:number)=>(i<starFull?1:((stars-starFull)>=0.5?0.5:1));
+    return(<svg viewBox='0 0 100 100' style={{width:w,height:w,flexShrink:0,overflow:'visible'}}>
+      <defs>{grad}</defs>
+      <polygon points='50,3 92,27 92,73 50,97 8,73 8,27' fill={tierCol} fillOpacity='0.22' stroke={tierCol} strokeWidth='4' strokeOpacity='0.9'/>
+      {pos.map((p,i)=>{const f=frac(i);const sc=1.15;const off=12*sc;const cid='c'+uid+i;return(<g key={i} transform={'translate('+(p[0]-off)+','+(p[1]-off)+') scale('+sc+')'}><path d={S_PATH} fill='rgba(255,255,255,0.16)'/><clipPath id={cid}><rect x='0' y='0' width={24*f} height='24'/></clipPath><path d={S_PATH} fill={'url(#g'+uid+')'} clipPath={'url(#'+cid+')'} style={{filter:'drop-shadow(0 0 1.5px rgba(245,215,110,0.7))'}}/></g>);})}
+    </svg>);
+  }
+  const n=Math.max(1,Math.round(stars));
+  return(<span style={{display:'inline-flex',whiteSpace:'nowrap' as const,flexShrink:0,lineHeight:0,gap:'0.6cqw'}}>{Array.from({length:n}).map((_,i)=>(<svg key={i} viewBox='0 0 24 24' style={{width:'calc('+w+' / 4.5)',height:'calc('+w+' / 4.5)'}}><defs>{grad}</defs><path d={S_PATH} fill={'url(#g'+uid+')'} style={{filter:'drop-shadow(0 0 1.5px rgba(245,215,110,0.7))'}}/></svg>))}</span>);
+};
 
 // Carte galerie : flip 3D + halo cyan + trace (memes animations que le vestiaire)
 const scaleGlow=(glowStr:string,scale:number)=>glowStr.replace(/(\d+(?:\.\d+)?)px/g,(_,n)=>(parseFloat(n)*scale).toFixed(1)+'px');
@@ -12,27 +55,47 @@ const GalleryCard=memo(({card,isFlipped,onFlip,glowScale}:any)=>{
   const glow=scaleGlow(glowRaw,glowScale??1);
   const fill=RARITY_FILL[card.rarityTyped]||RARITY_FILL.common;
   const rc=RARITY_COLOR[card.rarityTyped]||'#9ca3af';
+  const {serial,season}=parseCard(card.name);
+  const score=card.averageScore!=null?String(card.averageScore):null;
+  const pname=(String(card.name.split('•')[0]||'').replace(/\d{4}-\d{2}/,'').trim())||(card.anyPlayer?.lastName||'');
+  const team=card.anyTeam?.name||'';
+  const meta=[isNBA(card)?'NBA':'FOOT',team,season].filter(Boolean).join(' · ');
+  const rarLabel=card.rarityTyped.replace('_',' ').toUpperCase();
   return(
     <div style={{perspective:'900px',cursor:'pointer',width:'100%',position:'relative',containerType:'inline-size'}} onClick={()=>onFlip(card.slug)} onMouseEnter={()=>setHover(true)} onMouseLeave={()=>setHover(false)}>
-      <div style={{position:'relative',transformStyle:'preserve-3d',transition:'transform 0.4s cubic-bezier(0.2,0.8,0.3,1),box-shadow 0.3s ease',transform:(isFlipped?'rotateY(180deg)':'rotateY(0deg)')+((hover&&!isFlipped)?' translateY(-10px) scale(1.03)':''),boxShadow:isFlipped?'0 0 12px 3px rgba(64,232,255,0.45),0 0 24px 6px rgba(64,232,255,0.2)':((hover&&!isFlipped)?glow+', 0 22px 40px -8px rgba(0,0,0,0.7)':glow),borderRadius:'0.5rem',background:fill,...({['--rc']:rc,animation:isFlipped?'mnflCyanPulse 2.2s ease-in-out infinite':undefined} as any)}}>
-        <div style={{position:'relative',backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',borderRadius:'0.5rem',overflow:'hidden'}}>
-          <img src={card.pictureUrl} alt={card.name} loading='lazy' style={{width:'100%',height:'auto',display:'block'}} onError={(e:any)=>{e.target.style.display='none';}}/>
-          {/* Reflet glossy (sheen) */}
-          <div style={{position:'absolute',inset:0,zIndex:6,pointerEvents:'none',background:'linear-gradient(115deg,transparent 42%,rgba(255,255,255,0.14) 50%,transparent 58%)',opacity:hover?0.95:0.28,transition:'opacity 0.3s'}}/>
-          {/* Cadre rarete (liseré interne + halo) */}
-          <div style={{position:'absolute',inset:0,zIndex:7,pointerEvents:'none',borderRadius:'0.5rem',boxShadow:'inset 0 0 0 1.5px '+rc+'88, inset 0 0 16px -5px '+rc+'66'}}/>
-          {/* Overlay scouting : L10 + etoiles */}
-          <div style={{position:'absolute',left:0,right:0,bottom:0,zIndex:8,display:'flex',alignItems:'flex-end',justifyContent:'space-between',gap:'2cqw',padding:'16cqw 5cqw 4.5cqw',background:'linear-gradient(to top,rgba(2,5,11,0.92) 0%,rgba(2,5,11,0.45) 55%,transparent 100%)',pointerEvents:'none',opacity:hover?1:0.92,transition:'opacity 0.2s'}}>
-            <div style={{display:'flex',alignItems:'baseline',gap:'1.5cqw',lineHeight:1}}>
-              <span style={{fontSize:'15cqw',fontWeight:900,color:'#40e8ff',textShadow:'0 0 6px rgba(64,232,255,0.6)'}}>{card.averageScore!=null?card.averageScore:'—'}</span>
-              <span style={{fontSize:'6.5cqw',fontWeight:800,color:'rgba(64,232,255,0.65)',letterSpacing:'0.06em'}}>L10</span>
-            </div>
-            {card.anyPlayer?.gameplayTierStars!=null&&(
-              <span style={{display:'flex',alignItems:'center',gap:'1cqw',fontWeight:900,color:'#f5d76e',textShadow:'0 0 6px rgba(245,215,110,0.5)',lineHeight:1}}>
-                <span style={{fontSize:'13cqw'}}>★</span><span style={{fontSize:'11cqw'}}>{Number(card.anyPlayer.gameplayTierStars)%1===0?Number(card.anyPlayer.gameplayTierStars):Number(card.anyPlayer.gameplayTierStars).toFixed(1)}</span>
+      <div style={{position:'relative',transformStyle:'preserve-3d',transition:'transform 0.4s cubic-bezier(0.2,0.8,0.3,1),box-shadow 0.3s ease',transform:(isFlipped?'rotateY(180deg)':'rotateY(0deg)')+((hover&&!isFlipped)?' translateY(-10px) scale(1.03)':''),boxShadow:isFlipped?'0 0 12px 3px rgba(64,232,255,0.45),0 0 24px 6px rgba(64,232,255,0.2)':((hover&&!isFlipped)?glow+', 0 22px 40px -8px rgba(0,0,0,0.7)':glow),borderRadius:'7cqw',background:fill,...({['--rc']:rc,animation:isFlipped?'mnflCyanPulse 2.2s ease-in-out infinite':undefined} as any)}}>
+        {/* SLAB : coque plastique translucide + bandeau label (en haut) + art 100% visible dessous. */}
+        <div style={{position:'relative',backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',borderRadius:'7cqw',padding:'4cqw 4cqw 4.8cqw',background:'linear-gradient(180deg,rgba(236,243,255,0.14) 0%,rgba(236,243,255,0.05) 7%,rgba(190,205,230,0.07) 16%,rgba(150,166,194,0.045) 100%)',border:'1px solid rgba(214,226,244,0.55)',boxShadow:'0 1px 0 rgba(255,255,255,0.35) inset,0 0 0 1px rgba(10,14,22,0.6)'}}>
+          {/* bandeau label */}
+          <div style={{position:'relative',zIndex:2,borderRadius:'4.8cqw',overflow:'hidden',background:'linear-gradient(165deg,#10151f,#0a0e16)',border:'1px solid rgba(120,150,190,0.14)',boxShadow:'0 2px 10px -4px rgba(0,0,0,0.6)',padding:'3.6cqw 4.4cqw 4cqw'}}>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'3cqw',marginBottom:'2cqw'}}>
+              <span style={{fontFamily:'ui-monospace,Menlo,monospace',fontSize:'3.9cqw',letterSpacing:'0.12em',color:'#35e6ff',opacity:0.9,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{serial||''}</span>
+              <span style={{display:'flex',alignItems:'center',gap:'2cqw',flexShrink:0}}>
+                <LogoMark w={'6.4cqw'}/>
+                <span style={{fontWeight:800,fontSize:'5.3cqw',letterSpacing:'0.02em',lineHeight:1,whiteSpace:'nowrap',background:'linear-gradient(180deg,#fff3c4,#f5d76e 55%,#b8801a)',WebkitBackgroundClip:'text',backgroundClip:'text',color:'transparent'}}>myNFTlocker</span>
               </span>
-            )}
+            </div>
+            <div style={{display:'flex',alignItems:'flex-end',justifyContent:'space-between',gap:'4cqw'}}>
+              <div style={{minWidth:0}}>
+                <div style={{fontWeight:800,fontSize:'7.6cqw',lineHeight:0.98,letterSpacing:'0.01em',color:'#eef4ff',textTransform:'uppercase' as const,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',textShadow:'0 0 14px rgba(53,230,255,0.12)'}}>{pname}</div>
+                <div style={{fontSize:'4cqw',color:'#8a97ad',marginTop:'1.2cqw',letterSpacing:'0.02em',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{meta}</div>
+                <span style={{display:'inline-block',marginTop:'2cqw',fontFamily:'ui-monospace,Menlo,monospace',fontSize:'3.5cqw',letterSpacing:'0.14em',textTransform:'uppercase' as const,padding:'0.8cqw 2.4cqw',borderRadius:'999px',border:'1px solid '+rc,color:rc}}>{rarLabel}</span>
+              </div>
+              <div style={{flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',gap:'2cqw',borderRadius:'4cqw',padding:'2cqw 2.8cqw 1.6cqw',border:'1px solid rgba(120,150,190,0.14)',background:'radial-gradient(120% 120% at 50% 0%,rgba(53,230,255,0.10),rgba(8,12,20,0.6))'}}>
+                {isNBA(card)?<SlabStars card={card} w={'11.3cqw'}/>:<FootStars n={Math.round(Number(card.anyPlayer?.gameplayTierStars)||0)} s={'3.8cqw'}/>}
+                <div style={{display:'flex',flexDirection:'column' as const,alignItems:'center',lineHeight:1}}>
+                  <div style={{fontWeight:800,fontSize:'8.7cqw',lineHeight:0.92,color:'#f5d76e',textShadow:'0 0 10px rgba(245,215,110,0.35)'}}>{score||'—'}</div>
+                  <div style={{fontFamily:'ui-monospace,Menlo,monospace',fontSize:'3.2cqw',letterSpacing:'0.1em',color:'#35e6ff',marginTop:'0.5cqw'}}>L10</div>
+                </div>
+              </div>
+            </div>
           </div>
+          {/* art Sorare : jamais recouvert */}
+          <div style={{position:'relative',zIndex:1,marginTop:'3.6cqw',borderRadius:'4.8cqw',overflow:'hidden',boxShadow:'0 10px 26px -12px rgba(0,0,0,0.85)'}}>
+            <img src={card.pictureUrl} alt={card.name} loading='lazy' style={{width:'100%',height:'auto',display:'block'}} onError={(e:any)=>{e.target.style.display='none';}}/>
+          </div>
+          {/* reflet plastique diagonal (coque) */}
+          <div style={{position:'absolute',inset:0,borderRadius:'7cqw',pointerEvents:'none',background:'linear-gradient(118deg,transparent 38%,rgba(255,255,255,0.10) 48%,transparent 56%)',mixBlendMode:'screen' as const,opacity:0.5}}/>
         </div>
         <CardBack card={card} rc={rc} mobile={true}/>
       </div>
