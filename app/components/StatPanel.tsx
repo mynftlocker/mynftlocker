@@ -1,5 +1,5 @@
 'use client';
-import { memo, useState, useEffect, useId } from 'react';
+import { memo, useState, useEffect, useLayoutEffect, useRef, useId } from 'react';
 
 export const RARITY_GLOW: Record<string,string> = {
   common:'0 0 18px 3px rgba(225,228,255,0.75), 0 0 36px 8px rgba(190,200,255,0.35)',
@@ -175,6 +175,8 @@ export const StatPanel=memo(({card,onClose,isClosing=false,placement='scene'}:an
   const [salesLoading,setSalesLoading]=useState(false);
   const [owner,setOwner]=useState<any>(null);
   const [beat,setBeat]=useState<any>(null);
+  const panelRef=useRef<HTMLDivElement>(null);
+  const contentRef=useRef<HTMLDivElement>(null);
 
   useEffect(()=>{let i=0;let iv:any;const t=setTimeout(()=>{iv=setInterval(()=>{i++;setTypedName(ln.slice(0,i));if(i>=ln.length)clearInterval(iv);},45);},600);return()=>{clearTimeout(t);clearInterval(iv);};},[ln]);
   useEffect(()=>{if(avgNum==null)return;let step=0;let iv:any;const t=setTimeout(()=>{iv=setInterval(()=>{step++;const cur=Math.min((avgNum/20)*step,avgNum);setCountedAvg(cur%1===0?String(Math.round(cur)):cur.toFixed(1));if(step>=20)clearInterval(iv);},40);},700);return()=>{clearTimeout(t);clearInterval(iv);};},[avgNum]);
@@ -184,6 +186,22 @@ export const StatPanel=memo(({card,onClose,isClosing=false,placement='scene'}:an
   useEffect(()=>{if(!card.slug||!card.rarityTyped)return;setSalesLoading(true);fetch(`/api/card-sales?slug=${encodeURIComponent(card.slug)}&rarity=${encodeURIComponent(card.rarityTyped)}`).then(r=>r.json()).then(d=>setSales(d)).catch(()=>{}).finally(()=>setSalesLoading(false));},[]);
   useEffect(()=>{if(!card.slug)return;fetch(`/api/card-ownership?slug=${encodeURIComponent(card.slug)}`).then(r=>r.json()).then(d=>setOwner(d)).catch(()=>{});},[]);
   useEffect(()=>{if(!card.slug)return;fetch(`/api/beat-l10?slug=${encodeURIComponent(card.slug)}`).then(r=>r.json()).then(d=>setBeat(d)).catch(()=>{});},[]);
+  // Auto-ajustement : la taille de police s'adapte pour que TOUT le contenu tienne sans scroll, quelle que soit la hauteur ecran.
+  useLayoutEffect(()=>{
+    const c=contentRef.current; if(!c) return;
+    const fit=()=>{
+      const base=(placement==='overlay'||placement==='scene')?19:14;
+      c.style.fontSize=base+'px';
+      const ch=c.clientHeight, sh=c.scrollHeight;
+      let px=base;
+      if(sh>ch && ch>0) px=Math.max(8,Math.min(base,base*(ch/sh)*0.985));
+      c.style.fontSize=px+'px';
+    };
+    fit();
+    const ro=new ResizeObserver(fit);
+    if(panelRef.current) ro.observe(panelRef.current);
+    return ()=>ro.disconnect();
+  },[placement,nbaStats,footStats,beat,owner,sales,ln]);
 
   const CY='#40e8ff';const CYS='0 0 8px rgba(64,232,255,0.5)';
   const sep:React.CSSProperties={borderBottom:'1px solid rgba(64,232,255,0.16)',paddingBottom:'0.42em',marginBottom:'0.42em',flexShrink:0};
@@ -206,8 +224,8 @@ export const StatPanel=memo(({card,onClose,isClosing=false,placement='scene'}:an
   const big=isOverlay||placement==='scene';
   const colStyle:React.CSSProperties={flex:big?'1 1 0':'0 0 auto',minWidth:0,display:'flex',flexDirection:'column' as const};
   return(
-    <div key={card.slug} style={{...posStyle,background:'repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(64,232,255,0.03) 2px,rgba(64,232,255,0.03) 3px),linear-gradient(rgba(2,10,22,0.95),rgba(2,10,22,0.95))',border:'1px solid rgba(64,232,255,0.5)',boxShadow:'0 0 40px rgba(64,232,255,0.15),inset 0 0 60px rgba(0,0,0,0.5)',clipPath:isClosing?'none':'polygon(14px 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,0 100%,0 14px)',display:'flex',flexDirection:'column' as const,overflow:'hidden',containerType:'inline-size' as any,animation:isClosing?'mnflClose 0.45s cubic-bezier(0.7,0,0.95,1) both':('mnflDeploy 0.55s ease-out '+deployDelay+' backwards'),fontFamily:'Courier New,Consolas,monospace',backdropFilter:isClosing?'none':'blur(12px)',WebkitBackdropFilter:isClosing?'none':'blur(12px)'}}>
-      <div style={{flex:1,minHeight:0,display:'flex',flexDirection:'column' as const,padding:'0.8em 0.8em',fontSize:big?'clamp(11px,3.4cqw,18px)':'1rem',overflow:'auto'}}>
+    <div key={card.slug} ref={panelRef} style={{...posStyle,background:'repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(64,232,255,0.03) 2px,rgba(64,232,255,0.03) 3px),linear-gradient(rgba(2,10,22,0.95),rgba(2,10,22,0.95))',border:'1px solid rgba(64,232,255,0.5)',boxShadow:'0 0 40px rgba(64,232,255,0.15),inset 0 0 60px rgba(0,0,0,0.5)',clipPath:isClosing?'none':'polygon(14px 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,0 100%,0 14px)',display:'flex',flexDirection:'column' as const,overflow:'hidden',containerType:'inline-size' as any,animation:isClosing?'mnflClose 0.45s cubic-bezier(0.7,0,0.95,1) both':('mnflDeploy 0.55s ease-out '+deployDelay+' backwards'),fontFamily:'Courier New,Consolas,monospace',backdropFilter:isClosing?'none':'blur(12px)',WebkitBackdropFilter:isClosing?'none':'blur(12px)'}}>
+      <div ref={contentRef} style={{flex:1,minHeight:0,display:'flex',flexDirection:'column' as const,padding:'0.8em 0.8em',overflow:'hidden'}}>
       <style>{`
         .stat-link-btn{transition:box-shadow 0.22s ease,border-color 0.22s ease,background 0.22s ease;}
         .stat-link-btn:hover{
