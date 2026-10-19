@@ -1,18 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// "Beat L10" = % de matchs JOUES ou le joueur a depasse son score moyen L10.
-// Source Sorare : playerGameScores(last:50){score} (renvoyes du plus RECENT au plus ancien) vs averageScore(LAST_TEN_PLAYED_SO5_AVERAGE_SCORE).
-// Comparabilite : on fixe une fenetre constante = les WINDOW derniers matchs JOUES (score>0, les 0 = non-joues/DNP exclus).
-// On n'affiche pas si moins de MIN matchs joues (echantillon non significatif).
-const WINDOW = 25;
-const MIN = 15;
-
+// Beat L10 : on lit le compteur OFFICIEL de Sorare (card.cardStats.highlightedStats, type BEAT_L10),
+// c'est exactement ce qui est affiche au dos de la carte. Sorare gere lui-meme l'echantillon et exclut la presaison.
+// On recupere aussi, si disponibles, le nombre de GW (denominateur) et le meilleur score, pour en deduire un pourcentage.
+// NB : ce endpoint prend un slug de CARTE (pas de joueur), car cardStats est porte par la carte.
 export async function GET(request: NextRequest) {
   const slug = (request.nextUrl.searchParams.get('slug') || '').trim();
   if (!slug) return NextResponse.json({}, { status: 200 });
 
-  const frag = `averageScore(type:LAST_TEN_PLAYED_SO5_AVERAGE_SCORE) playerGameScores(last:60){ score }`;
-  const query = `query{ players(slugs:["${slug}"]){ ...on Player{ ${frag} } ...on NBAPlayer{ ${frag} } } }`;
+  const frag = `cardStats{ so5LineupsCount bestSo5Appearance{ score } highlightedStats{ type value } }`;
+  const query = `query{ anyCard(slug:"${slug}"){ __typename ...on NBACard{ ${frag} } ...on Card{ ${frag} } } }`;
   try {
     const headers: Record<string, string> = { 'Content-Type': 'application/json', 'Accept': 'application/json' };
     const jwt = process.env.SORARE_JWT || '';
@@ -24,17 +21,18 @@ export async function GET(request: NextRequest) {
     });
     if (!r.ok) return NextResponse.json({}, { status: 200 });
     const j = await r.json();
-    const p: any = j?.data?.players?.[0];
-    if (!p) return NextResponse.json({}, { status: 200 });
-    const l10 = p.averageScore != null ? Number(p.averageScore) : null;
-    // les scores arrivent du plus recent au plus ancien -> on garde l'ordre, on filtre les joues, on prend les WINDOW plus recents
-    const played: number[] = (p.playerGameScores || []).map((g: any) => Number(g?.score)).filter((s: number) => s > 0).slice(0, WINDOW);
-    if (l10 == null || played.length < MIN) {
-      return NextResponse.json({ l10: l10 != null ? Math.round(l10) : null, games: played.length, insufficient: true }, { status: 200 });
-    }
-    const beat = played.filter((s) => s > l10).length;
-    const pct = Math.round((beat / played.length) * 100);
-    return NextResponse.json({ pct, beat, games: played.length, l10: Math.round(l10) });
+    const cs: any = j?.data?.anyCard?.cardStats;
+    if (!cs) return NextResponse.json({}, { status: 200 });
+    const hs: any[] = cs.highlightedStats || [];
+    const findVal = (re: RegExp) => {
+      const x = hs.find((h) => re.test(String(h?.type || '')));
+      return x && x.value != null ? Number(x.value) : null;
+    };
+    const beatL10 = findVal(/BEAT_L10/i);
+    const gw = findVal(/GAME_?WEEK|^GW$|PLAYED|APPEARANCE|MATCH/i);
+    const highest = cs.bestSo5Appearance?.score != null ? Number(cs.bestSo5Appearance.score) : findVal(/HIGHEST/i);
+    const pct = (beatL10 != null && gw && gw > 0) ? Math.round((beatL10 / gw) * 100) : null;
+    return NextResponse.json({ beatL10, gw, highest, pct, raw: hs.map((h) => ({ type: h?.type, value: h?.value })) });
   } catch (e) {
     return NextResponse.json({}, { status: 200 });
   }

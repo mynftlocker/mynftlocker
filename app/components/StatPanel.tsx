@@ -183,7 +183,7 @@ export const StatPanel=memo(({card,onClose,isClosing=false,placement='scene'}:an
   useEffect(()=>{if(isNBA(card))return;const pslug=card.anyPlayer?.slug||card.slug.split('-').filter((_:any,i:number,a:any)=>i<a.length-3).join('-');if(!pslug)return;setFootLoading(true);fetch(`/api/player-stats-foot?slug=${encodeURIComponent(pslug)}`).then(r=>r.json()).then(d=>{if(d&&(d.goals!=null||d.mins!=null||d.matches!=null||d.cleanSheet!=null))setFootStats(d);}).catch(()=>{}).finally(()=>setFootLoading(false));},[]);
   useEffect(()=>{if(!card.slug||!card.rarityTyped)return;setSalesLoading(true);fetch(`/api/card-sales?slug=${encodeURIComponent(card.slug)}&rarity=${encodeURIComponent(card.rarityTyped)}`).then(r=>r.json()).then(d=>setSales(d)).catch(()=>{}).finally(()=>setSalesLoading(false));},[]);
   useEffect(()=>{if(!card.slug)return;fetch(`/api/card-ownership?slug=${encodeURIComponent(card.slug)}`).then(r=>r.json()).then(d=>setOwner(d)).catch(()=>{});},[]);
-  useEffect(()=>{const pslug=card.anyPlayer?.slug||card.slug.split('-').filter((_:any,i:number,a:any)=>i<a.length-3).join('-');if(!pslug)return;fetch(`/api/beat-l10?slug=${encodeURIComponent(pslug)}`).then(r=>r.json()).then(d=>setBeat(d)).catch(()=>{});},[]);
+  useEffect(()=>{if(!card.slug)return;fetch(`/api/beat-l10?slug=${encodeURIComponent(card.slug)}`).then(r=>r.json()).then(d=>setBeat(d)).catch(()=>{});},[]);
 
   const CY='#40e8ff';const CYS='0 0 8px rgba(64,232,255,0.5)';
   const sep:React.CSSProperties={borderBottom:'1px solid rgba(64,232,255,0.16)',paddingBottom:'0.42em',marginBottom:'0.42em',flexShrink:0};
@@ -206,7 +206,8 @@ export const StatPanel=memo(({card,onClose,isClosing=false,placement='scene'}:an
   const big=isOverlay||placement==='scene';
   const colStyle:React.CSSProperties={flex:big?'1 1 0':'0 0 auto',minWidth:0,display:'flex',flexDirection:'column' as const};
   return(
-    <div key={card.slug} style={{...posStyle,background:'repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(64,232,255,0.03) 2px,rgba(64,232,255,0.03) 3px),linear-gradient(rgba(2,10,22,0.95),rgba(2,10,22,0.95))',border:'1px solid rgba(64,232,255,0.5)',boxShadow:'0 0 40px rgba(64,232,255,0.15),inset 0 0 60px rgba(0,0,0,0.5)',clipPath:isClosing?'none':'polygon(14px 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,0 100%,0 14px)',padding:'0.85em 0.8em',display:'flex',flexDirection:'column' as const,overflow:big?'hidden':'auto',fontSize:big?'1.5rem':'1rem',animation:isClosing?'mnflClose 0.45s cubic-bezier(0.7,0,0.95,1) both':('mnflDeploy 0.55s ease-out '+deployDelay+' backwards'),fontFamily:'Courier New,Consolas,monospace',backdropFilter:isClosing?'none':'blur(12px)',WebkitBackdropFilter:isClosing?'none':'blur(12px)'}}>
+    <div key={card.slug} style={{...posStyle,background:'repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(64,232,255,0.03) 2px,rgba(64,232,255,0.03) 3px),linear-gradient(rgba(2,10,22,0.95),rgba(2,10,22,0.95))',border:'1px solid rgba(64,232,255,0.5)',boxShadow:'0 0 40px rgba(64,232,255,0.15),inset 0 0 60px rgba(0,0,0,0.5)',clipPath:isClosing?'none':'polygon(14px 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,0 100%,0 14px)',display:'flex',flexDirection:'column' as const,overflow:'hidden',containerType:'inline-size' as any,animation:isClosing?'mnflClose 0.45s cubic-bezier(0.7,0,0.95,1) both':('mnflDeploy 0.55s ease-out '+deployDelay+' backwards'),fontFamily:'Courier New,Consolas,monospace',backdropFilter:isClosing?'none':'blur(12px)',WebkitBackdropFilter:isClosing?'none':'blur(12px)'}}>
+      <div style={{flex:1,minHeight:0,display:'flex',flexDirection:'column' as const,padding:'0.85em 0.8em',fontSize:big?'clamp(12px,4.2cqw,24px)':'1rem',overflow:big?'hidden':'auto'}}>
       <style>{`
         .stat-link-btn{transition:box-shadow 0.22s ease,border-color 0.22s ease,background 0.22s ease;}
         .stat-link-btn:hover{
@@ -287,9 +288,14 @@ export const StatPanel=memo(({card,onClose,isClosing=false,placement='scene'}:an
             {beat&&beat.pct!=null?(
               <div style={{display:'flex',alignItems:'center',gap:'0.6em'}}>
                 <span style={{fontSize:'2em',fontWeight:900,lineHeight:1,color:beat.pct>=50?'#4ade80':'#ef4444',textShadow:'0 0 16px '+(beat.pct>=50?'rgba(74,222,128,0.5)':'rgba(239,68,68,0.5)')}}>{beat.pct}%</span>
-                <span style={{fontSize:'0.62em',color:'rgba(234,242,255,0.82)',lineHeight:1.35}}>a d{'é'}pass{'é'} son L10 sur <b style={{color:WV}}>{beat.pct}%</b> de ses {beat.games} derniers matchs jou{'é'}s</span>
+                <span style={{fontSize:'0.62em',color:'rgba(234,242,255,0.82)',lineHeight:1.35}}>a battu son L10 sur <b style={{color:WV}}>{beat.pct}%</b> de ses matchs <span style={{color:CYL}}>({beat.beatL10}/{beat.gw} GW{beat.highest!=null?(' · record '+beat.highest):''})</span></span>
               </div>
-            ):(<p style={{margin:0,fontSize:'0.62em',color:'rgba(64,232,255,0.3)',letterSpacing:'0.06em'}}>{beat?(beat.games?('échantillon insuffisant ('+beat.games+' matchs joués)'):'données indisponibles'):'…'}</p>)}
+            ):(beat&&beat.beatL10!=null?(
+              <div style={{display:'flex',alignItems:'center',gap:'0.6em'}}>
+                <span style={{fontSize:'1.7em',fontWeight:900,lineHeight:1,color:CY,textShadow:CYS}}>{beat.beatL10}</span>
+                <span style={{fontSize:'0.62em',color:'rgba(234,242,255,0.82)',lineHeight:1.35}}>GW au-dessus du L10 <span style={{color:CYL}}>(compteur Sorare{beat.highest!=null?(' · record '+beat.highest):''})</span></span>
+              </div>
+            ):(<p style={{margin:0,fontSize:'0.62em',color:'rgba(64,232,255,0.3)',letterSpacing:'0.06em'}}>{beat?'—':'…'}</p>))}
           </div>
           <div style={{...box,overflow:'hidden'}}>
             {isNBA(card)?(
@@ -337,6 +343,7 @@ export const StatPanel=memo(({card,onClose,isClosing=false,placement='scene'}:an
             <img src="/sorare-logo.png" alt="S" style={{width:'1.1em',height:'1.1em',borderRadius:'50%',objectFit:'cover'}} onError={(e:any)=>{e.target.style.display='none';}}/> SORARE
           </a>
         )}
+      </div>
       </div>
     </div>
   );
