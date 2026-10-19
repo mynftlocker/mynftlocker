@@ -10,11 +10,13 @@ export async function GET(request:NextRequest){
     ...on NBACard{
       seasonYear specialEdition power xp
       averageScore(type:LAST_TEN_PLAYED_SO5_AVERAGE_SCORE)
+      cardStats{ so5LineupsCount highlightedStats{ type value } }
     }
     ...on Card{
       seasonYear specialEdition power xp
       averageScore(type:LAST_TEN_PLAYED_SO5_AVERAGE_SCORE)
       rawSo5Scores(last:10)
+      cardStats{ so5LineupsCount highlightedStats{ type value } }
     }
   }pageInfo{hasNextPage endCursor}}}}`;
   try{
@@ -28,6 +30,16 @@ export async function GET(request:NextRequest){
     if(j.errors?.length)return NextResponse.json({error:j.errors[0].message},{status:400});
     const data=j?.data?.user?.cards;
     if(!data)return NextResponse.json({error:'no_data'},{status:404});
-    return NextResponse.json({cards:data.nodes,hasNextPage:data.pageInfo.hasNextPage,cursor:data.pageInfo.endCursor,auth:!!(jwt&&aud)});
+    // Beat L10 par carte : compteur officiel Sorare (highlightedStats BEAT_L10) / nb de gameweeks jouees (so5LineupsCount).
+    // Permet de trier la galerie par Beat L10 sans appel supplementaire. null si la carte n'a pas (encore) de donnee.
+    const nodes=(data.nodes||[]).map((n:any)=>{
+      const hs:any[]=n?.cardStats?.highlightedStats||[];
+      const b=hs.find((h)=>/BEAT_L10/i.test(String(h?.type||'')));
+      const beatL10=b&&b.value!=null?Number(b.value):null;
+      const beatGw=n?.cardStats?.so5LineupsCount!=null?Number(n.cardStats.so5LineupsCount):null;
+      const beatPct=(beatL10!=null&&beatGw&&beatGw>0)?Math.round((beatL10/beatGw)*100):null;
+      return {...n,beatL10,beatGw,beatPct};
+    });
+    return NextResponse.json({cards:nodes,hasNextPage:data.pageInfo.hasNextPage,cursor:data.pageInfo.endCursor,auth:!!(jwt&&aud)});
   }catch(e){return NextResponse.json({error:String(e)},{status:500});}
 }

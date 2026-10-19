@@ -341,6 +341,7 @@ export default function Home() {
   const [gTeamCustom,setGTeamCustom]=useState('all');
   const [gCountry,setGCountry]=useState('all');
   const [gSort,setGSort]=useState('default');
+  const [gDir,setGDir]=useState<'desc'|'asc'>('desc');
   const [openPhase,setOpenPhase]=useState(0);
   const canvasRef=useRef<HTMLCanvasElement|null>(null);
   const mouseXYRef=useRef<{x:number,y:number}>({x:0,y:0});
@@ -615,7 +616,7 @@ export default function Home() {
     const pinnedSlugs=new Set(pinned.map((c:any)=>c.slug));
     const remaining=pool.filter(c=>!pinnedSlugs.has(c.slug));
     // Alphabetique : epingles d'abord puis tri par nom de joueur
-    if(lockerSort==='collection'){ const alpha=[...remaining].sort((a,b)=>(a.anyPlayer?.lastName||a.name||'').localeCompare(b.anyPlayer?.lastName||b.name||'')); return [...pinned,...alpha]; }
+    if(lockerSort==='collection'){ let alpha=[...remaining].sort((a,b)=>(a.anyPlayer?.lastName||a.name||'').localeCompare(b.anyPlayer?.lastName||b.name||'')); if(gDir==='asc')alpha=alpha.reverse(); return [...pinned,...alpha]; }
     // Mon 5 : uniquement tes epingles d'abord, puis toutes les autres
     if(lockerSort==='manual'){ return [...pinned,...remaining]; }
     // 5 Majeur : 5 premieres = epingles + meilleurs L10 (joueurs uniques), puis TOUT le reste trie par L10
@@ -625,13 +626,20 @@ export default function Home() {
     const headSlugs=new Set(head.map((c:any)=>c.slug));
     const tail=pool.filter(c=>!headSlugs.has(c.slug)).sort(byL10);
     return [...head,...tail];
-  },[cards,teamApi,applyFilters,lockerSort,hof,hofFoot,gSport,lineup]);
+  },[cards,teamApi,applyFilters,lockerSort,hof,hofFoot,gSport,lineup,gDir]);
 
   // Galerie = sport + filtres + tri
   const footCountries=useMemo(()=>{const s=new Set<string>();let hasNational=false;cards.filter((c:any)=>!isNBA(c)).forEach((c:any)=>{const co=c.anyTeam?.country?.slug;if(co)s.add(co);else if(c.anyTeam?.name)hasNational=true;});const arr=Array.from(s).sort();if(hasNational)arr.push('__NATIONAL__');return arr;},[cards]);
   const teamsByCountry=useMemo(()=>{const m:Record<string,Set<string>>={};cards.filter((c:any)=>!isNBA(c)).forEach((c:any)=>{const co=c.anyTeam?.country?.slug;const nm=c.anyTeam?.name;if(nm){const key=co||'__NATIONAL__';(m[key]=m[key]||new Set<string>()).add(nm);}});const out:Record<string,string[]>={};for(const k in m)out[k]=Array.from(m[k]).sort();return out;},[cards]);
   const galleryTeamList=useMemo(()=>{const ts=new Set<string>();cards.filter(c=>isNBA(c)).forEach(c=>{if(!c.anyTeam?.name)return;ts.add(c.anyTeam.name);});return['all',...Array.from(ts).sort()] as string[];},[cards]);
-  const filteredGallery=useMemo(()=>{let base=cards.filter((c:any)=>gSport==='nba'?isNBA(c):!isNBA(c));let r=applyFilters(base);if(gSport==='foot'&&gCountry!=='all'){if(gCountry==='__NATIONAL__')r=r.filter((c:any)=>!c.anyTeam?.country?.slug&&c.anyTeam?.name);else r=r.filter((c:any)=>c.anyTeam?.country?.slug===gCountry);}if(gTeamCustom!=='all')r=r.filter((c:any)=>(c.anyTeam?.name||'')===gTeamCustom);if(gSort==='rarity')return[...r].sort((a:any,b:any)=>(RARITY_ORDER[a.rarityTyped]??9)-(RARITY_ORDER[b.rarityTyped]??9));if(gSort==='name')return[...r].sort((a:any,b:any)=>(a.anyPlayer?.lastName||'').localeCompare(b.anyPlayer?.lastName||''));if(gSort==='stars')return[...r].sort((a:any,b:any)=>{const sa=Number(a.anyPlayer?.gameplayTierStars??-1),sb=Number(b.anyPlayer?.gameplayTierStars??-1);if(sb!==sa)return sb-sa;return parseFloat(String(b.averageScore||0))-parseFloat(String(a.averageScore||0));});return[...r].sort((a:any,b:any)=>parseFloat(String(b.averageScore||0))-parseFloat(String(a.averageScore||0)));},[cards,applyFilters,gSport,gCountry,gTeamCustom,gSort]);
+  const filteredGallery=useMemo(()=>{let base=cards.filter((c:any)=>gSport==='nba'?isNBA(c):!isNBA(c));let r=applyFilters(base);if(gSport==='foot'&&gCountry!=='all'){if(gCountry==='__NATIONAL__')r=r.filter((c:any)=>!c.anyTeam?.country?.slug&&c.anyTeam?.name);else r=r.filter((c:any)=>c.anyTeam?.country?.slug===gCountry);}if(gTeamCustom!=='all')r=r.filter((c:any)=>(c.anyTeam?.name||'')===gTeamCustom);// tri de base (toujours calcule en "desc" logique, le sens final est applique ensuite via gDir)
+    let sorted:any[];
+    if(gSort==='rarity')sorted=[...r].sort((a:any,b:any)=>(RARITY_ORDER[a.rarityTyped]??9)-(RARITY_ORDER[b.rarityTyped]??9));
+    else if(gSort==='name')sorted=[...r].sort((a:any,b:any)=>(a.anyPlayer?.lastName||'').localeCompare(b.anyPlayer?.lastName||''));
+    else if(gSort==='stars')sorted=[...r].sort((a:any,b:any)=>{const sa=Number(a.anyPlayer?.gameplayTierStars??-1),sb=Number(b.anyPlayer?.gameplayTierStars??-1);if(sb!==sa)return sb-sa;return parseFloat(String(b.averageScore||0))-parseFloat(String(a.averageScore||0));});
+    else if(gSort==='beat')sorted=[...r].sort((a:any,b:any)=>{const pa=a.beatPct==null?-1:a.beatPct,pb=b.beatPct==null?-1:b.beatPct;if(pb!==pa)return pb-pa;const ca=a.beatL10==null?-1:a.beatL10,cb=b.beatL10==null?-1:b.beatL10;if(cb!==ca)return cb-ca;return parseFloat(String(b.averageScore||0))-parseFloat(String(a.averageScore||0));});
+    else sorted=[...r].sort((a:any,b:any)=>parseFloat(String(b.averageScore||0))-parseFloat(String(a.averageScore||0)));
+    return gDir==='asc'?sorted.reverse():sorted;},[cards,applyFilters,gSport,gCountry,gTeamCustom,gSort,gDir]);
 
   const goldGrad='linear-gradient(160deg,#a86f15 0%,#d9a52e 22%,#f7da80 48%,#e8b84a 68%,#b8801a 100%)';
   const fBtn=(a:boolean):React.CSSProperties=>({padding:'0.4rem 0.6rem',borderRadius:'0.15rem',border:'none',borderLeft:a?'2px solid #f5d76e':'2px solid rgba(255,255,255,0.08)',background:a?'rgba(245,215,110,0.12)':'rgba(255,255,255,0.025)',color:a?'#f5d76e':'#cfd8e6',cursor:'pointer',fontSize:'0.76rem',fontWeight:a?700:500,transition:'all 0.12s'});
@@ -728,7 +736,10 @@ export default function Home() {
             <FilterMenu title='Saison' options={seasonOpts} current={fSeason} onSelect={setFSeason}/>
             <FilterMenu title='Rareté' options={rarityOpts} current={fRarity} onSelect={setFRarity}/>
             <FilterMenu title='Édition de la carte' options={specialOpts} current={fSpecial} onSelect={setFSpecial}/>
-            <FilterMenu title='Tri' options={mode==='locker'?[{value:'majeur',label:'L10 Max'},{value:'manual',label:'Manuel'},{value:'collection',label:'Alphabétique'}]:[{value:'default',label:'Défaut'},{value:'score',label:'Score L10'},{value:'stars',label:'Étoiles'},{value:'rarity',label:'Rareté'},{value:'name',label:'Nom'}]} current={mode==='locker'?lockerSort:gSort} onSelect={(v:string)=>{if(mode==='locker'){setLockerSort(v as any);}else{setGSort(v as any);}}}/>
+            <FilterMenu title='Tri' options={mode==='locker'?[{value:'majeur',label:'L10 Max'},{value:'manual',label:'Manuel'},{value:'collection',label:'Alphabétique'}]:[{value:'default',label:'Défaut'},{value:'score',label:'L10'},{value:'beat',label:'%Beat L10'},{value:'stars',label:'Étoiles'},{value:'rarity',label:'Rareté'},{value:'name',label:'Nom'}]} current={mode==='locker'?lockerSort:gSort} onSelect={(v:string)=>{if(mode==='locker'){setLockerSort(v as any);}else{setGSort(v as any);}}}/>
+            {(mode==='gallery'||lockerSort==='collection')&&(
+              <button onClick={()=>setGDir(d=>d==='desc'?'asc':'desc')} style={{width:'100%',boxSizing:'border-box' as const,padding:'0.3rem',marginTop:'0.45rem',background:'rgba(64,232,255,0.08)',border:'1px solid rgba(64,232,255,0.3)',borderRadius:'0.18rem',color:'#40e8ff',fontSize:'0.64rem',cursor:'pointer',letterSpacing:'0.08em',display:'flex',alignItems:'center',justifyContent:'center',gap:'0.4rem'}}>{gDir==='desc'?'↓ Décroissant':'↑ Croissant'}</button>
+            )}
             {mode==='locker'&&(
               <>
               <button onClick={resetFilters} style={{width:'100%',boxSizing:'border-box' as const,padding:'0.3rem',background:'rgba(111,195,232,0.1)',border:'1px solid rgba(111,195,232,0.35)',borderRadius:'0.18rem',color:'#6fc3e8',fontSize:'0.64rem',cursor:'pointer',letterSpacing:'0.08em',marginTop:'0.5rem'}}>↺ Réinitialiser les filtres</button>
@@ -997,7 +1008,10 @@ export default function Home() {
             <FilterMenu title='Saison' options={seasonOpts} current={fSeason} onSelect={setFSeason}/>
             <FilterMenu title='Rareté' options={rarityOpts} current={fRarity} onSelect={setFRarity}/>
             <FilterMenu title='Édition de la carte' options={specialOpts} current={fSpecial} onSelect={setFSpecial}/>
-            <FilterMenu title='Tri' options={mode==='locker'?[{value:'majeur',label:'L10 Max'},{value:'manual',label:'Manuel'},{value:'collection',label:'Alphabétique'}]:[{value:'default',label:'Défaut'},{value:'score',label:'Score L10'},{value:'stars',label:'Étoiles'},{value:'rarity',label:'Rareté'},{value:'name',label:'Nom'}]} current={mode==='locker'?lockerSort:gSort} onSelect={(v:string)=>{if(mode==='locker'){setLockerSort(v as any);}else{setGSort(v as any);}}}/>
+            <FilterMenu title='Tri' options={mode==='locker'?[{value:'majeur',label:'L10 Max'},{value:'manual',label:'Manuel'},{value:'collection',label:'Alphabétique'}]:[{value:'default',label:'Défaut'},{value:'score',label:'L10'},{value:'beat',label:'%Beat L10'},{value:'stars',label:'Étoiles'},{value:'rarity',label:'Rareté'},{value:'name',label:'Nom'}]} current={mode==='locker'?lockerSort:gSort} onSelect={(v:string)=>{if(mode==='locker'){setLockerSort(v as any);}else{setGSort(v as any);}}}/>
+            {(mode==='gallery'||lockerSort==='collection')&&(
+              <button onClick={()=>setGDir(d=>d==='desc'?'asc':'desc')} style={{width:'100%',boxSizing:'border-box' as const,padding:'0.3rem',marginTop:'0.45rem',background:'rgba(64,232,255,0.08)',border:'1px solid rgba(64,232,255,0.3)',borderRadius:'0.18rem',color:'#40e8ff',fontSize:'0.64rem',cursor:'pointer',letterSpacing:'0.08em',display:'flex',alignItems:'center',justifyContent:'center',gap:'0.4rem'}}>{gDir==='desc'?'↓ Décroissant':'↑ Croissant'}</button>
+            )}
             {mode==='locker'&&(
               <>
               <button onClick={resetFilters} style={{width:'100%',boxSizing:'border-box' as const,padding:'0.3rem',background:'rgba(111,195,232,0.1)',border:'1px solid rgba(111,195,232,0.35)',borderRadius:'0.18rem',color:'#6fc3e8',fontSize:'0.64rem',cursor:'pointer',letterSpacing:'0.08em',marginTop:'0.5rem'}}>↺ Réinitialiser les filtres</button>
