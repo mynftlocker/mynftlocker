@@ -49,6 +49,15 @@ const SlabStars=({card,w}:{card:any;w:string})=>{
 const scaleGlow=(glowStr:string,scale:number)=>glowStr.replace(/(\d+(?:\.\d+)?)px/g,(_,n)=>(parseFloat(n)*scale).toFixed(1)+'px');
 const gapFor=(cols:number)=>cols<=3?'1.4rem':cols===4?'1rem':cols===5?'0.75rem':cols===6?'0.55rem':cols===7?'0.42rem':'0.32rem';
 const glowScaleFor=(cols:number)=>cols<=3?1:cols===4?0.8:cols===5?0.65:cols===6?0.55:cols===7?0.48:0.42;
+// Mesure la largeur naturelle du nom (ratio largeur/taille) pour remplir exactement la case nom via SVG (jamais tronque).
+let _nameCtx:CanvasRenderingContext2D|null=null;
+function nameNatW(txt:string){
+  if(typeof document==='undefined')return Math.max(1,txt.length*0.56);
+  if(!_nameCtx){try{_nameCtx=document.createElement('canvas').getContext('2d');}catch(e){_nameCtx=null;}}
+  if(!_nameCtx)return Math.max(1,txt.length*0.56);
+  _nameCtx.font='800 100px Inter, system-ui, sans-serif';
+  return Math.max(1,_nameCtx.measureText(txt).width/100);
+}
 const GalleryCard=memo(({card,isFlipped,onFlip,glowScale}:any)=>{
   const [hover,setHover]=useState(false);
   const glowRaw=RARITY_GLOW[card.rarityTyped]||RARITY_GLOW.common;
@@ -57,13 +66,14 @@ const GalleryCard=memo(({card,isFlipped,onFlip,glowScale}:any)=>{
   const rc=RARITY_COLOR[card.rarityTyped]||'#9ca3af';
   const {serial,season}=parseCard(card.name);
   const score=card.averageScore!=null?String(card.averageScore):null;
-  // Nom : initiale du prenom + nom, police adaptative selon la longueur (ex. V. WEMBANYAMA reduit, N. JOKIC gros).
+  // Nom : initiale du prenom + NOM, sur sa propre ligne PLEINE LARGEUR -> tient a toute longueur (meme V. WEMBANYAMA). Police adaptative.
   const _left=String(card.name.split('•')[0]||'').replace(/\d{4}-\d{2}/,'').trim();
   const _parts=_left.split(' ').filter(Boolean);
   const _lastName=(card.anyPlayer?.lastName||_parts[_parts.length-1]||'').toUpperCase();
-  const _firstInit=((_parts[0]||_lastName)[0]||'').toUpperCase();
+  const _firstInit=((_parts.length>1?_parts[0]:'')[0]||'').toUpperCase();
   const disp=_firstInit?(_firstInit+'. '+_lastName):_lastName;
-  const nameFont=(disp.length<=8?8:disp.length<=11?6.6:disp.length<=14?5.4:disp.length<=17?4.6:4);
+  const [natW,setNatW]=useState(()=>Math.max(1,disp.length*0.56)*100);
+  useEffect(()=>{setNatW(nameNatW(disp)*100);},[disp]);
   const team=card.anyTeam?.name||'';
   const comp=isNBA(card)?'NBA':'FOOT';
   const rarLabel=card.rarityTyped.replace('_',' ').toUpperCase();
@@ -81,10 +91,15 @@ const GalleryCard=memo(({card,isFlipped,onFlip,glowScale}:any)=>{
                 <span style={{fontWeight:800,fontSize:'5.3cqw',letterSpacing:'0.02em',lineHeight:1,whiteSpace:'nowrap',background:'linear-gradient(180deg,#fff3c4,#f5d76e 55%,#b8801a)',WebkitBackgroundClip:'text',backgroundClip:'text',color:'transparent'}}>myNFTlocker</span>
               </span>
             </div>
-            <div style={{display:'flex',alignItems:'stretch',justifyContent:'space-between',gap:'3cqw'}}>
-              <div style={{minWidth:0,display:'flex',flexDirection:'column' as const,justifyContent:'center',gap:'1cqw'}}>
-                <div style={{fontWeight:800,fontSize:nameFont+'cqw',lineHeight:1,letterSpacing:'0.01em',color:'#eef4ff',textTransform:'uppercase' as const,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',textShadow:'0 0 14px rgba(53,230,255,0.12)'}}>{disp}</div>
-                <div style={{display:'flex',flexDirection:'column' as const,gap:'0.4cqw'}}>
+            <div style={{display:'flex',alignItems:'stretch',justifyContent:'space-between',gap:'2.5cqw'}}>
+              <div style={{flex:1,minWidth:0,display:'flex',flexDirection:'column' as const,justifyContent:'center',gap:'1.4cqw'}}>
+                {/* case NOM : le nom est dessine en SVG qui remplit la case -> jamais tronque, taille auto selon la longueur, mini marge */}
+                <div style={{width:'100%',height:'11cqw',padding:'0 0.5cqw'}}>
+                  <svg viewBox={'0 0 '+natW+' 100'} preserveAspectRatio='xMinYMid meet' style={{width:'100%',height:'100%',display:'block',overflow:'visible'}}>
+                    <text x='1' y='80' fontSize='100' fontWeight='800' fill='#eef4ff' style={{filter:'drop-shadow(0 0 4px rgba(53,230,255,0.25))'}}>{disp}</text>
+                  </svg>
+                </div>
+                <div style={{display:'flex',flexDirection:'column' as const,gap:'0.5cqw'}}>
                   <div style={{fontSize:'4cqw',color:'#cfd8e6',fontWeight:600,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{team}</div>
                   <div style={{fontSize:'3.6cqw',color:'#8a97ad',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{comp} · {season}</div>
                 </div>

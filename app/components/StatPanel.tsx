@@ -47,7 +47,7 @@ export const nfs=(l:number)=>l<=5?'1.45rem':l<=7?'1.2rem':l<=9?'1rem':l<=11?'0.8
 export const CardBack=memo(({card,rc,mobile}:any)=>{
   const rid=useId().replace(/[^a-zA-Z0-9]/g,'');
   const sz=(remStr:string,px:number)=>mobile?(Math.round(px/115*10000)/100)+'cqw':remStr;
-  const nfsCard=(l:number)=>mobile?(l<=5?'20.17cqw':l<=7?'16.70cqw':l<=9?'13.91cqw':l<=11?'11.41cqw':l<=13?'9.74cqw':'8.35cqw'):nfs(l);
+  const nfsCard=(l:number)=>mobile?(l<=5?'19cqw':l<=7?'15.5cqw':l<=8?'13.6cqw':l<=9?'12.4cqw':l<=10?'11cqw':l<=11?'9.9cqw':l<=12?'9.1cqw':l<=13?'8.4cqw':'7.4cqw'):nfs(l);
   const {season,serial}=parseCard(card.name);
   const ln=(card.anyPlayer?.lastName||parseCard(card.name).lastName).toUpperCase();
   const sn=card.anyPlayer?.shirtNumber??null;
@@ -71,12 +71,12 @@ export const CardBack=memo(({card,rc,mobile}:any)=>{
   return(
     <div style={{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'rotateY(180deg)',borderRadius:'0.4rem',overflow:'hidden',background:'radial-gradient(ellipse 130% 90% at 50% 0%,#191b24 0%,#0c0d14 60%,#06070d 100%)',display:'flex',flexDirection:'column' as const,border:'1px solid '+rc+'44'}}>
       <div style={{height:'3px',background:'linear-gradient(90deg,transparent,'+rc+',transparent)'}}></div>
-      <div style={{padding:sz('0.45rem',7.2)+' '+sz('0.65rem',10.4)+' '+sz('0.38rem',6),textAlign:'center',borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
+      <div style={{padding:sz('0.45rem',7.2)+' '+sz('0.42rem',6.7)+' '+sz('0.38rem',6),textAlign:'center',borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
         <p style={{margin:0,fontSize:sz('0.6rem',9.6),color:'#e3c074',fontWeight:900,letterSpacing:'0.08em'}}>myNFTlocker</p>
         <p style={{margin:'1px 0 0',fontSize:sz('0.48rem',7.68),color:'#9aa3b2',fontWeight:600,letterSpacing:'0.1em'}}>{isNBA(card)?'NBA':'FOOT'} • {season}</p>
       </div>
-      <div style={{flex:1,minHeight:0,display:'flex',flexDirection:'column' as const,alignItems:'center',padding:sz('0.5rem',8)+' '+sz('0.75rem',12)+' '+sz('0.3rem',4.8),overflow:'hidden'}}>
-        {/* nom en haut de la zone, marges laterales accrues */}
+      <div style={{flex:1,minHeight:0,display:'flex',flexDirection:'column' as const,alignItems:'center',padding:sz('0.5rem',8)+' '+sz('0.42rem',6.7)+' '+sz('0.3rem',4.8),overflow:'hidden'}}>
+        {/* nom en haut de la zone */}
         <div style={{width:'100%',marginTop:sz('0.35rem',5.6),textAlign:'center' as const}}>
           <p style={{margin:0,width:'100%',fontSize:nfsCard(ln.length),fontWeight:900,color:'#fff',lineHeight:1.05,textAlign:'center',textShadow:'0 0 14px '+rc+'aa',overflow:'hidden',whiteSpace:'nowrap' as const,textOverflow:'ellipsis'}}>{ln}</p>
           <p style={{margin:sz('0.3rem',4.8)+' 0 0',fontSize:sz('0.5rem',8),color:'#9aa3b2',fontWeight:700,letterSpacing:'0.05em'}}>{sn!==null?('#'+sn):''}{(sn!==null&&serial)?'  ·  ':''}{serial||''}</p>
@@ -110,7 +110,7 @@ export const CardBack=memo(({card,rc,mobile}:any)=>{
           <p style={{margin:sz('0.3rem',4.8)+' 0 0',fontSize:sz('0.42rem',6.72),color:rc,textTransform:'uppercase',fontWeight:800,letterSpacing:'0.1em'}}>MOYENNE L10</p>
         </div>
       </div>
-      <div style={{display:'flex',gap:'0.3rem',padding:sz('0.4rem',6.4)+' '+sz('0.65rem',10.4)+' '+sz('0.5rem',8)}}>
+      <div style={{display:'flex',gap:'0.3rem',padding:sz('0.4rem',6.4)+' '+sz('0.5rem',8)+' '+sz('0.5rem',8)}}>
         <span style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',height:'1.05rem',borderRadius:'0.3rem',border:'1px solid '+rc+'55',background:rc+'15',fontSize:sz('0.46rem',7.36),fontWeight:800,color:rc,letterSpacing:'0.02em',whiteSpace:'nowrap'}}>BONUS {bonus||'—'}</span>
         <span style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',height:'1.05rem',borderRadius:'0.3rem',border:'1px solid '+rc+'55',background:'rgba(0,0,0,0.4)',fontSize:sz('0.46rem',7.36),fontWeight:700,color:rc,textTransform:'uppercase',letterSpacing:'0.02em',whiteSpace:'nowrap'}}>{card.rarityTyped.replace('_',' ')}</span>
       </div>
