@@ -207,7 +207,7 @@ export const StatPanel=memo(({card,onClose,isClosing=false,placement='scene'}:an
   const colStyle:React.CSSProperties={flex:big?'1 1 0':'0 0 auto',minWidth:0,display:'flex',flexDirection:'column' as const};
   return(
     <div key={card.slug} style={{...posStyle,background:'repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(64,232,255,0.03) 2px,rgba(64,232,255,0.03) 3px),linear-gradient(rgba(2,10,22,0.95),rgba(2,10,22,0.95))',border:'1px solid rgba(64,232,255,0.5)',boxShadow:'0 0 40px rgba(64,232,255,0.15),inset 0 0 60px rgba(0,0,0,0.5)',clipPath:isClosing?'none':'polygon(14px 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,0 100%,0 14px)',display:'flex',flexDirection:'column' as const,overflow:'hidden',containerType:'inline-size' as any,animation:isClosing?'mnflClose 0.45s cubic-bezier(0.7,0,0.95,1) both':('mnflDeploy 0.55s ease-out '+deployDelay+' backwards'),fontFamily:'Courier New,Consolas,monospace',backdropFilter:isClosing?'none':'blur(12px)',WebkitBackdropFilter:isClosing?'none':'blur(12px)'}}>
-      <div style={{flex:1,minHeight:0,display:'flex',flexDirection:'column' as const,padding:'0.85em 0.8em',fontSize:big?'clamp(12px,4.2cqw,24px)':'1rem',overflow:big?'hidden':'auto'}}>
+      <div style={{flex:1,minHeight:0,display:'flex',flexDirection:'column' as const,padding:'0.8em 0.8em',fontSize:big?'clamp(11px,3.4cqw,18px)':'1rem',overflow:'auto'}}>
       <style>{`
         .stat-link-btn{transition:box-shadow 0.22s ease,border-color 0.22s ease,background 0.22s ease;}
         .stat-link-btn:hover{

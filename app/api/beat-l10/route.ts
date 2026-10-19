@@ -29,8 +29,9 @@ export async function GET(request: NextRequest) {
       return x && x.value != null ? Number(x.value) : null;
     };
     const beatL10 = findVal(/BEAT_L10/i);
-    const gw = findVal(/GAME_?WEEK|^GW$|PLAYED|APPEARANCE|MATCH/i);
-    const highest = cs.bestSo5Appearance?.score != null ? Number(cs.bestSo5Appearance.score) : findVal(/HIGHEST/i);
+    // GW = nombre de gameweeks ou la carte a ete alignee (so5LineupsCount) -> denominateur du %
+    const gw = (cs.so5LineupsCount != null && Number(cs.so5LineupsCount) > 0) ? Number(cs.so5LineupsCount) : findVal(/GAME_?WEEK|^GW$|PLAYED|APPEARANCE|MATCH/i);
+    const highest = cs.bestSo5Appearance?.score != null ? Math.round(Number(cs.bestSo5Appearance.score)) : findVal(/HIGHEST/i);
     const pct = (beatL10 != null && gw && gw > 0) ? Math.round((beatL10 / gw) * 100) : null;
     return NextResponse.json({ beatL10, gw, highest, pct, raw: hs.map((h) => ({ type: h?.type, value: h?.value })) });
   } catch (e) {
