@@ -340,7 +340,7 @@ export default function Home() {
   const [gClubPos,setGClubPos]=useState({t:0,l:224});
   const [gTeamCustom,setGTeamCustom]=useState('all');
   const [gCountry,setGCountry]=useState('all');
-  const [gSort,setGSort]=useState('default');
+  const [gSort,setGSort]=useState('score');
   const [gDir,setGDir]=useState<'desc'|'asc'>('desc');
   const [openPhase,setOpenPhase]=useState(0);
   const canvasRef=useRef<HTMLCanvasElement|null>(null);
@@ -638,7 +638,8 @@ export default function Home() {
     else if(gSort==='name')sorted=[...r].sort((a:any,b:any)=>(a.anyPlayer?.lastName||'').localeCompare(b.anyPlayer?.lastName||''));
     else if(gSort==='stars')sorted=[...r].sort((a:any,b:any)=>{const sa=Number(a.anyPlayer?.gameplayTierStars??-1),sb=Number(b.anyPlayer?.gameplayTierStars??-1);if(sb!==sa)return sb-sa;return parseFloat(String(b.averageScore||0))-parseFloat(String(a.averageScore||0));});
     else if(gSort==='beat')sorted=[...r].sort((a:any,b:any)=>{const pa=a.beatPct==null?-1:a.beatPct,pb=b.beatPct==null?-1:b.beatPct;if(pb!==pa)return pb-pa;const ca=a.beatL10==null?-1:a.beatL10,cb=b.beatL10==null?-1:b.beatL10;if(cb!==ca)return cb-ca;return parseFloat(String(b.averageScore||0))-parseFloat(String(a.averageScore||0));});
-    else sorted=[...r].sort((a:any,b:any)=>parseFloat(String(b.averageScore||0))-parseFloat(String(a.averageScore||0)));
+    else if(gSort==='score')sorted=[...r].sort((a:any,b:any)=>parseFloat(String(b.averageScore||0))-parseFloat(String(a.averageScore||0)));
+    else sorted=[...r];// Defaut = ordre de la collection (acquisition Sorare), distinct du tri L10
     return gDir==='asc'?sorted.reverse():sorted;},[cards,applyFilters,gSport,gCountry,gTeamCustom,gSort,gDir]);
 
   const goldGrad='linear-gradient(160deg,#a86f15 0%,#d9a52e 22%,#f7da80 48%,#e8b84a 68%,#b8801a 100%)';
