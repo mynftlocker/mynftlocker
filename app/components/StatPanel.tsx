@@ -44,12 +44,23 @@ export const parseCard=(name:string)=>{
 };
 export const nfs=(l:number)=>l<=5?'1.45rem':l<=7?'1.2rem':l<=9?'1rem':l<=11?'0.82rem':l<=13?'0.7rem':'0.6rem';
 
+// Mesure (poids 900) de la largeur du nom pour remplir la case nom du verso via SVG -> jamais tronque.
+let _cbCtx:CanvasRenderingContext2D|null=null;
+function cbNatW(txt:string){
+  if(typeof document==='undefined')return Math.max(1,txt.length*0.56);
+  if(!_cbCtx){try{_cbCtx=document.createElement('canvas').getContext('2d');}catch(e){_cbCtx=null;}}
+  if(!_cbCtx)return Math.max(1,txt.length*0.56);
+  _cbCtx.font='900 100px Inter, system-ui, sans-serif';
+  return Math.max(1,_cbCtx.measureText(txt).width/100);
+}
 export const CardBack=memo(({card,rc,mobile}:any)=>{
   const rid=useId().replace(/[^a-zA-Z0-9]/g,'');
   const sz=(remStr:string,px:number)=>mobile?(Math.round(px/115*10000)/100)+'cqw':remStr;
   const nfsCard=(l:number)=>mobile?(l<=5?'19cqw':l<=7?'15.5cqw':l<=8?'13.6cqw':l<=9?'12.4cqw':l<=10?'11cqw':l<=11?'9.9cqw':l<=12?'9.1cqw':l<=13?'8.4cqw':'7.4cqw'):nfs(l);
   const {season,serial}=parseCard(card.name);
   const ln=(card.anyPlayer?.lastName||parseCard(card.name).lastName).toUpperCase();
+  const [cbW,setCbW]=useState(()=>Math.max(1,ln.length*0.56)*100);
+  useEffect(()=>{setCbW(cbNatW(ln)*100);},[ln]);
   const sn=card.anyPlayer?.shirtNumber??null;
   const bonus=card.power?('+'+Math.round((parseFloat(card.power)-1)*100)+'%'):null;
   const score=card.averageScore!=null?String(card.averageScore):null;
@@ -78,7 +89,12 @@ export const CardBack=memo(({card,rc,mobile}:any)=>{
       <div style={{flex:1,minHeight:0,display:'flex',flexDirection:'column' as const,alignItems:'center',padding:sz('0.5rem',8)+' '+sz('0.42rem',6.7)+' '+sz('0.3rem',4.8),overflow:'hidden'}}>
         {/* nom en haut de la zone */}
         <div style={{width:'100%',marginTop:sz('0.35rem',5.6),textAlign:'center' as const}}>
-          <p style={{margin:0,width:'100%',fontSize:nfsCard(ln.length),fontWeight:900,color:'#fff',lineHeight:1.05,textAlign:'center',textShadow:'0 0 14px '+rc+'aa',overflow:'hidden',whiteSpace:'nowrap' as const,textOverflow:'ellipsis'}}>{ln}</p>
+          {/* case NOM : SVG qui remplit la case -> jamais tronque, taille auto selon la longueur */}
+          <div style={{width:'100%',height:sz('1.15rem',18.4),display:'flex',alignItems:'center',justifyContent:'center'}}>
+            <svg viewBox={'0 0 '+cbW+' 100'} preserveAspectRatio='xMidYMid meet' style={{width:'100%',height:'100%',display:'block',overflow:'visible'}}>
+              <text x={cbW/2} y='80' textAnchor='middle' fontSize='100' fontWeight='900' fill='#fff' style={{filter:'drop-shadow(0 0 8px '+rc+'99)'}}>{ln}</text>
+            </svg>
+          </div>
           <p style={{margin:sz('0.3rem',4.8)+' 0 0',fontSize:sz('0.5rem',8),color:'#9aa3b2',fontWeight:700,letterSpacing:'0.05em'}}>{sn!==null?('#'+sn):''}{(sn!==null&&serial)?'  ·  ':''}{serial||''}</p>
         </div>
         {/* bloc L10 + etoiles : recentre dans l'espace restant (entre le nom et le bas) */}
