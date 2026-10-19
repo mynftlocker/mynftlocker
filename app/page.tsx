@@ -637,7 +637,12 @@ export default function Home() {
     if(gSort==='rarity')sorted=[...r].sort((a:any,b:any)=>(RARITY_ORDER[a.rarityTyped]??9)-(RARITY_ORDER[b.rarityTyped]??9));
     else if(gSort==='name')sorted=[...r].sort((a:any,b:any)=>(a.anyPlayer?.lastName||'').localeCompare(b.anyPlayer?.lastName||''));
     else if(gSort==='stars')sorted=[...r].sort((a:any,b:any)=>{const sa=Number(a.anyPlayer?.gameplayTierStars??-1),sb=Number(b.anyPlayer?.gameplayTierStars??-1);if(sb!==sa)return sb-sa;return parseFloat(String(b.averageScore||0))-parseFloat(String(a.averageScore||0));});
-    else if(gSort==='beat')sorted=[...r].sort((a:any,b:any)=>{const pa=a.beatPct==null?-1:a.beatPct,pb=b.beatPct==null?-1:b.beatPct;if(pb!==pa)return pb-pa;const ca=a.beatL10==null?-1:a.beatL10,cb=b.beatL10==null?-1:b.beatL10;if(cb!==ca)return cb-ca;return parseFloat(String(b.averageScore||0))-parseFloat(String(a.averageScore||0));});
+    else if(gSort==='beat'){
+      // %Beat L10 sur l'historique complet de la carte (beatL10/GW alignes). Seuil mini pour qu'un 1/1=100% ne passe pas devant une carte fiable.
+      const MIN_GW=10;
+      const rk=(c:any)=>{const gw=c.beatGw==null?0:Number(c.beatGw);return gw>=MIN_GW?2:(gw>0?1:0);};// 2=fiable, 1=petit echantillon, 0=jamais alignee/pas de data
+      sorted=[...r].sort((a:any,b:any)=>{const ta=rk(a),tb=rk(b);if(tb!==ta)return tb-ta;const pa=a.beatPct==null?-1:a.beatPct,pb=b.beatPct==null?-1:b.beatPct;if(pb!==pa)return pb-pa;return (Number(b.beatGw)||0)-(Number(a.beatGw)||0);});
+    }
     else if(gSort==='score')sorted=[...r].sort((a:any,b:any)=>parseFloat(String(b.averageScore||0))-parseFloat(String(a.averageScore||0)));
     else sorted=[...r];// Defaut = ordre de la collection (acquisition Sorare), distinct du tri L10
     return gDir==='asc'?sorted.reverse():sorted;},[cards,applyFilters,gSport,gCountry,gTeamCustom,gSort,gDir]);
