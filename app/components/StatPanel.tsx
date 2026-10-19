@@ -16,8 +16,7 @@ export const RARITY_FILL: Record<string,string> = {
 };
 export const isNBA=(c:any)=>c?.__typename==='NBACard';
 
-// Etoiles foot (tracés repris exactement de Sorare). 5 etoiles = entourees (cadre dore) + etincelles qui scintillent,
-// reutilise partout ou s'affichent des etoiles foot (stat panel, dos de carte, badge gradage galerie). s = taille d'une etoile (px ou cqw).
+// Etoiles foot (traces repris de Sorare). 5 etoiles = entourees (cadre dore) + etincelles qui scintillent.
 const STAR16='M7.00001 0H9.00001L10.4871 4.57681L15.2994 4.57681L15.9175 6.47892L12.0242 9.30754L13.5113 13.8843L11.8933 15.0599L8.00002 12.2313L4.10677 15.0599L2.48873 13.8843L3.97581 9.30756L0.0825195 6.47893L0.700554 4.57682L5.51292 4.57681L7.00001 0Z';
 const SPARK184='M92 0C92 0 96 63.4731 108.263 75.7365C120.527 88 184 92 184 92C184 92 118.527 98 108.263 108.263C98 118.527 92 184 92 184C92 184 86.4731 119 75.7365 108.263C65 97.5269 0 92 0 92C0 92 63.9731 87.5 75.7365 75.7365C87.5 63.9731 92 0 92 0Z';
 const FOOT_SPARKS=[{l:'4%',t:'-22%',k:0.72,d:2.2,dl:0},{l:'34%',t:'60%',k:0.5,d:2.8,dl:0.5},{l:'60%',t:'-16%',k:0.64,d:2.4,dl:0.9},{l:'86%',t:'52%',k:0.5,d:2.6,dl:1.3},{l:'50%',t:'16%',k:0.4,d:3.0,dl:1.7}];
@@ -64,10 +63,8 @@ export const CardBack=memo(({card,rc,mobile}:any)=>{
   const sn=card.anyPlayer?.shirtNumber??null;
   const bonus=card.power?('+'+Math.round((parseFloat(card.power)-1)*100)+'%'):null;
   const score=card.averageScore!=null?String(card.averageScore):null;
-  // ETOILES Sorare : vraie note "gameplayTierStars" (Float 1-5 par demi-crans) recuperee sur la fiche joueur.
   const sv=card.anyPlayer?.gameplayTierStars;
   const stars=(sv==null||isNaN(Number(sv)))?null:Math.max(0,Math.min(5,Number(sv)));
-  // Pentagone d'etoiles facon Sorare : arrangement par tier + couleur hexagone selon le tier (orange bas -> cyan haut).
   const starN=stars==null?0:Math.min(5,Math.max(1,Math.ceil(stars)));
   const starFull=stars==null?0:Math.floor(stars);
   const STAR_LAYOUTS:Record<number,number[][]>={1:[[50,50]],2:[[34,50],[66,50]],3:[[33,36],[67,36],[50,67]],4:[[34,35],[66,35],[34,67],[66,67]],5:[[32,33],[68,33],[32,69],[68,69],[50,51]]};
@@ -78,26 +75,22 @@ export const CardBack=memo(({card,rc,mobile}:any)=>{
   const tT=stars==null?0:Math.max(0,Math.min(1,(stars-1)/4));
   const tierCol='rgb('+lerp(255,0,tT)+','+lerp(126,243,tT)+','+lerp(52,235,tT)+')';
   const starFrac=(i:number)=>stars==null?0:(i<starFull?1:((stars-starFull)>=0.5?0.5:1));
-  const fv=(v:any,t:string)=>{if(v==null)return '—';const n=Number(v);if(t==='pct')return n.toFixed(1)+'%';if(t==='pm')return(n>=0?'+':'')+n.toFixed(1);return n.toFixed(1);};
   return(
     <div style={{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'rotateY(180deg)',borderRadius:'0.4rem',overflow:'hidden',background:'radial-gradient(ellipse 130% 90% at 50% 0%,#191b24 0%,#0c0d14 60%,#06070d 100%)',display:'flex',flexDirection:'column' as const,border:'1px solid '+rc+'44'}}>
       <div style={{height:'3px',background:'linear-gradient(90deg,transparent,'+rc+',transparent)'}}></div>
       <div style={{padding:sz('0.45rem',7.2)+' '+sz('0.42rem',6.7)+' '+sz('0.38rem',6),textAlign:'center',borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
         <p style={{margin:0,fontSize:sz('0.6rem',9.6),color:'#e3c074',fontWeight:900,letterSpacing:'0.08em'}}>myNFTlocker</p>
-        <p style={{margin:'1px 0 0',fontSize:sz('0.48rem',7.68),color:'#9aa3b2',fontWeight:600,letterSpacing:'0.1em'}}>{isNBA(card)?'NBA':'FOOT'} • {season}</p>
+        <p style={{margin:'1px 0 0',fontSize:sz('0.48rem',7.68),color:'#9aa3b2',fontWeight:600,letterSpacing:'0.1em'}}>{isNBA(card)?'NBA':'FOOT'} {'•'} {season}</p>
       </div>
       <div style={{flex:1,minHeight:0,display:'flex',flexDirection:'column' as const,alignItems:'center',padding:sz('0.5rem',8)+' '+sz('0.42rem',6.7)+' '+sz('0.3rem',4.8),overflow:'hidden'}}>
-        {/* nom en haut de la zone */}
         <div style={{width:'100%',marginTop:sz('0.35rem',5.6),textAlign:'center' as const}}>
-          {/* case NOM : SVG qui remplit la case -> jamais tronque, taille auto selon la longueur */}
           <div style={{width:'100%',height:sz('1.15rem',18.4),display:'flex',alignItems:'center',justifyContent:'center'}}>
             <svg viewBox={'0 0 '+cbW+' 100'} preserveAspectRatio='xMidYMid meet' style={{width:'100%',height:'100%',display:'block',overflow:'visible'}}>
               <text x={cbW/2} y='80' textAnchor='middle' fontSize='100' fontWeight='900' fill='#fff' style={{filter:'drop-shadow(0 0 8px '+rc+'99)'}}>{ln}</text>
             </svg>
           </div>
-          <p style={{margin:sz('0.3rem',4.8)+' 0 0',fontSize:sz('0.5rem',8),color:'#9aa3b2',fontWeight:700,letterSpacing:'0.05em'}}>{sn!==null?('#'+sn):''}{(sn!==null&&serial)?'  ·  ':''}{serial||''}</p>
+          <p style={{margin:sz('0.3rem',4.8)+' 0 0',fontSize:sz('0.5rem',8),color:'#9aa3b2',fontWeight:700,letterSpacing:'0.05em'}}>{sn!==null?('#'+sn):''}{(sn!==null&&serial)?('  '+'·'+'  '):''}{serial||''}</p>
         </div>
-        {/* bloc L10 + etoiles : recentre dans l'espace restant (entre le nom et le bas) */}
         <div style={{margin:'auto 0',textAlign:'center' as const}}>
           <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:sz('0.45rem',7.2),lineHeight:1}}>
             <span style={{fontSize:sz('1.4rem',22.4),fontWeight:900,color:'#fff',lineHeight:1,textShadow:score?('0 0 14px '+rc+'aa'):'none'}}>{score||'—'}</span>
@@ -135,7 +128,7 @@ export const CardBack=memo(({card,rc,mobile}:any)=>{
 });
 CardBack.displayName='CardBack';
 
-// Note en etoiles reutilisable (tableau noir) : pentagone NBA / rangee foot, meme donnee gameplayTierStars.
+// Note en etoiles reutilisable (tableau noir) : pentagone NBA / rangee foot.
 export const StarRating=({card,box}:{card:any;box:number})=>{
   const rid=useId().replace(/[^a-zA-Z0-9]/g,'');
   const sv=card?.anyPlayer?.gameplayTierStars;
@@ -180,33 +173,40 @@ export const StatPanel=memo(({card,onClose,isClosing=false,placement='scene'}:an
   const [footLoading,setFootLoading]=useState(false);
   const [sales,setSales]=useState<any>(null);
   const [salesLoading,setSalesLoading]=useState(false);
+  const [owner,setOwner]=useState<any>(null);
+  const [beat,setBeat]=useState<any>(null);
 
   useEffect(()=>{let i=0;let iv:any;const t=setTimeout(()=>{iv=setInterval(()=>{i++;setTypedName(ln.slice(0,i));if(i>=ln.length)clearInterval(iv);},45);},600);return()=>{clearTimeout(t);clearInterval(iv);};},[ln]);
   useEffect(()=>{if(avgNum==null)return;let step=0;let iv:any;const t=setTimeout(()=>{iv=setInterval(()=>{step++;const cur=Math.min((avgNum/20)*step,avgNum);setCountedAvg(cur%1===0?String(Math.round(cur)):cur.toFixed(1));if(step>=20)clearInterval(iv);},40);},700);return()=>{clearTimeout(t);clearInterval(iv);};},[avgNum]);
 
   useEffect(()=>{if(!isNBA(card))return;const pslug=card.anyPlayer?.slug||card.slug.split('-').filter((_:any,i:number,a:any)=>i<a.length-3).join('-');if(!pslug)return;setNbaLoading(true);fetch(`/api/player-stats?slug=${encodeURIComponent(pslug)}`).then(r=>r.json()).then(d=>{if(d&&(d.pts!=null||d.reb!=null||d.ast!=null))setNbaStats(d);}).catch(()=>{}).finally(()=>setNbaLoading(false));},[]);
   useEffect(()=>{if(isNBA(card))return;const pslug=card.anyPlayer?.slug||card.slug.split('-').filter((_:any,i:number,a:any)=>i<a.length-3).join('-');if(!pslug)return;setFootLoading(true);fetch(`/api/player-stats-foot?slug=${encodeURIComponent(pslug)}`).then(r=>r.json()).then(d=>{if(d&&(d.goals!=null||d.mins!=null||d.matches!=null||d.cleanSheet!=null))setFootStats(d);}).catch(()=>{}).finally(()=>setFootLoading(false));},[]);
-  // Moyenne des 5 dernieres ventes de la carte (historique de propriete Sorare)
   useEffect(()=>{if(!card.slug||!card.rarityTyped)return;setSalesLoading(true);fetch(`/api/card-sales?slug=${encodeURIComponent(card.slug)}&rarity=${encodeURIComponent(card.rarityTyped)}`).then(r=>r.json()).then(d=>setSales(d)).catch(()=>{}).finally(()=>setSalesLoading(false));},[]);
-;
+  useEffect(()=>{if(!card.slug)return;fetch(`/api/card-ownership?slug=${encodeURIComponent(card.slug)}`).then(r=>r.json()).then(d=>setOwner(d)).catch(()=>{});},[]);
+  useEffect(()=>{const pslug=card.anyPlayer?.slug||card.slug.split('-').filter((_:any,i:number,a:any)=>i<a.length-3).join('-');if(!pslug)return;fetch(`/api/beat-l10?slug=${encodeURIComponent(pslug)}`).then(r=>r.json()).then(d=>setBeat(d)).catch(()=>{});},[]);
 
   const CY='#40e8ff';const CYS='0 0 8px rgba(64,232,255,0.5)';
-  const sep:React.CSSProperties={borderBottom:'1px solid rgba(64,232,255,0.16)',paddingBottom:'0.42rem',marginBottom:'0.42rem',flexShrink:0};
+  const sep:React.CSSProperties={borderBottom:'1px solid rgba(64,232,255,0.16)',paddingBottom:'0.42em',marginBottom:'0.42em',flexShrink:0};
+  const box:React.CSSProperties={border:'1px solid rgba(64,232,255,0.18)',borderRadius:'0.4em',padding:'0.5em 0.55em',marginBottom:'0.5em',background:'rgba(64,232,255,0.03)',minWidth:0};
+  const lab:React.CSSProperties={margin:'0 0 0.32em',fontSize:'0.58em',fontWeight:900,color:'rgba(64,232,255,0.6)',letterSpacing:'0.16em',textTransform:'uppercase'};
+  const WV='#eaf2ff';const CYL='rgba(64,232,255,0.5)';
   const fv=(v:any,t:string)=>{if(v==null)return '—';const n=Number(v);if(t==='pct')return n.toFixed(1)+'%';if(t==='pm')return(n>=0?'+':'')+n.toFixed(1);if(t==='int')return String(Math.round(n));return n.toFixed(1);};
   const fmtSale=(g:any)=>salesLoading?'…':(g&&g.avg!=null?(Number(g.avg).toFixed(2).replace('.',',')+' € ('+g.count+')'):'—');
   const isOverlay=placement==='overlay';
   const isMobile=placement==='mobile';
   const isGalleryMobile=placement==='galleryMobile';
   const posStyle:React.CSSProperties=isOverlay
-    ? {position:'fixed',right:'1%',top:'5%',width:'22.2vw',maxHeight:'89vh',zIndex:200}
+    ? {position:'fixed',right:'1%',top:'5%',width:'38vw',maxHeight:'90vh',zIndex:200}
     : isMobile
     ? {position:'absolute',left:'4%',right:'4%',top:'3%',maxHeight:'94%',zIndex:80}
     : isGalleryMobile
     ? {position:'fixed',left:'4%',right:'4%',top:'8%',maxHeight:'84%',zIndex:200}
-    : {position:'absolute',right:'1%',top:'5%',width:'30%',maxHeight:'89%',zIndex:50};
+    : {position:'absolute',right:'1%',top:'5%',width:'42%',maxHeight:'90%',zIndex:50};
   const deployDelay=isOverlay?'0.1s':'0.45s';
+  const big=isOverlay||placement==='scene';
+  const colStyle:React.CSSProperties={flex:big?'1 1 0':'0 0 auto',minWidth:0,display:'flex',flexDirection:'column' as const};
   return(
-    <div key={card.slug} style={{...posStyle,background:'repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(64,232,255,0.03) 2px,rgba(64,232,255,0.03) 3px),linear-gradient(rgba(2,10,22,0.95),rgba(2,10,22,0.95))',border:'1px solid rgba(64,232,255,0.5)',boxShadow:'0 0 40px rgba(64,232,255,0.15),inset 0 0 60px rgba(0,0,0,0.5)',clipPath:isClosing?'none':'polygon(14px 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,0 100%,0 14px)',padding:'0.8rem 0.75rem',display:'flex',flexDirection:'column' as const,overflow:'hidden',animation:isClosing?'mnflClose 0.45s cubic-bezier(0.7,0,0.95,1) both':('mnflDeploy 0.55s ease-out '+deployDelay+' backwards'),fontFamily:'Courier New,Consolas,monospace',backdropFilter:isClosing?'none':'blur(12px)',WebkitBackdropFilter:isClosing?'none':'blur(12px)'}}>
+    <div key={card.slug} style={{...posStyle,background:'repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(64,232,255,0.03) 2px,rgba(64,232,255,0.03) 3px),linear-gradient(rgba(2,10,22,0.95),rgba(2,10,22,0.95))',border:'1px solid rgba(64,232,255,0.5)',boxShadow:'0 0 40px rgba(64,232,255,0.15),inset 0 0 60px rgba(0,0,0,0.5)',clipPath:isClosing?'none':'polygon(14px 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,0 100%,0 14px)',padding:'0.85em 0.8em',display:'flex',flexDirection:'column' as const,overflow:big?'hidden':'auto',fontSize:big?'1.5rem':'1rem',animation:isClosing?'mnflClose 0.45s cubic-bezier(0.7,0,0.95,1) both':('mnflDeploy 0.55s ease-out '+deployDelay+' backwards'),fontFamily:'Courier New,Consolas,monospace',backdropFilter:isClosing?'none':'blur(12px)',WebkitBackdropFilter:isClosing?'none':'blur(12px)'}}>
       <style>{`
         .stat-link-btn{transition:box-shadow 0.22s ease,border-color 0.22s ease,background 0.22s ease;}
         .stat-link-btn:hover{
@@ -217,96 +217,127 @@ export const StatPanel=memo(({card,onClose,isClosing=false,placement='scene'}:an
         .stat-link-btn:hover *{text-shadow:0 0 8px rgba(64,232,255,0.6);}
       `}</style>
       <div style={{...sep,display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
-        <div>
-          <p style={{margin:0,fontSize:'0.55rem',color:'rgba(64,232,255,0.5)',fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase'}}>myNFTlocker · STATS</p>
-          <p style={{margin:'4px 0 2px',fontSize:'1.1rem',fontWeight:900,color:CY,letterSpacing:'0.06em',textShadow:CYS,minHeight:'1.35em'}}>{typedName}{typedName.length<ln.length?'▊':''}</p>
-          <p style={{margin:0,fontSize:'0.6rem',color:'rgba(64,232,255,0.38)',letterSpacing:'0.04em'}}>{sn!=null?'#'+sn+' · ':''}{season}</p>
+        <div style={{minWidth:0}}>
+          <p style={{margin:0,fontSize:'0.55em',color:'rgba(64,232,255,0.5)',fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase'}}>myNFTlocker {'·'} STATS</p>
+          <p style={{margin:'0.25em 0 0.12em',fontSize:'1.15em',fontWeight:900,color:CY,letterSpacing:'0.06em',textShadow:CYS,minHeight:'1.3em',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{typedName}{typedName.length<ln.length?'▊':''}</p>
+          <p style={{margin:0,fontSize:'0.6em',color:'rgba(64,232,255,0.38)',letterSpacing:'0.04em'}}>{sn!=null?'#'+sn+' · ':''}{season}</p>
         </div>
-        <button onClick={!isClosing?onClose:undefined} style={{background:'transparent',border:'1px solid rgba(64,232,255,0.35)',borderRadius:'50%',width:'20px',height:'20px',color:CY,cursor:'pointer',fontSize:'0.55rem',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,opacity:isClosing?0:1,marginTop:'2px'}}>✕</button>
+        <button onClick={!isClosing?onClose:undefined} style={{background:'transparent',border:'1px solid rgba(64,232,255,0.35)',borderRadius:'50%',width:'1.3em',height:'1.3em',color:CY,cursor:'pointer',fontSize:'0.7em',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,opacity:isClosing?0:1,marginTop:'0.15em'}}>{'✕'}</button>
       </div>
       <div style={{...sep,display:'flex',alignItems:'stretch'}}>
-        <div style={{width:'50%',textAlign:'center',display:'flex',flexDirection:'column' as const,justifyContent:'center',borderRight:'1px solid rgba(64,232,255,0.1)',paddingRight:'0.5rem'}}>
-          <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'0.4rem'}}>
-            <span style={{fontSize:'2.2rem',fontWeight:900,color:CY,lineHeight:1,textShadow:'0 0 22px '+CY}}>{countedAvg}</span>
-            <StarRating card={card} box={34}/>
+        <div style={{width:'52%',textAlign:'center',display:'flex',flexDirection:'column' as const,justifyContent:'center',borderRight:'1px solid rgba(64,232,255,0.1)',paddingRight:'0.5em'}}>
+          <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'0.4em'}}>
+            <span style={{fontSize:'2.4em',fontWeight:900,color:CY,lineHeight:1,textShadow:'0 0 22px '+CY}}>{countedAvg}</span>
+            <StarRating card={card} box={big?52:34}/>
           </div>
-          <p style={{margin:'4px 0 0',fontSize:'0.52rem',color:'rgba(64,232,255,0.6)',letterSpacing:'0.2em',textTransform:'uppercase'}}>MOY. L10</p>
+          <p style={{margin:'0.3em 0 0',fontSize:'0.55em',color:'rgba(64,232,255,0.6)',letterSpacing:'0.2em',textTransform:'uppercase'}}>MOY. L10</p>
         </div>
-        <div style={{width:'50%',display:'flex',flexDirection:'column' as const,gap:'0.24rem',paddingLeft:'0.5rem',justifyContent:'center'}}>
-          {bonus&&<div style={{padding:'0.22rem 0.4rem',border:'1px solid rgba(64,232,255,0.28)',borderRadius:'0.25rem',background:'rgba(64,232,255,0.07)',display:'flex',justifyContent:'space-between',alignItems:'baseline'}}><span style={{fontSize:'0.52rem',color:'rgba(64,232,255,0.55)',letterSpacing:'0.1em'}}>BONUS</span><span style={{fontSize:'0.72rem',fontWeight:800,color:CY,textShadow:CYS}}>{bonus}</span></div>}
-          <div style={{padding:'0.22rem 0.4rem',border:'1px solid '+rc+'55',borderRadius:'0.25rem',background:rc+'0d',textAlign:'center'}}><span style={{fontSize:'0.65rem',fontWeight:900,color:rc,letterSpacing:'0.1em',textShadow:'0 0 7px '+rc}}>{card.rarityTyped.replace(/_/g,' ').toUpperCase()}</span></div>
+        <div style={{width:'48%',display:'flex',flexDirection:'column' as const,gap:'0.3em',paddingLeft:'0.5em',justifyContent:'center'}}>
+          {bonus&&<div style={{padding:'0.3em 0.45em',border:'1px solid rgba(64,232,255,0.28)',borderRadius:'0.3em',background:'rgba(64,232,255,0.07)',display:'flex',justifyContent:'space-between',alignItems:'baseline'}}><span style={{fontSize:'0.55em',color:'rgba(64,232,255,0.55)',letterSpacing:'0.1em'}}>BONUS</span><span style={{fontSize:'0.78em',fontWeight:800,color:CY,textShadow:CYS}}>{bonus}</span></div>}
+          <div style={{padding:'0.35em 0.45em',border:'1px solid '+rc+'55',borderRadius:'0.3em',background:rc+'0d',textAlign:'center'}}><span style={{fontSize:'0.72em',fontWeight:900,color:rc,letterSpacing:'0.1em',textShadow:'0 0 7px '+rc}}>{card.rarityTyped.replace(/_/g,' ').toUpperCase()}</span></div>
         </div>
       </div>
-      <div style={{...sep}}>
-        <p style={{margin:'0 0 0.3rem',fontSize:'0.52rem',fontWeight:900,color:'rgba(64,232,255,0.6)',letterSpacing:'0.2em',textTransform:'uppercase'}}>CARTE</p>
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0.18rem 0.6rem'}}>
-          {([[' ÉQUIPE',team],[' SÉRIE',serial],[' SAISON',season],[' XP',xp],[' ÉDITION',edition]] as [string,string][]).map(([l,v])=>(
-            <div key={l} style={{minWidth:0}}>
-              <span style={{display:'block',fontSize:'0.5rem',color:'rgba(64,232,255,0.4)',letterSpacing:'0.1em',textTransform:'uppercase'}}>{l}</span>
-              <span style={{display:'block',fontSize:'0.72rem',fontWeight:700,color:CY,textShadow:'0 0 5px rgba(64,232,255,0.3)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{v}</span>
+      <div style={{display:'flex',flexDirection:big?'row':'column',gap:big?'0.7em':'0',alignItems:'stretch'}}>
+        <div style={colStyle}>
+          <div style={box}>
+            <p style={lab}>CARTE</p>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0.18em 0.6em'}}>
+              {([['ÉQUIPE',team],['SÉRIE',serial],['SAISON',season],['XP',xp],['ÉDITION',edition]] as [string,string][]).map(([l,v])=>(
+                <div key={l} style={{minWidth:0}}>
+                  <span style={{display:'block',fontSize:'0.52em',color:CYL,letterSpacing:'0.1em',textTransform:'uppercase'}}>{l}</span>
+                  <span style={{display:'block',fontSize:'0.74em',fontWeight:700,color:WV,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{v}</span>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      </div>
-      <div style={{...sep}}>
-        <p style={{margin:'0 0 0.3rem',fontSize:'0.52rem',fontWeight:900,color:'rgba(64,232,255,0.6)',letterSpacing:'0.2em',textTransform:'uppercase'}}>VENTES {String(card.rarityTyped||'').replace(/_/g,' ')} · MOY. 5</p>
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0.18rem 0.6rem'}}>
-          <div style={{minWidth:0}}>
-            <span style={{display:'block',fontSize:'0.5rem',color:'rgba(64,232,255,0.4)',letterSpacing:'0.1em',textTransform:'uppercase'}}>In-season</span>
-            <span style={{display:'block',fontSize:'0.72rem',fontWeight:800,color:'#f5d76e',textShadow:'0 0 5px rgba(245,215,110,0.3)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{fmtSale(sales?.inSeason)}</span>
           </div>
-          <div style={{minWidth:0}}>
-            <span style={{display:'block',fontSize:'0.5rem',color:'rgba(64,232,255,0.4)',letterSpacing:'0.1em',textTransform:'uppercase'}}>Classic</span>
-            <span style={{display:'block',fontSize:'0.72rem',fontWeight:800,color:CY,textShadow:'0 0 5px rgba(64,232,255,0.3)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{fmtSale(sales?.classic)}</span>
-          </div>
-        </div>
-      </div>
-      <div style={{...sep,overflow:'hidden'}}>
-        {isNBA(card)?(
-          <>
-            <p style={{margin:'0 0 0.3rem',fontSize:'0.52rem',fontWeight:900,color:'rgba(64,232,255,0.6)',letterSpacing:'0.2em',textTransform:'uppercase'}}>NBA · 10 DERNIERS MATCHS</p>
-            {nbaLoading&&<p style={{margin:0,fontSize:'0.62rem',color:'rgba(64,232,255,0.42)',letterSpacing:'0.14em'}}>CHARGEMENT...</p>}
-            {!nbaLoading&&nbaStats&&(
-              <div style={{width:'100%'}}>
-                <div style={{display:'grid',gridTemplateColumns:'repeat(6,1fr)',gap:'0.18rem'}}>
-                  {([[' PTS',nbaStats.pts,'dec'],[' REB',nbaStats.reb,'dec'],[' AST',nbaStats.ast,'dec'],[' STL',nbaStats.stl,'dec'],[' BLK',nbaStats.blk,'dec'],[' MIN',nbaStats.min,'dec'],[' TOV',nbaStats.tov,'dec'],[' 3PM',nbaStats.tpm,'dec'],[' EFF',nbaStats.eff,'dec'],[' DD',nbaStats.dd,'int'],[' TD',nbaStats.td,'int'],[' MJ',nbaStats.gp,'int']] as any[]).map(([l,v,t]:any)=>(<div key={l} style={{textAlign:'center',padding:'0.16rem 0.08rem',border:'1px solid rgba(64,232,255,0.14)',borderRadius:'0.2rem',background:'rgba(64,232,255,0.04)'}}><span style={{display:'block',fontSize:'0.4rem',color:'rgba(64,232,255,0.5)',letterSpacing:'0.04em',textTransform:'uppercase'}}>{l}</span><span style={{display:'block',fontSize:'0.76rem',fontWeight:900,color:CY,textShadow:CYS,lineHeight:1.15}}>{fv(v,t)}</span></div>))}
-                </div>
-                <p style={{margin:'0.3rem 0 0',fontSize:'0.38rem',color:'rgba(64,232,255,0.3)',letterSpacing:'0.04em',textAlign:'right'}}>aligné L10 · source Sorare</p>
+          <div style={box}>
+            <p style={lab}>ACHAT</p>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0.18em 0.6em'}}>
+              <div style={{minWidth:0}}>
+                <span style={{display:'block',fontSize:'0.52em',color:CYL,letterSpacing:'0.1em',textTransform:'uppercase'}}>Prix d{'’'}achat</span>
+                <span style={{display:'block',fontSize:'0.8em',fontWeight:800,color:WV,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{owner&&owner.price!=null?(Number(owner.price).toFixed(2).replace('.',',')+' €'):(owner?'—':'…')}{owner&&owner.type?(<span style={{color:CYL,fontWeight:600}}> ({owner.type})</span>):null}</span>
               </div>
-            )}
-            {!nbaLoading&&!nbaStats&&<p style={{margin:0,fontSize:'0.58rem',color:'rgba(64,232,255,0.28)',letterSpacing:'0.06em'}}>stats non disponibles</p>}
-          </>
-        ):(
-          <>
-            <p style={{margin:'0 0 0.3rem',fontSize:'0.52rem',fontWeight:900,color:'rgba(64,232,255,0.6)',letterSpacing:'0.2em',textTransform:'uppercase'}}>FOOT · 15 DERNIERS MATCHS</p>
-            {footLoading&&<p style={{margin:0,fontSize:'0.62rem',color:'rgba(64,232,255,0.42)',letterSpacing:'0.14em'}}>CHARGEMENT...</p>}
-            {!footLoading&&footStats&&(
-              <div style={{width:'100%'}}>
-                <div style={{display:'grid',gridTemplateColumns:'repeat(6,1fr)',gap:'0.18rem'}}>
-                  {([['⚽','Buts',footStats.goals],['👟','Passes décisives',footStats.assists],['🎯','Tirs cadrés',footStats.shots],['➡️','Passes réussies',footStats.passes],['🏟','Matchs joués',footStats.matches],['👕','Titularisations',footStats.starts],['🧤','Clean sheets',footStats.cleanSheet],['💪','Duels gagnés',footStats.duelWon],['🛡️','Ballons récupérés',footStats.recov],['🟨','Cartons jaunes',footStats.yellow],['🟥','Cartons rouges',footStats.red],['⏱','Minutes jouées',footStats.mins]] as [string,string,any][]).map(([pic,lab,v])=>(
-                    <div key={lab} title={lab} style={{textAlign:'center',padding:'0.2rem 0.08rem',border:'1px solid rgba(64,232,255,0.14)',borderRadius:'0.2rem',background:'rgba(64,232,255,0.04)'}}>
-                      <span style={{display:'block',fontSize:'0.8rem',lineHeight:1.1}}>{pic}</span>
-                      <span style={{display:'block',fontSize:'0.82rem',fontWeight:900,color:CY,textShadow:CYS,lineHeight:1.25}}>{v==null?'—':(lab==='Minutes jouées'?Math.round(Number(v)):v)}</span>
+              <div style={{minWidth:0}}>
+                <span style={{display:'block',fontSize:'0.52em',color:CYL,letterSpacing:'0.1em',textTransform:'uppercase'}}>Acquise le</span>
+                <span style={{display:'block',fontSize:'0.74em',fontWeight:700,color:WV}}>{owner&&owner.date?new Date(owner.date).toLocaleDateString('fr-FR'):'—'}</span>
+              </div>
+              <div style={{minWidth:0,gridColumn:'1 / span 2'}}>
+                <span style={{display:'block',fontSize:'0.52em',color:CYL,letterSpacing:'0.1em',textTransform:'uppercase'}}>Dernier d{'é'}tenteur</span>
+                <span style={{display:'block',fontSize:'0.74em',fontWeight:700,color:WV,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{owner&&owner.lastHolder?owner.lastHolder:'— (1ʳᵉ main)'}</span>
+              </div>
+            </div>
+          </div>
+          <div style={box}>
+            <p style={lab}>Moyenne des 5 derni{'è'}res ventes</p>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0.18em 0.6em'}}>
+              <div style={{minWidth:0}}>
+                <span style={{display:'block',fontSize:'0.52em',color:CYL,letterSpacing:'0.1em',textTransform:'uppercase'}}>In-season</span>
+                <span style={{display:'block',fontSize:'0.78em',fontWeight:800,color:'#f5d76e',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{fmtSale(sales?.inSeason)}</span>
+              </div>
+              <div style={{minWidth:0}}>
+                <span style={{display:'block',fontSize:'0.52em',color:CYL,letterSpacing:'0.1em',textTransform:'uppercase'}}>Classic</span>
+                <span style={{display:'block',fontSize:'0.78em',fontWeight:800,color:CY,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{fmtSale(sales?.classic)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style={colStyle}>
+          <div style={box}>
+            <p style={lab}>BEAT L10</p>
+            {beat&&beat.pct!=null?(
+              <div style={{display:'flex',alignItems:'center',gap:'0.6em'}}>
+                <span style={{fontSize:'2em',fontWeight:900,lineHeight:1,color:beat.pct>=50?'#4ade80':'#ef4444',textShadow:'0 0 16px '+(beat.pct>=50?'rgba(74,222,128,0.5)':'rgba(239,68,68,0.5)')}}>{beat.pct}%</span>
+                <span style={{fontSize:'0.62em',color:'rgba(234,242,255,0.82)',lineHeight:1.35}}>a d{'é'}pass{'é'} son L10 sur <b style={{color:WV}}>{beat.pct}%</b> de ses {beat.games} derniers matchs jou{'é'}s</span>
+              </div>
+            ):(<p style={{margin:0,fontSize:'0.62em',color:'rgba(64,232,255,0.3)',letterSpacing:'0.06em'}}>{beat?'données indisponibles':'…'}</p>)}
+          </div>
+          <div style={{...box,overflow:'hidden'}}>
+            {isNBA(card)?(
+              <>
+                <p style={lab}>NBA {'·'} 10 derniers matchs</p>
+                {nbaLoading&&<p style={{margin:0,fontSize:'0.62em',color:'rgba(64,232,255,0.42)',letterSpacing:'0.14em'}}>CHARGEMENT...</p>}
+                {!nbaLoading&&nbaStats&&(
+                  <div style={{width:'100%'}}>
+                    <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:'0.2em'}}>
+                      {([['PTS',nbaStats.pts,'dec'],['REB',nbaStats.reb,'dec'],['AST',nbaStats.ast,'dec'],['STL',nbaStats.stl,'dec'],['BLK',nbaStats.blk,'dec'],['MIN',nbaStats.min,'dec'],['TOV',nbaStats.tov,'dec'],['3PM',nbaStats.tpm,'dec'],['EFF',nbaStats.eff,'dec'],['DD',nbaStats.dd,'int'],['TD',nbaStats.td,'int'],['MJ',nbaStats.gp,'int']] as any[]).map(([l,v,t]:any)=>(<div key={l} style={{textAlign:'center',padding:'0.22em 0.08em',border:'1px solid rgba(64,232,255,0.14)',borderRadius:'0.25em',background:'rgba(64,232,255,0.04)'}}><span style={{display:'block',fontSize:'0.5em',color:'rgba(64,232,255,0.72)',letterSpacing:'0.04em',fontWeight:700,textTransform:'uppercase'}}>{l}</span><span style={{display:'block',fontSize:'0.82em',fontWeight:900,color:WV,lineHeight:1.15}}>{fv(v,t)}</span></div>))}
                     </div>
-                  ))}
-                </div>
-                <p style={{margin:'0.3rem 0 0',fontSize:'0.38rem',color:'rgba(64,232,255,0.3)',letterSpacing:'0.04em',textAlign:'right'}}>aligné L10 · source Sorare</p>
-              </div>
+                    <p style={{margin:'0.3em 0 0',fontSize:'0.42em',color:'rgba(64,232,255,0.3)',letterSpacing:'0.04em',textAlign:'right'}}>align{'é'} L10 {'·'} source Sorare</p>
+                  </div>
+                )}
+                {!nbaLoading&&!nbaStats&&<p style={{margin:0,fontSize:'0.58em',color:'rgba(64,232,255,0.28)',letterSpacing:'0.06em'}}>stats non disponibles</p>}
+              </>
+            ):(
+              <>
+                <p style={lab}>FOOT {'·'} 15 derniers matchs</p>
+                {footLoading&&<p style={{margin:0,fontSize:'0.62em',color:'rgba(64,232,255,0.42)',letterSpacing:'0.14em'}}>CHARGEMENT...</p>}
+                {!footLoading&&footStats&&(
+                  <div style={{width:'100%'}}>
+                    <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:'0.2em'}}>
+                      {([['⚽','Buts',footStats.goals],['👟','Passes décisives',footStats.assists],['🎯','Tirs cadrés',footStats.shots],['➡️','Passes réussies',footStats.passes],['🏟','Matchs joués',footStats.matches],['👕','Titularisations',footStats.starts],['🧤','Clean sheets',footStats.cleanSheet],['💪','Duels gagnés',footStats.duelWon],['🛡️','Ballons récupérés',footStats.recov],['🟨','Cartons jaunes',footStats.yellow],['🟥','Cartons rouges',footStats.red],['⏱','Minutes jouées',footStats.mins]] as [string,string,any][]).map(([pic,labx,v])=>(
+                        <div key={labx} title={labx} style={{textAlign:'center',padding:'0.22em 0.08em',border:'1px solid rgba(64,232,255,0.14)',borderRadius:'0.25em',background:'rgba(64,232,255,0.04)'}}>
+                          <span style={{display:'block',fontSize:'0.9em',lineHeight:1.1}}>{pic}</span>
+                          <span style={{display:'block',fontSize:'0.82em',fontWeight:900,color:WV,lineHeight:1.25}}>{v==null?'—':(labx==='Minutes jouées'?Math.round(Number(v)):v)}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <p style={{margin:'0.3em 0 0',fontSize:'0.42em',color:'rgba(64,232,255,0.3)',letterSpacing:'0.04em',textAlign:'right'}}>align{'é'} L10 {'·'} source Sorare</p>
+                  </div>
+                )}
+                {!footLoading&&!footStats&&<p style={{margin:0,fontSize:'0.58em',color:'rgba(64,232,255,0.28)',letterSpacing:'0.06em'}}>stats non disponibles</p>}
+              </>
             )}
-            {!footLoading&&!footStats&&<p style={{margin:0,fontSize:'0.58rem',color:'rgba(64,232,255,0.28)',letterSpacing:'0.06em'}}>stats non disponibles</p>}
-          </>
-        )}
+          </div>
+        </div>
       </div>
-      <div style={{display:'flex',gap:'0.4rem',marginBottom:'0.3rem',flexShrink:0}}>
+      <div style={{display:'flex',gap:'0.4em',marginTop:'0.15em',marginBottom:'0.2em',flexShrink:0}}>
         {card.slug&&(
           <a href={isNBA(card)?('https://sorare.com/fr/nba/players/'+(card.anyPlayer?.slug||card.slug.split('-').filter((_:any,i:number,a:any)=>i<a.length-3).join('-'))+'?sale=true'):('https://sorare.com/fr/football/players/'+(card.anyPlayer?.slug||card.slug.split('-').filter((_:any,i:number,a:any)=>i<a.length-3).join('-'))+'?sale=true')}
             target='_blank' rel='noopener noreferrer' className='stat-link-btn'
-            style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',gap:'0.3rem',padding:'0.3rem 0',borderRadius:'0.25rem',border:'1px solid rgba(64,232,255,0.5)',background:'rgba(64,232,255,0.06)',color:'#ffffff',fontSize:'0.55rem',fontWeight:800,letterSpacing:'0.1em',textDecoration:'none',cursor:'pointer'}}>
-            <img src="/sorare-logo.png" alt="S" style={{width:'14px',height:'14px',borderRadius:'50%',objectFit:'cover'}} onError={(e:any)=>{e.target.style.display='none';}}/> SORARE
+            style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',gap:'0.3em',padding:'0.45em 0',borderRadius:'0.3em',border:'1px solid rgba(64,232,255,0.5)',background:'rgba(64,232,255,0.06)',color:'#ffffff',fontSize:'0.6em',fontWeight:800,letterSpacing:'0.1em',textDecoration:'none',cursor:'pointer'}}>
+            <img src="/sorare-logo.png" alt="S" style={{width:'1.1em',height:'1.1em',borderRadius:'50%',objectFit:'cover'}} onError={(e:any)=>{e.target.style.display='none';}}/> SORARE
           </a>
         )}
       </div>
-
     </div>
   );
 });
