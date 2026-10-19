@@ -289,7 +289,7 @@ export const StatPanel=memo(({card,onClose,isClosing=false,placement='scene'}:an
                 <span style={{fontSize:'2em',fontWeight:900,lineHeight:1,color:beat.pct>=50?'#4ade80':'#ef4444',textShadow:'0 0 16px '+(beat.pct>=50?'rgba(74,222,128,0.5)':'rgba(239,68,68,0.5)')}}>{beat.pct}%</span>
                 <span style={{fontSize:'0.62em',color:'rgba(234,242,255,0.82)',lineHeight:1.35}}>a d{'é'}pass{'é'} son L10 sur <b style={{color:WV}}>{beat.pct}%</b> de ses {beat.games} derniers matchs jou{'é'}s</span>
               </div>
-            ):(<p style={{margin:0,fontSize:'0.62em',color:'rgba(64,232,255,0.3)',letterSpacing:'0.06em'}}>{beat?'données indisponibles':'…'}</p>)}
+            ):(<p style={{margin:0,fontSize:'0.62em',color:'rgba(64,232,255,0.3)',letterSpacing:'0.06em'}}>{beat?(beat.games?('échantillon insuffisant ('+beat.games+' matchs joués)'):'données indisponibles'):'…'}</p>)}
           </div>
           <div style={{...box,overflow:'hidden'}}>
             {isNBA(card)?(
