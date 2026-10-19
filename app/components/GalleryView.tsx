@@ -57,9 +57,15 @@ const GalleryCard=memo(({card,isFlipped,onFlip,glowScale}:any)=>{
   const rc=RARITY_COLOR[card.rarityTyped]||'#9ca3af';
   const {serial,season}=parseCard(card.name);
   const score=card.averageScore!=null?String(card.averageScore):null;
-  const pname=(String(card.name.split('•')[0]||'').replace(/\d{4}-\d{2}/,'').trim())||(card.anyPlayer?.lastName||'');
+  // Nom : initiale du prenom + nom, police adaptative selon la longueur (ex. V. WEMBANYAMA reduit, N. JOKIC gros).
+  const _left=String(card.name.split('•')[0]||'').replace(/\d{4}-\d{2}/,'').trim();
+  const _parts=_left.split(' ').filter(Boolean);
+  const _lastName=(card.anyPlayer?.lastName||_parts[_parts.length-1]||'').toUpperCase();
+  const _firstInit=((_parts[0]||_lastName)[0]||'').toUpperCase();
+  const disp=_firstInit?(_firstInit+'. '+_lastName):_lastName;
+  const nameFont=(disp.length<=8?8:disp.length<=11?6.6:disp.length<=14?5.4:disp.length<=17?4.6:4);
   const team=card.anyTeam?.name||'';
-  const meta=[isNBA(card)?'NBA':'FOOT',team,season].filter(Boolean).join(' · ');
+  const comp=isNBA(card)?'NBA':'FOOT';
   const rarLabel=card.rarityTyped.replace('_',' ').toUpperCase();
   return(
     <div style={{perspective:'900px',cursor:'pointer',width:'100%',position:'relative',containerType:'inline-size'}} onClick={()=>onFlip(card.slug)} onMouseEnter={()=>setHover(true)} onMouseLeave={()=>setHover(false)}>
@@ -75,18 +81,23 @@ const GalleryCard=memo(({card,isFlipped,onFlip,glowScale}:any)=>{
                 <span style={{fontWeight:800,fontSize:'5.3cqw',letterSpacing:'0.02em',lineHeight:1,whiteSpace:'nowrap',background:'linear-gradient(180deg,#fff3c4,#f5d76e 55%,#b8801a)',WebkitBackgroundClip:'text',backgroundClip:'text',color:'transparent'}}>myNFTlocker</span>
               </span>
             </div>
-            <div style={{display:'flex',alignItems:'flex-end',justifyContent:'space-between',gap:'4cqw'}}>
-              <div style={{minWidth:0}}>
-                <div style={{fontWeight:800,fontSize:'7.6cqw',lineHeight:0.98,letterSpacing:'0.01em',color:'#eef4ff',textTransform:'uppercase' as const,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',textShadow:'0 0 14px rgba(53,230,255,0.12)'}}>{pname}</div>
-                <div style={{fontSize:'4cqw',color:'#8a97ad',marginTop:'1.2cqw',letterSpacing:'0.02em',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{meta}</div>
-                <span style={{display:'inline-block',marginTop:'2cqw',fontFamily:'ui-monospace,Menlo,monospace',fontSize:'3.5cqw',letterSpacing:'0.14em',textTransform:'uppercase' as const,padding:'0.8cqw 2.4cqw',borderRadius:'999px',border:'1px solid '+rc,color:rc}}>{rarLabel}</span>
-              </div>
-              <div style={{flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',gap:'2cqw',borderRadius:'4cqw',padding:'2cqw 2.8cqw 1.6cqw',border:'1px solid rgba(120,150,190,0.14)',background:'radial-gradient(120% 120% at 50% 0%,rgba(53,230,255,0.10),rgba(8,12,20,0.6))'}}>
-                {isNBA(card)?<SlabStars card={card} w={'11.3cqw'}/>:<FootStars n={Math.round(Number(card.anyPlayer?.gameplayTierStars)||0)} s={'3.8cqw'}/>}
-                <div style={{display:'flex',flexDirection:'column' as const,alignItems:'center',lineHeight:1}}>
-                  <div style={{fontWeight:800,fontSize:'8.7cqw',lineHeight:0.92,color:'#f5d76e',textShadow:'0 0 10px rgba(245,215,110,0.35)'}}>{score||'—'}</div>
-                  <div style={{fontFamily:'ui-monospace,Menlo,monospace',fontSize:'3.2cqw',letterSpacing:'0.1em',color:'#35e6ff',marginTop:'0.5cqw'}}>L10</div>
+            <div style={{display:'flex',alignItems:'stretch',justifyContent:'space-between',gap:'3cqw'}}>
+              <div style={{minWidth:0,display:'flex',flexDirection:'column' as const,justifyContent:'center',gap:'1cqw'}}>
+                <div style={{fontWeight:800,fontSize:nameFont+'cqw',lineHeight:1,letterSpacing:'0.01em',color:'#eef4ff',textTransform:'uppercase' as const,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',textShadow:'0 0 14px rgba(53,230,255,0.12)'}}>{disp}</div>
+                <div style={{display:'flex',flexDirection:'column' as const,gap:'0.4cqw'}}>
+                  <div style={{fontSize:'4cqw',color:'#cfd8e6',fontWeight:600,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{team}</div>
+                  <div style={{fontSize:'3.6cqw',color:'#8a97ad',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{comp} · {season}</div>
                 </div>
+              </div>
+              <div style={{flexShrink:0,display:'flex',flexDirection:'column' as const,alignItems:'center',justifyContent:'center',gap:'2cqw'}}>
+                <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'2cqw',borderRadius:'4cqw',padding:'2cqw 2.8cqw 1.6cqw',border:'1px solid rgba(120,150,190,0.14)',background:'radial-gradient(120% 120% at 50% 0%,rgba(53,230,255,0.10),rgba(8,12,20,0.6))'}}>
+                  {isNBA(card)?<SlabStars card={card} w={'11.3cqw'}/>:<FootStars n={Math.round(Number(card.anyPlayer?.gameplayTierStars)||0)} s={'3.8cqw'}/>}
+                  <div style={{display:'flex',flexDirection:'column' as const,alignItems:'center',lineHeight:1}}>
+                    <div style={{fontWeight:800,fontSize:'8.7cqw',lineHeight:0.92,color:'#f5d76e',textShadow:'0 0 10px rgba(245,215,110,0.35)'}}>{score||'—'}</div>
+                    <div style={{fontFamily:'ui-monospace,Menlo,monospace',fontSize:'3.2cqw',letterSpacing:'0.1em',color:'#35e6ff',marginTop:'0.5cqw'}}>L10</div>
+                  </div>
+                </div>
+                <span style={{fontFamily:'ui-monospace,Menlo,monospace',fontSize:'3.5cqw',letterSpacing:'0.14em',textTransform:'uppercase' as const,padding:'0.8cqw 2.6cqw',borderRadius:'999px',border:'1px solid '+rc,color:rc,whiteSpace:'nowrap'}}>{rarLabel}</span>
               </div>
             </div>
           </div>

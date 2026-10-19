@@ -71,42 +71,46 @@ export const CardBack=memo(({card,rc,mobile}:any)=>{
   return(
     <div style={{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'rotateY(180deg)',borderRadius:'0.4rem',overflow:'hidden',background:'radial-gradient(ellipse 130% 90% at 50% 0%,#191b24 0%,#0c0d14 60%,#06070d 100%)',display:'flex',flexDirection:'column' as const,border:'1px solid '+rc+'44'}}>
       <div style={{height:'3px',background:'linear-gradient(90deg,transparent,'+rc+',transparent)'}}></div>
-      <div style={{padding:'0.35rem 0.4rem 0.3rem',textAlign:'center',borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
+      <div style={{padding:sz('0.45rem',7.2)+' '+sz('0.65rem',10.4)+' '+sz('0.38rem',6),textAlign:'center',borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
         <p style={{margin:0,fontSize:sz('0.6rem',9.6),color:'#e3c074',fontWeight:900,letterSpacing:'0.08em'}}>myNFTlocker</p>
         <p style={{margin:'1px 0 0',fontSize:sz('0.48rem',7.68),color:'#9aa3b2',fontWeight:600,letterSpacing:'0.1em'}}>{isNBA(card)?'NBA':'FOOT'} • {season}</p>
       </div>
-      <div style={{flex:1,minHeight:0,display:'flex',flexDirection:'column' as const,alignItems:'center',justifyContent:'center',padding:'0.2rem 0.3rem',overflow:'hidden'}}>
-        <p style={{margin:0,width:'100%',fontSize:nfsCard(ln.length),fontWeight:900,color:'#fff',lineHeight:1.05,textAlign:'center',textShadow:'0 0 14px '+rc+'aa',overflow:'hidden'}}>{ln}</p>
-        <p style={{margin:'2px 0 0',fontSize:sz('0.5rem',8),color:'#9aa3b2',fontWeight:700,letterSpacing:'0.05em'}}>{sn!==null?('#'+sn):''}{(sn!==null&&serial)?'  ·  ':''}{serial||''}</p>
-      </div>
-      <div style={{borderTop:'1px solid rgba(255,255,255,0.06)',padding:'0.4rem 0.3rem',textAlign:'center'}}>
-        <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:sz('0.45rem',7.2),lineHeight:1}}>
-          <span style={{fontSize:sz('1.4rem',22.4),fontWeight:900,color:'#fff',lineHeight:1,textShadow:score?('0 0 14px '+rc+'aa'):'none'}}>{score||'—'}</span>
-          {stars!=null&&isNBA(card)&&(
-            <svg viewBox='0 0 100 100' style={{width:sz('2rem',32),height:sz('2rem',32),flexShrink:0,overflow:'visible'}}>
-              <defs>
-                <linearGradient id={'gold'+starUid} x1='0' y1='0' x2='0' y2='1'>
-                  <stop offset='0' stopColor='#fff6b0'/><stop offset='0.45' stopColor='#f5d76e'/><stop offset='1' stopColor='#c9870f'/>
-                </linearGradient>
-              </defs>
-              <polygon points='50,3 92,27 92,73 50,97 8,73 8,27' fill={tierCol} fillOpacity='0.22' stroke={tierCol} strokeWidth='4' strokeOpacity='0.9'/>
-              {starPos.map((p,i)=>{
-                const f=starFrac(i);const sc=1.15;const off=12*sc;const cid='c'+starUid+i;
-                return(<g key={i} transform={'translate('+(p[0]-off)+','+(p[1]-off)+') scale('+sc+')'}>
-                  <path d={STAR_PATH} fill='rgba(255,255,255,0.16)'/>
-                  <clipPath id={cid}><rect x='0' y='0' width={24*f} height='24'/></clipPath>
-                  <path d={STAR_PATH} fill={'url(#gold'+starUid+')'} clipPath={'url(#'+cid+')'} style={{filter:'drop-shadow(0 0 1.5px rgba(245,215,110,0.7))'}}/>
-                </g>);
-              })}
-            </svg>
-          )}
-          {stars!=null&&!isNBA(card)&&(
-            <FootStars n={Math.round(stars)} s={sz('0.9rem',14.4)}/>
-          )}
+      <div style={{flex:1,minHeight:0,display:'flex',flexDirection:'column' as const,alignItems:'center',padding:sz('0.5rem',8)+' '+sz('0.75rem',12)+' '+sz('0.3rem',4.8),overflow:'hidden'}}>
+        {/* nom en haut de la zone, marges laterales accrues */}
+        <div style={{width:'100%',marginTop:sz('0.35rem',5.6),textAlign:'center' as const}}>
+          <p style={{margin:0,width:'100%',fontSize:nfsCard(ln.length),fontWeight:900,color:'#fff',lineHeight:1.05,textAlign:'center',textShadow:'0 0 14px '+rc+'aa',overflow:'hidden',whiteSpace:'nowrap' as const,textOverflow:'ellipsis'}}>{ln}</p>
+          <p style={{margin:sz('0.3rem',4.8)+' 0 0',fontSize:sz('0.5rem',8),color:'#9aa3b2',fontWeight:700,letterSpacing:'0.05em'}}>{sn!==null?('#'+sn):''}{(sn!==null&&serial)?'  ·  ':''}{serial||''}</p>
         </div>
-        <p style={{margin:'3px 0 0',fontSize:sz('0.42rem',6.72),color:rc,textTransform:'uppercase',fontWeight:800,letterSpacing:'0.1em'}}>MOYENNE L10</p>
+        {/* bloc L10 + etoiles : recentre dans l'espace restant (entre le nom et le bas) */}
+        <div style={{margin:'auto 0',textAlign:'center' as const}}>
+          <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:sz('0.45rem',7.2),lineHeight:1}}>
+            <span style={{fontSize:sz('1.4rem',22.4),fontWeight:900,color:'#fff',lineHeight:1,textShadow:score?('0 0 14px '+rc+'aa'):'none'}}>{score||'—'}</span>
+            {stars!=null&&isNBA(card)&&(
+              <svg viewBox='0 0 100 100' style={{width:sz('2rem',32),height:sz('2rem',32),flexShrink:0,overflow:'visible'}}>
+                <defs>
+                  <linearGradient id={'gold'+starUid} x1='0' y1='0' x2='0' y2='1'>
+                    <stop offset='0' stopColor='#fff6b0'/><stop offset='0.45' stopColor='#f5d76e'/><stop offset='1' stopColor='#c9870f'/>
+                  </linearGradient>
+                </defs>
+                <polygon points='50,3 92,27 92,73 50,97 8,73 8,27' fill={tierCol} fillOpacity='0.22' stroke={tierCol} strokeWidth='4' strokeOpacity='0.9'/>
+                {starPos.map((p,i)=>{
+                  const f=starFrac(i);const sc=1.15;const off=12*sc;const cid='c'+starUid+i;
+                  return(<g key={i} transform={'translate('+(p[0]-off)+','+(p[1]-off)+') scale('+sc+')'}>
+                    <path d={STAR_PATH} fill='rgba(255,255,255,0.16)'/>
+                    <clipPath id={cid}><rect x='0' y='0' width={24*f} height='24'/></clipPath>
+                    <path d={STAR_PATH} fill={'url(#gold'+starUid+')'} clipPath={'url(#'+cid+')'} style={{filter:'drop-shadow(0 0 1.5px rgba(245,215,110,0.7))'}}/>
+                  </g>);
+                })}
+              </svg>
+            )}
+            {stars!=null&&!isNBA(card)&&(
+              <FootStars n={Math.round(stars)} s={sz('0.9rem',14.4)}/>
+            )}
+          </div>
+          <p style={{margin:sz('0.3rem',4.8)+' 0 0',fontSize:sz('0.42rem',6.72),color:rc,textTransform:'uppercase',fontWeight:800,letterSpacing:'0.1em'}}>MOYENNE L10</p>
+        </div>
       </div>
-      <div style={{display:'flex',gap:'0.3rem',padding:'0.3rem 0.4rem 0.45rem'}}>
+      <div style={{display:'flex',gap:'0.3rem',padding:sz('0.4rem',6.4)+' '+sz('0.65rem',10.4)+' '+sz('0.5rem',8)}}>
         <span style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',height:'1.05rem',borderRadius:'0.3rem',border:'1px solid '+rc+'55',background:rc+'15',fontSize:sz('0.46rem',7.36),fontWeight:800,color:rc,letterSpacing:'0.02em',whiteSpace:'nowrap'}}>BONUS {bonus||'—'}</span>
         <span style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',height:'1.05rem',borderRadius:'0.3rem',border:'1px solid '+rc+'55',background:'rgba(0,0,0,0.4)',fontSize:sz('0.46rem',7.36),fontWeight:700,color:rc,textTransform:'uppercase',letterSpacing:'0.02em',whiteSpace:'nowrap'}}>{card.rarityTyped.replace('_',' ')}</span>
       </div>
