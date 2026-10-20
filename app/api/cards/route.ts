@@ -10,13 +10,13 @@ export async function GET(request:NextRequest){
     ...on NBACard{
       seasonYear specialEdition power xp
       averageScore(type:LAST_TEN_PLAYED_SO5_AVERAGE_SCORE)
-      cardStats{ so5LineupsCount highlightedStats{ type value } }
+      cardStats{ so5LineupsCount bestSo5Appearance{ score } highlightedStats{ type value } }
     }
     ...on Card{
       seasonYear specialEdition power xp
       averageScore(type:LAST_TEN_PLAYED_SO5_AVERAGE_SCORE)
       rawSo5Scores(last:10)
-      cardStats{ so5LineupsCount highlightedStats{ type value } }
+      cardStats{ so5LineupsCount bestSo5Appearance{ score } highlightedStats{ type value } }
     }
   }pageInfo{hasNextPage endCursor}}}}`;
   try{
@@ -38,7 +38,10 @@ export async function GET(request:NextRequest){
       const beatL10=b&&b.value!=null?Number(b.value):null;
       const beatGw=n?.cardStats?.so5LineupsCount!=null?Number(n.cardStats.so5LineupsCount):null;
       const beatPct=(beatL10!=null&&beatGw&&beatGw>0)?Math.round((beatL10/beatGw)*100):null;
-      return {...n,beatL10,beatGw,beatPct};
+      // GW Record = meilleur score de la carte sur une gameweek (Highest Score du dos de carte)
+      const rs=n?.cardStats?.bestSo5Appearance?.score;
+      const gwRecord=(rs!=null&&Number(rs)>0)?Number(rs):null;
+      return {...n,beatL10,beatGw,beatPct,gwRecord};
     });
     return NextResponse.json({cards:nodes,hasNextPage:data.pageInfo.hasNextPage,cursor:data.pageInfo.endCursor,auth:!!(jwt&&aud)});
   }catch(e){return NextResponse.json({error:String(e)},{status:500});}

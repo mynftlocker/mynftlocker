@@ -444,7 +444,7 @@ export default function Home() {
     if(!slug)return;
     setLoading(true);setError('');setFlippedSlug(null);setLockerStart(0);sportAutoSetRef.current=false;
     // Cache localStorage (TTL 1h)
-    const CACHE_KEY='mnfl_v2_'+slug;
+    const CACHE_KEY='mnfl_v3_'+slug;// v3 : force le rechargement des cartes (nouveaux champs gwRecord/beatPct)
     try{
       const cached=localStorage.getItem(CACHE_KEY);
       if(cached){const{c:cc,ts}=JSON.parse(cached);if(Date.now()-ts<3600000&&cc?.length>0){setCards(cc);setLoading(false);return;}}
@@ -637,6 +637,12 @@ export default function Home() {
     if(gSort==='rarity')sorted=[...r].sort((a:any,b:any)=>(RARITY_ORDER[a.rarityTyped]??9)-(RARITY_ORDER[b.rarityTyped]??9));
     else if(gSort==='name')sorted=[...r].sort((a:any,b:any)=>(a.anyPlayer?.lastName||'').localeCompare(b.anyPlayer?.lastName||''));
     else if(gSort==='stars')sorted=[...r].sort((a:any,b:any)=>{const sa=Number(a.anyPlayer?.gameplayTierStars??-1),sb=Number(b.anyPlayer?.gameplayTierStars??-1);if(sb!==sa)return sb-sa;return parseFloat(String(b.averageScore||0))-parseFloat(String(a.averageScore||0));});
+    else if(gSort==='record'){
+      // GW Record = meilleur score de la carte sur une GW. Les cartes sans record (jamais alignees) restent TOUJOURS en bas, quel que soit le sens.
+      const has=[...r].filter((c:any)=>c.gwRecord!=null).sort((a:any,b:any)=>Number(b.gwRecord)-Number(a.gwRecord));
+      const none=r.filter((c:any)=>c.gwRecord==null);
+      return [...(gDir==='asc'?has.reverse():has),...none];
+    }
     else if(gSort==='beat'){
       // %Beat L10 sur l'historique complet de la carte (beatL10/GW alignes). Seuil mini pour qu'un 1/1=100% ne passe pas devant une carte fiable.
       const MIN_GW=10;
@@ -742,7 +748,7 @@ export default function Home() {
             <FilterMenu title='Saison' options={seasonOpts} current={fSeason} onSelect={setFSeason}/>
             <FilterMenu title='Rareté' options={rarityOpts} current={fRarity} onSelect={setFRarity}/>
             <FilterMenu title='Édition de la carte' options={specialOpts} current={fSpecial} onSelect={setFSpecial}/>
-            <FilterMenu title='Tri' options={mode==='locker'?[{value:'majeur',label:'L10 Max'},{value:'manual',label:'Manuel'},{value:'collection',label:'Alphabétique'}]:[{value:'default',label:'Défaut'},{value:'score',label:'L10'},{value:'beat',label:'%Beat L10'},{value:'stars',label:'Étoiles'},{value:'rarity',label:'Rareté'},{value:'name',label:'Nom'}]} current={mode==='locker'?lockerSort:gSort} onSelect={(v:string)=>{if(mode==='locker'){setLockerSort(v as any);}else{setGSort(v as any);}}}/>
+            <FilterMenu title='Tri' options={mode==='locker'?[{value:'majeur',label:'L10 Max'},{value:'manual',label:'Manuel'},{value:'collection',label:'Alphabétique'}]:[{value:'default',label:'Défaut'},{value:'score',label:'L10'},{value:'beat',label:'%Beat L10'},{value:'record',label:'GW Record'},{value:'stars',label:'Étoiles'},{value:'rarity',label:'Rareté'},{value:'name',label:'Nom'}]} current={mode==='locker'?lockerSort:gSort} onSelect={(v:string)=>{if(mode==='locker'){setLockerSort(v as any);}else{setGSort(v as any);}}}/>
             {(mode==='gallery'||lockerSort==='collection')&&(
               <button onClick={()=>setGDir(d=>d==='desc'?'asc':'desc')} style={{width:'100%',boxSizing:'border-box' as const,padding:'0.3rem',marginTop:'0.45rem',background:'rgba(64,232,255,0.08)',border:'1px solid rgba(64,232,255,0.3)',borderRadius:'0.18rem',color:'#40e8ff',fontSize:'0.64rem',cursor:'pointer',letterSpacing:'0.08em',display:'flex',alignItems:'center',justifyContent:'center',gap:'0.4rem'}}>{gDir==='desc'?'↓ Décroissant':'↑ Croissant'}</button>
             )}
@@ -1014,7 +1020,7 @@ export default function Home() {
             <FilterMenu title='Saison' options={seasonOpts} current={fSeason} onSelect={setFSeason}/>
             <FilterMenu title='Rareté' options={rarityOpts} current={fRarity} onSelect={setFRarity}/>
             <FilterMenu title='Édition de la carte' options={specialOpts} current={fSpecial} onSelect={setFSpecial}/>
-            <FilterMenu title='Tri' options={mode==='locker'?[{value:'majeur',label:'L10 Max'},{value:'manual',label:'Manuel'},{value:'collection',label:'Alphabétique'}]:[{value:'default',label:'Défaut'},{value:'score',label:'L10'},{value:'beat',label:'%Beat L10'},{value:'stars',label:'Étoiles'},{value:'rarity',label:'Rareté'},{value:'name',label:'Nom'}]} current={mode==='locker'?lockerSort:gSort} onSelect={(v:string)=>{if(mode==='locker'){setLockerSort(v as any);}else{setGSort(v as any);}}}/>
+            <FilterMenu title='Tri' options={mode==='locker'?[{value:'majeur',label:'L10 Max'},{value:'manual',label:'Manuel'},{value:'collection',label:'Alphabétique'}]:[{value:'default',label:'Défaut'},{value:'score',label:'L10'},{value:'beat',label:'%Beat L10'},{value:'record',label:'GW Record'},{value:'stars',label:'Étoiles'},{value:'rarity',label:'Rareté'},{value:'name',label:'Nom'}]} current={mode==='locker'?lockerSort:gSort} onSelect={(v:string)=>{if(mode==='locker'){setLockerSort(v as any);}else{setGSort(v as any);}}}/>
             {(mode==='gallery'||lockerSort==='collection')&&(
               <button onClick={()=>setGDir(d=>d==='desc'?'asc':'desc')} style={{width:'100%',boxSizing:'border-box' as const,padding:'0.3rem',marginTop:'0.45rem',background:'rgba(64,232,255,0.08)',border:'1px solid rgba(64,232,255,0.3)',borderRadius:'0.18rem',color:'#40e8ff',fontSize:'0.64rem',cursor:'pointer',letterSpacing:'0.08em',display:'flex',alignItems:'center',justifyContent:'center',gap:'0.4rem'}}>{gDir==='desc'?'↓ Décroissant':'↑ Croissant'}</button>
             )}
