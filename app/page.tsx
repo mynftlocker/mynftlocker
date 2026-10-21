@@ -208,7 +208,7 @@ const COUNTRY_FR: Record<string,string> = {
   'za':'Afrique du Sud','eg':'Egypte','cm':'Cameroun','gh':'Ghana',
   'ci':'Cote d Ivoire','tn':'Tunisie','int':'International',
 };
-const countryFR=(slug:string)=>slug==='__NATIONAL__'?'Selection Nationale':(COUNTRY_FR[slug]||'Autres pays');
+const countryFR=(slug:string)=>slug==='__NATIONAL__'?'Sélection nationale':(COUNTRY_FR[slug]||'Autres pays');
 
 const FootTeamMenu=({countries,teamsByCountry,country,team,onPickCountry,onPickTeam}:any)=>{
   const [open,setOpen]=useState(false);
@@ -260,7 +260,7 @@ const FootTeamMenu=({countries,teamsByCountry,country,team,onPickCountry,onPickT
       onMouseEnter={enter}
       onMouseLeave={()=>{setOpen(false);setHoveredCountry(null);}}>
       <div style={{width:'100%',padding:'0.35rem 0.5rem',borderRadius:'0.15rem',background:open?'rgba(111,195,232,0.08)':'transparent',borderLeft:open?'2px solid #6fc3e8':'2px solid transparent',cursor:'default',transition:'all 0.12s'}}>
-        <p style={{fontSize:'0.64rem',fontWeight:800,letterSpacing:'0.14em',textTransform:'uppercase',color:'#eaf2ff',margin:'0 0 0.05rem'}}>Equipe</p>
+        <p style={{fontSize:'0.64rem',fontWeight:800,letterSpacing:'0.14em',textTransform:'uppercase',color:'#eaf2ff',margin:'0 0 0.05rem'}}>Équipe</p>
         <p style={{fontSize:'0.8rem',fontWeight:500,color:open?'#6fc3e8':'#ffffff',opacity:open?1:0.6,margin:0,display:'flex',alignItems:'center',justifyContent:'space-between'}}>{label} <span style={{fontSize:'0.7rem',opacity:0.7}}>›</span></p>
       </div>
       {open&&mounted&&createPortal(
@@ -485,7 +485,7 @@ export default function Home() {
       }
       console.log('=== LOAD DONE === cartes:'+all.length+' pages:'+pageNum);
       if(all.length>0){try{localStorage.setItem(CACHE_KEY,JSON.stringify({c:all,ts:Date.now()}));}catch(e){}}
-    }catch(e){if(all.length===0){setError('Erreur reseau');setOpenPhase(0);}}
+    }catch(e){if(all.length===0){setError('Erreur réseau');setOpenPhase(0);}}
     setLoading(false);
   };
   const handleIntroClick=useCallback(()=>{if(!slug||loading||openPhase>0)return;fragStartedRef.current=false;setOpenPhase(1);fetchCards();},[slug,loading,openPhase]);
@@ -519,7 +519,7 @@ export default function Home() {
       const body = authMode==='signup' ? {pseudo:authPseudo,email:authEmail,password:authPassword,sorareSlug:authSlugField||undefined} : {email:authEmail,password:authPassword};
       const r = await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
       const d = await r.json();
-      if(!r.ok){ setAuthError(d.error==='email_deja_utilise'?'Cet email est deja utilise.':d.error==='identifiants_invalides'?'Email ou mot de passe incorrect.':d.error==='mot_de_passe_invalide'?'Mot de passe : 8 caracteres min, 1 majuscule, 1 chiffre, 1 caractere special.':d.error==='slug_requis'?'Le slug Sorare est obligatoire.':'Une erreur est survenue.'); setAuthLoading(false); return; }
+      if(!r.ok){ setAuthError(d.error==='email_deja_utilise'?'Cet email est déjà utilisé.':d.error==='identifiants_invalides'?'Email ou mot de passe incorrect.':d.error==='mot_de_passe_invalide'?'Mot de passe : 8 caracteres min, 1 majuscule, 1 chiffre, 1 caractere special.':d.error==='slug_requis'?'Le slug Sorare est obligatoire.':'Une erreur est survenue.'); setAuthLoading(false); return; }
       if(d.pendingVerification){
         setAuthLoading(false);
         setAuthError('');
@@ -666,9 +666,9 @@ export default function Home() {
   const sideBg='rgba(12,14,19,0.82)';
 
   // Bloc filtres vertical (barre laterale)
-  const rarityOpts=[{value:'all',label:'Toutes les raretés'},{value:'common',label:'SET'},{value:'limited',label:'Limited'},{value:'rare',label:'Rare'},{value:'super_rare',label:'Super Rare'},{value:'unique',label:'Unique'}];
-  const seasonOpts=[{value:'all',label:'Toutes saisons'},...seasonOptions.map(y=>({value:String(y),label:y+'-'+String((y+1)%100).padStart(2,'0')}))];
-  const specialOpts=[{value:'all',label:'Toutes cartes'},{value:'standard',label:'STANDARD UNIQUEMENT'},{value:'special',label:'SPÉCIALES UNIQUEMENT'},...specialOptions.map(s=>({value:s,label:s}))];
+  const rarityOpts=[{value:'all',label:'Toutes les raretés'},{value:'common',label:'Set'},{value:'limited',label:'Limited'},{value:'rare',label:'Rare'},{value:'super_rare',label:'Super Rare'},{value:'unique',label:'Unique'}];
+  const seasonOpts=[{value:'all',label:'Toutes les saisons'},...seasonOptions.map(y=>({value:String(y),label:y+'-'+String((y+1)%100).padStart(2,'0')}))];
+  const specialOpts=[{value:'all',label:'Toutes les cartes'},{value:'standard',label:'Standard uniquement'},{value:'special',label:'Spéciales uniquement'},...specialOptions.map(s=>({value:s,label:s.charAt(0)+s.slice(1).toLowerCase()}))]; // labels en "Majuscule initiale" (valeurs techniques inchangées)
   // (composant Filters retiré — filtres inlinés dans la sidebar)
 
   return(
@@ -698,7 +698,7 @@ export default function Home() {
             <div style={{display:'flex',alignItems:'center',gap:'0.4rem',padding:'0.1rem 0.4rem'}}>
               {(()=>{const b=collectionBadge(cards.length);return(<img title={cards.length+' cartes'} src={'/'+b.img} alt='' style={{width:'34px',height:'34px',flexShrink:0,objectFit:'contain'}} onError={(e)=>{(e.target as HTMLImageElement).style.display='none';}}/>);})()}
               <span style={{flex:1,minWidth:0,fontSize:'0.63rem',color:'#7a8898',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{cards.length+' cartes'}</span>
-              <span onClick={e=>{e.stopPropagation();setSlugPanelOpen(o=>!o);}} title='Changer de galerie consultee' style={{fontSize:'0.85rem',color:slugPanelOpen?'#f5d76e':'#6fc3e8',opacity:0.85,padding:'0.1rem 0.3rem',cursor:'pointer',flexShrink:0}}>⇄</span>
+              <span onClick={e=>{e.stopPropagation();setSlugPanelOpen(o=>!o);}} title='Changer de galerie consultée' style={{fontSize:'0.85rem',color:slugPanelOpen?'#f5d76e':'#6fc3e8',opacity:0.85,padding:'0.1rem 0.3rem',cursor:'pointer',flexShrink:0}}>⇄</span>
             </div>
           )}
           {(slugPanelOpen||cards.length===0)&&(
@@ -713,9 +713,9 @@ export default function Home() {
               {key:'infos',label:'Informations personnelles'},
               {key:'auth',label:'Authentification'},
               {key:'abo',label:'Abonnement'},
-              {key:'confidentialite',label:'Confidentialite & donnees'},
+              {key:'confidentialite',label:'Confidentialité & données'},
               {key:'aide',label:'Aide / Contact'},
-              {key:'deconnexion',label:'Se deconnecter'},
+              {key:'deconnexion',label:'Se déconnecter'},
             ].map(item=>(
                 <div key={item.key} onClick={()=>{if(item.key==='deconnexion'){handleLogout();}else{setAcctMenuSection(item.key);setAcctOpen(false);}}} style={{padding:'0.5rem 0.7rem',fontSize:'0.72rem',color:item.key==='deconnexion'?'#fca5a5':'#cfe4fb',cursor:'pointer',borderBottom:'1px solid rgba(255,255,255,0.05)',transition:'background 0.12s'}} onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.background='rgba(111,195,232,0.1)';}} onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.background='transparent';}}>{item.label}</div>
               ))}
@@ -756,7 +756,7 @@ export default function Home() {
             {mode==='locker'&&(
               <>
               <button onClick={resetFilters} style={{width:'100%',boxSizing:'border-box' as const,padding:'0.3rem',background:'rgba(111,195,232,0.1)',border:'1px solid rgba(111,195,232,0.35)',borderRadius:'0.18rem',color:'#6fc3e8',fontSize:'0.64rem',cursor:'pointer',letterSpacing:'0.08em',marginTop:'0.5rem'}}>↺ Réinitialiser les filtres</button>
-              <button onClick={()=>handleSetDefault(teamApi)} style={{width:'100%',boxSizing:'border-box' as const,padding:'0.3rem',background:'rgba(212,175,55,0.12)',border:'1px solid rgba(212,175,55,0.35)',borderRadius:'0.18rem',color:'#e8c84a',fontSize:'0.64rem',cursor:'pointer',letterSpacing:'0.08em',marginTop:'0.3rem'}}>{defaultTeam===teamApi&&teamApi?'⭐ Par defaut : '+(teamApi==='__HOF__'?'Hall of Fame':teamApi):'⭐ Définir comme équipe par défaut'}</button>
+              <button onClick={()=>handleSetDefault(teamApi)} style={{width:'100%',boxSizing:'border-box' as const,padding:'0.3rem',background:'rgba(212,175,55,0.12)',border:'1px solid rgba(212,175,55,0.35)',borderRadius:'0.18rem',color:'#e8c84a',fontSize:'0.64rem',cursor:'pointer',letterSpacing:'0.08em',marginTop:'0.3rem'}}>{defaultTeam===teamApi&&teamApi?'⭐ Par défaut : '+(teamApi==='__HOF__'?'Hall of Fame':teamApi):'⭐ Définir comme équipe par défaut'}</button>
               </>
             )}
           </div>
@@ -766,7 +766,7 @@ export default function Home() {
       {/* ===== CONTENU ===== */}
       <div className='mnfl-content' style={{flex:1,marginLeft:'220px',minHeight:'100vh'}}>
         {acctMenuSection&&(()=>{
-          const SECTIONS:Record<string,string>={infos:'Informations personnelles',auth:'Authentification',abo:'Abonnement',confidentialite:'Confidentialite & donnees',aide:'Aide / Contact'};
+          const SECTIONS:Record<string,string>={infos:'Informations personnelles',auth:'Authentification',abo:'Abonnement',confidentialite:'Confidentialité & données',aide:'Aide / Contact'};
           const title=SECTIONS[acctMenuSection]||'Mon compte';
           const rowStyle:React.CSSProperties={display:'flex',justifyContent:'space-between',alignItems:'center',gap:'1rem',padding:'0.85rem 1rem',background:'rgba(255,255,255,0.03)',border:'1px solid rgba(111,195,232,0.18)',borderRadius:'0.4rem',marginBottom:'0.6rem'};
           const labelStyle:React.CSSProperties={fontSize:'0.72rem',color:'#7a8898',letterSpacing:'0.04em',textTransform:'uppercase'};
@@ -796,7 +796,7 @@ export default function Home() {
                 <div style={{textAlign:'center',padding:'3rem 1rem'}}>
                   <div style={{fontSize:'2.2rem',marginBottom:'1rem',opacity:0.5}}>🚧</div>
                   <p style={{color:'#cfe4fb',fontSize:'1rem',fontWeight:600,marginBottom:'0.5rem'}}>Bientot disponible</p>
-                  <p style={{color:'#7a8898',fontSize:'0.8rem',lineHeight:1.6,maxWidth:'360px',margin:'0 auto'}}>{acctMenuSection==='auth'?'Tu pourras bientot connecter ton compte Sorare officiel ici.':acctMenuSection==='abo'?'Les formules d’abonnement seront proposees ici le moment venu.':acctMenuSection==='confidentialite'?'Gestion de tes donnees et suppression de compte a venir.':'Un espace d’aide et de contact arrive prochainement.'}</p>
+                  <p style={{color:'#7a8898',fontSize:'0.8rem',lineHeight:1.6,maxWidth:'360px',margin:'0 auto'}}>{acctMenuSection==='auth'?'Tu pourras bientot connecter ton compte Sorare officiel ici.':acctMenuSection==='abo'?'Les formules d’abonnement seront proposees ici le moment venu.':acctMenuSection==='confidentialite'?'Gestion de tes données et suppression de compte à venir.':'Un espace d’aide et de contact arrive prochainement.'}</p>
                 </div>
               )}
             </div>
@@ -933,7 +933,7 @@ export default function Home() {
             {authMode==='signup'&&<input value={authPasswordConfirm} onChange={e=>setAuthPasswordConfirm(e.target.value)} placeholder='Confirmer le mot de passe' type={authShowPassword?'text':'password'} onKeyDown={e=>e.key==='Enter'&&submitAuth()} style={{width:'100%',boxSizing:'border-box' as const,background:'rgba(255,255,255,0.05)',border:'1px solid '+(authPasswordConfirm&&authPassword!==authPasswordConfirm?'rgba(252,165,165,0.6)':'rgba(64,232,255,0.3)'),color:'#cfe4fb',padding:'0.5rem 0.6rem',fontSize:'0.8rem',marginBottom:'0.3rem',fontFamily:'Courier New,monospace',outline:'none'}}/>}
             {authMode==='signup'&&<p style={{fontSize:'0.58rem',color:'rgba(207,228,251,0.45)',marginBottom:'0.7rem',lineHeight:1.4}}>8 caracteres min, 1 majuscule, 1 chiffre, 1 caractere special.</p>}
             {authError&&<p style={{color:'#fca5a5',fontSize:'0.66rem',marginBottom:'0.6rem'}}>{authError}</p>}
-            {authVerifyPending&&<p style={{color:'#7dd3fc',fontSize:'0.68rem',marginBottom:'0.7rem',lineHeight:1.5}}>Compte cree ! Verifie ta boite mail (et les spams) pour confirmer ton adresse avant de te connecter.</p>}
+            {authVerifyPending&&<p style={{color:'#7dd3fc',fontSize:'0.68rem',marginBottom:'0.7rem',lineHeight:1.5}}>Compte créé ! Vérifie ta boîte mail (et les spams) pour confirmer ton adresse avant de te connecter.</p>}
             <button onClick={submitAuth} disabled={authLoading||authVerifyPending} style={{width:'100%',background:'rgba(64,232,255,0.12)',border:'1px solid rgba(64,232,255,0.5)',color:'#40e8ff',padding:'0.55rem',fontSize:'0.72rem',fontWeight:700,letterSpacing:'0.15em',textTransform:'uppercase',cursor:authLoading?'not-allowed':'pointer',fontFamily:'Courier New,monospace',opacity:authLoading?0.5:1}}>{authLoading?'...':(authMode==='signup'?'S\'inscrire':'Se connecter')}</button>
             <p style={{textAlign:'center',marginTop:'0.8rem',fontSize:'0.66rem',color:'rgba(207,228,251,0.6)'}}>
               {authMode==='signup'?'Deja un compte ? ':'Pas encore de compte ? '}
@@ -977,7 +977,7 @@ export default function Home() {
               </div>
               {/* BADGE REPOSITIONNE : plus grand, sans cercle, juste avant le chevron */}
               {cards.length>0&&(()=>{const b=collectionBadge(cards.length);return(<img title={cards.length+' cartes'} src={'/'+b.img} alt='' style={{width:'46px',height:'46px',flexShrink:0,objectFit:'contain'}} onError={(e)=>{(e.target as HTMLImageElement).style.display='none';}}/>);})()}
-              <span onClick={e=>{e.stopPropagation();setSlugPanelOpen(o=>!o);}} title='Changer de galerie consultee' style={{fontSize:'1.5rem',lineHeight:1,color:slugPanelOpen?'#f5d76e':'#6fc3e8',opacity:0.95,padding:'0.35rem 0.5rem',borderRadius:'0.35rem',border:'1px solid rgba(111,195,232,0.35)',background:'rgba(111,195,232,0.06)',cursor:'pointer',flexShrink:0}}>⇄</span>
+              <span onClick={e=>{e.stopPropagation();setSlugPanelOpen(o=>!o);}} title='Changer de galerie consultée' style={{fontSize:'1.5rem',lineHeight:1,color:slugPanelOpen?'#f5d76e':'#6fc3e8',opacity:0.95,padding:'0.35rem 0.5rem',borderRadius:'0.35rem',border:'1px solid rgba(111,195,232,0.35)',background:'rgba(111,195,232,0.06)',cursor:'pointer',flexShrink:0}}>⇄</span>
               <span style={{fontSize:'1.1rem',color:'#6fc3e8',opacity:0.9,flexShrink:0,padding:'0.2rem'}}>{acctOpen?'▲':'▼'}</span>
               </div>
             </div>
@@ -987,9 +987,9 @@ export default function Home() {
                   {key:'infos',label:'Informations personnelles'},
                   {key:'auth',label:'Authentification'},
                   {key:'abo',label:'Abonnement'},
-                  {key:'confidentialite',label:'Confidentialite & donnees'},
+                  {key:'confidentialite',label:'Confidentialité & données'},
                   {key:'aide',label:'Aide / Contact'},
-                  {key:'deconnexion',label:'Se deconnecter'},
+                  {key:'deconnexion',label:'Se déconnecter'},
                 ].map(item=>(
                   <div key={item.key} onClick={()=>{if(item.key==='deconnexion'){handleLogout();setFiltersOpen(false);}else{setAcctMenuSection(item.key);setAcctOpen(false);setFiltersOpen(false);}}} style={{padding:'0.6rem 0.7rem',fontSize:'0.8rem',color:item.key==='deconnexion'?'#fca5a5':'#cfe4fb',cursor:'pointer',borderBottom:'1px solid rgba(255,255,255,0.05)'}}>{item.label}</div>
                 ))}
@@ -1028,7 +1028,7 @@ export default function Home() {
             {mode==='locker'&&(
               <>
               <button onClick={resetFilters} style={{width:'100%',boxSizing:'border-box' as const,padding:'0.3rem',background:'rgba(111,195,232,0.1)',border:'1px solid rgba(111,195,232,0.35)',borderRadius:'0.18rem',color:'#6fc3e8',fontSize:'0.64rem',cursor:'pointer',letterSpacing:'0.08em',marginTop:'0.5rem'}}>↺ Réinitialiser les filtres</button>
-              <button onClick={()=>handleSetDefault(teamApi)} style={{width:'100%',boxSizing:'border-box' as const,padding:'0.3rem',background:'rgba(212,175,55,0.12)',border:'1px solid rgba(212,175,55,0.35)',borderRadius:'0.18rem',color:'#e8c84a',fontSize:'0.64rem',cursor:'pointer',letterSpacing:'0.08em',marginTop:'0.3rem'}}>{defaultTeam===teamApi&&teamApi?'⭐ Par defaut : '+(teamApi==='__HOF__'?'Hall of Fame':teamApi):'⭐ Définir comme équipe par défaut'}</button>
+              <button onClick={()=>handleSetDefault(teamApi)} style={{width:'100%',boxSizing:'border-box' as const,padding:'0.3rem',background:'rgba(212,175,55,0.12)',border:'1px solid rgba(212,175,55,0.35)',borderRadius:'0.18rem',color:'#e8c84a',fontSize:'0.64rem',cursor:'pointer',letterSpacing:'0.08em',marginTop:'0.3rem'}}>{defaultTeam===teamApi&&teamApi?'⭐ Par défaut : '+(teamApi==='__HOF__'?'Hall of Fame':teamApi):'⭐ Définir comme équipe par défaut'}</button>
               </>
             )}
           </div>
