@@ -155,6 +155,51 @@ export const StarRating=({card,box}:{card:any;box:number})=>{
   return(<FootStars n={Math.round(stars)} s={Math.round(box/2.2)+'px'}/>);
 };
 
+// ===== PARTAGE : cadre "PARTAGER" du tableau de stats (galerie + vestiaire). L'image est preparee en arriere-plan a l'ouverture,
+// pour que les clics soient immediats (les navigateurs n'autorisent le partage natif qu'apres un clic de l'utilisateur). =====
+function ShareBlock({card,box,lab}:{card:any;box:React.CSSProperties;lab:React.CSSProperties}){
+  const [img,setImg]=useState<{blob:Blob,file:File,fname:string}|null>(null);
+  const [state,setState]=useState<'prep'|'ready'|'error'>('prep');
+  const [msg,setMsg]=useState('');
+  const [canShare,setCanShare]=useState(false);
+  const [canCopy,setCanCopy]=useState(false);
+  useEffect(()=>{
+    let dead=false;
+    try{
+      const n:any=navigator;
+      setCanCopy(!!(n.clipboard&&n.clipboard.write&&typeof (window as any).ClipboardItem!=='undefined'));
+    }catch(e){}
+    const t=setTimeout(async()=>{
+      try{
+        const {exportCardImage}=await import('./GalleryView');
+        const r=await exportCardImage(card);
+        if(dead)return;
+        setImg(r);setState('ready');
+        try{const n:any=navigator;setCanShare(typeof n.canShare==='function'&&n.canShare({files:[r.file]}));}catch(e){}
+      }catch(e){console.error('share prep failed',e);if(!dead)setState('error');}
+    },900);
+    return()=>{dead=true;clearTimeout(t);};
+  },[card.slug]);
+  const flash=(m:string)=>{setMsg(m);setTimeout(()=>setMsg(''),2500);};
+  const doShare=async()=>{if(!img)return;try{await (navigator as any).share({files:[img.file],title:card.name});}catch(e:any){if(!e||e.name!=='AbortError')flash('Partage impossible');}};
+  const doDownload=()=>{if(!img)return;const a=document.createElement('a');a.href=URL.createObjectURL(img.blob);a.download=img.fname;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);flash('Image téléchargée');};
+  const doCopy=async()=>{if(!img)return;try{await (navigator as any).clipboard.write([new (window as any).ClipboardItem({'image/png':img.blob})]);flash('Image copiée');}catch(e){flash('Copie impossible');}};
+  const ready=state==='ready';
+  const btn:React.CSSProperties={flex:1,display:'flex',alignItems:'center',justifyContent:'center',gap:'0.3em',padding:'0.5em 0.2em',borderRadius:'0.3em',border:'1px solid rgba(64,232,255,0.5)',background:'rgba(64,232,255,0.06)',color:'#ffffff',fontSize:'0.58em',fontWeight:800,letterSpacing:'0.08em',cursor:ready?'pointer':'wait',opacity:ready?1:0.45,fontFamily:'inherit',whiteSpace:'nowrap'};
+  const ico=(d:React.ReactNode)=>(<svg viewBox='0 0 24 24' style={{width:'1.2em',height:'1.2em',flexShrink:0}} fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round'>{d}</svg>);
+  return(
+    <div style={{...box,flexShrink:0,borderColor:'rgba(64,232,255,0.4)',background:'rgba(64,232,255,0.06)'}}>
+      <p style={lab}>PARTAGER LA CARTE</p>
+      <div style={{display:'flex',gap:'0.4em'}}>
+        {canShare&&<button type='button' className='stat-link-btn' disabled={!ready} onClick={doShare} style={btn}>{ico(<><circle cx='18' cy='5' r='3'/><circle cx='6' cy='12' r='3'/><circle cx='18' cy='19' r='3'/><path d='M8.6 13.5l6.8 4M15.4 6.5l-6.8 4'/></>)}PARTAGER</button>}
+        <button type='button' className='stat-link-btn' disabled={!ready} onClick={doDownload} style={btn}>{ico(<><path d='M12 3v12'/><path d='M8 11l4 4 4-4'/><path d='M5 21h14'/></>)}TÉLÉCHARGER</button>
+        {canCopy&&<button type='button' className='stat-link-btn' disabled={!ready} onClick={doCopy} style={btn}>{ico(<><rect x='9' y='9' width='12' height='12' rx='2'/><path d='M5 15V5a2 2 0 012-2h10'/></>)}COPIER</button>}
+      </div>
+      <p style={{margin:'0.35em 0 0',fontSize:'0.5em',letterSpacing:'0.08em',color:state==='error'?'#fca5a5':'rgba(64,232,255,0.55)',minHeight:'1.2em'}}>{msg||(state==='prep'?'Préparation de l’image…':state==='error'?'Image indisponible':'Image PNG prête · fond sombre, signature myNFTlocker')}</p>
+    </div>
+  );
+}
+
 export const StatPanel=memo(({card,onClose,isClosing=false,placement='scene'}:any)=>{
   const rc=RARITY_COLOR[card.rarityTyped]||'#9ca3af';
   const {season,serial}=parseCard(card.name);
@@ -353,6 +398,7 @@ export const StatPanel=memo(({card,onClose,isClosing=false,placement='scene'}:an
           </div>
         </div>
       </div>
+      <ShareBlock card={card} box={box} lab={lab}/>
       <div style={{display:'flex',gap:'0.4em',marginTop:'0.15em',marginBottom:'0.2em',flexShrink:0}}>
         {card.slug&&(
           <a href={isNBA(card)?('https://sorare.com/fr/nba/players/'+(card.anyPlayer?.slug||card.slug.split('-').filter((_:any,i:number,a:any)=>i<a.length-3).join('-'))+'?sale=true'):('https://sorare.com/fr/football/players/'+(card.anyPlayer?.slug||card.slug.split('-').filter((_:any,i:number,a:any)=>i<a.length-3).join('-'))+'?sale=true')}
