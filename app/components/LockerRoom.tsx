@@ -1,6 +1,7 @@
 'use client';
 import { memo, useState, useRef, useEffect } from 'react';
 import { TEAM_BY_API, FALLBACK_IMG } from '../lib-teams';
+import { ShareControl } from './GalleryView';
 import { StatPanel, CardBack, RARITY_GLOW, RARITY_COLOR, RARITY_FILL, parseCard } from './StatPanel';
 const CITY_CLUB: Record<string,[string,string]> = {
   'Atlanta Hawks':['ATLANTA','HAWKS'],
@@ -85,6 +86,8 @@ const LockerCard=memo(({card,isFlipped,isStarred,isPinned,onFlip,onStar,onPin,mo
         </div>
         <CardBack card={card} rc={rc} mobile={mobile}/>
       </div>
+      {/* Partage : image de la carte (survol sur PC, toujours visible sur mobile) ; masque quand la carte est retournee */}
+      {!isFlipped&&<ShareControl card={card} visible={mobile||active} btn={mobile?34:26} offset={mobile?10:6}/>}
     </div>
   );
 });
