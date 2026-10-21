@@ -4,6 +4,8 @@ import { createPortal } from 'react-dom';
 import dynamic from 'next/dynamic';
 import GalleryView, { GalleryCard } from './components/GalleryView';
 import { StatPanel } from './components/StatPanel';
+// INSCRIPTIONS : fermees tant que NEXT_PUBLIC_SIGNUP_OPEN n'est pas 'true' (Vercel > Settings > Environment Variables). Les comptes existants peuvent toujours se connecter.
+const SIGNUP_OPEN=process.env.NEXT_PUBLIC_SIGNUP_OPEN==='true';
 import { setManager } from './lib-share';
 import StarCanvas from './components/StarCanvas';
 
@@ -901,7 +903,7 @@ export default function Home() {
                       <div style={{flex:1,height:'1px',background:'rgba(64,232,255,0.25)'}}/>
                     </div>
                     <button onClick={()=>{setAuthMode('login');setAuthOpen(true);}} style={{background:'rgba(64,232,255,0.08)',border:'1px solid rgba(64,232,255,0.5)',color:'#40e8ff',padding:'0.5rem 2.2rem',fontSize:'0.7rem',fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer',fontFamily:'Courier New,monospace',borderRadius:'2px'}}>Connexion</button>
-                    <p style={{fontSize:'0.6rem',color:'rgba(207,228,251,0.5)',fontFamily:'Courier New,monospace',marginTop:'0.6rem'}}>Pas de compte ? <span onClick={()=>{setAuthMode('signup');setAuthSlugField(slug||'');setAuthOpen(true);}} style={{color:'#40e8ff',cursor:'pointer',textDecoration:'underline'}}>Creer un compte</span></p>
+                    {SIGNUP_OPEN?(<p style={{fontSize:'0.6rem',color:'rgba(207,228,251,0.5)',fontFamily:'Courier New,monospace',marginTop:'0.6rem'}}>Pas de compte ? <span onClick={()=>{setAuthMode('signup');setAuthSlugField(slug||'');setAuthOpen(true);}} style={{color:'#40e8ff',cursor:'pointer',textDecoration:'underline'}}>Creer un compte</span></p>):(<p style={{fontSize:'0.6rem',color:'rgba(207,228,251,0.5)',fontFamily:'Courier New,monospace',marginTop:'0.6rem'}}>Inscriptions bientôt ouvertes</p>)}
                   </>
                 )}
               </div>
@@ -958,10 +960,12 @@ export default function Home() {
             {authError&&<p style={{color:'#fca5a5',fontSize:'0.66rem',marginBottom:'0.6rem'}}>{authError}</p>}
             {authVerifyPending&&<p style={{color:'#7dd3fc',fontSize:'0.68rem',marginBottom:'0.7rem',lineHeight:1.5}}>Compte créé ! Vérifie ta boîte mail (et les spams) pour confirmer ton adresse avant de te connecter.</p>}
             <button onClick={submitAuth} disabled={authLoading||authVerifyPending} style={{width:'100%',background:'rgba(64,232,255,0.12)',border:'1px solid rgba(64,232,255,0.5)',color:'#40e8ff',padding:'0.55rem',fontSize:'0.72rem',fontWeight:700,letterSpacing:'0.15em',textTransform:'uppercase',cursor:authLoading?'not-allowed':'pointer',fontFamily:'Courier New,monospace',opacity:authLoading?0.5:1}}>{authLoading?'...':(authMode==='signup'?'S\'inscrire':'Se connecter')}</button>
+            {(SIGNUP_OPEN||authMode==='signup')&&(
             <p style={{textAlign:'center',marginTop:'0.8rem',fontSize:'0.66rem',color:'rgba(207,228,251,0.6)'}}>
               {authMode==='signup'?'Deja un compte ? ':'Pas encore de compte ? '}
               <span onClick={()=>{setAuthMode(authMode==='signup'?'login':'signup');setAuthError('');}} style={{color:'#40e8ff',cursor:'pointer',textDecoration:'underline'}}>{authMode==='signup'?'Se connecter':'S\'inscrire'}</span>
             </p>
+            )}
           </div>
         </div>
       )}

@@ -8,6 +8,8 @@ const VERIFY_HOURS = 24;
 const SITE_URL = 'https://mynftlocker.vercel.app'; // TODO: remplacer par le vrai domaine une fois créé
 
 export async function POST(request: NextRequest) {
+  // Inscriptions fermees tant que NEXT_PUBLIC_SIGNUP_OPEN n'est pas 'true' (protege aussi contre les appels directs a l'API)
+  if (process.env.NEXT_PUBLIC_SIGNUP_OPEN !== 'true') return NextResponse.json({ error: 'Les inscriptions ne sont pas encore ouvertes.' }, { status: 403 });
   try {
     const { pseudo, email, password, sorareSlug } = await request.json();
     if (!pseudo || typeof pseudo !== 'string' || pseudo.trim().length < 2) {
