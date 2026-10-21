@@ -90,7 +90,7 @@ async function buildSlabImage(el:HTMLElement,card:any,fill:string,rc:string):Pro
     Array.from(label).forEach((ch,i)=>{sx.fillText(ch,cx,cy);cx+=widths[i]+sp;});
   }
   // Composition : marge + halo couleur rarete + signature
-  const pad=Math.round(img.width*0.12), foot=Math.round(img.width*0.1);
+  const pad=Math.round(img.width*0.12), foot=Math.round(img.width*0.15);
   const cv=document.createElement('canvas'); cv.width=img.width+pad*2; cv.height=img.height+pad*2+foot;
   const ctx=cv.getContext('2d'); if(!ctx)throw new Error('canvas');
   const bg=ctx.createRadialGradient(cv.width/2,cv.height*0.42,cv.width*0.1,cv.width/2,cv.height*0.5,cv.width*0.85);
@@ -100,24 +100,25 @@ async function buildSlabImage(el:HTMLElement,card:any,fill:string,rc:string):Pro
   ctx.drawImage(slabCv,pad,pad);
   // Signature sous la carte : myNFTlocker a gauche, manager a droite (centre si le pseudo est inconnu)
   const mgr=getManager();
-  const fy=img.height+pad*2;
+  const fy=img.height+pad+Math.round(pad*0.6);
   const sx0=pad, sx1=pad+img.width;
-  const big=Math.round(foot*0.3), small=Math.round(foot*0.19);
+  const big=Math.round(img.width*0.0455), small=Math.round(img.width*0.0285);
+  const l1=fy+foot*0.28, l2=fy+foot*0.62;
   ctx.textBaseline='alphabetic';
   const brandAlign:CanvasTextAlign=mgr?'left':'center', brandX=mgr?sx0:cv.width/2;
   ctx.textAlign=brandAlign; ctx.fillStyle='rgba(245,215,110,0.95)'; ctx.font='800 '+big+'px system-ui, sans-serif';
-  ctx.fillText('myNFTlocker',brandX,fy+foot*0.2);
-  ctx.fillStyle='rgba(207,216,230,0.55)'; ctx.font='600 '+small+'px system-ui, sans-serif';
-  ctx.fillText('mynftlocker.vercel.app',brandX,fy+foot*0.5);
+  ctx.fillText('myNFTlocker',brandX,l1);
+  ctx.fillStyle='rgba(207,216,230,0.7)'; ctx.font='600 '+small+'px system-ui, sans-serif';
+  ctx.fillText('mynftlocker.vercel.app',brandX,l2);
   if(mgr){
     ctx.textAlign='right';
-    ctx.fillStyle='rgba(64,232,255,0.7)'; ctx.font='700 '+small+'px ui-monospace, Menlo, Consolas, monospace';
-    ctx.fillText('MANAGER',sx1,fy+foot*0.2);
+    ctx.fillStyle='rgba(64,232,255,0.85)'; ctx.font='700 '+small+'px ui-monospace, Menlo, Consolas, monospace';
+    ctx.fillText('MANAGER',sx1,l1);
     // pseudo : taille reduite si trop long (max ~55% de la largeur de la carte)
     let fs=big; ctx.font='800 '+fs+'px system-ui, sans-serif';
     while(fs>small&&ctx.measureText(mgr).width>img.width*0.55){fs-=1;ctx.font='800 '+fs+'px system-ui, sans-serif';}
-    ctx.fillStyle='rgba(245,247,255,0.95)';
-    ctx.fillText(mgr,sx1,fy+foot*0.5+Math.max(0,(big-fs))*0.2);
+    ctx.fillStyle='rgba(245,247,255,0.97)';
+    ctx.fillText(mgr,sx1,l2);
   }
   const blob:Blob|null=await new Promise(r=>cv.toBlob(r,'image/png'));
   if(!blob)throw new Error('blob');
