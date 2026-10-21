@@ -58,10 +58,9 @@ function nameNatW(txt:string){
   _nameCtx.font='800 100px Inter, system-ui, sans-serif';
   return Math.max(1,_nameCtx.measureText(txt).width/100);
 }
-// ===== PARTAGE : exporte le slab en image PNG (fond sombre + halo de rarite + signature), partage natif sur mobile, telechargement sur desktop =====
-async function shareSlabImage(el:HTMLElement,card:any,fill:string,rc:string){
+// ===== PARTAGE : exporte le slab en image PNG (fond sombre + halo de rarete + signature) =====
+async function buildSlabImage(el:HTMLElement,card:any,fill:string,rc:string):Promise<{blob:Blob,file:File,fname:string}>{
   const {toPng}=await import('html-to-image');
-  // 1. Rendu du slab seul (on lui redonne le fond du coffret, sans transformation de survol)
   // Definition : on vise ~900 px de large quelle que soit la taille de la carte a l'ecran (mini 2x, maxi 6x)
   const pr=Math.min(6,Math.max(2,900/Math.max(1,el.getBoundingClientRect().width)));
   const PX='data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'; // pixel transparent si une image ne charge pas
@@ -70,7 +69,7 @@ async function shareSlabImage(el:HTMLElement,card:any,fill:string,rc:string){
     new Promise<string>((_,rej)=>setTimeout(()=>rej(new Error('timeout')),25000)),
   ]);
   const img=new Image(); img.src=dataUrl; await img.decode();
-  // 2. Composition : marge + halo couleur rarete + signature
+  // Composition : marge + halo couleur rarete + signature
   const pad=Math.round(img.width*0.12), foot=Math.round(img.width*0.1);
   const cv=document.createElement('canvas'); cv.width=img.width+pad*2; cv.height=img.height+pad*2+foot;
   const ctx=cv.getContext('2d'); if(!ctx)throw new Error('canvas');
@@ -86,21 +85,26 @@ async function shareSlabImage(el:HTMLElement,card:any,fill:string,rc:string){
   const blob:Blob|null=await new Promise(r=>cv.toBlob(r,'image/png'));
   if(!blob)throw new Error('blob');
   const fname='mynftlocker-'+String(card.slug||'carte').slice(0,60)+'.png';
-  const file=new File([blob],fname,{type:'image/png'});
-  const nav:any=navigator;
-  // Mobile (ecran tactile) : feuille de partage native ; sinon telechargement direct
-  if(window.matchMedia('(pointer: coarse)').matches&&nav.canShare&&nav.canShare({files:[file]})){
-    try{await nav.share({files:[file],title:card.name});return;}catch(e:any){if(e&&e.name==='AbortError')return;}
-  }
-  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=fname; document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+  return {blob,file:new File([blob],fname,{type:'image/png'}),fname};
 }
+const canShareFile=(file:File)=>{try{const n:any=navigator;return typeof n.canShare==='function'&&n.canShare({files:[file]});}catch(e){return false;}};
+const downloadBlob=(blob:Blob,fname:string)=>{const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=fname;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);};
 const GalleryCard=memo(({card,isFlipped,onFlip,glowScale}:any)=>{
   const [hover,setHover]=useState(false);
   const slabRef=useRef<HTMLDivElement>(null);
   const [sharing,setSharing]=useState(false);
+  const [shareMenu,setShareMenu]=useState<{blob:Blob,file:File,fname:string}|null>(null);
+  const menuRef=useRef<HTMLDivElement>(null);
   const [touchOnly,setTouchOnly]=useState(false);
   useEffect(()=>{try{setTouchOnly(window.matchMedia('(hover: none)').matches);}catch(e){}},[]);
+  // Ferme le menu de partage au clic ailleurs / Echap
+  useEffect(()=>{
+    if(!shareMenu)return;
+    const down=(e:Event)=>{if(menuRef.current&&!menuRef.current.contains(e.target as Node))setShareMenu(null);};
+    const key=(e:KeyboardEvent)=>{if(e.key==='Escape')setShareMenu(null);};
+    document.addEventListener('pointerdown',down); document.addEventListener('keydown',key);
+    return ()=>{document.removeEventListener('pointerdown',down); document.removeEventListener('keydown',key);};
+  },[shareMenu]);
   const glowRaw=RARITY_GLOW[card.rarityTyped]||RARITY_GLOW.common;
   const glow=scaleGlow(glowRaw,glowScale??1);
   const fill=RARITY_FILL[card.rarityTyped]||RARITY_FILL.common;
@@ -153,7 +157,7 @@ const GalleryCard=memo(({card,isFlipped,onFlip,glowScale}:any)=>{
                     <div style={{fontFamily:'ui-monospace,Menlo,monospace',fontSize:'3.2cqw',letterSpacing:'0.1em',color:'#35e6ff',marginTop:'0.5cqw'}}>L10</div>
                   </div>
                 </div>
-                <span style={{fontFamily:'ui-monospace,Menlo,monospace',fontSize:'3.5cqw',letterSpacing:'0.14em',textTransform:'uppercase' as const,padding:'0.8cqw 2.6cqw',borderRadius:'999px',border:'1px solid '+rc,color:rc,whiteSpace:'nowrap'}}>{rarLabel}</span>
+                <span style={{fontFamily:'ui-monospace,Menlo,monospace',fontSize:'3.5cqw',lineHeight:1.15,letterSpacing:'0.14em',textIndent:'0.14em',textTransform:'uppercase' as const,padding:'0.8cqw 2.6cqw',borderRadius:'999px',border:'1px solid '+rc,color:rc,whiteSpace:'nowrap',display:'inline-flex',alignItems:'center',justifyContent:'center',textAlign:'center' as const}}>{rarLabel}</span>
               </div>
             </div>
           </div>
@@ -166,12 +170,24 @@ const GalleryCard=memo(({card,isFlipped,onFlip,glowScale}:any)=>{
         </div>
         <CardBack card={card} rc={rc} mobile={true}/>
       </div>
-      {/* Bouton Partager : visible au survol (toujours visible sur ecran tactile), masque quand la carte est retournee */}
-      <button type='button' title="Partager l'image de la carte" aria-label="Partager l'image de la carte" disabled={sharing}
-        onClick={(e)=>{e.stopPropagation();if(!slabRef.current||sharing)return;setSharing(true);shareSlabImage(slabRef.current,card,fill,rc).catch((err)=>console.error('share failed',err)).finally(()=>setSharing(false));}}
-        style={{position:'absolute',bottom:'7cqw',right:'7cqw',zIndex:30,width:'10cqw',height:'10cqw',minWidth:'28px',minHeight:'28px',borderRadius:'50%',border:'1px solid rgba(64,232,255,0.6)',background:'rgba(6,10,18,0.8)',color:'#40e8ff',cursor:sharing?'wait':'pointer',display:'flex',alignItems:'center',justifyContent:'center',padding:0,transition:'opacity 0.15s',opacity:((hover||touchOnly)&&!isFlipped)?(sharing?0.6:1):0,pointerEvents:((hover||touchOnly)&&!isFlipped)?'auto':'none'}}>
-        <svg viewBox='0 0 24 24' style={{width:'55%',height:'55%'}} fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round'><path d='M12 15V3'/><path d='M8 7l4-4 4 4'/><path d='M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7'/></svg>
-      </button>
+      {/* Bouton Partager : visible au survol (toujours visible sur ecran tactile), masque quand la carte est retournee.
+          Clic -> generation de l'image -> petit menu "Partager / Telecharger" (nouveau clic = geste utilisateur valide pour le partage natif). */}
+      {(()=>{
+        const show=(hover||touchOnly||sharing||!!shareMenu)&&!isFlipped;
+        return(<>
+          <button type='button' title="Partager la carte (image)" aria-label="Partager la carte (image)" disabled={sharing}
+            onClick={(e)=>{e.stopPropagation();if(shareMenu){setShareMenu(null);return;}if(!slabRef.current||sharing)return;setSharing(true);buildSlabImage(slabRef.current,card,fill,rc).then(r=>setShareMenu(r)).catch((err)=>console.error('share failed',err)).finally(()=>setSharing(false));}}
+            style={{position:'absolute',bottom:'7cqw',right:'7cqw',zIndex:30,width:'10cqw',height:'10cqw',minWidth:'28px',minHeight:'28px',borderRadius:'50%',border:'1px solid rgba(64,232,255,0.6)',background:'rgba(6,10,18,0.8)',color:'#40e8ff',cursor:sharing?'wait':'pointer',display:'flex',alignItems:'center',justifyContent:'center',padding:0,transition:'opacity 0.15s',opacity:show?(sharing?0.6:1):0,pointerEvents:show?'auto':'none'}}>
+            <svg viewBox='0 0 24 24' style={{width:'55%',height:'55%'}} fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round'><circle cx='18' cy='5' r='3'/><circle cx='6' cy='12' r='3'/><circle cx='18' cy='19' r='3'/><path d='M8.6 13.5l6.8 4M15.4 6.5l-6.8 4'/></svg>
+          </button>
+          {shareMenu&&(
+            <div ref={menuRef} onClick={(e)=>e.stopPropagation()} style={{position:'absolute',bottom:'calc(7cqw + max(10cqw,28px) + 6px)',right:'7cqw',zIndex:40,display:'flex',flexDirection:'column' as const,gap:'4px',padding:'6px',borderRadius:'10px',background:'rgba(6,10,18,0.95)',border:'1px solid rgba(64,232,255,0.5)',boxShadow:'0 8px 24px rgba(0,0,0,0.6)',minWidth:'128px'}}>
+              {canShareFile(shareMenu.file)&&(<button type='button' onClick={async(e)=>{e.stopPropagation();const m=shareMenu;setShareMenu(null);try{await (navigator as any).share({files:[m.file],title:card.name});}catch(err:any){if(!err||err.name!=='AbortError')console.error('share failed',err);}}} style={{background:'rgba(64,232,255,0.12)',border:'1px solid rgba(64,232,255,0.35)',color:'#cfeeff',borderRadius:'7px',padding:'7px 10px',fontSize:'12px',fontWeight:700,cursor:'pointer',textAlign:'left' as const}}>Partager…</button>)}
+              <button type='button' onClick={(e)=>{e.stopPropagation();const m=shareMenu;setShareMenu(null);downloadBlob(m.blob,m.fname);}} style={{background:'rgba(245,215,110,0.1)',border:'1px solid rgba(245,215,110,0.35)',color:'#f5e6b0',borderRadius:'7px',padding:'7px 10px',fontSize:'12px',fontWeight:700,cursor:'pointer',textAlign:'left' as const}}>Télécharger l'image</button>
+            </div>
+          )}
+        </>);
+      })()}
       {isFlipped&&(<svg style={{position:'absolute',top:0,left:0,width:'100%',height:'100%',zIndex:22,pointerEvents:'none',overflow:'visible'}}><rect x='0' y='0' width='100%' height='100%' rx='8' pathLength='1000' fill='none' stroke='#40e8ff' strokeWidth='2.5' style={{filter:'drop-shadow(0 0 9px rgba(64,232,255,0.9))',strokeDasharray:'1000',strokeDashoffset:'1000',animation:'mnflCardTrace 1.4s ease-in-out 0.5s both'}}/></svg>)}
     </div>
   );
