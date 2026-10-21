@@ -53,6 +53,38 @@ function cbNatW(txt:string){
   _cbCtx.font='900 100px system-ui, sans-serif';
   return Math.max(1,_cbCtx.measureText(txt).width/100);
 }
+// Texte d'une case du panneau : si la valeur est plus large que sa case (ex. "Paris Saint-Germain"), la police est reduite pour tout afficher (mini 55 %, au-dela points de suspension).
+const FitText=({children,style}:any)=>{
+  const outer=useRef<HTMLSpanElement>(null);
+  const inner=useRef<HTMLSpanElement>(null);
+  const kRef=useRef(1);
+  const [k,setK]=useState(1);
+  useLayoutEffect(()=>{
+    const fit=()=>{const o=outer.current,i=inner.current;if(!o||!i)return;const need=i.offsetWidth,have=o.clientWidth;if(need<=0||have<=0)return;
+      const nk=Math.max(0.55,Math.min(1,kRef.current*have/need));
+      if(Math.abs(nk-kRef.current)>0.005){kRef.current=nk;setK(nk);}};
+    fit();
+    const ro=new ResizeObserver(fit);
+    if(outer.current)ro.observe(outer.current);
+    return()=>ro.disconnect();
+  },[children]);
+  return(<span ref={outer} style={{display:'block',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',...style,fontSize:'calc('+style.fontSize+' * '+k+')'}}><span ref={inner} style={{display:'inline-block'}}>{children}</span></span>);
+};
+// Ligne note + etoiles du verso : si elle est plus large que la carte (ex. foot 5 etoiles avec cadre), elle est reduite pour tenir. S'adapte a toute taille de carte.
+const FitRow=({children,style}:any)=>{
+  const wrap=useRef<HTMLDivElement>(null);
+  const inner=useRef<HTMLDivElement>(null);
+  const [k,setK]=useState(1);
+  useLayoutEffect(()=>{
+    const fit=()=>{const w=wrap.current,i=inner.current;if(!w||!i)return;const need=i.offsetWidth,have=w.clientWidth;setK(need>0&&have>0?Math.min(1,have/need):1);};
+    fit();
+    const ro=new ResizeObserver(fit);
+    if(wrap.current)ro.observe(wrap.current);
+    if(inner.current)ro.observe(inner.current);
+    return()=>ro.disconnect();
+  },[]);
+  return(<div ref={wrap} style={{width:'100%',display:'flex',justifyContent:'center'}}><div ref={inner} style={{...style,flexShrink:0,transform:k<1?('scale('+k+')'):undefined,transformOrigin:'center center'}}>{children}</div></div>);
+};
 export const CardBack=memo(({card,rc,mobile}:any)=>{
   const rid=useId().replace(/[^a-zA-Z0-9]/g,'');
   const sz=(remStr:string,px:number)=>mobile?(Math.round(px/115*10000)/100)+'cqw':remStr;
@@ -93,7 +125,7 @@ export const CardBack=memo(({card,rc,mobile}:any)=>{
           <p style={{margin:sz('0.3rem',4.8)+' 0 0',fontSize:sz('0.5rem',8),color:'#9aa3b2',fontWeight:700,letterSpacing:'0.05em'}}>{sn!==null?('#'+sn):''}{(sn!==null&&serial)?('  '+'·'+'  '):''}{serial||''}</p>
         </div>
         <div style={{margin:'auto 0',textAlign:'center' as const}}>
-          <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:sz('0.45rem',7.2),lineHeight:1}}>
+          <FitRow style={{display:'flex',alignItems:'center',justifyContent:'center',gap:sz('0.45rem',7.2),lineHeight:1}}>
             <span style={{fontSize:sz('1.4rem',22.4),fontWeight:900,color:'#fff',lineHeight:1,textShadow:score?('0 0 14px '+rc+'aa'):'none'}}>{score||'—'}</span>
             {stars!=null&&isNBA(card)&&(
               <svg viewBox='0 0 100 100' style={{width:sz('2rem',32),height:sz('2rem',32),flexShrink:0,overflow:'visible'}}>
@@ -116,7 +148,7 @@ export const CardBack=memo(({card,rc,mobile}:any)=>{
             {stars!=null&&!isNBA(card)&&(
               <FootStars n={Math.round(stars)} s={sz('0.9rem',14.4)}/>
             )}
-          </div>
+          </FitRow>
           <p style={{margin:sz('0.3rem',4.8)+' 0 0',fontSize:sz('0.42rem',6.72),color:rc,textTransform:'uppercase',fontWeight:800,letterSpacing:'0.1em'}}>MOYENNE L10</p>
         </div>
       </div>
@@ -312,7 +344,7 @@ export const StatPanel=memo(({card,onClose,isClosing=false,placement='scene'}:an
               {([['ÉQUIPE',team],['SÉRIE',serial],['SAISON',season],['XP',xp],['ÉDITION',edition]] as [string,string][]).map(([l,v])=>(
                 <div key={l} style={{minWidth:0}}>
                   <span style={{display:'block',fontSize:'0.52em',color:CYL,letterSpacing:'0.1em',textTransform:'uppercase'}}>{l}</span>
-                  <span style={{display:'block',fontSize:'0.74em',fontWeight:700,color:WV,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{v}</span>
+                  <FitText style={{fontSize:'0.74em',fontWeight:700,color:WV}}>{v}</FitText>
                 </div>
               ))}
             </div>
@@ -330,7 +362,7 @@ export const StatPanel=memo(({card,onClose,isClosing=false,placement='scene'}:an
               </div>
               <div style={{minWidth:0,gridColumn:'1 / span 2'}}>
                 <span style={{display:'block',fontSize:'0.52em',color:CYL,letterSpacing:'0.1em',textTransform:'uppercase'}}>Dernier d{'é'}tenteur</span>
-                <span style={{display:'block',fontSize:'0.74em',fontWeight:700,color:WV,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{owner&&owner.lastHolder?owner.lastHolder:'— (1ʳᵉ main)'}</span>
+                <FitText style={{fontSize:'0.74em',fontWeight:700,color:WV}}>{owner&&owner.lastHolder?owner.lastHolder:'— (1ʳᵉ main)'}</FitText>
               </div>
             </div>
           </div>
