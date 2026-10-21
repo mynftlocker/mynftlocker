@@ -1,6 +1,6 @@
 "use client";
 import { memo, useState, useEffect, useRef } from 'react';
-import { getManager, galleryLink } from '../lib-share';
+import { getManager, cardLink } from '../lib-share';
 import { StatPanel, CardBack, RARITY_GLOW, RARITY_COLOR, RARITY_FILL, parseCard, isNBA, FootStars } from './StatPanel';
 
 // Embleme rond myNFTlocker dessine (repli si /logo-rond.png absent) : anneau or + etoile centrale facon crest.
@@ -90,7 +90,7 @@ async function buildSlabImage(el:HTMLElement,card:any,fill:string,rc:string):Pro
     Array.from(label).forEach((ch,i)=>{sx.fillText(ch,cx,cy);cx+=widths[i]+sp;});
   }
   // Composition : marge + halo couleur rarete + signature
-  const pad=Math.round(img.width*0.12), qrS=Math.round(img.width*0.18), foot=qrS+Math.round(pad*0.2);
+  const pad=Math.round(img.width*0.12), qrS=Math.round(img.width*0.20), foot=qrS+Math.round(pad*0.2);
   const cv=document.createElement('canvas'); cv.width=img.width+pad*2; cv.height=img.height+pad*2+foot;
   const ctx=cv.getContext('2d'); if(!ctx)throw new Error('canvas');
   const bg=ctx.createRadialGradient(cv.width/2,cv.height*0.42,cv.width*0.1,cv.width/2,cv.height*0.5,cv.width*0.85);
@@ -100,7 +100,7 @@ async function buildSlabImage(el:HTMLElement,card:any,fill:string,rc:string):Pro
   ctx.drawImage(slabCv,pad,pad);
   // Signature sous la carte : myNFTlocker a gauche, manager + QR code (galerie du manager) a droite
   const mgr=getManager();
-  const link=galleryLink();
+  const link=cardLink(card?.slug);
   const fy=img.height+pad+Math.round(pad*0.6);
   const sx0=pad, sx1=pad+img.width;
   const big=Math.round(img.width*0.0455), small=Math.round(img.width*0.0285);
@@ -126,7 +126,7 @@ async function buildSlabImage(el:HTMLElement,card:any,fill:string,rc:string):Pro
   }
   if(hasQr){
     try{
-      // QR code (correction d'erreur "M" = 33 modules seulement, donc gros pixels et lecture facile depuis un ecran) ; le logo central couvre ~5% de la surface
+      // QR code (correction d'erreur "M" ; ~45 modules avec le lien carte, QR a 20% de la largeur : lecture verifiee depuis un ecran) ; le logo central couvre ~5% de la surface
       const QR:any=await import('qrcode');
       const q=(QR.create||QR.default?.create)(link,{errorCorrectionLevel:'M'});
       const n:number=q.modules.size, m=qrS/(n+5), off=m*2.5;
@@ -148,7 +148,7 @@ async function buildSlabImage(el:HTMLElement,card:any,fill:string,rc:string):Pro
   const fname='mynftlocker-'+String(card.slug||'carte').slice(0,60)+'.png';
   return {blob,file:new File([blob],fname,{type:'image/png'}),fname};
 }
-const GalleryCard=memo(({card,isFlipped,onFlip,glowScale}:any)=>{
+export const GalleryCard=memo(({card,isFlipped,onFlip,glowScale}:any)=>{
   const [hover,setHover]=useState(false);
   const glowRaw=RARITY_GLOW[card.rarityTyped]||RARITY_GLOW.common;
   const glow=scaleGlow(glowRaw,glowScale??1);

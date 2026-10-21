@@ -2,7 +2,8 @@
 import { useState, useEffect, useRef, memo, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import dynamic from 'next/dynamic';
-import GalleryView from './components/GalleryView';
+import GalleryView, { GalleryCard } from './components/GalleryView';
+import { StatPanel } from './components/StatPanel';
 import { setManager } from './lib-share';
 import StarCanvas from './components/StarCanvas';
 
@@ -511,10 +512,19 @@ export default function Home() {
   const [justLoggedIn,setJustLoggedIn]=useState(false);
   // LIEN DIRECT : /?u=pseudo-sorare ouvre directement la galerie de ce manager (liens de partage / QR code)
   const urlSlugRef=useRef('');
+  // LIEN DIRECT VERS UNE CARTE : /?u=pseudo&c=slug-carte -> la carte s'affiche tout de suite (une seule requete), la galerie se charge derriere
+  const [sharedCard,setSharedCard]=useState<any>(null);
+  const [sharedClosing,setSharedClosing]=useState(false);
+  const closeShared=()=>{ setSharedClosing(true); setTimeout(()=>{ setSharedCard(null); setSharedClosing(false); },450); };
   useEffect(()=>{
     try{
-      const u=(new URLSearchParams(window.location.search).get('u')||'').trim().toLowerCase();
-      if(/^[a-z0-9_-]{2,80}$/.test(u)){urlSlugRef.current=u;setSlug(u);setJustLoggedIn(true);}
+      const sp=new URLSearchParams(window.location.search);
+      const u=(sp.get('u')||'').trim().toLowerCase();
+      const c=(sp.get('c')||'').trim().toLowerCase();
+      if(/^[a-z0-9_-]{2,80}$/.test(u)){urlSlugRef.current=u;setManager('',u);setSlug(u);setJustLoggedIn(true);}
+      if(/^[a-z0-9_-]{3,200}$/.test(c)){
+        fetch('/api/cards?card='+encodeURIComponent(c)).then(r=>r.json()).then(d=>{ if(d&&d.card)setSharedCard(d.card); }).catch(()=>{});
+      }
     }catch(e){}
   },[]);
   useEffect(()=>{
@@ -1047,6 +1057,16 @@ export default function Home() {
           </div>
           </div>
           <button onClick={()=>setFiltersOpen(false)} style={{marginTop:'0.8rem',width:'100%',padding:'0.8rem',background:'linear-gradient(160deg,#00b4d8,#0077b6)',border:'none',borderRadius:'0.5rem',color:'#fff',fontSize:'0.95rem',fontWeight:800,letterSpacing:'0.05em',cursor:'pointer',boxShadow:'0 0 18px rgba(64,232,255,0.4)'}}>Voir les résultats</button>
+        </div>
+      )}
+
+      {sharedCard&&(
+        <div onClick={closeShared} style={{position:'fixed',inset:0,zIndex:9500,background:'rgba(2,6,14,0.88)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',overflowY:'auto',opacity:sharedClosing?0:1,transition:'opacity 0.45s ease'}}>
+          <div onClick={(e)=>e.stopPropagation()} style={{maxWidth:'520px',margin:'0 auto',padding:'22px 16px 30px',display:'flex',flexDirection:'column' as const,alignItems:'center',gap:'18px'}}>
+            <div style={{width:'min(62vw,250px)'}}><GalleryCard card={sharedCard} isFlipped={false} onFlip={()=>{}} glowScale={1}/></div>
+            <div style={{width:'100%'}}><StatPanel key={sharedCard.slug} card={sharedCard} isClosing={sharedClosing} onClose={closeShared} placement='inline'/></div>
+            <button onClick={closeShared} style={{width:'100%',padding:'0.8rem',background:'linear-gradient(160deg,#00b4d8,#0077b6)',border:'none',borderRadius:'0.5rem',color:'#fff',fontSize:'0.8rem',fontWeight:800,letterSpacing:'0.12em',cursor:'pointer'}}>{urlSlugRef.current?'VOIR LA GALERIE COMPLÈTE':'FERMER'}</button>
+          </div>
         </div>
       )}
 
