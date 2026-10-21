@@ -69,6 +69,25 @@ async function buildSlabImage(el:HTMLElement,card:any,fill:string,rc:string):Pro
     new Promise<string>((_,rej)=>setTimeout(()=>rej(new Error('timeout')),25000)),
   ]);
   const img=new Image(); img.src=dataUrl; await img.decode();
+  // La pastille de rarete est redessinee a la main (certains navigateurs mobiles affichent son texte decale a l'export).
+  const slabCv=document.createElement('canvas'); slabCv.width=img.width; slabCv.height=img.height;
+  const sx=slabCv.getContext('2d'); if(!sx)throw new Error('canvas');
+  sx.drawImage(img,0,0);
+  const pillEl=el.querySelector('[data-share-pill]') as HTMLElement|null;
+  if(pillEl){
+    const er=el.getBoundingClientRect(), r=pillEl.getBoundingClientRect(), k=img.width/er.width;
+    const px=(r.left-er.left)*k, py=(r.top-er.top)*k, pw=r.width*k, ph=r.height*k, lw=Math.max(1.5,k);
+    const rr=(x:number,y:number,w:number,h:number)=>{const q=h/2;sx.beginPath();sx.moveTo(x+q,y);sx.lineTo(x+w-q,y);sx.arc(x+w-q,y+q,q,-Math.PI/2,Math.PI/2);sx.lineTo(x+q,y+h);sx.arc(x+q,y+q,q,Math.PI/2,Math.PI*1.5);sx.closePath();};
+    // efface l'ancienne pastille (fond du bandeau) puis trace la nouvelle
+    sx.fillStyle='#0b1018'; rr(px-lw*1.5,py-lw*1.5,pw+lw*3,ph+lw*3); sx.fill();
+    sx.strokeStyle=rc; sx.lineWidth=lw; rr(px+lw/2,py+lw/2,pw-lw,ph-lw); sx.stroke();
+    const label=String(pillEl.textContent||'').toUpperCase();
+    const fs=Math.round(ph*0.5); sx.font=fs+'px ui-monospace, Menlo, Consolas, monospace'; sx.fillStyle=rc; sx.textBaseline='middle'; sx.textAlign='left';
+    const sp=fs*0.14, widths=Array.from(label).map(ch=>sx.measureText(ch).width);
+    const total=widths.reduce((a,b)=>a+b,0)+sp*(label.length-1);
+    let cx=px+(pw-total)/2; const cy=py+ph/2+fs*0.04;
+    Array.from(label).forEach((ch,i)=>{sx.fillText(ch,cx,cy);cx+=widths[i]+sp;});
+  }
   // Composition : marge + halo couleur rarete + signature
   const pad=Math.round(img.width*0.12), foot=Math.round(img.width*0.1);
   const cv=document.createElement('canvas'); cv.width=img.width+pad*2; cv.height=img.height+pad*2+foot;
@@ -76,8 +95,8 @@ async function buildSlabImage(el:HTMLElement,card:any,fill:string,rc:string):Pro
   const bg=ctx.createRadialGradient(cv.width/2,cv.height*0.42,cv.width*0.1,cv.width/2,cv.height*0.5,cv.width*0.85);
   bg.addColorStop(0,'#101826'); bg.addColorStop(1,'#04070d');
   ctx.fillStyle=bg; ctx.fillRect(0,0,cv.width,cv.height);
-  ctx.save(); ctx.shadowColor=rc; ctx.shadowBlur=pad*0.7; ctx.drawImage(img,pad,pad); ctx.restore();
-  ctx.drawImage(img,pad,pad);
+  ctx.save(); ctx.shadowColor=rc; ctx.shadowBlur=pad*0.7; ctx.drawImage(slabCv,pad,pad); ctx.restore();
+  ctx.drawImage(slabCv,pad,pad);
   ctx.textAlign='center'; ctx.fillStyle='rgba(245,215,110,0.9)'; ctx.font='800 '+Math.round(foot*0.34)+'px system-ui, sans-serif';
   ctx.fillText('myNFTlocker',cv.width/2,img.height+pad*2+foot*0.18);
   ctx.fillStyle='rgba(207,216,230,0.55)'; ctx.font='600 '+Math.round(foot*0.2)+'px system-ui, sans-serif';
@@ -157,7 +176,7 @@ const GalleryCard=memo(({card,isFlipped,onFlip,glowScale}:any)=>{
                     <div style={{fontFamily:'ui-monospace,Menlo,monospace',fontSize:'3.2cqw',letterSpacing:'0.1em',color:'#35e6ff',marginTop:'0.5cqw'}}>L10</div>
                   </div>
                 </div>
-                <span style={{fontFamily:'ui-monospace,Menlo,monospace',fontSize:'3.5cqw',lineHeight:1.15,letterSpacing:'0.14em',textIndent:'0.14em',textTransform:'uppercase' as const,padding:'0.8cqw 2.6cqw',borderRadius:'999px',border:'1px solid '+rc,color:rc,whiteSpace:'nowrap',display:'inline-flex',alignItems:'center',justifyContent:'center',textAlign:'center' as const}}>{rarLabel}</span>
+                <span data-share-pill='1' style={{fontFamily:'ui-monospace,Menlo,monospace',fontSize:'3.5cqw',lineHeight:1.15,letterSpacing:'0.14em',textIndent:'0.14em',textTransform:'uppercase' as const,padding:'0.8cqw 2.6cqw',borderRadius:'999px',border:'1px solid '+rc,color:rc,whiteSpace:'nowrap',display:'inline-flex',alignItems:'center',justifyContent:'center',textAlign:'center' as const}}>{rarLabel}</span>
               </div>
             </div>
           </div>
