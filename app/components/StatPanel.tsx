@@ -1,5 +1,6 @@
 'use client';
 import { memo, useState, useEffect, useLayoutEffect, useRef, useId } from 'react';
+import { getManager, galleryLink } from '../lib-share';
 
 export const RARITY_GLOW: Record<string,string> = {
   common:'0 0 18px 3px rgba(225,228,255,0.75), 0 0 36px 8px rgba(190,200,255,0.35)',
@@ -181,7 +182,7 @@ function ShareBlock({card,box,lab}:{card:any;box:React.CSSProperties;lab:React.C
     return()=>{dead=true;clearTimeout(t);};
   },[card.slug]);
   const flash=(m:string)=>{setMsg(m);setTimeout(()=>setMsg(''),2500);};
-  const doShare=async()=>{if(!img)return;try{await (navigator as any).share({files:[img.file],title:card.name});}catch(e:any){if(!e||e.name!=='AbortError')flash('Partage impossible');}};
+  const doShare=async()=>{if(!img)return;try{const lk=galleryLink();await (navigator as any).share({files:[img.file],title:card.name,text:(getManager()?getManager()+' · ':'')+card.name+(lk?' — voir la galerie : '+lk:'')});}catch(e:any){if(!e||e.name!=='AbortError')flash('Partage impossible');}};
   const doDownload=()=>{if(!img)return;const a=document.createElement('a');a.href=URL.createObjectURL(img.blob);a.download=img.fname;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);flash('Image téléchargée');};
   const doCopy=async()=>{if(!img)return;try{await (navigator as any).clipboard.write([new (window as any).ClipboardItem({'image/png':img.blob})]);flash('Image copiée');}catch(e){flash('Copie impossible');}};
   const ready=state==='ready';

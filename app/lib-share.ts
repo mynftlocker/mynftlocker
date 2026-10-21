@@ -1,4 +1,8 @@
-// Nom du manager (pseudo Sorare du proprietaire de la galerie consultee) : utilise pour la signature de l'image de partage.
+// Manager (proprietaire de la galerie consultee) : pseudo Sorare + slug, utilises par l'image de partage (signature + QR code + lien).
 let _manager='';
-export const setManager=(n:string)=>{_manager=String(n||'').trim();};
+let _slug='';
+export const setManager=(n:string,s?:string)=>{_manager=String(n||'').trim();if(s!==undefined)_slug=String(s||'').trim().toLowerCase();};
 export const getManager=()=>_manager;
+export const getManagerSlug=()=>_slug;
+// Lien direct vers la galerie du manager sur myNFTlocker ('' si inconnu)
+export const galleryLink=()=>_slug?((typeof window!=='undefined'?window.location.origin:'https://mynftlocker.vercel.app')+'/?u='+encodeURIComponent(_slug)):'';

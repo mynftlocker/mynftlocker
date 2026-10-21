@@ -1,6 +1,6 @@
 "use client";
 import { memo, useState, useEffect, useRef } from 'react';
-import { getManager } from '../lib-share';
+import { getManager, galleryLink } from '../lib-share';
 import { StatPanel, CardBack, RARITY_GLOW, RARITY_COLOR, RARITY_FILL, parseCard, isNBA, FootStars } from './StatPanel';
 
 // Embleme rond myNFTlocker dessine (repli si /logo-rond.png absent) : anneau or + etoile centrale facon crest.
@@ -90,7 +90,7 @@ async function buildSlabImage(el:HTMLElement,card:any,fill:string,rc:string):Pro
     Array.from(label).forEach((ch,i)=>{sx.fillText(ch,cx,cy);cx+=widths[i]+sp;});
   }
   // Composition : marge + halo couleur rarete + signature
-  const pad=Math.round(img.width*0.12), foot=Math.round(img.width*0.15);
+  const pad=Math.round(img.width*0.12), qrS=Math.round(img.width*0.18), foot=qrS+Math.round(pad*0.2);
   const cv=document.createElement('canvas'); cv.width=img.width+pad*2; cv.height=img.height+pad*2+foot;
   const ctx=cv.getContext('2d'); if(!ctx)throw new Error('canvas');
   const bg=ctx.createRadialGradient(cv.width/2,cv.height*0.42,cv.width*0.1,cv.width/2,cv.height*0.5,cv.width*0.85);
@@ -98,14 +98,17 @@ async function buildSlabImage(el:HTMLElement,card:any,fill:string,rc:string):Pro
   ctx.fillStyle=bg; ctx.fillRect(0,0,cv.width,cv.height);
   ctx.save(); ctx.shadowColor=rc; ctx.shadowBlur=pad*0.7; ctx.drawImage(slabCv,pad,pad); ctx.restore();
   ctx.drawImage(slabCv,pad,pad);
-  // Signature sous la carte : myNFTlocker a gauche, manager a droite (centre si le pseudo est inconnu)
+  // Signature sous la carte : myNFTlocker a gauche, manager + QR code (galerie du manager) a droite
   const mgr=getManager();
+  const link=galleryLink();
   const fy=img.height+pad+Math.round(pad*0.6);
   const sx0=pad, sx1=pad+img.width;
   const big=Math.round(img.width*0.0455), small=Math.round(img.width*0.0285);
-  const l1=fy+foot*0.28, l2=fy+foot*0.62;
+  const hasQr=!!link;
+  const textRight=hasQr?sx1-qrS-Math.round(img.width*0.035):sx1;
+  const l1=fy+qrS*0.5-big*0.2, l2=l1+Math.round(big*1.1);
   ctx.textBaseline='alphabetic';
-  const brandAlign:CanvasTextAlign=mgr?'left':'center', brandX=mgr?sx0:cv.width/2;
+  const brandAlign:CanvasTextAlign=(mgr||hasQr)?'left':'center', brandX=(mgr||hasQr)?sx0:cv.width/2;
   ctx.textAlign=brandAlign; ctx.fillStyle='rgba(245,215,110,0.95)'; ctx.font='800 '+big+'px system-ui, sans-serif';
   ctx.fillText('myNFTlocker',brandX,l1);
   ctx.fillStyle='rgba(207,216,230,0.7)'; ctx.font='600 '+small+'px system-ui, sans-serif';
@@ -113,12 +116,32 @@ async function buildSlabImage(el:HTMLElement,card:any,fill:string,rc:string):Pro
   if(mgr){
     ctx.textAlign='right';
     ctx.fillStyle='rgba(64,232,255,0.85)'; ctx.font='700 '+small+'px ui-monospace, Menlo, Consolas, monospace';
-    ctx.fillText('MANAGER',sx1,l1);
-    // pseudo : taille reduite si trop long (max ~55% de la largeur de la carte)
+    ctx.fillText('MANAGER',textRight,l1);
+    // pseudo : taille reduite si trop long (max ~40% de la largeur de la carte avec le QR)
+    const maxW=img.width*(hasQr?0.36:0.55);
     let fs=big; ctx.font='800 '+fs+'px system-ui, sans-serif';
-    while(fs>small&&ctx.measureText(mgr).width>img.width*0.55){fs-=1;ctx.font='800 '+fs+'px system-ui, sans-serif';}
+    while(fs>small&&ctx.measureText(mgr).width>maxW){fs-=1;ctx.font='800 '+fs+'px system-ui, sans-serif';}
     ctx.fillStyle='rgba(245,247,255,0.97)';
-    ctx.fillText(mgr,sx1,l2);
+    ctx.fillText(mgr,textRight,l2);
+  }
+  if(hasQr){
+    try{
+      // QR code (correction d'erreur "M" = 33 modules seulement, donc gros pixels et lecture facile depuis un ecran) ; le logo central couvre ~5% de la surface
+      const QR:any=await import('qrcode');
+      const q=(QR.create||QR.default?.create)(link,{errorCorrectionLevel:'M'});
+      const n:number=q.modules.size, m=qrS/(n+5), off=m*2.5;
+      const qx=sx1-qrS, qy=fy;
+      const rr=(x:number,y:number,w:number,h:number,r:number)=>{ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.arcTo(x+w,y,x+w,y+r,r);ctx.lineTo(x+w,y+h-r);ctx.arcTo(x+w,y+h,x+w-r,y+h,r);ctx.lineTo(x+r,y+h);ctx.arcTo(x,y+h,x,y+h-r,r);ctx.lineTo(x,y+r);ctx.arcTo(x,y,x+r,y,r);ctx.closePath();};
+      ctx.fillStyle='#f4f6ff'; rr(qx,qy,qrS,qrS,qrS*0.09); ctx.fill();
+      ctx.fillStyle='#0a0e16';
+      for(let r=0;r<n;r++)for(let c=0;c<n;c++){ if(q.modules.get(r,c)){ rr(qx+off+c*m,qy+off+r*m,m*1.04,m*1.04,m*0.12); ctx.fill(); } }
+      // logo rond au centre
+      const L=qrS*0.2, cx=qx+qrS/2, cy=qy+qrS/2;
+      const lg=new Image(); lg.src='/logo-rond.png';
+      await Promise.race([lg.decode(),new Promise((_,rej)=>setTimeout(()=>rej(new Error('logo')),4000))]);
+      ctx.fillStyle='#f4f6ff'; ctx.beginPath(); ctx.arc(cx,cy,L*0.62,0,Math.PI*2); ctx.fill();
+      ctx.save(); ctx.beginPath(); ctx.arc(cx,cy,L*0.5,0,Math.PI*2); ctx.clip(); ctx.drawImage(lg,cx-L/2,cy-L/2,L,L); ctx.restore();
+    }catch(e){console.error('qr failed',e);}
   }
   const blob:Blob|null=await new Promise(r=>cv.toBlob(r,'image/png'));
   if(!blob)throw new Error('blob');

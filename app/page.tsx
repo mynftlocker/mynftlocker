@@ -445,12 +445,12 @@ export default function Home() {
   const fetchCards=async()=>{
     if(!slug)return;
     setLoading(true);setError('');setFlippedSlug(null);setLockerStart(0);sportAutoSetRef.current=false;
-    setManager(slug); // signature de partage : pseudo Sorare une fois connu, slug en attendant
+    setManager(slug,slug); // signature de partage : pseudo Sorare une fois connu, slug en attendant
     // Cache localStorage (TTL 1h)
     const CACHE_KEY='mnfl_v3_'+slug;// v3 : force le rechargement des cartes (nouveaux champs gwRecord/beatPct)
     try{
       const cached=localStorage.getItem(CACHE_KEY);
-      if(cached){const{c:cc,ts,m}=JSON.parse(cached);if(Date.now()-ts<3600000&&cc?.length>0){if(m)setManager(m);setCards(cc);setLoading(false);return;}}
+      if(cached){const{c:cc,ts,m}=JSON.parse(cached);if(Date.now()-ts<3600000&&cc?.length>0){if(m)setManager(m,slug);setCards(cc);setLoading(false);return;}}
     }catch(e){}
     // Appel direct navigateur → Sorare (IP residentielle, bypass datacenter block)
     const all:any[]=[];let cur:string|null=null;let more=true;let pageNum=0;let mgr='';
@@ -466,7 +466,7 @@ export default function Home() {
       if(!r2.ok)return null;
       const d=await r2.json();
       if(d.error||!d.cards)return null;
-      if(d.manager){setManager(d.manager);mgr=d.manager;}
+      if(d.manager){setManager(d.manager,slug);mgr=d.manager;}
       return{cards:d.cards,hasNextPage:d.hasNextPage,cursor:d.cursor};
     };
     try{
@@ -509,8 +509,16 @@ export default function Home() {
   const [authError,setAuthError]=useState('');
   const [authLoading,setAuthLoading]=useState(false);
   const [justLoggedIn,setJustLoggedIn]=useState(false);
+  // LIEN DIRECT : /?u=pseudo-sorare ouvre directement la galerie de ce manager (liens de partage / QR code)
+  const urlSlugRef=useRef('');
   useEffect(()=>{
-    fetch('/api/auth/me').then(r=>r.json()).then(d=>{ if(d.loggedIn){ setCurrentUser({pseudo:d.pseudo,email:d.email,sorareSlug:d.sorareSlug}); if(d.sorareSlug){ setSlug(d.sorareSlug); setJustLoggedIn(true); } } }).catch(()=>{});
+    try{
+      const u=(new URLSearchParams(window.location.search).get('u')||'').trim().toLowerCase();
+      if(/^[a-z0-9_-]{2,80}$/.test(u)){urlSlugRef.current=u;setSlug(u);setJustLoggedIn(true);}
+    }catch(e){}
+  },[]);
+  useEffect(()=>{
+    fetch('/api/auth/me').then(r=>r.json()).then(d=>{ if(d.loggedIn){ setCurrentUser({pseudo:d.pseudo,email:d.email,sorareSlug:d.sorareSlug}); if(d.sorareSlug&&!urlSlugRef.current){ setSlug(d.sorareSlug); setJustLoggedIn(true); } } }).catch(()=>{});
   },[]);
   useEffect(()=>{
     if(justLoggedIn&&slug&&openPhase===0){ fragStartedRef.current=false; setOpenPhase(1); fetchCards(); setJustLoggedIn(false); }

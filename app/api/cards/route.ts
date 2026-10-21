@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function GET(request:NextRequest){
   const slug=(request.nextUrl.searchParams.get('slug')||'').trim().toLowerCase();
   const cursor=request.nextUrl.searchParams.get('cursor')||'';
+  if(!/^[a-z0-9_-]{1,80}$/.test(slug)||!/^[A-Za-z0-9_=-]{0,400}$/.test(cursor))return NextResponse.json({error:'bad_request'},{status:400}); // evite l'injection dans la requete GraphQL
   const after=cursor?`,after:"${cursor}"`:'';
   const query=`query{user(slug:"${slug}"){nickname cards(first:50${after}){nodes{
     __typename slug name rarityTyped pictureUrl
