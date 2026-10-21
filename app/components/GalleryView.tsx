@@ -76,7 +76,7 @@ const GalleryCard=memo(({card,isFlipped,onFlip,glowScale}:any)=>{
   useEffect(()=>{setNatW(nameNatW(disp)*100);},[disp]);
   const team=card.anyTeam?.name||'';
   const comp=isNBA(card)?'NBA':'FOOT';
-  const rarLabel=card.rarityTyped.replace('_',' ').toUpperCase();
+  const rarLabel=card.rarityTyped==='common'?'SET':card.rarityTyped.replace('_',' ').toUpperCase();
   return(
     <div style={{perspective:'900px',cursor:'pointer',width:'100%',position:'relative',containerType:'inline-size'}} onClick={()=>onFlip(card.slug)} onMouseEnter={()=>setHover(true)} onMouseLeave={()=>setHover(false)}>
       <div style={{position:'relative',transformStyle:'preserve-3d',transition:'transform 0.4s cubic-bezier(0.2,0.8,0.3,1),box-shadow 0.3s ease',transform:(isFlipped?'rotateY(180deg)':'rotateY(0deg)')+((hover&&!isFlipped)?' translateY(-10px) scale(1.03)':''),boxShadow:isFlipped?'0 0 12px 3px rgba(64,232,255,0.45),0 0 24px 6px rgba(64,232,255,0.2)':((hover&&!isFlipped)?glow+', 0 22px 40px -8px rgba(0,0,0,0.7)':glow),borderRadius:'7cqw',background:fill,...({['--rc']:rc,animation:isFlipped?'mnflCyanPulse 2.2s ease-in-out infinite':undefined} as any)}}>

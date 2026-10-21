@@ -121,7 +121,7 @@ export const CardBack=memo(({card,rc,mobile}:any)=>{
       </div>
       <div style={{display:'flex',gap:'0.3rem',padding:sz('0.4rem',6.4)+' '+sz('0.5rem',8)+' '+sz('0.5rem',8)}}>
         <span style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',height:'1.05rem',borderRadius:'0.3rem',border:'1px solid '+rc+'55',background:rc+'15',fontSize:sz('0.46rem',7.36),fontWeight:800,color:rc,letterSpacing:'0.02em',whiteSpace:'nowrap'}}>BONUS {bonus||'—'}</span>
-        <span style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',height:'1.05rem',borderRadius:'0.3rem',border:'1px solid '+rc+'55',background:'rgba(0,0,0,0.4)',fontSize:sz('0.46rem',7.36),fontWeight:700,color:rc,textTransform:'uppercase',letterSpacing:'0.02em',whiteSpace:'nowrap'}}>{card.rarityTyped.replace('_',' ')}</span>
+        <span style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',height:'1.05rem',borderRadius:'0.3rem',border:'1px solid '+rc+'55',background:'rgba(0,0,0,0.4)',fontSize:sz('0.46rem',7.36),fontWeight:700,color:rc,textTransform:'uppercase',letterSpacing:'0.02em',whiteSpace:'nowrap'}}>{card.rarityTyped==='common'?'SET':card.rarityTyped.replace('_',' ')}</span>
       </div>
     </div>
   );
@@ -164,7 +164,7 @@ export const StatPanel=memo(({card,onClose,isClosing=false,placement='scene'}:an
   const avgNum=card.averageScore!=null?parseFloat(String(card.averageScore)):null;
   const team=card.anyTeam?.name||'—';
   const xp=card.xp?card.xp.toLocaleString():'—';
-  const edition=card.specialEdition?card.specialEdition.replace(/_/g,' ').toUpperCase():'STANDARD';
+  const edition=card.specialEdition?card.specialEdition.replace(/_(base|overflow)$/i,'').replace(/_/g,' ').toUpperCase():'STANDARD';
   const [typedName,setTypedName]=useState('');
   const [countedAvg,setCountedAvg]=useState('0');
   const [nbaStats,setNbaStats]=useState<any>(null);
@@ -253,7 +253,7 @@ export const StatPanel=memo(({card,onClose,isClosing=false,placement='scene'}:an
         </div>
         <div style={{width:'48%',display:'flex',flexDirection:'column' as const,gap:'0.3em',paddingLeft:'0.5em',justifyContent:'center'}}>
           {bonus&&<div style={{padding:'0.3em 0.45em',border:'1px solid rgba(64,232,255,0.28)',borderRadius:'0.3em',background:'rgba(64,232,255,0.07)',display:'flex',justifyContent:'space-between',alignItems:'baseline'}}><span style={{fontSize:'0.55em',color:'rgba(64,232,255,0.55)',letterSpacing:'0.1em'}}>BONUS</span><span style={{fontSize:'0.78em',fontWeight:800,color:CY,textShadow:CYS}}>{bonus}</span></div>}
-          <div style={{padding:'0.35em 0.45em',border:'1px solid '+rc+'55',borderRadius:'0.3em',background:rc+'0d',textAlign:'center'}}><span style={{fontSize:'0.72em',fontWeight:900,color:rc,letterSpacing:'0.1em',textShadow:'0 0 7px '+rc}}>{card.rarityTyped.replace(/_/g,' ').toUpperCase()}</span></div>
+          <div style={{padding:'0.35em 0.45em',border:'1px solid '+rc+'55',borderRadius:'0.3em',background:rc+'0d',textAlign:'center'}}><span style={{fontSize:'0.72em',fontWeight:900,color:rc,letterSpacing:'0.1em',textShadow:'0 0 7px '+rc}}>{card.rarityTyped==='common'?'SET':card.rarityTyped.replace(/_/g,' ').toUpperCase()}</span></div>
         </div>
       </div>
       <div style={{display:'flex',flexDirection:big?'row':'column',gap:big?'0.7em':'0',alignItems:'stretch'}}>

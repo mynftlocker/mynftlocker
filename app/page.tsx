@@ -48,7 +48,8 @@ const editionGroup=(se:string):string=>{
   if(l==='animated')return 'ANIMATED';
   if(l==='cursed')return 'CURSED';
   if(l==='halloween')return 'HALLOWEEN';
-  return se.toUpperCase();
+  // Generique (nouvelles editions): retire le suffixe technique _base/_overflow, underscores -> espaces
+  return se.replace(/_(base|overflow)$/i,'').replace(/_/g,' ').toUpperCase();
 };
 const specialLabel=(v:string)=>editionGroup(v);
 const STANDARD_EDITIONS=new Set(['stellar_standard_base','colors_standard_base','legacy']);
@@ -105,7 +106,7 @@ const CardBack=memo(({ card }: { card: any }) => {
       </div>
       <div style={{padding:'0.3rem 0.5rem 0.45rem',display:'flex',justifyContent:'center',gap:'0.4rem'}}>
         <span style={{padding:'0.15rem 0.5rem',borderRadius:'999px',border:'1px solid '+rc+'66',background:'#000a',fontSize:'0.55rem',fontWeight:800,color:rc}}>BONUS --</span>
-        <span style={{padding:'0.15rem 0.5rem',borderRadius:'999px',border:'1px solid '+rc+'66',background:rc+'15',fontSize:'0.55rem',fontWeight:700,color:rc,textTransform:'uppercase'}}>{card.rarityTyped.replace('_',' ')}</span>
+        <span style={{padding:'0.15rem 0.5rem',borderRadius:'999px',border:'1px solid '+rc+'66',background:rc+'15',fontSize:'0.55rem',fontWeight:700,color:rc,textTransform:'uppercase'}}>{card.rarityTyped==='common'?'SET':card.rarityTyped.replace('_',' ')}</span>
       </div>
     </div>
   );
@@ -137,7 +138,7 @@ const LockerSlot=memo(({card,isFlipped,isStarred,isHof,onFlip,onStar}:any)=>{
                   <span style={{fontSize:'0.48rem',color:rc,fontWeight:800,letterSpacing:'0.14em',textTransform:'uppercase'}}>L10</span>
                   {bonus&&<span style={{marginLeft:'auto',fontSize:'0.48rem',color:rc,fontWeight:800,letterSpacing:'0.06em',border:'1px solid '+rc+'55',padding:'0.05rem 0.25rem',borderRadius:'0.2rem'}}>BONUS {bonus}</span>}
                 </div>
-                <p style={{margin:'1px 0 0',fontSize:'0.42rem',color:'rgba(255,255,255,0.5)',fontWeight:600,textTransform:'uppercase',letterSpacing:'0.12em',fontFamily:'monospace'}}>{card.rarityTyped.replace('_',' ')} • {card.anyTeam?.name||''}</p>
+                <p style={{margin:'1px 0 0',fontSize:'0.42rem',color:'rgba(255,255,255,0.5)',fontWeight:600,textTransform:'uppercase',letterSpacing:'0.12em',fontFamily:'monospace'}}>{card.rarityTyped==='common'?'SET':card.rarityTyped.replace('_',' ')} • {card.anyTeam?.name||''}</p>
               </div>
             )}
           </div>
@@ -665,7 +666,7 @@ export default function Home() {
   const sideBg='rgba(12,14,19,0.82)';
 
   // Bloc filtres vertical (barre laterale)
-  const rarityOpts=[{value:'all',label:'Toutes les raretés'},{value:'common',label:'Common'},{value:'limited',label:'Limited'},{value:'rare',label:'Rare'},{value:'super_rare',label:'Super Rare'},{value:'unique',label:'Unique'}];
+  const rarityOpts=[{value:'all',label:'Toutes les raretés'},{value:'common',label:'SET'},{value:'limited',label:'Limited'},{value:'rare',label:'Rare'},{value:'super_rare',label:'Super Rare'},{value:'unique',label:'Unique'}];
   const seasonOpts=[{value:'all',label:'Toutes saisons'},...seasonOptions.map(y=>({value:String(y),label:y+'-'+String((y+1)%100).padStart(2,'0')}))];
   const specialOpts=[{value:'all',label:'Toutes cartes'},{value:'standard',label:'STANDARD UNIQUEMENT'},{value:'special',label:'SPÉCIALES UNIQUEMENT'},...specialOptions.map(s=>({value:s,label:s}))];
   // (composant Filters retiré — filtres inlinés dans la sidebar)
