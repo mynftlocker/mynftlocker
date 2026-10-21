@@ -52,11 +52,11 @@ const gapFor=(cols:number)=>cols<=3?'1.4rem':cols===4?'1rem':cols===5?'0.75rem':
 const glowScaleFor=(cols:number)=>cols<=3?1:cols===4?0.8:cols===5?0.65:cols===6?0.55:cols===7?0.48:0.42;
 // Mesure la largeur naturelle du nom (ratio largeur/taille) pour remplir exactement la case nom via SVG (jamais tronque).
 let _nameCtx:CanvasRenderingContext2D|null=null;
-function nameNatW(txt:string){
+function nameNatW(txt:string,weight:number=800){
   if(typeof document==='undefined')return Math.max(1,txt.length*0.56);
   if(!_nameCtx){try{_nameCtx=document.createElement('canvas').getContext('2d');}catch(e){_nameCtx=null;}}
   if(!_nameCtx)return Math.max(1,txt.length*0.56);
-  _nameCtx.font='800 100px system-ui, sans-serif';
+  _nameCtx.font=weight+' 100px system-ui, sans-serif';
   return Math.max(1,_nameCtx.measureText(txt).width/100);
 }
 // ===== PARTAGE : exporte le slab en image PNG (fond sombre + halo de rarete + signature) =====
@@ -164,7 +164,10 @@ export const GalleryCard=memo(({card,isFlipped,onFlip,glowScale}:any)=>{
   const disp=_firstInit?(_firstInit+'. '+_lastName):_lastName;
   const [natW,setNatW]=useState(()=>Math.max(1,disp.length*0.56)*100);
   useEffect(()=>{setNatW(nameNatW(disp)*100);},[disp]);
-  const team=card.anyTeam?.name||'';
+  const team=String(card.anyTeam?.name||'');
+  // Equipe : meme principe que le nom du joueur -> dessinee en SVG, police reduite automatiquement si le nom est long (jamais coupe)
+  const [teamW,setTeamW]=useState(()=>Math.max(1,team.length*0.56)*100);
+  useEffect(()=>{setTeamW(nameNatW(team,600)*100);},[team]);
   const comp=isNBA(card)?'NBA':'FOOT';
   const rarLabel=card.rarityTyped==='common'?'SET':card.rarityTyped.replace('_',' ').toUpperCase();
   return(
@@ -190,7 +193,11 @@ export const GalleryCard=memo(({card,isFlipped,onFlip,glowScale}:any)=>{
                   </svg>
                 </div>
                 <div style={{display:'flex',flexDirection:'column' as const,gap:'0.5cqw'}}>
-                  <div style={{fontSize:'4cqw',color:'#cfd8e6',fontWeight:600,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{team}</div>
+                  <div style={{width:'100%',height:'4.2cqw'}}>
+                    <svg viewBox={'0 0 '+teamW+' 100'} preserveAspectRatio='xMinYMid meet' style={{width:'100%',height:'100%',display:'block',overflow:'visible'}}>
+                      <text x='0' y='78' fontSize='100' fontWeight='600' fontFamily='system-ui, sans-serif' fill='#cfd8e6'>{team}</text>
+                    </svg>
+                  </div>
                   <div style={{fontSize:'3.6cqw',color:'#8a97ad',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{comp} · {season}</div>
                 </div>
               </div>
