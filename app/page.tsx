@@ -478,14 +478,16 @@ export default function Home() {
         }
         if(!data){if(all.length===0){setError('Joueur introuvable');setOpenPhase(0);}break;}
         all.push(...data.cards);
-        setCards([...all]);
+        // PERF : affichage progressif mais pas a chaque page (chaque setCards recalcule filtres/tris/equipes sur toute la collection)
+        if(pageNum===1||pageNum%6===0)setCards([...all]);
         more=data.hasNextPage;
         cur=data.cursor;
-        if(more)await sleep(80);
+        // PERF : plus de pause entre les pages (les 6 tentatives avec attente en cas d'erreur 429 restent en place)
       }
       console.log('=== LOAD DONE === cartes:'+all.length+' pages:'+pageNum);
       if(all.length>0){try{localStorage.setItem(CACHE_KEY,JSON.stringify({c:all,ts:Date.now()}));}catch(e){}}
     }catch(e){if(all.length===0){setError('Erreur réseau');setOpenPhase(0);}}
+    if(all.length>0)setCards([...all]); // PERF : etat final complet (les pages intermediaires ne sont plus toutes poussees)
     setLoading(false);
   };
   const handleIntroClick=useCallback(()=>{if(!slug||loading||openPhase>0)return;fragStartedRef.current=false;setOpenPhase(1);fetchCards();},[slug,loading,openPhase]);
