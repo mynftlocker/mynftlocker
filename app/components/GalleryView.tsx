@@ -58,8 +58,49 @@ function nameNatW(txt:string){
   _nameCtx.font='800 100px Inter, system-ui, sans-serif';
   return Math.max(1,_nameCtx.measureText(txt).width/100);
 }
+// ===== PARTAGE : exporte le slab en image PNG (fond sombre + halo de rarite + signature), partage natif sur mobile, telechargement sur desktop =====
+async function shareSlabImage(el:HTMLElement,card:any,fill:string,rc:string){
+  const {toPng}=await import('html-to-image');
+  // 1. Rendu du slab seul (on lui redonne le fond du coffret, sans transformation de survol)
+  // Definition : on vise ~900 px de large quelle que soit la taille de la carte a l'ecran (mini 2x, maxi 6x)
+  const pr=Math.min(6,Math.max(2,900/Math.max(1,el.getBoundingClientRect().width)));
+  const PX='data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'; // pixel transparent si une image ne charge pas
+  const dataUrl:string=await Promise.race([
+    toPng(el,{pixelRatio:pr,skipFonts:true,imagePlaceholder:PX,style:{background:fill,transform:'none',margin:'0'}}),
+    new Promise<string>((_,rej)=>setTimeout(()=>rej(new Error('timeout')),25000)),
+  ]);
+  const img=new Image(); img.src=dataUrl; await img.decode();
+  // 2. Composition : marge + halo couleur rarete + signature
+  const pad=Math.round(img.width*0.12), foot=Math.round(img.width*0.1);
+  const cv=document.createElement('canvas'); cv.width=img.width+pad*2; cv.height=img.height+pad*2+foot;
+  const ctx=cv.getContext('2d'); if(!ctx)throw new Error('canvas');
+  const bg=ctx.createRadialGradient(cv.width/2,cv.height*0.42,cv.width*0.1,cv.width/2,cv.height*0.5,cv.width*0.85);
+  bg.addColorStop(0,'#101826'); bg.addColorStop(1,'#04070d');
+  ctx.fillStyle=bg; ctx.fillRect(0,0,cv.width,cv.height);
+  ctx.save(); ctx.shadowColor=rc; ctx.shadowBlur=pad*0.7; ctx.drawImage(img,pad,pad); ctx.restore();
+  ctx.drawImage(img,pad,pad);
+  ctx.textAlign='center'; ctx.fillStyle='rgba(245,215,110,0.9)'; ctx.font='800 '+Math.round(foot*0.34)+'px system-ui, sans-serif';
+  ctx.fillText('myNFTlocker',cv.width/2,img.height+pad*2+foot*0.18);
+  ctx.fillStyle='rgba(207,216,230,0.55)'; ctx.font='600 '+Math.round(foot*0.2)+'px system-ui, sans-serif';
+  ctx.fillText('mynftlocker.vercel.app',cv.width/2,img.height+pad*2+foot*0.5);
+  const blob:Blob|null=await new Promise(r=>cv.toBlob(r,'image/png'));
+  if(!blob)throw new Error('blob');
+  const fname='mynftlocker-'+String(card.slug||'carte').slice(0,60)+'.png';
+  const file=new File([blob],fname,{type:'image/png'});
+  const nav:any=navigator;
+  // Mobile (ecran tactile) : feuille de partage native ; sinon telechargement direct
+  if(window.matchMedia('(pointer: coarse)').matches&&nav.canShare&&nav.canShare({files:[file]})){
+    try{await nav.share({files:[file],title:card.name});return;}catch(e:any){if(e&&e.name==='AbortError')return;}
+  }
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=fname; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+}
 const GalleryCard=memo(({card,isFlipped,onFlip,glowScale}:any)=>{
   const [hover,setHover]=useState(false);
+  const slabRef=useRef<HTMLDivElement>(null);
+  const [sharing,setSharing]=useState(false);
+  const [touchOnly,setTouchOnly]=useState(false);
+  useEffect(()=>{try{setTouchOnly(window.matchMedia('(hover: none)').matches);}catch(e){}},[]);
   const glowRaw=RARITY_GLOW[card.rarityTyped]||RARITY_GLOW.common;
   const glow=scaleGlow(glowRaw,glowScale??1);
   const fill=RARITY_FILL[card.rarityTyped]||RARITY_FILL.common;
@@ -81,7 +122,7 @@ const GalleryCard=memo(({card,isFlipped,onFlip,glowScale}:any)=>{
     <div style={{perspective:'900px',cursor:'pointer',width:'100%',position:'relative',containerType:'inline-size'}} onClick={()=>onFlip(card.slug)} onMouseEnter={()=>setHover(true)} onMouseLeave={()=>setHover(false)}>
       <div style={{position:'relative',transformStyle:'preserve-3d',transition:'transform 0.4s cubic-bezier(0.2,0.8,0.3,1),box-shadow 0.3s ease',transform:(isFlipped?'rotateY(180deg)':'rotateY(0deg)')+((hover&&!isFlipped)?' translateY(-10px) scale(1.03)':''),boxShadow:isFlipped?'0 0 12px 3px rgba(64,232,255,0.45),0 0 24px 6px rgba(64,232,255,0.2)':((hover&&!isFlipped)?glow+', 0 22px 40px -8px rgba(0,0,0,0.7)':glow),borderRadius:'7cqw',background:fill,...({['--rc']:rc,animation:isFlipped?'mnflCyanPulse 2.2s ease-in-out infinite':undefined} as any)}}>
         {/* SLAB : coque plastique translucide + bandeau label (en haut) + art 100% visible dessous. */}
-        <div style={{position:'relative',backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',borderRadius:'7cqw',padding:'4cqw 4cqw 4.8cqw',background:'linear-gradient(180deg,rgba(236,243,255,0.14) 0%,rgba(236,243,255,0.05) 7%,rgba(190,205,230,0.07) 16%,rgba(150,166,194,0.045) 100%)',border:'1px solid rgba(214,226,244,0.55)',boxShadow:'0 1px 0 rgba(255,255,255,0.35) inset,0 0 0 1px rgba(10,14,22,0.6)'}}>
+        <div ref={slabRef} style={{position:'relative',backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',borderRadius:'7cqw',padding:'4cqw 4cqw 4.8cqw',background:'linear-gradient(180deg,rgba(236,243,255,0.14) 0%,rgba(236,243,255,0.05) 7%,rgba(190,205,230,0.07) 16%,rgba(150,166,194,0.045) 100%)',border:'1px solid rgba(214,226,244,0.55)',boxShadow:'0 1px 0 rgba(255,255,255,0.35) inset,0 0 0 1px rgba(10,14,22,0.6)'}}>
           {/* bandeau label */}
           <div style={{position:'relative',zIndex:2,borderRadius:'4.8cqw',overflow:'hidden',background:'linear-gradient(165deg,#10151f,#0a0e16)',border:'1px solid rgba(120,150,190,0.14)',boxShadow:'0 2px 10px -4px rgba(0,0,0,0.6)',padding:'3.6cqw 4.4cqw 4cqw'}}>
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'3cqw',marginBottom:'2cqw'}}>
@@ -125,6 +166,12 @@ const GalleryCard=memo(({card,isFlipped,onFlip,glowScale}:any)=>{
         </div>
         <CardBack card={card} rc={rc} mobile={true}/>
       </div>
+      {/* Bouton Partager : visible au survol (toujours visible sur ecran tactile), masque quand la carte est retournee */}
+      <button type='button' title="Partager l'image de la carte" aria-label="Partager l'image de la carte" disabled={sharing}
+        onClick={(e)=>{e.stopPropagation();if(!slabRef.current||sharing)return;setSharing(true);shareSlabImage(slabRef.current,card,fill,rc).catch((err)=>console.error('share failed',err)).finally(()=>setSharing(false));}}
+        style={{position:'absolute',bottom:'7cqw',right:'7cqw',zIndex:30,width:'10cqw',height:'10cqw',minWidth:'28px',minHeight:'28px',borderRadius:'50%',border:'1px solid rgba(64,232,255,0.6)',background:'rgba(6,10,18,0.8)',color:'#40e8ff',cursor:sharing?'wait':'pointer',display:'flex',alignItems:'center',justifyContent:'center',padding:0,transition:'opacity 0.15s',opacity:((hover||touchOnly)&&!isFlipped)?(sharing?0.6:1):0,pointerEvents:((hover||touchOnly)&&!isFlipped)?'auto':'none'}}>
+        <svg viewBox='0 0 24 24' style={{width:'55%',height:'55%'}} fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round'><path d='M12 15V3'/><path d='M8 7l4-4 4 4'/><path d='M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7'/></svg>
+      </button>
       {isFlipped&&(<svg style={{position:'absolute',top:0,left:0,width:'100%',height:'100%',zIndex:22,pointerEvents:'none',overflow:'visible'}}><rect x='0' y='0' width='100%' height='100%' rx='8' pathLength='1000' fill='none' stroke='#40e8ff' strokeWidth='2.5' style={{filter:'drop-shadow(0 0 9px rgba(64,232,255,0.9))',strokeDasharray:'1000',strokeDashoffset:'1000',animation:'mnflCardTrace 1.4s ease-in-out 0.5s both'}}/></svg>)}
     </div>
   );
