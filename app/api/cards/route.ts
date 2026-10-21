@@ -3,7 +3,7 @@ export async function GET(request:NextRequest){
   const slug=(request.nextUrl.searchParams.get('slug')||'').trim().toLowerCase();
   const cursor=request.nextUrl.searchParams.get('cursor')||'';
   const after=cursor?`,after:"${cursor}"`:'';
-  const query=`query{user(slug:"${slug}"){cards(first:50${after}){nodes{
+  const query=`query{user(slug:"${slug}"){nickname cards(first:50${after}){nodes{
     __typename slug name rarityTyped pictureUrl
     anyPlayer{slug lastName shirtNumber gameplayTierStars}
     anyTeam{name ...on Club{country{slug}}}
@@ -29,6 +29,7 @@ export async function GET(request:NextRequest){
     const j=await r.json();
     if(j.errors?.length)return NextResponse.json({error:j.errors[0].message},{status:400});
     const data=j?.data?.user?.cards;
+    const manager:string|null=j?.data?.user?.nickname||null; // pseudo Sorare du manager (signature de l'image de partage)
     if(!data)return NextResponse.json({error:'no_data'},{status:404});
     // Beat L10 par carte : compteur officiel Sorare (highlightedStats BEAT_L10) / nb de gameweeks jouees (so5LineupsCount).
     // Permet de trier la galerie par Beat L10 sans appel supplementaire. null si la carte n'a pas (encore) de donnee.
@@ -43,6 +44,6 @@ export async function GET(request:NextRequest){
       const gwRecord=(rs!=null&&Number(rs)>0)?Number(rs):null;
       return {...n,beatL10,beatGw,beatPct,gwRecord};
     });
-    return NextResponse.json({cards:nodes,hasNextPage:data.pageInfo.hasNextPage,cursor:data.pageInfo.endCursor,auth:!!(jwt&&aud)});
+    return NextResponse.json({manager,cards:nodes,hasNextPage:data.pageInfo.hasNextPage,cursor:data.pageInfo.endCursor,auth:!!(jwt&&aud)});
   }catch(e){return NextResponse.json({error:String(e)},{status:500});}
 }

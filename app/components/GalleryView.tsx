@@ -1,5 +1,6 @@
 "use client";
 import { memo, useState, useEffect, useRef } from 'react';
+import { getManager } from '../lib-share';
 import { StatPanel, CardBack, RARITY_GLOW, RARITY_COLOR, RARITY_FILL, parseCard, isNBA, FootStars } from './StatPanel';
 
 // Embleme rond myNFTlocker dessine (repli si /logo-rond.png absent) : anneau or + etoile centrale facon crest.
@@ -55,7 +56,7 @@ function nameNatW(txt:string){
   if(typeof document==='undefined')return Math.max(1,txt.length*0.56);
   if(!_nameCtx){try{_nameCtx=document.createElement('canvas').getContext('2d');}catch(e){_nameCtx=null;}}
   if(!_nameCtx)return Math.max(1,txt.length*0.56);
-  _nameCtx.font='800 100px Inter, system-ui, sans-serif';
+  _nameCtx.font='800 100px system-ui, sans-serif';
   return Math.max(1,_nameCtx.measureText(txt).width/100);
 }
 // ===== PARTAGE : exporte le slab en image PNG (fond sombre + halo de rarete + signature) =====
@@ -97,10 +98,27 @@ async function buildSlabImage(el:HTMLElement,card:any,fill:string,rc:string):Pro
   ctx.fillStyle=bg; ctx.fillRect(0,0,cv.width,cv.height);
   ctx.save(); ctx.shadowColor=rc; ctx.shadowBlur=pad*0.7; ctx.drawImage(slabCv,pad,pad); ctx.restore();
   ctx.drawImage(slabCv,pad,pad);
-  ctx.textAlign='center'; ctx.fillStyle='rgba(245,215,110,0.9)'; ctx.font='800 '+Math.round(foot*0.34)+'px system-ui, sans-serif';
-  ctx.fillText('myNFTlocker',cv.width/2,img.height+pad*2+foot*0.18);
-  ctx.fillStyle='rgba(207,216,230,0.55)'; ctx.font='600 '+Math.round(foot*0.2)+'px system-ui, sans-serif';
-  ctx.fillText('mynftlocker.vercel.app',cv.width/2,img.height+pad*2+foot*0.5);
+  // Signature sous la carte : myNFTlocker a gauche, manager a droite (centre si le pseudo est inconnu)
+  const mgr=getManager();
+  const fy=img.height+pad*2;
+  const sx0=pad, sx1=pad+img.width;
+  const big=Math.round(foot*0.3), small=Math.round(foot*0.19);
+  ctx.textBaseline='alphabetic';
+  const brandAlign:CanvasTextAlign=mgr?'left':'center', brandX=mgr?sx0:cv.width/2;
+  ctx.textAlign=brandAlign; ctx.fillStyle='rgba(245,215,110,0.95)'; ctx.font='800 '+big+'px system-ui, sans-serif';
+  ctx.fillText('myNFTlocker',brandX,fy+foot*0.2);
+  ctx.fillStyle='rgba(207,216,230,0.55)'; ctx.font='600 '+small+'px system-ui, sans-serif';
+  ctx.fillText('mynftlocker.vercel.app',brandX,fy+foot*0.5);
+  if(mgr){
+    ctx.textAlign='right';
+    ctx.fillStyle='rgba(64,232,255,0.7)'; ctx.font='700 '+small+'px ui-monospace, Menlo, Consolas, monospace';
+    ctx.fillText('MANAGER',sx1,fy+foot*0.2);
+    // pseudo : taille reduite si trop long (max ~55% de la largeur de la carte)
+    let fs=big; ctx.font='800 '+fs+'px system-ui, sans-serif';
+    while(fs>small&&ctx.measureText(mgr).width>img.width*0.55){fs-=1;ctx.font='800 '+fs+'px system-ui, sans-serif';}
+    ctx.fillStyle='rgba(245,247,255,0.95)';
+    ctx.fillText(mgr,sx1,fy+foot*0.5+Math.max(0,(big-fs))*0.2);
+  }
   const blob:Blob|null=await new Promise(r=>cv.toBlob(r,'image/png'));
   if(!blob)throw new Error('blob');
   const fname='mynftlocker-'+String(card.slug||'carte').slice(0,60)+'.png';
@@ -144,7 +162,7 @@ const GalleryCard=memo(({card,isFlipped,onFlip,glowScale}:any)=>{
                 {/* case NOM : le nom est dessine en SVG qui remplit la case -> jamais tronque, taille auto selon la longueur, mini marge */}
                 <div style={{width:'100%',height:'11cqw',padding:'0 0.5cqw'}}>
                   <svg viewBox={'0 0 '+natW+' 100'} preserveAspectRatio='xMinYMid meet' style={{width:'100%',height:'100%',display:'block',overflow:'visible'}}>
-                    <text x='1' y='80' fontSize='100' fontWeight='800' fill='#eef4ff' style={{filter:'drop-shadow(0 0 4px rgba(53,230,255,0.25))'}}>{disp}</text>
+                    <text x='1' y='80' fontSize='100' fontWeight='800' fontFamily='system-ui, sans-serif' fill='#eef4ff' style={{filter:'drop-shadow(0 0 4px rgba(53,230,255,0.25))'}}>{disp}</text>
                   </svg>
                 </div>
                 <div style={{display:'flex',flexDirection:'column' as const,gap:'0.5cqw'}}>

@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, memo, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import dynamic from 'next/dynamic';
 import GalleryView from './components/GalleryView';
+import { setManager } from './lib-share';
 import StarCanvas from './components/StarCanvas';
 
 const LockerRoomScene = dynamic(() => import('./components/LockerRoom'), { ssr: false });
@@ -444,14 +445,15 @@ export default function Home() {
   const fetchCards=async()=>{
     if(!slug)return;
     setLoading(true);setError('');setFlippedSlug(null);setLockerStart(0);sportAutoSetRef.current=false;
+    setManager(slug); // signature de partage : pseudo Sorare une fois connu, slug en attendant
     // Cache localStorage (TTL 1h)
     const CACHE_KEY='mnfl_v3_'+slug;// v3 : force le rechargement des cartes (nouveaux champs gwRecord/beatPct)
     try{
       const cached=localStorage.getItem(CACHE_KEY);
-      if(cached){const{c:cc,ts}=JSON.parse(cached);if(Date.now()-ts<3600000&&cc?.length>0){setCards(cc);setLoading(false);return;}}
+      if(cached){const{c:cc,ts,m}=JSON.parse(cached);if(Date.now()-ts<3600000&&cc?.length>0){if(m)setManager(m);setCards(cc);setLoading(false);return;}}
     }catch(e){}
     // Appel direct navigateur → Sorare (IP residentielle, bypass datacenter block)
-    const all:any[]=[];let cur:string|null=null;let more=true;let pageNum=0;
+    const all:any[]=[];let cur:string|null=null;let more=true;let pageNum=0;let mgr='';
     const sleep=(ms:number)=>new Promise(r=>setTimeout(r,ms));
     const SORARE_URL='https://api.sorare.com/federation/graphql';
     const fetchPage=async(cursor:string|null):Promise<{cards:any[],hasNextPage:boolean,cursor:string|null}|null>=>{
@@ -464,6 +466,7 @@ export default function Home() {
       if(!r2.ok)return null;
       const d=await r2.json();
       if(d.error||!d.cards)return null;
+      if(d.manager){setManager(d.manager);mgr=d.manager;}
       return{cards:d.cards,hasNextPage:d.hasNextPage,cursor:d.cursor};
     };
     try{
@@ -485,7 +488,7 @@ export default function Home() {
         // PERF : plus de pause entre les pages (les 6 tentatives avec attente en cas d'erreur 429 restent en place)
       }
       console.log('=== LOAD DONE === cartes:'+all.length+' pages:'+pageNum);
-      if(all.length>0){try{localStorage.setItem(CACHE_KEY,JSON.stringify({c:all,ts:Date.now()}));}catch(e){}}
+      if(all.length>0){try{localStorage.setItem(CACHE_KEY,JSON.stringify({c:all,ts:Date.now(),m:mgr}));}catch(e){}}
     }catch(e){if(all.length===0){setError('Erreur réseau');setOpenPhase(0);}}
     if(all.length>0)setCards([...all]); // PERF : etat final complet (les pages intermediaires ne sont plus toutes poussees)
     setLoading(false);

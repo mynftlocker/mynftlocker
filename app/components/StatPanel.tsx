@@ -49,7 +49,7 @@ function cbNatW(txt:string){
   if(typeof document==='undefined')return Math.max(1,txt.length*0.56);
   if(!_cbCtx){try{_cbCtx=document.createElement('canvas').getContext('2d');}catch(e){_cbCtx=null;}}
   if(!_cbCtx)return Math.max(1,txt.length*0.56);
-  _cbCtx.font='900 100px Inter, system-ui, sans-serif';
+  _cbCtx.font='900 100px system-ui, sans-serif';
   return Math.max(1,_cbCtx.measureText(txt).width/100);
 }
 export const CardBack=memo(({card,rc,mobile}:any)=>{
@@ -86,7 +86,7 @@ export const CardBack=memo(({card,rc,mobile}:any)=>{
         <div style={{width:'100%',marginTop:sz('0.35rem',5.6),textAlign:'center' as const}}>
           <div style={{width:'100%',height:sz('1.15rem',18.4),display:'flex',alignItems:'center',justifyContent:'center'}}>
             <svg viewBox={'0 0 '+cbW+' 100'} preserveAspectRatio='xMidYMid meet' style={{width:'100%',height:'100%',display:'block',overflow:'visible'}}>
-              <text x={cbW/2} y='80' textAnchor='middle' fontSize='100' fontWeight='900' fill='#fff' style={{filter:'drop-shadow(0 0 8px '+rc+'99)'}}>{ln}</text>
+              <text x={cbW/2} y='80' textAnchor='middle' fontSize='100' fontWeight='900' fontFamily='system-ui, sans-serif' fill='#fff' style={{filter:'drop-shadow(0 0 8px '+rc+'99)'}}>{ln}</text>
             </svg>
           </div>
           <p style={{margin:sz('0.3rem',4.8)+' 0 0',fontSize:sz('0.5rem',8),color:'#9aa3b2',fontWeight:700,letterSpacing:'0.05em'}}>{sn!==null?('#'+sn):''}{(sn!==null&&serial)?('  '+'·'+'  '):''}{serial||''}</p>
@@ -189,13 +189,12 @@ function ShareBlock({card,box,lab}:{card:any;box:React.CSSProperties;lab:React.C
   const ico=(d:React.ReactNode)=>(<svg viewBox='0 0 24 24' style={{width:'1.2em',height:'1.2em',flexShrink:0}} fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round'>{d}</svg>);
   return(
     <div style={{...box,flexShrink:0,borderColor:'rgba(64,232,255,0.4)',background:'rgba(64,232,255,0.06)'}}>
-      <p style={lab}>PARTAGER LA CARTE</p>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:'0.5em'}}><p style={lab}>PARTAGER LA CARTE</p><span style={{fontSize:'0.5em',letterSpacing:'0.08em',color:state==='error'?'#fca5a5':'rgba(64,232,255,0.7)',whiteSpace:'nowrap'}}>{msg||(state==='prep'?'Préparation de l’image…':state==='error'?'Image indisponible':'')}</span></div>
       <div style={{display:'flex',gap:'0.4em'}}>
         {canShare&&<button type='button' className='stat-link-btn' disabled={!ready} onClick={doShare} style={btn}>{ico(<><circle cx='18' cy='5' r='3'/><circle cx='6' cy='12' r='3'/><circle cx='18' cy='19' r='3'/><path d='M8.6 13.5l6.8 4M15.4 6.5l-6.8 4'/></>)}PARTAGER</button>}
         <button type='button' className='stat-link-btn' disabled={!ready} onClick={doDownload} style={btn}>{ico(<><path d='M12 3v12'/><path d='M8 11l4 4 4-4'/><path d='M5 21h14'/></>)}TÉLÉCHARGER</button>
         {canCopy&&<button type='button' className='stat-link-btn' disabled={!ready} onClick={doCopy} style={btn}>{ico(<><rect x='9' y='9' width='12' height='12' rx='2'/><path d='M5 15V5a2 2 0 012-2h10'/></>)}COPIER</button>}
       </div>
-      <p style={{margin:'0.35em 0 0',fontSize:'0.5em',letterSpacing:'0.08em',color:state==='error'?'#fca5a5':'rgba(64,232,255,0.55)',minHeight:'1.2em'}}>{msg||(state==='prep'?'Préparation de l’image…':state==='error'?'Image indisponible':'Image PNG prête · fond sombre, signature myNFTlocker')}</p>
     </div>
   );
 }
