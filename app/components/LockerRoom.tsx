@@ -219,7 +219,7 @@ export default function LockerRoomScene({cards=[],startIndex,hof=[],flippedSlug,
       {/* TODO: remplacer locker-foot.png par un vrai decor foot vertical quand pret */}
       <div className='mnfl-mobile-scene' style={{display:'none',position:'fixed',top:'84px',bottom:'70px',left:0,right:0,zIndex:30}}>
         <div style={{position:'relative',height:'100%',width:'100vw',maxWidth:'100vw',overflow:'hidden',background:'#0a0503'}}>
-        <div ref={carouselRef} style={{display:'flex',width:'100vw',maxWidth:'100vw',height:'100%',overflowX:'auto',overflowY:'hidden',overflowAnchor:'none',scrollSnapType:'x mandatory',scrollBehavior:'smooth',WebkitOverflowScrolling:'touch',touchAction:'pan-x'}}>
+        <div ref={carouselRef} className='mnfl-carousel' style={{display:'flex',width:'100vw',maxWidth:'100vw',height:'100%',overflowX:'auto',overflowY:'hidden',overflowAnchor:'none',scrollSnapType:'x mandatory',scrollBehavior:'smooth',WebkitOverflowScrolling:'touch',touchAction:'pan-x'}}>
           {cards.map((card,i)=>{
             const mobileImg = isFoot?'locker-foot-mobile.png':'locker-NBA-mobile.png';
             const lastName = (card.anyPlayer?.lastName||parseCard(card.name).lastName).toUpperCase();

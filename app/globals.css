@@ -30,6 +30,11 @@ body {
 html, body { max-width: 100%; overflow-x: hidden; }
 
 
+/* Vestiaire : pas de barre de defilement visible (fleches clavier / boutons) */
+.mnfl-carousel { scrollbar-width: none; -ms-overflow-style: none; }
+.mnfl-carousel::-webkit-scrollbar { display: none; width: 0; height: 0; }
+
+
 /* ===== Agrandissement filtres dans le panneau MOBILE uniquement ===== */
 /* Titres de filtre (SPORT, EQUIPE, SAISON...) */
 .mnfl-filters-sheet p:first-child { font-size: 0.74rem !important; }
