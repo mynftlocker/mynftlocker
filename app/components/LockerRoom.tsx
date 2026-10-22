@@ -129,6 +129,24 @@ export default function LockerRoomScene({cards=[],startIndex,hof=[],flippedSlug,
   const [listOpen,setListOpen]=useState(false);
   const [slideDir,setSlideDir]=useState<'left'|'right'|null>(null);
   const [slideKey,setSlideKey]=useState(0);
+  // Clavier : fleches gauche/droite = defilement du vestiaire (ignore si on tape dans un champ)
+  const goPrev=()=>{setSlideDir('right');setSlideKey(k=>k+1);onPrev();};
+  const goNext=()=>{setSlideDir('left');setSlideKey(k=>k+1);onNext();};
+  const kbRef=useRef({hasPrev,hasNext,goPrev,goNext});
+  kbRef.current={hasPrev,hasNext,goPrev,goNext};
+  useEffect(()=>{
+    const h=(e:KeyboardEvent)=>{
+      const el=e.target as HTMLElement|null;const tag=el?el.tagName:'';
+      if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT'||(el&&el.isContentEditable))return;
+      if(e.metaKey||e.ctrlKey||e.altKey)return;
+      if(e.key==='ArrowLeft'&&kbRef.current.hasPrev){e.preventDefault();kbRef.current.goPrev();}
+      else if(e.key==='ArrowRight'&&kbRef.current.hasNext){e.preventDefault();kbRef.current.goNext();}
+    };
+    window.addEventListener('keydown',h);
+    return()=>window.removeEventListener('keydown',h);
+  },[]);
+  // Fleches foot : bouton rond sombre + or vif (invisibles sur le fond bois clair sinon)
+  const ARF:React.CSSProperties=isFoot?{background:'rgba(8,10,16,0.6)',border:'1px solid rgba(255,215,94,0.65)',borderRadius:'50%',width:'2.6rem',height:'2.6rem',display:'flex',alignItems:'center',justifyContent:'center',padding:'0 0 0.25rem 0',fontSize:'1.9rem',color:'#ffd75e',boxShadow:'0 0 10px rgba(0,0,0,0.6)'}:{};
   const carouselRef = useRef<HTMLDivElement>(null);
   const [mobileIdx, setMobileIdx] = useState(0);
   useEffect(() => { setMobileIdx(0); if(carouselRef.current) carouselRef.current.scrollLeft=0; }, [teamApi]); // SWIPE CONTINU: reset uniquement au changement d'equipe
@@ -209,8 +227,8 @@ export default function LockerRoomScene({cards=[],startIndex,hof=[],flippedSlug,
         {flippedSlug&&panelCard&&<StatPanel key={panelCard.slug} card={panelCard} isClosing={isClosing} onClose={startClose} placement='scene'/>}
 
         {/* FLECHES CARTES (navigation dans l'equipe) */}
-        {hasPrev&&<button onClick={()=>{setSlideDir('right');setSlideKey(k=>k+1);onPrev();}} style={{position:'absolute',left:'0.6%',top:'43%',transform:'translateY(-50%)',background:'transparent',border:'none',color:'rgba(232,196,86,0.55)',fontSize:'2.4rem',lineHeight:1,cursor:'pointer',padding:'0.5rem',zIndex:20,transition:'all 0.15s',textShadow:'0 0 8px rgba(0,0,0,0.8)'}} onMouseEnter={e=>{const t=e.currentTarget as HTMLElement;t.style.color='#ffd75e';t.style.textShadow='0 0 16px rgba(245,200,90,0.9)';}} onMouseLeave={e=>{const t=e.currentTarget as HTMLElement;t.style.color='rgba(232,196,86,0.55)';t.style.textShadow='0 0 8px rgba(0,0,0,0.8)';}}>‹</button>}
-        {hasNext&&<button onClick={()=>{setSlideDir('left');setSlideKey(k=>k+1);onNext();}} style={{position:'absolute',right:'0.6%',top:'43%',transform:'translateY(-50%)',background:'transparent',border:'none',color:'rgba(232,196,86,0.55)',fontSize:'2.4rem',lineHeight:1,cursor:'pointer',padding:'0.5rem',zIndex:20,transition:'all 0.15s',textShadow:'0 0 8px rgba(0,0,0,0.8)'}} onMouseEnter={e=>{const t=e.currentTarget as HTMLElement;t.style.color='#ffd75e';t.style.textShadow='0 0 16px rgba(245,200,90,0.9)';}} onMouseLeave={e=>{const t=e.currentTarget as HTMLElement;t.style.color='rgba(232,196,86,0.55)';t.style.textShadow='0 0 8px rgba(0,0,0,0.8)';}}>›</button>}
+        {hasPrev&&<button onClick={()=>{setSlideDir('right');setSlideKey(k=>k+1);onPrev();}} style={{position:'absolute',left:'0.6%',top:'43%',transform:'translateY(-50%)',background:'transparent',border:'none',color:'rgba(232,196,86,0.55)',fontSize:'2.4rem',lineHeight:1,cursor:'pointer',padding:'0.5rem',zIndex:20,transition:'all 0.15s',textShadow:'0 0 8px rgba(0,0,0,0.8)',...ARF}} onMouseEnter={e=>{const t=e.currentTarget as HTMLElement;t.style.color='#ffd75e';t.style.textShadow='0 0 16px rgba(245,200,90,0.9)';}} onMouseLeave={e=>{const t=e.currentTarget as HTMLElement;t.style.color=isFoot?'#ffd75e':'rgba(232,196,86,0.55)';t.style.textShadow='0 0 8px rgba(0,0,0,0.8)';}}>‹</button>}
+        {hasNext&&<button onClick={()=>{setSlideDir('left');setSlideKey(k=>k+1);onNext();}} style={{position:'absolute',right:'0.6%',top:'43%',transform:'translateY(-50%)',background:'transparent',border:'none',color:'rgba(232,196,86,0.55)',fontSize:'2.4rem',lineHeight:1,cursor:'pointer',padding:'0.5rem',zIndex:20,transition:'all 0.15s',textShadow:'0 0 8px rgba(0,0,0,0.8)',...ARF}} onMouseEnter={e=>{const t=e.currentTarget as HTMLElement;t.style.color='#ffd75e';t.style.textShadow='0 0 16px rgba(245,200,90,0.9)';}} onMouseLeave={e=>{const t=e.currentTarget as HTMLElement;t.style.color=isFoot?'#ffd75e':'rgba(232,196,86,0.55)';t.style.textShadow='0 0 8px rgba(0,0,0,0.8)';}}>›</button>}
 
         {/* COMPTEUR */}
         <div style={{position:'absolute',bottom:'1.5%',left:'50%',transform:'translateX(-50%)',color:'rgba(255,220,100,0.85)',fontSize:'0.75rem',letterSpacing:'0.15em',zIndex:10,textShadow:'0 1px 4px rgba(0,0,0,0.9)'}}>
