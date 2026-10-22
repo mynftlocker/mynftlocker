@@ -126,7 +126,7 @@ export const CardBack=memo(({card,rc,mobile}:any)=>{
           </div>
           <p style={{margin:sz('0.3rem',4.8)+' 0 0',fontSize:sz('0.5rem',8),color:'#9aa3b2',fontWeight:700,letterSpacing:'0.05em'}}>{sn!==null?('#'+sn):''}{(sn!==null&&serial)?('  '+'·'+'  '):''}{serial||''}</p>
         </div>
-        <div style={{margin:'auto 0',textAlign:'center' as const}}>
+        <div style={{margin:'auto 0',textAlign:'center' as const,width:'100%',minWidth:0}}>
           <FitRow style={{display:'flex',alignItems:'center',justifyContent:'center',gap:sz('0.45rem',7.2),lineHeight:1}}>
             <span style={{fontSize:sz('1.4rem',22.4),fontWeight:900,color:'#fff',lineHeight:1,textShadow:score?('0 0 14px '+rc+'aa'):'none'}}>{score||'—'}</span>
             {stars!=null&&isNBA(card)&&(
@@ -147,11 +147,12 @@ export const CardBack=memo(({card,rc,mobile}:any)=>{
                 })}
               </svg>
             )}
-            {stars!=null&&!isNBA(card)&&(
-              <FootStars n={Math.round(stars)} s={sz('0.9rem',14.4)}/>
-            )}
           </FitRow>
           <p style={{margin:sz('0.3rem',4.8)+' 0 0',fontSize:sz('0.42rem',6.72),color:rc,textTransform:'uppercase',fontWeight:800,letterSpacing:'0.1em'}}>{tr('MOYENNE L10')}</p>
+          {/* FOOT : les etoiles passent SOUS le L10 (la ligne note+etoiles debordait de la carte) */}
+          {stars!=null&&!isNBA(card)&&(
+            <div style={{marginTop:sz('0.4rem',6.4)}}><FitRow style={{display:'flex',alignItems:'center',justifyContent:'center',lineHeight:1}}><FootStars n={Math.round(stars)} s={sz('0.9rem',14.4)}/></FitRow></div>
+          )}
         </div>
       </div>
       <div style={{display:'flex',gap:'0.3rem',padding:sz('0.4rem',6.4)+' '+sz('0.5rem',8)+' '+sz('0.5rem',8)}}>
