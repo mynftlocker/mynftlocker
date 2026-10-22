@@ -89,7 +89,6 @@ const EN: Record<string, string> = {
   'Authentification': 'Authentication',
   'Abonnement': 'Subscription',
   'Aide / Contact': 'Help / Contact',
-  "Retour a l'accueil": 'Back to home',
 };
 export function t(fr: string): string {
   return _lang === 'en' ? (EN[fr] ?? fr) : fr;
