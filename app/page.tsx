@@ -684,6 +684,17 @@ export default function Home() {
   const gridHof:React.CSSProperties={display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(155px,1fr))',gap:'12px',padding:'12px'};
   const gridMain:React.CSSProperties={display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(155px,1fr))',gap:'12px',padding:'12px'};
   const galleryBg:React.CSSProperties={background:'radial-gradient(ellipse 130% 90% at 50% -10%,#0d111a 0%,#080b10 50%,#040507 100%)',minHeight:'100vh'};
+  // Prechauffage galerie : pendant qu'on est dans le vestiaire, on prepare la galerie en tache de fond (monte masquee + images en cache)
+  const [galleryWarm,setGalleryWarm]=useState(false);
+  useEffect(()=>{
+    if(galleryWarm||cards.length===0) return;
+    const t=setTimeout(()=>setGalleryWarm(true),1200);
+    return ()=>clearTimeout(t);
+  },[cards.length,galleryWarm]);
+  useEffect(()=>{
+    if(!galleryWarm) return;
+    filteredGallery.slice(0,48).forEach((c:any,i:number)=>{if(!c.pictureUrl)return;setTimeout(()=>{const im=new Image();im.src=c.pictureUrl;},i*40);});
+  },[galleryWarm,filteredGallery]);
 
   // Barre de filtres partagee
   const labelStyle:React.CSSProperties={fontSize:'0.64rem',fontWeight:800,letterSpacing:'0.14em',textTransform:'uppercase',color:'#eaf2ff',margin:'0.5rem 0 0.3rem 0.5rem'};
@@ -926,8 +937,8 @@ export default function Home() {
 
           {/* MODE GALERIE */}
     
-      {mode==='gallery'&&(
-            <div style={{...galleryBg,minHeight:'100vh'}}>
+      {(mode==='gallery'||galleryWarm)&&(
+            <div style={{...galleryBg,minHeight:'100vh',display:mode==='gallery'?'block':'none'}}>
               <GalleryView cards={filteredGallery}/>
             </div>
           )}
