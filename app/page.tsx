@@ -617,13 +617,14 @@ export default function Home() {
   },[cards,hof,hofFoot,gSport]);
   const leagueOptions=useMemo(()=>{if(gSport==='nba')return[{v:'all',l:'NBA'}];return[{v:'all',l:tr('Toutes les ligues')}];},[gSport]);
   useEffect(()=>{
+    if(loading)return; // CORRECTIF : pendant le chargement progressif la liste est partielle (pas de HoF) -> on choisissait a tort la 1re equipe (Hawks). On attend le chargement complet.
     if(teamList.length===0)return;
     const hofInList=teamList.find(t=>t.api==='__HOF__');
     const savedDefault=localStorage.getItem('mynftlocker_default_team_'+slug);
     if(teamApi===''&&savedDefault&&teamList.find(t=>t.api===savedDefault)){setTeamApi(savedDefault);return;}
     if(hofInList&&teamApi!=='__HOF__'&&!teamChosenRef.current&&!savedDefault){setTeamApi('__HOF__');return;}
     if(!teamList.find(t=>t.api===teamApi)){setTeamApi(hofInList?'__HOF__':teamList[0].api);}
-  },[teamList,teamApi]);
+  },[teamList,teamApi,loading]);
   // Auto-detection du sport apres chargement complet : si le compte n'a aucune carte NBA mais des cartes foot, on bascule sur Football.
   useEffect(()=>{
     if(loading||cards.length===0||sportAutoSetRef.current)return;
