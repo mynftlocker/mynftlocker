@@ -847,7 +847,7 @@ export default function Home() {
               <div
                 onClick={()=>{if(openPhase===0||openPhase===1)setLogoFlipped(f=>!f);}}
                 style={{
-                  width:'280px',height:'375px',position:'relative',
+                  width:'min(280px,29.9vh)',height:'min(375px,40vh)',position:'relative',
                   animation:'packFloat 3.8s ease-in-out infinite',
                   cursor:(openPhase===0||openPhase===1)?'pointer':'default',
                   perspective:'1400px',
