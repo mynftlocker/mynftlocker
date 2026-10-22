@@ -841,13 +841,13 @@ export default function Home() {
               @keyframes introInputGlow{0%,100%{box-shadow:0 1px 0 rgba(64,232,255,0.3)}50%{box-shadow:0 2px 18px rgba(64,232,255,0.55)}}
               .intro-input::placeholder{color:rgba(64,232,255,0.28)}.intro-input:focus{outline:none;border-bottom-color:#40e8ff!important;box-shadow:0 2px 18px rgba(64,232,255,0.6)!important}.intro-btn:hover{background:rgba(64,232,255,0.08)!important;border-color:rgba(64,232,255,0.95)!important;color:#fff!important}
             `}</style>
-            <div style={{position:'relative',zIndex:1,marginBottom:openPhase===0?'2.8rem':'1.5rem'}}
+            <div style={{position:'relative',zIndex:1,marginBottom:openPhase===0?'1.6rem':'1.5rem'}}
               onMouseEnter={e=>{if(openPhase!==0)return;const img=e.currentTarget.querySelector('img');if(img)(img as HTMLElement).style.animation='packHover 2s ease-in-out infinite';}}
               onMouseLeave={e=>{if(openPhase!==0)return;const img=e.currentTarget.querySelector('img');if(img)(img as HTMLElement).style.animation='packFloat 3.8s ease-in-out infinite';}}>
               <div
                 onClick={()=>{if(openPhase===0||openPhase===1)setLogoFlipped(f=>!f);}}
                 style={{
-                  width:'min(280px,34.3vh)',height:'min(375px,46vh)',position:'relative',
+                  width:'min(320px,38.4vh)',height:'min(428px,51.4vh)',position:'relative',
                   animation:'packFloat 3.8s ease-in-out infinite',
                   cursor:(openPhase===0||openPhase===1)?'pointer':'default',
                   perspective:'1400px',
@@ -891,19 +891,17 @@ export default function Home() {
             </div>
             {openPhase===0&&(
               <div style={{position:'relative',zIndex:2,display:'flex',flexDirection:'column' as const,alignItems:'center'}}>
-                <p style={{color:'#40e8ff',letterSpacing:'0.22em',textTransform:'uppercase',fontSize:'0.72rem',marginBottom:'2rem',fontFamily:'Courier New,monospace',textShadow:'0 0 12px rgba(0,255,255,0.45)',minHeight:'1.1em'}}>{typedIntro}<span style={{opacity:typedIntro.length<INTRO_TEXT.length?1:0,animation:'cyanPulse 0.8s ease-in-out infinite'}}>|</span></p>
-                <input className='intro-input' value={slug} onChange={e=>setSlug(e.target.value)} onKeyDown={e=>e.key==='Enter'&&handleIntroClick()} placeholder='ton-slug-sorare' style={{background:'transparent',border:'none',borderBottom:'1px solid rgba(64,232,255,0.42)',color:'#40e8ff',fontSize:'0.9rem',padding:'0.4rem 0.3rem',width:'290px',maxWidth:'78vw',textAlign:'center',fontFamily:'Courier New,monospace',letterSpacing:'0.07em',marginBottom:'1.6rem',transition:'border-color 0.2s,box-shadow 0.2s',caretColor:'#40e8ff',animation:'introInputGlow 2.5s ease-in-out 1.5s infinite'}}/>
-                <button className='intro-btn' onClick={handleIntroClick} disabled={!slug||loading} style={{background:'transparent',border:'1px solid rgba(64,232,255,0.45)',color:'#40e8ff',padding:'0.68rem 3rem',fontSize:'0.78rem',fontWeight:700,letterSpacing:'0.25em',textTransform:'uppercase',cursor:slug&&!loading?'pointer':'not-allowed',fontFamily:'Courier New,monospace',clipPath:'polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px)',transition:'all 0.2s',opacity:slug&&!loading?1:0.35}}>{loading?'CHARGEMENT...':'▶ OUVRIR'}</button>
+                <p style={{color:'#40e8ff',letterSpacing:'0.22em',textTransform:'uppercase',fontSize:'0.62rem',marginBottom:'1rem',fontFamily:'Courier New,monospace',textShadow:'0 0 12px rgba(0,255,255,0.45)',minHeight:'1.1em'}}>{typedIntro}<span style={{opacity:typedIntro.length<INTRO_TEXT.length?1:0,animation:'cyanPulse 0.8s ease-in-out infinite'}}>|</span></p>
+                <input className='intro-input' value={slug} onChange={e=>setSlug(e.target.value)} onKeyDown={e=>e.key==='Enter'&&handleIntroClick()} placeholder='ton-slug-sorare' style={{background:'transparent',border:'none',borderBottom:'1px solid rgba(64,232,255,0.42)',color:'#40e8ff',fontSize:'0.9rem',padding:'0.3rem 0.3rem',width:'230px',maxWidth:'78vw',textAlign:'center',fontFamily:'Courier New,monospace',letterSpacing:'0.07em',marginBottom:'1rem',transition:'border-color 0.2s,box-shadow 0.2s',caretColor:'#40e8ff',animation:'introInputGlow 2.5s ease-in-out 1.5s infinite'}}/>
+                <button className='intro-btn' onClick={handleIntroClick} disabled={!slug||loading} style={{background:'transparent',border:'1px solid rgba(64,232,255,0.45)',color:'#40e8ff',padding:'0.5rem 2.2rem',fontSize:'0.7rem',fontWeight:700,letterSpacing:'0.22em',textTransform:'uppercase',cursor:slug&&!loading?'pointer':'not-allowed',fontFamily:'Courier New,monospace',clipPath:'polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px)',transition:'all 0.2s',opacity:slug&&!loading?1:0.35}}>{loading?'CHARGEMENT...':'▶ OUVRIR'}</button>
                 {error&&<p style={{color:'#fca5a5',fontSize:'0.7rem',marginTop:'1rem',fontFamily:'Courier New,monospace'}}>{error}</p>}
                 {!currentUser&&(
                   <>
-                    <div style={{display:'flex',alignItems:'center',gap:'0.7rem',margin:'1.2rem 0 0.7rem',width:'220px',maxWidth:'70vw'}}>
-                      <div style={{flex:1,height:'1px',background:'rgba(64,232,255,0.25)'}}/>
-                      <span style={{fontSize:'0.55rem',letterSpacing:'0.2em',color:'rgba(64,232,255,0.45)',fontFamily:'Courier New,monospace'}}>OU</span>
-                      <div style={{flex:1,height:'1px',background:'rgba(64,232,255,0.25)'}}/>
+                    <div style={{display:'flex',alignItems:'center',gap:'0.8rem',marginTop:'1.1rem',fontFamily:'Courier New,monospace',fontSize:'0.6rem',letterSpacing:'0.14em'}}>
+                      <span onClick={()=>{setAuthMode('login');setAuthOpen(true);}} style={{color:'#40e8ff',cursor:'pointer',textTransform:'uppercase',borderBottom:'1px solid rgba(64,232,255,0.45)',paddingBottom:'1px'}}>Connexion</span>
+                      <span style={{color:'rgba(207,228,251,0.25)'}}>|</span>
+                      {SIGNUP_OPEN?(<span onClick={()=>{setAuthMode('signup');setAuthSlugField(slug||'');setAuthOpen(true);}} style={{color:'rgba(207,228,251,0.55)',cursor:'pointer',textDecoration:'underline'}}>Creer un compte</span>):(<span style={{color:'rgba(207,228,251,0.4)'}}>Inscriptions bientôt ouvertes</span>)}
                     </div>
-                    <button onClick={()=>{setAuthMode('login');setAuthOpen(true);}} style={{background:'rgba(64,232,255,0.08)',border:'1px solid rgba(64,232,255,0.5)',color:'#40e8ff',padding:'0.5rem 2.2rem',fontSize:'0.7rem',fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer',fontFamily:'Courier New,monospace',borderRadius:'2px'}}>Connexion</button>
-                    {SIGNUP_OPEN?(<p style={{fontSize:'0.6rem',color:'rgba(207,228,251,0.5)',fontFamily:'Courier New,monospace',marginTop:'0.6rem'}}>Pas de compte ? <span onClick={()=>{setAuthMode('signup');setAuthSlugField(slug||'');setAuthOpen(true);}} style={{color:'#40e8ff',cursor:'pointer',textDecoration:'underline'}}>Creer un compte</span></p>):(<p style={{fontSize:'0.6rem',color:'rgba(207,228,251,0.5)',fontFamily:'Courier New,monospace',marginTop:'0.6rem'}}>Inscriptions bientôt ouvertes</p>)}
                   </>
                 )}
               </div>
