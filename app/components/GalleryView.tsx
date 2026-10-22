@@ -1,6 +1,7 @@
 "use client";
 import { memo, useState, useEffect, useRef } from 'react';
 import { getManager, cardLink } from '../lib-share';
+import { t as tr, useLang } from '../i18n';
 import { StatPanel, CardBack, RARITY_GLOW, RARITY_COLOR, RARITY_FILL, parseCard, isNBA, FootStars } from './StatPanel';
 
 // Embleme rond myNFTlocker dessine (repli si /logo-rond.png absent) : anneau or + etoile centrale facon crest.
@@ -254,6 +255,7 @@ export async function exportCardImage(card:any):Promise<{blob:Blob,file:File,fna
   } finally { root.unmount(); holder.remove(); }
 }
 export default function GalleryView({cards}:{cards:any[]}){
+  useLang();
   const [activeSlug,setActiveSlug]=useState<string|null>(null);
   const [galleryCols,setGalleryCols]=useState(4);
   useEffect(()=>{
@@ -305,14 +307,14 @@ export default function GalleryView({cards}:{cards:any[]}){
       {cards.length===0?(
         <div style={{display:'flex',flexDirection:'column' as const,alignItems:'center',justifyContent:'center',height:'55vh',color:'rgba(64,232,255,0.28)',fontFamily:'Courier New,monospace',gap:'0.5rem'}}>
           <p style={{fontSize:'2rem',margin:0}}>⬡</p>
-          <p style={{fontSize:'0.7rem',letterSpacing:'0.25em',textTransform:'uppercase',margin:0}}>Aucune carte</p>
+          <p style={{fontSize:'0.7rem',letterSpacing:'0.25em',textTransform:'uppercase',margin:0}}>{tr('Aucune carte')}</p>
         </div>
       ):(
         <>
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'0.5rem',marginBottom:'0.8rem'}}>
-          <span style={{fontSize:'0.7rem',color:'rgba(207,216,230,0.6)',letterSpacing:'0.05em',textTransform:'uppercase' as const}}>{cards.length} {cards.length>1?'joueurs':'joueur'}</span>
+          <span style={{fontSize:'0.7rem',color:'rgba(207,216,230,0.6)',letterSpacing:'0.05em',textTransform:'uppercase' as const}}>{cards.length} {cards.length>1?tr('joueurs'):tr('joueur')}</span>
           <div style={{display:'flex',alignItems:'center',gap:'0.5rem'}}>
-          <span style={{fontSize:'0.7rem',color:'rgba(207,216,230,0.6)',letterSpacing:'0.05em',textTransform:'uppercase' as const}}>Taille</span>
+          <span style={{fontSize:'0.7rem',color:'rgba(207,216,230,0.6)',letterSpacing:'0.05em',textTransform:'uppercase' as const}}>{tr('Taille')}</span>
           <button onClick={()=>changeCols(-1)} disabled={galleryCols<=1} style={{width:'26px',height:'26px',borderRadius:'0.3rem',background:'rgba(64,232,255,0.1)',border:'1px solid rgba(64,232,255,0.4)',color:'#40e8ff',cursor:galleryCols<=1?'not-allowed':'pointer',opacity:galleryCols<=1?0.4:1,fontSize:'1rem',lineHeight:1}}>−</button>
           <span style={{fontSize:'0.75rem',color:'#eaf2ff',minWidth:'14px',textAlign:'center' as const}}>{galleryCols}</span>
           <button onClick={()=>changeCols(1)} disabled={galleryCols>=8} style={{width:'26px',height:'26px',borderRadius:'0.3rem',background:'rgba(64,232,255,0.1)',border:'1px solid rgba(64,232,255,0.4)',color:'#40e8ff',cursor:galleryCols>=8?'not-allowed':'pointer',opacity:galleryCols>=8?0.4:1,fontSize:'1rem',lineHeight:1}}>+</button>

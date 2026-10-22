@@ -19,6 +19,7 @@ export function initLang() {
     if (next !== _lang) { _lang = next; notify(); }
   } catch (e) {}
 }
+export function getLang(): Lang { return _lang; }
 export function setLang(l: Lang) {
   _lang = l;
   try { localStorage.setItem('mnfl_lang', l); } catch (e) {}
@@ -89,6 +90,57 @@ const EN: Record<string, string> = {
   'Authentification': 'Authentication',
   'Abonnement': 'Subscription',
   'Aide / Contact': 'Help / Contact',
+  // --- etape 2 ---
+  'MOYENNE L10': 'L10 AVERAGE',
+  'MOY. L10': 'AVG L10',
+  'CARTE': 'CARD',
+  'ÉQUIPE': 'TEAM',
+  'SÉRIE': 'SERIES',
+  'SAISON': 'SEASON',
+  'ÉDITION': 'EDITION',
+  'ACHAT': 'PURCHASE',
+  'Prix d’achat': 'Purchase price',
+  'Acquise le': 'Acquired on',
+  'Dernier détenteur': 'Last holder',
+  '— (1ʳᵉ main)': '— (1st hand)',
+  'Moyenne des 5 dernières ventes': 'Average of last 5 sales',
+  'a battu son L10 sur': 'beat their L10 in',
+  'de ses matchs': 'of their games',
+  ' · record ': ' · best ',
+  'GW au-dessus du L10': 'GW above L10',
+  '(compteur Sorare': '(Sorare counter',
+  'NBA · 10 derniers matchs': 'NBA · last 10 games',
+  'FOOT · 15 derniers matchs': 'FOOT · last 15 games',
+  'MJ': 'GP',
+  'alignée L10 · source Sorare': 'L10 window · source Sorare',
+  'stats non disponibles': 'stats unavailable',
+  'Image téléchargée': 'Image downloaded',
+  'Image copiée': 'Image copied',
+  'Copie impossible': 'Copy failed',
+  'Partage impossible': 'Sharing failed',
+  'Préparation de l’image…': 'Preparing image…',
+  'Image indisponible': 'Image unavailable',
+  'PARTAGER LA CARTE': 'SHARE THE CARD',
+  'PARTAGER': 'SHARE',
+  'TÉLÉCHARGER': 'DOWNLOAD',
+  'COPIER': 'COPY',
+  'joueurs': 'players',
+  'joueur': 'player',
+  'Titulaire du 5 majeur': 'Starting five',
+  'Retourner la carte': 'Flip the card',
+  'Buts': 'Goals',
+  'Passes décisives': 'Assists',
+  'Tirs cadrés': 'Shots on target',
+  'Passes réussies': 'Completed passes',
+  'Matchs joués': 'Games played',
+  'Titularisations': 'Starts',
+  'Duels gagnés': 'Duels won',
+  'Ballons récupérés': 'Recoveries',
+  'Cartons jaunes': 'Yellow cards',
+  'Cartons rouges': 'Red cards',
+  'Minutes jouées': 'Minutes played',
+  // --- etape 2 ---
+  ' — voir la carte : ': ' — see the card: ',
 };
 export function t(fr: string): string {
   return _lang === 'en' ? (EN[fr] ?? fr) : fr;

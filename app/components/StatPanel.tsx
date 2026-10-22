@@ -1,6 +1,7 @@
 'use client';
 import { memo, useState, useEffect, useLayoutEffect, useRef, useId } from 'react';
 import { getManager, cardLink } from '../lib-share';
+import { t as tr, useLang, getLang } from '../i18n';
 
 export const RARITY_GLOW: Record<string,string> = {
   common:'0 0 18px 3px rgba(225,228,255,0.75), 0 0 36px 8px rgba(190,200,255,0.35)',
@@ -86,6 +87,7 @@ const FitRow=({children,style}:any)=>{
   return(<div ref={wrap} style={{width:'100%',display:'flex',justifyContent:'center'}}><div ref={inner} style={{...style,flexShrink:0,transform:k<1?('scale('+k+')'):undefined,transformOrigin:'center center'}}>{children}</div></div>);
 };
 export const CardBack=memo(({card,rc,mobile}:any)=>{
+  useLang();
   const rid=useId().replace(/[^a-zA-Z0-9]/g,'');
   const sz=(remStr:string,px:number)=>mobile?(Math.round(px/115*10000)/100)+'cqw':remStr;
   const nfsCard=(l:number)=>mobile?(l<=5?'19cqw':l<=7?'15.5cqw':l<=8?'13.6cqw':l<=9?'12.4cqw':l<=10?'11cqw':l<=11?'9.9cqw':l<=12?'9.1cqw':l<=13?'8.4cqw':'7.4cqw'):nfs(l);
@@ -149,7 +151,7 @@ export const CardBack=memo(({card,rc,mobile}:any)=>{
               <FootStars n={Math.round(stars)} s={sz('0.9rem',14.4)}/>
             )}
           </FitRow>
-          <p style={{margin:sz('0.3rem',4.8)+' 0 0',fontSize:sz('0.42rem',6.72),color:rc,textTransform:'uppercase',fontWeight:800,letterSpacing:'0.1em'}}>MOYENNE L10</p>
+          <p style={{margin:sz('0.3rem',4.8)+' 0 0',fontSize:sz('0.42rem',6.72),color:rc,textTransform:'uppercase',fontWeight:800,letterSpacing:'0.1em'}}>{tr('MOYENNE L10')}</p>
         </div>
       </div>
       <div style={{display:'flex',gap:'0.3rem',padding:sz('0.4rem',6.4)+' '+sz('0.5rem',8)+' '+sz('0.5rem',8)}}>
@@ -191,6 +193,7 @@ export const StarRating=({card,box}:{card:any;box:number})=>{
 // ===== PARTAGE : cadre "PARTAGER" du tableau de stats (galerie + vestiaire). L'image est preparee en arriere-plan a l'ouverture,
 // pour que les clics soient immediats (les navigateurs n'autorisent le partage natif qu'apres un clic de l'utilisateur). =====
 function ShareBlock({card,box,lab}:{card:any;box:React.CSSProperties;lab:React.CSSProperties}){
+  useLang();
   const [img,setImg]=useState<{blob:Blob,file:File,fname:string}|null>(null);
   const [state,setState]=useState<'prep'|'ready'|'error'>('prep');
   const [msg,setMsg]=useState('');
@@ -215,25 +218,26 @@ function ShareBlock({card,box,lab}:{card:any;box:React.CSSProperties;lab:React.C
     return()=>{dead=true;clearTimeout(t);};
   },[card.slug]);
   const flash=(m:string)=>{setMsg(m);setTimeout(()=>setMsg(''),2500);};
-  const doShare=async()=>{if(!img)return;try{const lk=cardLink(card.slug);await (navigator as any).share({files:[img.file],title:card.name,text:(getManager()?getManager()+' · ':'')+card.name+(lk?' — voir la carte : '+lk:'')});}catch(e:any){if(!e||e.name!=='AbortError')flash('Partage impossible');}};
-  const doDownload=()=>{if(!img)return;const a=document.createElement('a');a.href=URL.createObjectURL(img.blob);a.download=img.fname;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);flash('Image téléchargée');};
-  const doCopy=async()=>{if(!img)return;try{await (navigator as any).clipboard.write([new (window as any).ClipboardItem({'image/png':img.blob})]);flash('Image copiée');}catch(e){flash('Copie impossible');}};
+  const doShare=async()=>{if(!img)return;try{const lk=cardLink(card.slug);await (navigator as any).share({files:[img.file],title:card.name,text:(getManager()?getManager()+' · ':'')+card.name+(lk?tr(' — voir la carte : ')+lk:'')});}catch(e:any){if(!e||e.name!=='AbortError')flash(tr('Partage impossible'));}};
+  const doDownload=()=>{if(!img)return;const a=document.createElement('a');a.href=URL.createObjectURL(img.blob);a.download=img.fname;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);flash(tr('Image téléchargée'));};
+  const doCopy=async()=>{if(!img)return;try{await (navigator as any).clipboard.write([new (window as any).ClipboardItem({'image/png':img.blob})]);flash(tr('Image copiée'));}catch(e){flash(tr('Copie impossible'));}};
   const ready=state==='ready';
   const btn:React.CSSProperties={flex:1,display:'flex',alignItems:'center',justifyContent:'center',gap:'0.3em',padding:'0.5em 0.2em',borderRadius:'0.3em',border:'1px solid rgba(64,232,255,0.5)',background:'rgba(64,232,255,0.06)',color:'#ffffff',fontSize:'0.58em',fontWeight:800,letterSpacing:'0.08em',cursor:ready?'pointer':'wait',opacity:ready?1:0.45,fontFamily:'inherit',whiteSpace:'nowrap'};
   const ico=(d:React.ReactNode)=>(<svg viewBox='0 0 24 24' style={{width:'1.2em',height:'1.2em',flexShrink:0}} fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round'>{d}</svg>);
   return(
     <div style={{...box,flexShrink:0,borderColor:'rgba(64,232,255,0.4)',background:'rgba(64,232,255,0.06)',opacity:state==='prep'?0:1,transition:'opacity 0.35s ease',pointerEvents:state==='prep'?'none':'auto'}}>
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:'0.5em'}}><p style={lab}>PARTAGER LA CARTE</p><span style={{fontSize:'0.5em',letterSpacing:'0.08em',color:state==='error'?'#fca5a5':'rgba(64,232,255,0.7)',whiteSpace:'nowrap'}}>{msg||(state==='prep'?'Préparation de l’image…':state==='error'?'Image indisponible':'')}</span></div>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:'0.5em'}}><p style={lab}>{tr('PARTAGER LA CARTE')}</p><span style={{fontSize:'0.5em',letterSpacing:'0.08em',color:state==='error'?'#fca5a5':'rgba(64,232,255,0.7)',whiteSpace:'nowrap'}}>{msg||(state==='prep'?tr('Préparation de l’image…'):state==='error'?tr('Image indisponible'):'')}</span></div>
       <div style={{display:'flex',gap:'0.4em'}}>
-        {canShare&&<button type='button' className='stat-link-btn' disabled={!ready} onClick={doShare} style={btn}>{ico(<><circle cx='18' cy='5' r='3'/><circle cx='6' cy='12' r='3'/><circle cx='18' cy='19' r='3'/><path d='M8.6 13.5l6.8 4M15.4 6.5l-6.8 4'/></>)}PARTAGER</button>}
-        <button type='button' className='stat-link-btn' disabled={!ready} onClick={doDownload} style={btn}>{ico(<><path d='M12 3v12'/><path d='M8 11l4 4 4-4'/><path d='M5 21h14'/></>)}TÉLÉCHARGER</button>
-        {canCopy&&<button type='button' className='stat-link-btn' disabled={!ready} onClick={doCopy} style={btn}>{ico(<><rect x='9' y='9' width='12' height='12' rx='2'/><path d='M5 15V5a2 2 0 012-2h10'/></>)}COPIER</button>}
+        {canShare&&<button type='button' className='stat-link-btn' disabled={!ready} onClick={doShare} style={btn}>{ico(<><circle cx='18' cy='5' r='3'/><circle cx='6' cy='12' r='3'/><circle cx='18' cy='19' r='3'/><path d='M8.6 13.5l6.8 4M15.4 6.5l-6.8 4'/></>)}{tr('PARTAGER')}</button>}
+        <button type='button' className='stat-link-btn' disabled={!ready} onClick={doDownload} style={btn}>{ico(<><path d='M12 3v12'/><path d='M8 11l4 4 4-4'/><path d='M5 21h14'/></>)}{tr('TÉLÉCHARGER')}</button>
+        {canCopy&&<button type='button' className='stat-link-btn' disabled={!ready} onClick={doCopy} style={btn}>{ico(<><rect x='9' y='9' width='12' height='12' rx='2'/><path d='M5 15V5a2 2 0 012-2h10'/></>)}{tr('COPIER')}</button>}
       </div>
     </div>
   );
 }
 
 export const StatPanel=memo(({card,onClose,isClosing=false,placement='scene'}:any)=>{
+  useLang();
   const rc=RARITY_COLOR[card.rarityTyped]||'#9ca3af';
   const {season,serial}=parseCard(card.name);
   const ln=(card.anyPlayer?.lastName||parseCard(card.name).lastName).toUpperCase();
@@ -287,7 +291,7 @@ export const StatPanel=memo(({card,onClose,isClosing=false,placement='scene'}:an
   const lab:React.CSSProperties={margin:'0 0 0.32em',fontSize:'0.58em',fontWeight:900,color:'rgba(64,232,255,0.6)',letterSpacing:'0.16em',textTransform:'uppercase'};
   const WV='#eaf2ff';const CYL='rgba(64,232,255,0.5)';
   const fv=(v:any,t:string)=>{if(v==null)return '—';const n=Number(v);if(t==='pct')return n.toFixed(1)+'%';if(t==='pm')return(n>=0?'+':'')+n.toFixed(1);if(t==='int')return String(Math.round(n));return n.toFixed(1);};
-  const fmtSale=(g:any)=>salesLoading?'…':(g&&g.avg!=null?(Number(g.avg).toFixed(2).replace('.',',')+' € ('+g.count+')'):'—');
+  const fmtSale=(g:any)=>salesLoading?'…':(g&&g.avg!=null?((getLang()==='en'?Number(g.avg).toFixed(2):Number(g.avg).toFixed(2).replace('.',','))+' € ('+g.count+')'):'—');
   const isOverlay=placement==='overlay';
   const isMobile=placement==='mobile';
   const isGalleryMobile=placement==='galleryMobile';
@@ -330,7 +334,7 @@ export const StatPanel=memo(({card,onClose,isClosing=false,placement='scene'}:an
             <span style={{fontSize:'2.4em',fontWeight:900,color:CY,lineHeight:1,textShadow:'0 0 22px '+CY}}>{countedAvg}</span>
             <StarRating card={card} box={big?52:34}/>
           </div>
-          <p style={{margin:'0.3em 0 0',fontSize:'0.55em',color:'rgba(64,232,255,0.6)',letterSpacing:'0.2em',textTransform:'uppercase'}}>MOY. L10</p>
+          <p style={{margin:'0.3em 0 0',fontSize:'0.55em',color:'rgba(64,232,255,0.6)',letterSpacing:'0.2em',textTransform:'uppercase'}}>{tr('MOY. L10')}</p>
         </div>
         <div style={{width:'48%',display:'flex',flexDirection:'column' as const,gap:'0.3em',paddingLeft:'0.5em',justifyContent:'center'}}>
           {bonus&&<div style={{padding:'0.3em 0.45em',border:'1px solid rgba(64,232,255,0.28)',borderRadius:'0.3em',background:'rgba(64,232,255,0.07)',display:'flex',justifyContent:'space-between',alignItems:'baseline'}}><span style={{fontSize:'0.55em',color:'rgba(64,232,255,0.55)',letterSpacing:'0.1em'}}>BONUS</span><span style={{fontSize:'0.78em',fontWeight:800,color:CY,textShadow:CYS}}>{bonus}</span></div>}
@@ -340,9 +344,9 @@ export const StatPanel=memo(({card,onClose,isClosing=false,placement='scene'}:an
       <div style={{display:'flex',flexDirection:big?'row':'column',gap:big?'0.7em':'0',alignItems:'stretch'}}>
         <div style={colStyle}>
           <div style={box}>
-            <p style={lab}>CARTE</p>
+            <p style={lab}>{tr('CARTE')}</p>
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0.18em 0.6em'}}>
-              {([['ÉQUIPE',team],['SÉRIE',serial],['SAISON',season],['XP',xp],['ÉDITION',edition]] as [string,string][]).map(([l,v])=>(
+              {([[tr('ÉQUIPE'),team],[tr('SÉRIE'),serial],[tr('SAISON'),season],['XP',xp],[tr('ÉDITION'),edition]] as [string,string][]).map(([l,v])=>(
                 <div key={l} style={{minWidth:0}}>
                   <span style={{display:'block',fontSize:'0.52em',color:CYL,letterSpacing:'0.1em',textTransform:'uppercase'}}>{l}</span>
                   <FitText style={{fontSize:'0.74em',fontWeight:700,color:WV}}>{v}</FitText>
@@ -351,24 +355,24 @@ export const StatPanel=memo(({card,onClose,isClosing=false,placement='scene'}:an
             </div>
           </div>
           <div style={box}>
-            <p style={lab}>ACHAT</p>
+            <p style={lab}>{tr('ACHAT')}</p>
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0.18em 0.6em'}}>
               <div style={{minWidth:0}}>
-                <span style={{display:'block',fontSize:'0.52em',color:CYL,letterSpacing:'0.1em',textTransform:'uppercase'}}>Prix d{'’'}achat</span>
-                <span style={{display:'block',fontSize:'0.8em',fontWeight:800,color:WV,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{owner&&owner.price!=null?(Number(owner.price).toFixed(2).replace('.',',')+' €'):(owner?'—':'…')}{owner&&owner.type?(<span style={{color:CYL,fontWeight:600}}> ({owner.type})</span>):null}</span>
+                <span style={{display:'block',fontSize:'0.52em',color:CYL,letterSpacing:'0.1em',textTransform:'uppercase'}}>{tr('Prix d’achat')}</span>
+                <span style={{display:'block',fontSize:'0.8em',fontWeight:800,color:WV,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{owner&&owner.price!=null?((getLang()==='en'?Number(owner.price).toFixed(2):Number(owner.price).toFixed(2).replace('.',','))+' €'):(owner?'—':'…')}{owner&&owner.type?(<span style={{color:CYL,fontWeight:600}}> ({owner.type})</span>):null}</span>
               </div>
               <div style={{minWidth:0}}>
-                <span style={{display:'block',fontSize:'0.52em',color:CYL,letterSpacing:'0.1em',textTransform:'uppercase'}}>Acquise le</span>
-                <span style={{display:'block',fontSize:'0.74em',fontWeight:700,color:WV}}>{owner&&owner.date?new Date(owner.date).toLocaleDateString('fr-FR'):'—'}</span>
+                <span style={{display:'block',fontSize:'0.52em',color:CYL,letterSpacing:'0.1em',textTransform:'uppercase'}}>{tr('Acquise le')}</span>
+                <span style={{display:'block',fontSize:'0.74em',fontWeight:700,color:WV}}>{owner&&owner.date?new Date(owner.date).toLocaleDateString(getLang()==='en'?'en-GB':'fr-FR'):'—'}</span>
               </div>
               <div style={{minWidth:0,gridColumn:'1 / span 2'}}>
-                <span style={{display:'block',fontSize:'0.52em',color:CYL,letterSpacing:'0.1em',textTransform:'uppercase'}}>Dernier d{'é'}tenteur</span>
-                <FitText style={{fontSize:'0.74em',fontWeight:700,color:WV}}>{owner&&owner.lastHolder?owner.lastHolder:'— (1ʳᵉ main)'}</FitText>
+                <span style={{display:'block',fontSize:'0.52em',color:CYL,letterSpacing:'0.1em',textTransform:'uppercase'}}>{tr('Dernier détenteur')}</span>
+                <FitText style={{fontSize:'0.74em',fontWeight:700,color:WV}}>{owner&&owner.lastHolder?owner.lastHolder:tr('— (1ʳᵉ main)')}</FitText>
               </div>
             </div>
           </div>
           <div style={box}>
-            <p style={lab}>Moyenne des 5 derni{'è'}res ventes</p>
+            <p style={lab}>{tr('Moyenne des 5 dernières ventes')}</p>
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0.18em 0.6em'}}>
               <div style={{minWidth:0}}>
                 <span style={{display:'block',fontSize:'0.52em',color:CYL,letterSpacing:'0.1em',textTransform:'uppercase'}}>In-season</span>
@@ -387,48 +391,48 @@ export const StatPanel=memo(({card,onClose,isClosing=false,placement='scene'}:an
             {beat&&beat.pct!=null?(
               <div style={{display:'flex',alignItems:'center',gap:'0.6em'}}>
                 <span style={{fontSize:'2em',fontWeight:900,lineHeight:1,color:beat.pct>=50?'#4ade80':'#ef4444',textShadow:'0 0 16px '+(beat.pct>=50?'rgba(74,222,128,0.5)':'rgba(239,68,68,0.5)')}}>{beat.pct}%</span>
-                <span style={{fontSize:'0.62em',color:'rgba(234,242,255,0.82)',lineHeight:1.35}}>a battu son L10 sur <b style={{color:WV}}>{beat.pct}%</b> de ses matchs <span style={{color:CYL}}>({beat.beatL10}/{beat.gw} GW{beat.highest!=null?(' · record '+beat.highest):''})</span></span>
+                <span style={{fontSize:'0.62em',color:'rgba(234,242,255,0.82)',lineHeight:1.35}}>{tr('a battu son L10 sur')} <b style={{color:WV}}>{beat.pct}%</b> {tr('de ses matchs')} <span style={{color:CYL}}>({beat.beatL10}/{beat.gw} GW{beat.highest!=null?(tr(' · record ')+beat.highest):''})</span></span>
               </div>
             ):(beat&&beat.beatL10!=null?(
               <div style={{display:'flex',alignItems:'center',gap:'0.6em'}}>
                 <span style={{fontSize:'1.7em',fontWeight:900,lineHeight:1,color:CY,textShadow:CYS}}>{beat.beatL10}</span>
-                <span style={{fontSize:'0.62em',color:'rgba(234,242,255,0.82)',lineHeight:1.35}}>GW au-dessus du L10 <span style={{color:CYL}}>(compteur Sorare{beat.highest!=null?(' · record '+beat.highest):''})</span></span>
+                <span style={{fontSize:'0.62em',color:'rgba(234,242,255,0.82)',lineHeight:1.35}}>{tr('GW au-dessus du L10')} <span style={{color:CYL}}>{tr('(compteur Sorare')}{beat.highest!=null?(tr(' · record ')+beat.highest):''})</span></span>
               </div>
             ):(<p style={{margin:0,fontSize:'0.62em',color:'rgba(64,232,255,0.3)',letterSpacing:'0.06em'}}>{beat?'—':'…'}</p>))}
           </div>
           <div style={{...box,overflow:'hidden'}}>
             {isNBA(card)?(
               <>
-                <p style={lab}>NBA {'·'} 10 derniers matchs</p>
-                {nbaLoading&&<p style={{margin:0,fontSize:'0.62em',color:'rgba(64,232,255,0.42)',letterSpacing:'0.14em'}}>CHARGEMENT...</p>}
+                <p style={lab}>{tr('NBA · 10 derniers matchs')}</p>
+                {nbaLoading&&<p style={{margin:0,fontSize:'0.62em',color:'rgba(64,232,255,0.42)',letterSpacing:'0.14em'}}>{tr('CHARGEMENT...')}</p>}
                 {!nbaLoading&&nbaStats&&(
                   <div style={{width:'100%'}}>
                     <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:'0.2em'}}>
-                      {([['PTS',nbaStats.pts,'dec'],['REB',nbaStats.reb,'dec'],['AST',nbaStats.ast,'dec'],['STL',nbaStats.stl,'dec'],['BLK',nbaStats.blk,'dec'],['MIN',nbaStats.min,'dec'],['TOV',nbaStats.tov,'dec'],['3PM',nbaStats.tpm,'dec'],['EFF',nbaStats.eff,'dec'],['DD',nbaStats.dd,'int'],['TD',nbaStats.td,'int'],['MJ',nbaStats.gp,'int']] as any[]).map(([l,v,t]:any)=>(<div key={l} style={{textAlign:'center',padding:'0.22em 0.08em',border:'1px solid rgba(64,232,255,0.14)',borderRadius:'0.25em',background:'rgba(64,232,255,0.04)'}}><span style={{display:'block',fontSize:'0.5em',color:'rgba(64,232,255,0.72)',letterSpacing:'0.04em',fontWeight:700,textTransform:'uppercase'}}>{l}</span><span style={{display:'block',fontSize:'0.82em',fontWeight:900,color:WV,lineHeight:1.15}}>{fv(v,t)}</span></div>))}
+                      {([['PTS',nbaStats.pts,'dec'],['REB',nbaStats.reb,'dec'],['AST',nbaStats.ast,'dec'],['STL',nbaStats.stl,'dec'],['BLK',nbaStats.blk,'dec'],['MIN',nbaStats.min,'dec'],['TOV',nbaStats.tov,'dec'],['3PM',nbaStats.tpm,'dec'],['EFF',nbaStats.eff,'dec'],['DD',nbaStats.dd,'int'],['TD',nbaStats.td,'int'],[tr('MJ'),nbaStats.gp,'int']] as any[]).map(([l,v,t]:any)=>(<div key={l} style={{textAlign:'center',padding:'0.22em 0.08em',border:'1px solid rgba(64,232,255,0.14)',borderRadius:'0.25em',background:'rgba(64,232,255,0.04)'}}><span style={{display:'block',fontSize:'0.5em',color:'rgba(64,232,255,0.72)',letterSpacing:'0.04em',fontWeight:700,textTransform:'uppercase'}}>{l}</span><span style={{display:'block',fontSize:'0.82em',fontWeight:900,color:WV,lineHeight:1.15}}>{fv(v,t)}</span></div>))}
                     </div>
-                    <p style={{margin:'0.3em 0 0',fontSize:'0.42em',color:'rgba(64,232,255,0.3)',letterSpacing:'0.04em',textAlign:'right'}}>align{'é'} L10 {'·'} source Sorare</p>
+                    <p style={{margin:'0.3em 0 0',fontSize:'0.42em',color:'rgba(64,232,255,0.3)',letterSpacing:'0.04em',textAlign:'right'}}>{tr('alignée L10 · source Sorare')}</p>
                   </div>
                 )}
-                {!nbaLoading&&!nbaStats&&<p style={{margin:0,fontSize:'0.58em',color:'rgba(64,232,255,0.28)',letterSpacing:'0.06em'}}>stats non disponibles</p>}
+                {!nbaLoading&&!nbaStats&&<p style={{margin:0,fontSize:'0.58em',color:'rgba(64,232,255,0.28)',letterSpacing:'0.06em'}}>{tr('stats non disponibles')}</p>}
               </>
             ):(
               <>
-                <p style={lab}>FOOT {'·'} 15 derniers matchs</p>
-                {footLoading&&<p style={{margin:0,fontSize:'0.62em',color:'rgba(64,232,255,0.42)',letterSpacing:'0.14em'}}>CHARGEMENT...</p>}
+                <p style={lab}>{tr('FOOT · 15 derniers matchs')}</p>
+                {footLoading&&<p style={{margin:0,fontSize:'0.62em',color:'rgba(64,232,255,0.42)',letterSpacing:'0.14em'}}>{tr('CHARGEMENT...')}</p>}
                 {!footLoading&&footStats&&(
                   <div style={{width:'100%'}}>
                     <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:'0.2em'}}>
                       {([['⚽','Buts',footStats.goals],['👟','Passes décisives',footStats.assists],['🎯','Tirs cadrés',footStats.shots],['➡️','Passes réussies',footStats.passes],['🏟','Matchs joués',footStats.matches],['👕','Titularisations',footStats.starts],['🧤','Clean sheets',footStats.cleanSheet],['💪','Duels gagnés',footStats.duelWon],['🛡️','Ballons récupérés',footStats.recov],['🟨','Cartons jaunes',footStats.yellow],['🟥','Cartons rouges',footStats.red],['⏱','Minutes jouées',footStats.mins]] as [string,string,any][]).map(([pic,labx,v])=>(
-                        <div key={labx} title={labx} style={{textAlign:'center',padding:'0.22em 0.08em',border:'1px solid rgba(64,232,255,0.14)',borderRadius:'0.25em',background:'rgba(64,232,255,0.04)'}}>
+                        <div key={labx} title={tr(labx)} style={{textAlign:'center',padding:'0.22em 0.08em',border:'1px solid rgba(64,232,255,0.14)',borderRadius:'0.25em',background:'rgba(64,232,255,0.04)'}}>
                           <span style={{display:'block',fontSize:'0.9em',lineHeight:1.1}}>{pic}</span>
                           <span style={{display:'block',fontSize:'0.82em',fontWeight:900,color:WV,lineHeight:1.25}}>{v==null?'—':(labx==='Minutes jouées'?Math.round(Number(v)):v)}</span>
                         </div>
                       ))}
                     </div>
-                    <p style={{margin:'0.3em 0 0',fontSize:'0.42em',color:'rgba(64,232,255,0.3)',letterSpacing:'0.04em',textAlign:'right'}}>align{'é'} L10 {'·'} source Sorare</p>
+                    <p style={{margin:'0.3em 0 0',fontSize:'0.42em',color:'rgba(64,232,255,0.3)',letterSpacing:'0.04em',textAlign:'right'}}>{tr('alignée L10 · source Sorare')}</p>
                   </div>
                 )}
-                {!footLoading&&!footStats&&<p style={{margin:0,fontSize:'0.58em',color:'rgba(64,232,255,0.28)',letterSpacing:'0.06em'}}>stats non disponibles</p>}
+                {!footLoading&&!footStats&&<p style={{margin:0,fontSize:'0.58em',color:'rgba(64,232,255,0.28)',letterSpacing:'0.06em'}}>{tr('stats non disponibles')}</p>}
               </>
             )}
           </div>

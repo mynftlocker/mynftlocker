@@ -1,6 +1,7 @@
 'use client';
 import { memo, useState, useRef, useEffect } from 'react';
 import { TEAM_BY_API, FALLBACK_IMG } from '../lib-teams';
+import { t as tr, useLang } from '../i18n';
 import { StatPanel, CardBack, RARITY_GLOW, RARITY_COLOR, RARITY_FILL, parseCard } from './StatPanel';
 const CITY_CLUB: Record<string,[string,string]> = {
   'Atlanta Hawks':['ATLANTA','HAWKS'],
@@ -65,6 +66,7 @@ const TEAM_Y = 15.4;
 
 
 const LockerCard=memo(({card,isFlipped,isStarred,isPinned,onFlip,onStar,onPin,mobile}:any)=>{
+  useLang();
   const [hover,setHover]=useState(false);
   const clickTimer=useRef<any>(null);
   const active = hover;
@@ -75,7 +77,7 @@ const LockerCard=memo(({card,isFlipped,isStarred,isPinned,onFlip,onStar,onPin,mo
     <div style={{perspective:'900px',cursor:'pointer',width:'100%',containerType:'inline-size',touchAction:'manipulation',...(mobile&&!isFlipped?{animation:'mnflIdleFloat 5s ease-in-out infinite'}:{})}} onClick={()=>{ if(!mobile){ onFlip(card.slug); return; } if(clickTimer.current){ clearTimeout(clickTimer.current); clickTimer.current=null; onPin(card.slug); } else { clickTimer.current=setTimeout(()=>{ clickTimer.current=null; onFlip(card.slug); },230); } }} onMouseEnter={()=>{if(!mobile)setHover(true);}} onMouseLeave={()=>{if(!mobile)setHover(false);}}>
       <div style={{position:'relative',transformStyle:'preserve-3d',transition:'transform 0.4s cubic-bezier(0.2,0.8,0.3,1),box-shadow 0.3s ease',transform:(isFlipped?'rotateY(180deg)':'rotateY(0deg)')+((active&&!isFlipped&&!mobile)?' translateY(-12px) scale(1.035)':''),boxShadow:isFlipped?'0 0 12px 3px rgba(64,232,255,0.45),0 0 24px 6px rgba(64,232,255,0.2)':((active&&!isFlipped)?glow+', 0 22px 40px -8px rgba(0,0,0,0.7)':glow),borderRadius:'0.4rem',background:fill,...({['--rc']:rc,animation:isFlipped?'mnflCyanPulse 2.2s ease-in-out infinite':undefined} as any)}}>
         <div style={{backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',borderRadius:'0.4rem',overflow:'hidden'}}>
-          <button title='Titulaire du 5 majeur' style={{position:'absolute',top:'5px',left:'5px',background:isPinned?'#c9a227dd':'#00000088',border:'none',borderRadius:'50%',width:mobile?'30px':'22px',height:mobile?'30px':'22px',cursor:'pointer',fontSize:mobile?'15px':'11px',display:'flex',alignItems:'center',justifyContent:'center',zIndex:10,opacity:((!mobile&&active)||isPinned)?1:0,transition:'opacity 0.2s',pointerEvents:((!mobile&&active)||isPinned)?'auto':'none'}}
+          <button title={tr('Titulaire du 5 majeur')} style={{position:'absolute',top:'5px',left:'5px',background:isPinned?'#c9a227dd':'#00000088',border:'none',borderRadius:'50%',width:mobile?'30px':'22px',height:mobile?'30px':'22px',cursor:'pointer',fontSize:mobile?'15px':'11px',display:'flex',alignItems:'center',justifyContent:'center',zIndex:10,opacity:((!mobile&&active)||isPinned)?1:0,transition:'opacity 0.2s',pointerEvents:((!mobile&&active)||isPinned)?'auto':'none'}}
             onClick={e=>{e.stopPropagation();onPin(card.slug);}}>📌</button>
           <button style={{position:'absolute',top:'5px',right:'5px',background:isStarred?'#7c3aedcc':'#00000088',border:'none',borderRadius:'50%',width:mobile?'30px':'22px',height:mobile?'30px':'22px',cursor:'pointer',fontSize:mobile?'15px':'11px',display:'flex',alignItems:'center',justifyContent:'center',zIndex:10,opacity:(mobile||active||isStarred)?1:0,transition:'opacity 0.2s',pointerEvents:(mobile||active||isStarred)?'auto':'none'}}
             onClick={e=>{e.stopPropagation();onStar(card.slug);}}>
@@ -101,6 +103,7 @@ interface Props{
 }
 
 export default function LockerRoomScene({cards=[],startIndex,hof=[],flippedSlug,onFlip,onStar,onPin,pinnedSlugs=[],onPrev,onNext,total,teamApi,teamList=[],onTeamChange,sport='nba'}:Props){
+  useLang();
   const visible=cards.slice(startIndex,startIndex+5);
   const panelCard=flippedSlug?(cards.find((c:any)=>c.slug===flippedSlug)||null):null;
   const laserSlot=flippedSlug?visible.findIndex((c:any)=>c.slug===flippedSlug):-1;
@@ -242,7 +245,7 @@ export default function LockerRoomScene({cards=[],startIndex,hof=[],flippedSlug,
         {mobileIdx<cards.length-1&&<button onClick={()=>mobileGoto(1)} style={{position:'absolute',right:'2%',top:'46%',transform:'translateY(-50%)',background:'transparent',border:'none',color:'rgba(232,196,86,0.65)',fontSize:'2.2rem',lineHeight:1,cursor:'pointer',padding:'0.5rem',zIndex:20,textShadow:'0 0 8px rgba(0,0,0,0.8)'}}>›</button>}
         <div style={{position:'absolute',bottom:'1%',left:'50%',transform:'translateX(-50%)',color:'rgba(255,220,100,0.85)',fontSize:'0.7rem',letterSpacing:'0.15em',zIndex:20}}>{mobileIdx+1} / {cards.length}</div>
         {!mobileStatsCard&&<button title='Stats' onClick={()=>setMobileStatsSlug(cards[mobileIdx]?.slug||null)} style={{position:'absolute',right:'5%',bottom:'2%',width:'56px',height:'56px',borderRadius:'50%',background:'rgba(8,11,16,0.82)',border:'1.5px solid rgba(64,232,255,0.6)',boxShadow:'0 0 14px rgba(64,232,255,0.45)',color:'#40e8ff',fontSize:'1.55rem',display:'flex',alignItems:'center',justifyContent:'center',zIndex:22,cursor:'pointer'}}>📊</button>}
-        {!mobileStatsCard&&<button title='Retourner la carte' onClick={()=>handleCardFlip(cards[mobileIdx]?.slug)} style={{position:'absolute',left:'5%',bottom:'2%',width:'56px',height:'56px',borderRadius:'50%',background:'rgba(8,11,16,0.82)',border:'1.5px solid rgba(64,232,255,0.6)',boxShadow:'0 0 14px rgba(64,232,255,0.45)',color:'#40e8ff',fontSize:'1.7rem',display:'flex',alignItems:'center',justifyContent:'center',zIndex:22,cursor:'pointer'}}>⇄</button>}
+        {!mobileStatsCard&&<button title={tr('Retourner la carte')} onClick={()=>handleCardFlip(cards[mobileIdx]?.slug)} style={{position:'absolute',left:'5%',bottom:'2%',width:'56px',height:'56px',borderRadius:'50%',background:'rgba(8,11,16,0.82)',border:'1.5px solid rgba(64,232,255,0.6)',boxShadow:'0 0 14px rgba(64,232,255,0.45)',color:'#40e8ff',fontSize:'1.7rem',display:'flex',alignItems:'center',justifyContent:'center',zIndex:22,cursor:'pointer'}}>⇄</button>}
         {mobileStatsCard&&<StatPanel key={mobileStatsCard.slug} card={mobileStatsCard} isClosing={mobileStatsClosing} onClose={startMobileStatsClose} placement='mobile'/>}
         </div>
       </div>
