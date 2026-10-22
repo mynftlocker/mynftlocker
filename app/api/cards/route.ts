@@ -33,6 +33,7 @@ const sorareHeaders=()=>{
   const jwt=process.env.SORARE_JWT||'';
   const aud=process.env.SORARE_AUD||'';
   if(jwt&&aud){headers['Authorization']=`Bearer ${jwt}`;headers['JWT-AUD']=aud;}
+  if(process.env.SORARE_API_KEY){headers['APIKEY']=process.env.SORARE_API_KEY;}
   return {headers,auth:!!(jwt&&aud)};
 };
 export async function GET(request:NextRequest){

@@ -12,6 +12,7 @@ export async function GET(request: NextRequest) {
     const jwt = process.env.SORARE_JWT || '';
     const aud = process.env.SORARE_AUD || '';
     if (jwt && aud) { headers['Authorization'] = `Bearer ${jwt}`; headers['JWT-AUD'] = aud; }
+    if(process.env.SORARE_API_KEY){headers['APIKEY']=process.env.SORARE_API_KEY;}
 
     const r = await fetch('https://api.sorare.com/graphql', {
       method: 'POST', headers, body: JSON.stringify({ query }), signal: AbortSignal.timeout(8000),
