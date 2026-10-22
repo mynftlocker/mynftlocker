@@ -5,7 +5,7 @@ import { redis } from '../../../../lib/redis';
 import { sendVerificationEmail } from '../../../../lib/email';
 
 const VERIFY_HOURS = 24;
-const SITE_URL = 'https://mynftlocker.vercel.app'; // TODO: remplacer par le vrai domaine une fois créé
+const SITE_URL = 'https://mynftlocker.com';
 
 export async function POST(request: NextRequest) {
   // Inscriptions fermees tant que NEXT_PUBLIC_SIGNUP_OPEN n'est pas 'true' (protege aussi contre les appels directs a l'API)

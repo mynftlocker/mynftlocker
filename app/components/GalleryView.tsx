@@ -112,7 +112,7 @@ async function buildSlabImage(el:HTMLElement,card:any,fill:string,rc:string):Pro
   ctx.textAlign=brandAlign; ctx.fillStyle='rgba(245,215,110,0.95)'; ctx.font='800 '+big+'px system-ui, sans-serif';
   ctx.fillText('myNFTlocker',brandX,l1);
   ctx.fillStyle='rgba(207,216,230,0.7)'; ctx.font='600 '+small+'px system-ui, sans-serif';
-  ctx.fillText('mynftlocker.vercel.app',brandX,l2);
+  ctx.fillText('mynftlocker.com',brandX,l2);
   if(mgr){
     ctx.textAlign='right';
     ctx.fillStyle='rgba(64,232,255,0.85)'; ctx.font='700 '+small+'px ui-monospace, Menlo, Consolas, monospace';

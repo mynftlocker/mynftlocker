@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import { redis } from '../../../../lib/redis';
 
 const SESSION_DAYS = 30;
-const SITE_URL = 'https://mynftlocker.vercel.app'; // TODO: remplacer par le vrai domaine une fois créé
+const SITE_URL = 'https://mynftlocker.com';
 
 export async function GET(request: NextRequest) {
   try {
