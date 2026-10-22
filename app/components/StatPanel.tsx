@@ -201,6 +201,8 @@ function ShareBlock({card,box,lab}:{card:any;box:React.CSSProperties;lab:React.C
     try{
       const n:any=navigator;
       setCanCopy(!!(n.clipboard&&n.clipboard.write&&typeof (window as any).ClipboardItem!=='undefined'));
+      // bouton PARTAGER decide des l'ouverture (test avec un fichier factice) -> la mise en page ne bouge plus quand l'image est prete
+      setCanShare(typeof n.share==='function'&&typeof n.canShare==='function'&&n.canShare({files:[new File([''],'carte.png',{type:'image/png'})]}));
     }catch(e){}
     const t=setTimeout(async()=>{
       try{
@@ -208,7 +210,6 @@ function ShareBlock({card,box,lab}:{card:any;box:React.CSSProperties;lab:React.C
         const r=await exportCardImage(card);
         if(dead)return;
         setImg(r);setState('ready');
-        try{const n:any=navigator;setCanShare(typeof n.canShare==='function'&&n.canShare({files:[r.file]}));}catch(e){}
       }catch(e){console.error('share prep failed',e);if(!dead)setState('error');}
     },900);
     return()=>{dead=true;clearTimeout(t);};
@@ -221,7 +222,7 @@ function ShareBlock({card,box,lab}:{card:any;box:React.CSSProperties;lab:React.C
   const btn:React.CSSProperties={flex:1,display:'flex',alignItems:'center',justifyContent:'center',gap:'0.3em',padding:'0.5em 0.2em',borderRadius:'0.3em',border:'1px solid rgba(64,232,255,0.5)',background:'rgba(64,232,255,0.06)',color:'#ffffff',fontSize:'0.58em',fontWeight:800,letterSpacing:'0.08em',cursor:ready?'pointer':'wait',opacity:ready?1:0.45,fontFamily:'inherit',whiteSpace:'nowrap'};
   const ico=(d:React.ReactNode)=>(<svg viewBox='0 0 24 24' style={{width:'1.2em',height:'1.2em',flexShrink:0}} fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round'>{d}</svg>);
   return(
-    <div style={{...box,flexShrink:0,borderColor:'rgba(64,232,255,0.4)',background:'rgba(64,232,255,0.06)'}}>
+    <div style={{...box,flexShrink:0,borderColor:'rgba(64,232,255,0.4)',background:'rgba(64,232,255,0.06)',opacity:state==='prep'?0:1,transition:'opacity 0.35s ease',pointerEvents:state==='prep'?'none':'auto'}}>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:'0.5em'}}><p style={lab}>PARTAGER LA CARTE</p><span style={{fontSize:'0.5em',letterSpacing:'0.08em',color:state==='error'?'#fca5a5':'rgba(64,232,255,0.7)',whiteSpace:'nowrap'}}>{msg||(state==='prep'?'Préparation de l’image…':state==='error'?'Image indisponible':'')}</span></div>
       <div style={{display:'flex',gap:'0.4em'}}>
         {canShare&&<button type='button' className='stat-link-btn' disabled={!ready} onClick={doShare} style={btn}>{ico(<><circle cx='18' cy='5' r='3'/><circle cx='6' cy='12' r='3'/><circle cx='18' cy='19' r='3'/><path d='M8.6 13.5l6.8 4M15.4 6.5l-6.8 4'/></>)}PARTAGER</button>}
