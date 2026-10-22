@@ -263,6 +263,18 @@ export default function GalleryView({cards}:{cards:any[]}){
   },[]);
   const changeCols=(delta:number)=>{setGalleryCols(c=>{const next=Math.min(8,Math.max(1,c+delta));localStorage.setItem('mnfl_gallery_cols',String(next));return next;});};
   const gridRef=useRef<HTMLDivElement>(null);
+  // Affichage progressif : on ne cree que ~40 cartes d'abord, le reste arrive au defilement (galerie fluide meme avec 1000+ cartes)
+  const PAGE=40;
+  const [shown,setShown]=useState(PAGE);
+  const sentinelRef=useRef<HTMLDivElement>(null);
+  const sig=cards.length+':'+(cards[0]?.slug||'')+':'+(cards[cards.length-1]?.slug||'');
+  useEffect(()=>{setShown(PAGE);},[sig]);
+  useEffect(()=>{
+    const el=sentinelRef.current; if(!el||shown>=cards.length) return;
+    const io=new IntersectionObserver(es=>{if(es[0].isIntersecting)setShown(n=>n+PAGE);},{rootMargin:'1500px 0px'});
+    io.observe(el);
+    return ()=>io.disconnect();
+  },[shown,cards.length]);
   useEffect(()=>{
     const el=gridRef.current; if(!el) return;
     let startDist=0, active=false;
@@ -307,8 +319,9 @@ export default function GalleryView({cards}:{cards:any[]}){
           </div>
         </div>
         <div ref={gridRef} style={{display:'grid',gridTemplateColumns:'repeat('+galleryCols+',1fr)',gap:gapFor(galleryCols),touchAction:'pan-y'}}>
-          {cards.map(c=>(<GalleryCard key={c.slug} card={c} isFlipped={activeSlug===c.slug} onFlip={handleFlip} glowScale={glowScaleFor(galleryCols)}/>))}
+          {cards.slice(0,shown).map(c=>(<GalleryCard key={c.slug} card={c} isFlipped={activeSlug===c.slug} onFlip={handleFlip} glowScale={glowScaleFor(galleryCols)}/>))}
         </div>
+        {shown<cards.length&&(<div ref={sentinelRef} style={{height:'1px'}}/>)}
         </>
       )}
       {activeCard&&(<div className='mnfl-gallery-stat-desktop'>{<StatPanel key={activeCard.slug} card={activeCard} isClosing={isClosing} onClose={startClose} placement='overlay'/>}</div>)}
