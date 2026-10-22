@@ -8,6 +8,7 @@ import { StatPanel } from './components/StatPanel';
 const SIGNUP_OPEN=process.env.NEXT_PUBLIC_SIGNUP_OPEN==='true';
 import { setManager } from './lib-share';
 import StarCanvas from './components/StarCanvas';
+import { t as tr, useLang, initLang, LangSwitch } from './i18n';
 
 const LockerRoomScene = dynamic(() => import('./components/LockerRoom'), { ssr: false });
 
@@ -158,6 +159,7 @@ const LockerSlot=memo(({card,isFlipped,isStarred,isHof,onFlip,onStar}:any)=>{
 LockerSlot.displayName='LockerSlot';
 
 const FilterMenu=({title,options,current,onSelect}:any)=>{
+  useLang();
   const [open,setOpen]=useState(false);
   const [mounted,setMounted]=useState(false);
   useEffect(()=>{setMounted(true);},[]);
@@ -212,9 +214,10 @@ const COUNTRY_FR: Record<string,string> = {
   'za':'Afrique du Sud','eg':'Egypte','cm':'Cameroun','gh':'Ghana',
   'ci':'Cote d Ivoire','tn':'Tunisie','int':'International',
 };
-const countryFR=(slug:string)=>slug==='__NATIONAL__'?'Sélection nationale':(COUNTRY_FR[slug]||'Autres pays');
+const countryFR=(slug:string)=>tr(slug==='__NATIONAL__'?'Sélection nationale':(COUNTRY_FR[slug]||'Autres pays'));
 
 const FootTeamMenu=({countries,teamsByCountry,country,team,onPickCountry,onPickTeam}:any)=>{
+  useLang();
   const [open,setOpen]=useState(false);
   const [mounted,setMounted]=useState(false);
   const [hoveredCountry,setHoveredCountry]=useState<string|null>(null);
@@ -231,7 +234,7 @@ const FootTeamMenu=({countries,teamsByCountry,country,team,onPickCountry,onPickT
   const mergedCountries=countries.filter((c:string)=>c!=='mc');
   if(mergedByCountry['fr']&&!mergedCountries.includes('fr'))mergedCountries.push('fr');
   const effectiveTeams=(c:string)=>mergedByCountry[c]||[];
-  const label=team!=='all'?team:(country!=='all'?countryFR(country):'Tous les championnats');
+  const label=team!=='all'?team:(country!=='all'?countryFR(country):tr('Tous les championnats'));
   const sortedCountries=[...new Set<string>(mergedCountries)].sort((a:string,b:string)=>{if(a==='__NATIONAL__')return 1;if(b==='__NATIONAL__')return -1;return countryFR(a).localeCompare(countryFR(b),'fr');});
   const enter=()=>{
     const el=ref.current;
@@ -264,7 +267,7 @@ const FootTeamMenu=({countries,teamsByCountry,country,team,onPickCountry,onPickT
       onMouseEnter={enter}
       onMouseLeave={()=>{setOpen(false);setHoveredCountry(null);}}>
       <div style={{width:'100%',padding:'0.35rem 0.5rem',borderRadius:'0.15rem',background:open?'rgba(111,195,232,0.08)':'transparent',borderLeft:open?'2px solid #6fc3e8':'2px solid transparent',cursor:'default',transition:'all 0.12s'}}>
-        <p style={{fontSize:'0.64rem',fontWeight:800,letterSpacing:'0.14em',textTransform:'uppercase',color:'#eaf2ff',margin:'0 0 0.05rem'}}>Équipe</p>
+        <p style={{fontSize:'0.64rem',fontWeight:800,letterSpacing:'0.14em',textTransform:'uppercase',color:'#eaf2ff',margin:'0 0 0.05rem'}}>{tr('Équipe')}</p>
         <p style={{fontSize:'0.8rem',fontWeight:500,color:open?'#6fc3e8':'#ffffff',opacity:open?1:0.6,margin:0,display:'flex',alignItems:'center',justifyContent:'space-between'}}>{label} <span style={{fontSize:'0.7rem',opacity:0.7}}>›</span></p>
       </div>
       {open&&mounted&&createPortal(
@@ -273,7 +276,7 @@ const FootTeamMenu=({countries,teamsByCountry,country,team,onPickCountry,onPickT
           <div className='thin-sb' style={{...menuBase,maxHeight:Math.min(380,window.innerHeight-posT-16)+'px'}}>
             <button style={btnStyle(country==='all'&&team==='all')}
               onClick={()=>{onPickCountry('all');onPickTeam('all');setHoveredCountry(null);}}>
-              Tous les championnats
+              {tr('Tous les championnats')}
             </button>
             <button style={btnStyle(team==='__HOF__')}
               onClick={()=>{onPickTeam('__HOF__');setHoveredCountry(null);setOpen(false);}}>
@@ -317,6 +320,8 @@ const NBA_CONF:Record<string,string>={
   'Sacramento Kings':'Ouest','San Antonio Spurs':'Ouest','Utah Jazz':'Ouest',
 };
 export default function Home() {
+  useLang(); // re-rendu au changement de langue
+  useEffect(()=>{initLang();},[]); // langue sauvegardee / langue du navigateur
   const [slug, setSlug] = useState('');
   const [logoFlipped, setLogoFlipped] = useState(false);
   const [acctOpen, setAcctOpen] = useState(false);
@@ -351,7 +356,7 @@ export default function Home() {
   const canvasRef=useRef<HTMLCanvasElement|null>(null);
   const mouseXYRef=useRef<{x:number,y:number}>({x:0,y:0});
   const [typedIntro,setTypedIntro]=useState('');
-  const INTRO_TEXT='ENTRE TON SLUG SORARE POUR COMMENCER';
+  const INTRO_TEXT=tr('ENTRE TON SLUG SORARE POUR COMMENCER');
   const [showFlash,setShowFlash]=useState(false);
   const fragStartedRef=useRef(false);
   const teamChosenRef=useRef(false);  // choix d'equipe scope SESSION (reset au rechargement) -> l'ouverture retombe sur le HOF
@@ -369,7 +374,7 @@ export default function Home() {
   }, [slug]);
 
   useEffect(()=>{const h=(e:MouseEvent)=>{mouseXYRef.current={x:(e.clientX/window.innerWidth-0.5)*2,y:(e.clientY/window.innerHeight-0.5)*2};};window.addEventListener('mousemove',h);return()=>window.removeEventListener('mousemove',h);},[]);
-  useEffect(()=>{let i=0;let iv:any;const t=setTimeout(()=>{iv=setInterval(()=>{i++;setTypedIntro(INTRO_TEXT.slice(0,i));if(i>=INTRO_TEXT.length)clearInterval(iv);},55);},600);return()=>{clearTimeout(t);clearInterval(iv);};},[]);
+  useEffect(()=>{let i=0;let iv:any;const t=setTimeout(()=>{iv=setInterval(()=>{i++;setTypedIntro(INTRO_TEXT.slice(0,i));if(i>=INTRO_TEXT.length)clearInterval(iv);},55);},600);return()=>{clearTimeout(t);clearInterval(iv);};},[INTRO_TEXT]);
   useEffect(()=>{const cvs=canvasRef.current;if(!cvs||cards.length>0||openPhase>=3)return;const ctx=cvs.getContext('2d');if(!ctx)return;const resize=()=>{cvs.width=window.innerWidth;cvs.height=window.innerHeight;};resize();window.addEventListener('resize',resize);const stars=Array.from({length:260},(_,i)=>({x:Math.random(),y:Math.random(),sz:i<80?1.5+Math.random()*1.5:i<180?0.7+Math.random()*0.9:0.3+Math.random()*0.5,depth:i<80?3:i<180?2:1,tw:Math.random()*0.025+0.006,off:Math.random()*Math.PI*2,op:0.35+Math.random()*0.65,}));const ss:any[]=[];let lastSS=0;const asts=Array.from({length:5},()=>({x:Math.random()*2000,y:Math.random()*1200,vx:(Math.random()-0.5)*0.35,vy:Math.random()*0.18+0.08,r:Math.random()*4+2}));let raf:number;let t0=0;const draw=(ts:number)=>{if(!t0)t0=ts;const dt=ts-t0;const W=cvs.width,H=cvs.height;const mx=mouseXYRef.current.x,my=mouseXYRef.current.y;ctx.fillStyle='rgba(3,5,16,0.18)';ctx.fillRect(0,0,W,H);stars.forEach(s=>{const px=mx*s.depth*9,py=my*s.depth*9;const tw=0.5+0.5*Math.sin(dt*s.tw+s.off);const alpha=s.op*(0.55+0.45*tw);const cx2=((s.x*W+px)%W+W)%W,cy2=((s.y*H+py)%H+H)%H;ctx.beginPath();ctx.arc(cx2,cy2,s.sz*tw*0.4+s.sz*0.6,0,Math.PI*2);const col=s.depth===1?'220,235,255':s.depth===2?'235,245,255':'255,255,255';ctx.fillStyle=`rgba(${col},${alpha})`;ctx.fill();});if(ts-lastSS>1600+Math.random()*3200){lastSS=ts;ss.push({x:W*0.05+Math.random()*W*0.65,y:Math.random()*H*0.45,vx:9+Math.random()*9,vy:3+Math.random()*7,life:1.0})}for(let i=ss.length-1;i>=0;i--){const st=ss[i];st.x+=st.vx;st.y+=st.vy;st.life-=0.022;if(st.life<=0){ss.splice(i,1);continue;}const g=ctx.createLinearGradient(st.x-st.vx*10,st.y-st.vy*10,st.x,st.y);g.addColorStop(0,'rgba(200,235,255,0)');g.addColorStop(0.6,`rgba(220,245,255,${st.life*0.55})`);g.addColorStop(1,`rgba(255,255,255,${st.life})`);ctx.beginPath();ctx.strokeStyle=g;ctx.lineWidth=st.life*2;ctx.moveTo(st.x-st.vx*10,st.y-st.vy*10);ctx.lineTo(st.x,st.y);ctx.stroke();}asts.forEach(a=>{a.x=(a.x+a.vx+W)%W;a.y=(a.y+a.vy+H)%H;ctx.beginPath();ctx.arc(a.x,a.y,a.r,0,Math.PI*2);ctx.fillStyle='rgba(38,35,52,0.72)';ctx.fill();});raf=requestAnimationFrame(draw);};ctx.fillStyle='rgb(3,5,16)';ctx.fillRect(0,0,cvs.width,cvs.height);raf=requestAnimationFrame(draw);return()=>{cancelAnimationFrame(raf);window.removeEventListener('resize',resize);}},[openPhase,loading,cards.length]);
   // Premier accEs : pre-remplir le HoF avec les 5 meilleurs L10 (sans doublon)
   useEffect(()=>{
@@ -482,7 +487,7 @@ export default function Home() {
           if(data)break;
           console.error('Page'+pageNum+' attempt'+(attempt+1)+' failed');
         }
-        if(!data){if(all.length===0){setError('Joueur introuvable');setOpenPhase(0);}break;}
+        if(!data){if(all.length===0){setError(tr('Joueur introuvable'));setOpenPhase(0);}break;}
         all.push(...data.cards);
         // PERF : affichage progressif mais pas a chaque page (chaque setCards recalcule filtres/tris/equipes sur toute la collection)
         if(pageNum===1||pageNum%6===0)setCards([...all]);
@@ -492,7 +497,7 @@ export default function Home() {
       }
       console.log('=== LOAD DONE === cartes:'+all.length+' pages:'+pageNum);
       if(all.length>0){try{localStorage.setItem(CACHE_KEY,JSON.stringify({c:all,ts:Date.now(),m:mgr}));}catch(e){}}
-    }catch(e){if(all.length===0){setError('Erreur réseau');setOpenPhase(0);}}
+    }catch(e){if(all.length===0){setError(tr('Erreur réseau'));setOpenPhase(0);}}
     if(all.length>0)setCards([...all]); // PERF : etat final complet (les pages intermediaires ne sont plus toutes poussees)
     setLoading(false);
   };
@@ -537,14 +542,14 @@ export default function Home() {
   },[justLoggedIn,slug]);
   const startAuthClose=()=>{ setAuthClosing(true); setTimeout(()=>{ setAuthOpen(false); setAuthClosing(false); setAuthError(''); setAuthVerifyPending(false); },450); };
   const submitAuth=async()=>{
-    if(authMode==='signup'&&authPassword!==authPasswordConfirm){ setAuthError('Les mots de passe ne correspondent pas.'); return; }
+    if(authMode==='signup'&&authPassword!==authPasswordConfirm){ setAuthError(tr('Les mots de passe ne correspondent pas.')); return; }
     setAuthError(''); setAuthLoading(true);
     try{
       const endpoint = authMode==='signup' ? '/api/auth/signup' : '/api/auth/login';
       const body = authMode==='signup' ? {pseudo:authPseudo,email:authEmail,password:authPassword,sorareSlug:authSlugField||undefined} : {email:authEmail,password:authPassword};
       const r = await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
       const d = await r.json();
-      if(!r.ok){ setAuthError(d.error==='email_deja_utilise'?'Cet email est déjà utilisé.':d.error==='identifiants_invalides'?'Email ou mot de passe incorrect.':d.error==='mot_de_passe_invalide'?'Mot de passe : 8 caracteres min, 1 majuscule, 1 chiffre, 1 caractere special.':d.error==='slug_requis'?'Le slug Sorare est obligatoire.':'Une erreur est survenue.'); setAuthLoading(false); return; }
+      if(!r.ok){ setAuthError(d.error==='email_deja_utilise'?'Cet email est déjà utilisé.':d.error==='identifiants_invalides'?'Email ou mot de passe incorrect.':d.error==='mot_de_passe_invalide'?'Mot de passe : 8 caracteres min, 1 majuscule, 1 chiffre, 1 caractere special.':d.error==='slug_requis'?'Le slug Sorare est obligatoire.':tr('Une erreur est survenue.')); setAuthLoading(false); return; }
       if(d.pendingVerification){
         setAuthLoading(false);
         setAuthError('');
@@ -556,7 +561,7 @@ export default function Home() {
       setAuthLoading(false);
       startAuthClose();
       if(d.sorareSlug){ setSlug(d.sorareSlug); setJustLoggedIn(true); }
-    }catch(e){ setAuthError('Connexion au serveur impossible.'); setAuthLoading(false); }
+    }catch(e){ setAuthError(tr('Connexion au serveur impossible.')); setAuthLoading(false); }
   };
   const handleLogout=async()=>{
     try{ await fetch('/api/auth/logout',{method:'POST'}); }catch(e){}
@@ -610,7 +615,7 @@ export default function Home() {
     if(hofCount>0) list.unshift({api:HOF_KEY,display:'HALL OF FAME',count:hofCount});
     return list;
   },[cards,hof,hofFoot,gSport]);
-  const leagueOptions=useMemo(()=>{if(gSport==='nba')return[{v:'all',l:'NBA'}];return[{v:'all',l:'Toutes les ligues'}];},[gSport]);
+  const leagueOptions=useMemo(()=>{if(gSport==='nba')return[{v:'all',l:'NBA'}];return[{v:'all',l:tr('Toutes les ligues')}];},[gSport]);
   useEffect(()=>{
     if(teamList.length===0)return;
     const hofInList=teamList.find(t=>t.api==='__HOF__');
@@ -702,9 +707,9 @@ export default function Home() {
   const sideBg='rgba(12,14,19,0.82)';
 
   // Bloc filtres vertical (barre laterale)
-  const rarityOpts=[{value:'all',label:'Toutes les raretés'},{value:'common',label:'Set'},{value:'limited',label:'Limited'},{value:'rare',label:'Rare'},{value:'super_rare',label:'Super Rare'},{value:'unique',label:'Unique'}];
-  const seasonOpts=[{value:'all',label:'Toutes les saisons'},...seasonOptions.map(y=>({value:String(y),label:y+'-'+String((y+1)%100).padStart(2,'0')}))];
-  const specialOpts=[{value:'all',label:'Toutes les cartes'},{value:'standard',label:'Standard uniquement'},{value:'special',label:'Spéciales uniquement'},...specialOptions.map(s=>({value:s,label:s.charAt(0)+s.slice(1).toLowerCase()}))]; // labels en "Majuscule initiale" (valeurs techniques inchangées)
+  const rarityOpts=[{value:'all',label:tr('Toutes les raretés')},{value:'common',label:'Set'},{value:'limited',label:'Limited'},{value:'rare',label:'Rare'},{value:'super_rare',label:'Super Rare'},{value:'unique',label:'Unique'}];
+  const seasonOpts=[{value:'all',label:tr('Toutes les saisons')},...seasonOptions.map(y=>({value:String(y),label:y+'-'+String((y+1)%100).padStart(2,'0')}))];
+  const specialOpts=[{value:'all',label:tr('Toutes les cartes')},{value:'standard',label:tr('Standard uniquement')},{value:'special',label:tr('Spéciales uniquement')},...specialOptions.map(s=>({value:s,label:s.charAt(0)+s.slice(1).toLowerCase()}))]; // labels en "Majuscule initiale" (valeurs techniques inchangées)
   // (composant Filters retiré — filtres inlinés dans la sidebar)
 
   return(
@@ -715,8 +720,10 @@ export default function Home() {
 
         {/* HEADER logo (x3) */}
         <div style={{textAlign:'center',marginBottom:'0.2rem'}}>
-          <img src='/logo-pack.png' alt='myNFTlocker' title="Retour a l'accueil" onClick={()=>{setOpenPhase(0);setCards([]);setSlug('');setError('');setFlippedSlug(null);setMode('locker');setFiltersOpen(false);setAcctOpen(false);setSlugPanelOpen(false);}} style={{display:'inline-block',height:'126px',width:'auto',cursor:'pointer',filter:'drop-shadow(0 6px 18px rgba(0,0,0,0.6))'}} onError={(e)=>{(e.target as HTMLImageElement).style.display='none';}}/>
+          <img src='/logo-pack.png' alt='myNFTlocker' title={tr('Retour a l\'accueil')} onClick={()=>{setOpenPhase(0);setCards([]);setSlug('');setError('');setFlippedSlug(null);setMode('locker');setFiltersOpen(false);setAcctOpen(false);setSlugPanelOpen(false);}} style={{display:'inline-block',height:'126px',width:'auto',cursor:'pointer',filter:'drop-shadow(0 6px 18px rgba(0,0,0,0.6))'}} onError={(e)=>{(e.target as HTMLImageElement).style.display='none';}}/>
         </div>
+
+        <div style={{textAlign:'center',marginBottom:'0.3rem'}}><LangSwitch/></div>
 
         {/* COMPTE */}
         <div style={{display:'flex',flexDirection:'column' as const,gap:'0.2rem',marginBottom:'0.25rem'}}>
@@ -725,33 +732,33 @@ export default function Home() {
           <div onClick={()=>setAcctOpen(o=>!o)} style={{display:'flex',alignItems:'center',gap:'0.5rem',padding:'0.35rem 0.4rem',borderRadius:'0.3rem',cursor:'pointer',background:'rgba(255,255,255,0.03)',border:'1px solid rgba(111,195,232,0.18)',transition:'all 0.15s'}} onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.background='rgba(111,195,232,0.08)';}} onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.background='rgba(255,255,255,0.03)';}}>
             <div style={{width:'28px',height:'28px',flexShrink:0,borderRadius:'50%',background:'radial-gradient(circle at 35% 30%,#1a1c24,#0a0b0f)',border:'1.5px solid #6fc3e8',boxShadow:'0 0 10px rgba(111,195,232,0.5)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'0.78rem',fontWeight:900,color:'#6fc3e8'}}>{(slug||'?').trim().charAt(0).toUpperCase()||'?'}</div>
             <div style={{flex:1,minWidth:0,textAlign:'left'}}>
-              <p style={{margin:0,fontSize:'0.74rem',fontWeight:700,color:'#eaf2ff',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{cards.length>0?'Collection':'Mon compte'}</p>
+              <p style={{margin:0,fontSize:'0.74rem',fontWeight:700,color:'#eaf2ff',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{cards.length>0?'Collection':tr('Mon compte')}</p>
             </div>
             <span style={{fontSize:'0.6rem',color:'#6fc3e8',opacity:0.85,flexShrink:0}}>{acctOpen?'▲':'▼'}</span>
           </div>
           {/* LIGNE 2 : bandeau-collection (badge + compteur + changement de galerie) */}
           {cards.length>0&&(
             <div style={{display:'flex',alignItems:'center',gap:'0.4rem',padding:'0.1rem 0.4rem'}}>
-              {(()=>{const b=collectionBadge(cards.length);return(<img title={cards.length+' cartes'} src={'/'+b.img} alt='' style={{width:'34px',height:'34px',flexShrink:0,objectFit:'contain'}} onError={(e)=>{(e.target as HTMLImageElement).style.display='none';}}/>);})()}
-              <span style={{flex:1,minWidth:0,fontSize:'0.63rem',color:'#7a8898',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{cards.length+' cartes'}</span>
-              <span onClick={e=>{e.stopPropagation();setSlugPanelOpen(o=>!o);}} title='Changer de galerie consultée' style={{fontSize:'0.85rem',color:slugPanelOpen?'#f5d76e':'#6fc3e8',opacity:0.85,padding:'0.1rem 0.3rem',cursor:'pointer',flexShrink:0}}>⇄</span>
+              {(()=>{const b=collectionBadge(cards.length);return(<img title={cards.length+' '+tr('cartes')} src={'/'+b.img} alt='' style={{width:'34px',height:'34px',flexShrink:0,objectFit:'contain'}} onError={(e)=>{(e.target as HTMLImageElement).style.display='none';}}/>);})()}
+              <span style={{flex:1,minWidth:0,fontSize:'0.63rem',color:'#7a8898',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{cards.length+' '+tr('cartes')}</span>
+              <span onClick={e=>{e.stopPropagation();setSlugPanelOpen(o=>!o);}} title={tr('Changer de galerie consultée')} style={{fontSize:'0.85rem',color:slugPanelOpen?'#f5d76e':'#6fc3e8',opacity:0.85,padding:'0.1rem 0.3rem',cursor:'pointer',flexShrink:0}}>⇄</span>
             </div>
           )}
           {(slugPanelOpen||cards.length===0)&&(
             <div style={{display:'flex',gap:'0.3rem',alignItems:'stretch'}}>
-              <input style={{flex:1,minWidth:0,background:'rgba(255,255,255,0.05)',color:'#cfe4fb',padding:'0.28rem 0.55rem',borderRadius:'0.15rem',border:'1px solid rgba(255,255,255,0.1)',outline:'none',fontSize:'0.76rem',boxSizing:'border-box'}} placeholder='ton-slug-sorare' value={slug} onChange={e=>setSlug(e.target.value.trim().toLowerCase())} onKeyDown={e=>e.key==='Enter'&&fetchCards()}/>
-              <button onClick={()=>fetchCards()} title='Valider' disabled={!slug} style={{flexShrink:0,background:slug?'rgba(64,232,255,0.16)':'rgba(255,255,255,0.04)',border:'1px solid rgba(64,232,255,0.5)',color:'#40e8ff',borderRadius:'0.2rem',padding:'0 0.7rem',cursor:slug?'pointer':'not-allowed',opacity:slug?1:0.5,fontSize:'0.85rem',fontWeight:800}}>▶</button>
+              <input style={{flex:1,minWidth:0,background:'rgba(255,255,255,0.05)',color:'#cfe4fb',padding:'0.28rem 0.55rem',borderRadius:'0.15rem',border:'1px solid rgba(255,255,255,0.1)',outline:'none',fontSize:'0.76rem',boxSizing:'border-box'}} placeholder={tr('ton-slug-sorare')} value={slug} onChange={e=>setSlug(e.target.value.trim().toLowerCase())} onKeyDown={e=>e.key==='Enter'&&fetchCards()}/>
+              <button onClick={()=>fetchCards()} title={tr('Valider')} disabled={!slug} style={{flexShrink:0,background:slug?'rgba(64,232,255,0.16)':'rgba(255,255,255,0.04)',border:'1px solid rgba(64,232,255,0.5)',color:'#40e8ff',borderRadius:'0.2rem',padding:'0 0.7rem',cursor:slug?'pointer':'not-allowed',opacity:slug?1:0.5,fontSize:'0.85rem',fontWeight:800}}>▶</button>
             </div>
           )}
           {acctOpen&&(
             <div className='thin-sb' style={{position:'absolute',top:'100%',left:0,right:0,marginTop:'0.3rem',background:'#0a0d12',border:'1px solid rgba(111,195,232,0.35)',borderRadius:'0.35rem',boxShadow:'0 10px 28px rgba(0,0,0,0.6)',zIndex:200,overflow:'hidden'}}>
               {[
-              {key:'infos',label:'Informations personnelles'},
-              {key:'auth',label:'Authentification'},
-              {key:'abo',label:'Abonnement'},
-              {key:'confidentialite',label:'Confidentialité & données'},
-              {key:'aide',label:'Aide / Contact'},
-              {key:'deconnexion',label:'Se déconnecter'},
+              {key:'infos',label:tr('Informations personnelles')},
+              {key:'auth',label:tr('Authentification')},
+              {key:'abo',label:tr('Abonnement')},
+              {key:'confidentialite',label:tr('Confidentialité & données')},
+              {key:'aide',label:tr('Aide / Contact')},
+              {key:'deconnexion',label:tr('Se déconnecter')},
             ].map(item=>(
                 <div key={item.key} onClick={()=>{if(item.key==='deconnexion'){handleLogout();}else{setAcctMenuSection(item.key);setAcctOpen(false);}}} style={{padding:'0.5rem 0.7rem',fontSize:'0.72rem',color:item.key==='deconnexion'?'#fca5a5':'#cfe4fb',cursor:'pointer',borderBottom:'1px solid rgba(255,255,255,0.05)',transition:'background 0.12s'}} onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.background='rgba(111,195,232,0.1)';}} onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.background='transparent';}}>{item.label}</div>
               ))}
@@ -762,9 +769,9 @@ export default function Home() {
 
         {/* NAV Vestiaire / Galerie */}
         <div style={{display:'flex',overflow:'hidden',border:'1px solid rgba(255,255,255,0.12)',marginBottom:'0.25rem',clipPath:'polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px)'}}>
-          <button style={{flex:1,padding:'0.26rem 0',border:'none',cursor:'pointer',fontSize:'0.72rem',fontWeight:700,background:mode==='locker'?'linear-gradient(160deg,#a86f15 0%,#d9a52e 22%,#f7da80 48%,#e8b84a 68%,#b8801a 100%)':'rgba(255,255,255,0.04)',color:mode==='locker'?'#1a0d00':'#7a8898',transition:'all 0.15s'}} onClick={()=>setMode('locker')}>Vestiaire</button>
+          <button style={{flex:1,padding:'0.26rem 0',border:'none',cursor:'pointer',fontSize:'0.72rem',fontWeight:700,background:mode==='locker'?'linear-gradient(160deg,#a86f15 0%,#d9a52e 22%,#f7da80 48%,#e8b84a 68%,#b8801a 100%)':'rgba(255,255,255,0.04)',color:mode==='locker'?'#1a0d00':'#7a8898',transition:'all 0.15s'}} onClick={()=>setMode('locker')}>{tr('Vestiaire')}</button>
           <div style={{width:'1px',background:'rgba(255,255,255,0.1)',flexShrink:0}}/>
-          <button style={{flex:1,padding:'0.26rem 0',border:'none',cursor:'pointer',fontSize:'0.72rem',fontWeight:700,background:mode==='gallery'?'linear-gradient(160deg,#a86f15 0%,#d9a52e 22%,#f7da80 48%,#e8b84a 68%,#b8801a 100%)':'rgba(255,255,255,0.04)',color:mode==='gallery'?'#1a0d00':'#7a8898',transition:'all 0.15s'}} onClick={()=>setMode('gallery')}>Galerie</button>
+          <button style={{flex:1,padding:'0.26rem 0',border:'none',cursor:'pointer',fontSize:'0.72rem',fontWeight:700,background:mode==='gallery'?'linear-gradient(160deg,#a86f15 0%,#d9a52e 22%,#f7da80 48%,#e8b84a 68%,#b8801a 100%)':'rgba(255,255,255,0.04)',color:mode==='gallery'?'#1a0d00':'#7a8898',transition:'all 0.15s'}} onClick={()=>setMode('gallery')}>{tr('Galerie')}</button>
         </div>
 
         {error&&<p style={{color:'#fca5a5',fontSize:'0.7rem',marginBottom:'0.4rem'}}>{error}</p>}
@@ -774,25 +781,25 @@ export default function Home() {
           <div style={{textAlign:'left',flex:1,minHeight:0,display:'flex',flexDirection:'column' as const,gap:0,borderTop:'1px solid rgba(255,255,255,0.06)',paddingTop:'0.3rem'}}>
             <FilterMenu title='Sport' options={[{value:'nba',label:'NBA'},{value:'foot',label:'Football'}]} current={gSport} onSelect={(v:string)=>{setGSport(v as any);setGLeague('all');setGTeamCustom('all');setFSpecial('all');setTeamApi(HOF_KEY);setLockerStart(0);setFlippedSlug(null);teamChosenRef.current=false;}}/>
             <div style={{padding:'0.2rem 0.5rem'}}>
-              <p style={{fontSize:'0.64rem',fontWeight:800,letterSpacing:'0.14em',textTransform:'uppercase',color:'#eaf2ff',margin:'0 0 0.2rem'}}>Joueur</p>
-              <input style={{width:'100%',boxSizing:'border-box',background:'rgba(255,255,255,0.05)',color:'#e8eefc',padding:'0.3rem 0.5rem',borderRadius:'0.15rem',border:'1px solid rgba(255,255,255,0.12)',outline:'none',fontSize:'0.76rem'}} placeholder='Rechercher...' value={fPlayer} onChange={e=>setFPlayer(e.target.value)}/>
+              <p style={{fontSize:'0.64rem',fontWeight:800,letterSpacing:'0.14em',textTransform:'uppercase',color:'#eaf2ff',margin:'0 0 0.2rem'}}>{tr('Joueur')}</p>
+              <input style={{width:'100%',boxSizing:'border-box',background:'rgba(255,255,255,0.05)',color:'#e8eefc',padding:'0.3rem 0.5rem',borderRadius:'0.15rem',border:'1px solid rgba(255,255,255,0.12)',outline:'none',fontSize:'0.76rem'}} placeholder={tr('Rechercher...')} value={fPlayer} onChange={e=>setFPlayer(e.target.value)}/>
             </div>
             {gSport==='nba'?(
-              <FilterMenu title='Équipe' options={(galleryTeamList as string[]).map((n:string)=>({value:n,label:n==='all'?'Hall of Fame':n}))} current={gTeamCustom} onSelect={(v:string)=>{setGTeamCustom(v);if(mode==='locker'){if(v==='all'){setTeamApi(HOF_KEY);teamChosenRef.current=false;}else{setTeamApi(v);teamChosenRef.current=true;}setLockerStart(0);setFlippedSlug(null);}}}/>
+              <FilterMenu title={tr('Équipe')} options={(galleryTeamList as string[]).map((n:string)=>({value:n,label:n==='all'?'Hall of Fame':n}))} current={gTeamCustom} onSelect={(v:string)=>{setGTeamCustom(v);if(mode==='locker'){if(v==='all'){setTeamApi(HOF_KEY);teamChosenRef.current=false;}else{setTeamApi(v);teamChosenRef.current=true;}setLockerStart(0);setFlippedSlug(null);}}}/>
             ):(
               <FootTeamMenu countries={footCountries} teamsByCountry={teamsByCountry} country={gCountry} team={gTeamCustom} onPickCountry={(v:string)=>{setGCountry(v);setGTeamCustom('all');}} onPickTeam={(v:string)=>{if(v==='__HOF__'){setGTeamCustom('all');if(mode==='locker'){setTeamApi(HOF_KEY);setLockerStart(0);setFlippedSlug(null);teamChosenRef.current=false;}return;}setGTeamCustom(v);if(mode==='locker'&&v!=='all'){setTeamApi(v);setLockerStart(0);setFlippedSlug(null);teamChosenRef.current=true;}}}/>
             )}
-            <FilterMenu title='Saison' options={seasonOpts} current={fSeason} onSelect={setFSeason}/>
-            <FilterMenu title='Rareté' options={rarityOpts} current={fRarity} onSelect={setFRarity}/>
-            <FilterMenu title='Édition de la carte' options={specialOpts} current={fSpecial} onSelect={setFSpecial}/>
-            <FilterMenu title='Tri' options={mode==='locker'?[{value:'majeur',label:'L10 Max'},{value:'manual',label:'Manuel'},{value:'collection',label:'Alphabétique'}]:[{value:'default',label:'Défaut'},{value:'score',label:'L10'},{value:'beat',label:'%Beat L10'},{value:'record',label:'GW Record'},{value:'stars',label:'Étoiles'},{value:'rarity',label:'Rareté'},{value:'name',label:'Nom'}]} current={mode==='locker'?lockerSort:gSort} onSelect={(v:string)=>{if(mode==='locker'){setLockerSort(v as any);}else{setGSort(v as any);}}}/>
+            <FilterMenu title={tr('Saison')} options={seasonOpts} current={fSeason} onSelect={setFSeason}/>
+            <FilterMenu title={tr('Rareté')} options={rarityOpts} current={fRarity} onSelect={setFRarity}/>
+            <FilterMenu title={tr('Édition de la carte')} options={specialOpts} current={fSpecial} onSelect={setFSpecial}/>
+            <FilterMenu title={tr('Tri')} options={mode==='locker'?[{value:'majeur',label:'L10 Max'},{value:'manual',label:tr('Manuel')},{value:'collection',label:tr('Alphabétique')}]:[{value:'default',label:tr('Défaut')},{value:'score',label:'L10'},{value:'beat',label:'%Beat L10'},{value:'record',label:'GW Record'},{value:'stars',label:tr('Étoiles')},{value:'rarity',label:tr('Rareté')},{value:'name',label:tr('Nom')}]} current={mode==='locker'?lockerSort:gSort} onSelect={(v:string)=>{if(mode==='locker'){setLockerSort(v as any);}else{setGSort(v as any);}}}/>
             {(mode==='gallery'||lockerSort==='collection')&&(
-              <button onClick={()=>setGDir(d=>d==='desc'?'asc':'desc')} style={{width:'100%',boxSizing:'border-box' as const,padding:'0.3rem',marginTop:'0.45rem',background:'rgba(64,232,255,0.08)',border:'1px solid rgba(64,232,255,0.3)',borderRadius:'0.18rem',color:'#40e8ff',fontSize:'0.64rem',cursor:'pointer',letterSpacing:'0.08em',display:'flex',alignItems:'center',justifyContent:'center',gap:'0.4rem'}}>{gDir==='desc'?'↓ Décroissant':'↑ Croissant'}</button>
+              <button onClick={()=>setGDir(d=>d==='desc'?'asc':'desc')} style={{width:'100%',boxSizing:'border-box' as const,padding:'0.3rem',marginTop:'0.45rem',background:'rgba(64,232,255,0.08)',border:'1px solid rgba(64,232,255,0.3)',borderRadius:'0.18rem',color:'#40e8ff',fontSize:'0.64rem',cursor:'pointer',letterSpacing:'0.08em',display:'flex',alignItems:'center',justifyContent:'center',gap:'0.4rem'}}>{gDir==='desc'?'↓ Décroissant':tr('↑ Croissant')}</button>
             )}
             {mode==='locker'&&(
               <>
-              <button onClick={resetFilters} style={{width:'100%',boxSizing:'border-box' as const,padding:'0.3rem',background:'rgba(111,195,232,0.1)',border:'1px solid rgba(111,195,232,0.35)',borderRadius:'0.18rem',color:'#6fc3e8',fontSize:'0.64rem',cursor:'pointer',letterSpacing:'0.08em',marginTop:'0.5rem'}}>↺ Réinitialiser les filtres</button>
-              <button onClick={()=>handleSetDefault(teamApi)} style={{width:'100%',boxSizing:'border-box' as const,padding:'0.3rem',background:'rgba(212,175,55,0.12)',border:'1px solid rgba(212,175,55,0.35)',borderRadius:'0.18rem',color:'#e8c84a',fontSize:'0.64rem',cursor:'pointer',letterSpacing:'0.08em',marginTop:'0.3rem'}}>{defaultTeam===teamApi&&teamApi?'⭐ Par défaut : '+(teamApi==='__HOF__'?'Hall of Fame':teamApi):'⭐ Définir comme équipe par défaut'}</button>
+              <button onClick={resetFilters} style={{width:'100%',boxSizing:'border-box' as const,padding:'0.3rem',background:'rgba(111,195,232,0.1)',border:'1px solid rgba(111,195,232,0.35)',borderRadius:'0.18rem',color:'#6fc3e8',fontSize:'0.64rem',cursor:'pointer',letterSpacing:'0.08em',marginTop:'0.5rem'}}>{tr('↺ Réinitialiser les filtres')}</button>
+              <button onClick={()=>handleSetDefault(teamApi)} style={{width:'100%',boxSizing:'border-box' as const,padding:'0.3rem',background:'rgba(212,175,55,0.12)',border:'1px solid rgba(212,175,55,0.35)',borderRadius:'0.18rem',color:'#e8c84a',fontSize:'0.64rem',cursor:'pointer',letterSpacing:'0.08em',marginTop:'0.3rem'}}>{defaultTeam===teamApi&&teamApi?tr('⭐ Par défaut : ')+(teamApi==='__HOF__'?'Hall of Fame':teamApi):tr('⭐ Définir comme équipe par défaut')}</button>
               </>
             )}
           </div>
@@ -802,8 +809,8 @@ export default function Home() {
       {/* ===== CONTENU ===== */}
       <div className='mnfl-content' style={{flex:1,marginLeft:'220px',minHeight:'100vh'}}>
         {acctMenuSection&&(()=>{
-          const SECTIONS:Record<string,string>={infos:'Informations personnelles',auth:'Authentification',abo:'Abonnement',confidentialite:'Confidentialité & données',aide:'Aide / Contact'};
-          const title=SECTIONS[acctMenuSection]||'Mon compte';
+          const SECTIONS:Record<string,string>={infos:tr('Informations personnelles'),auth:tr('Authentification'),abo:tr('Abonnement'),confidentialite:tr('Confidentialité & données'),aide:tr('Aide / Contact')};
+          const title=SECTIONS[acctMenuSection]||tr('Mon compte');
           const rowStyle:React.CSSProperties={display:'flex',justifyContent:'space-between',alignItems:'center',gap:'1rem',padding:'0.85rem 1rem',background:'rgba(255,255,255,0.03)',border:'1px solid rgba(111,195,232,0.18)',borderRadius:'0.4rem',marginBottom:'0.6rem'};
           const labelStyle:React.CSSProperties={fontSize:'0.72rem',color:'#7a8898',letterSpacing:'0.04em',textTransform:'uppercase'};
           const valStyle:React.CSSProperties={fontSize:'0.9rem',color:'#eaf2ff',fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'};
@@ -812,27 +819,27 @@ export default function Home() {
             <div style={{maxWidth:'620px',margin:'0 auto'}}>
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'1.6rem',borderBottom:'1px solid rgba(111,195,232,0.25)',paddingBottom:'1rem'}}>
                 <h1 style={{margin:0,fontSize:'1.35rem',fontWeight:800,color:'#eaf2ff',letterSpacing:'0.02em'}}>{title}</h1>
-                <button onClick={()=>setAcctMenuSection(null)} title='Fermer' style={{background:'rgba(255,255,255,0.05)',border:'1px solid rgba(111,195,232,0.35)',borderRadius:'50%',width:'34px',height:'34px',color:'#6fc3e8',cursor:'pointer',fontSize:'0.85rem',flexShrink:0}}>✕</button>
+                <button onClick={()=>setAcctMenuSection(null)} title={tr('Fermer')} style={{background:'rgba(255,255,255,0.05)',border:'1px solid rgba(111,195,232,0.35)',borderRadius:'50%',width:'34px',height:'34px',color:'#6fc3e8',cursor:'pointer',fontSize:'0.85rem',flexShrink:0}}>✕</button>
               </div>
               {acctMenuSection==='infos'&&(currentUser?(
                 <div>
-                  <div style={rowStyle}><span style={labelStyle}>Pseudo</span><span style={valStyle}>{currentUser.pseudo}</span></div>
-                  <div style={rowStyle}><span style={labelStyle}>Adresse email</span><span style={valStyle}>{currentUser.email}</span></div>
-                  <div style={rowStyle}><span style={labelStyle}>Mot de passe</span><span style={valStyle}>••••••••</span></div>
-                  <div style={rowStyle}><span style={labelStyle}>Slug Sorare</span><span style={valStyle}>{currentUser.sorareSlug||'—'}</span></div>
-                  <p style={{fontSize:'0.72rem',color:'#7a8898',marginTop:'1rem',lineHeight:1.6}}>La modification de ces informations arrive prochainement.</p>
+                  <div style={rowStyle}><span style={labelStyle}>{tr('Pseudo')}</span><span style={valStyle}>{currentUser.pseudo}</span></div>
+                  <div style={rowStyle}><span style={labelStyle}>{tr('Adresse email')}</span><span style={valStyle}>{currentUser.email}</span></div>
+                  <div style={rowStyle}><span style={labelStyle}>{tr('Mot de passe')}</span><span style={valStyle}>••••••••</span></div>
+                  <div style={rowStyle}><span style={labelStyle}>{tr('Slug Sorare')}</span><span style={valStyle}>{currentUser.sorareSlug||'—'}</span></div>
+                  <p style={{fontSize:'0.72rem',color:'#7a8898',marginTop:'1rem',lineHeight:1.6}}>{tr('La modification de ces informations arrive prochainement.')}</p>
                 </div>
               ):(
                 <div style={{textAlign:'center',padding:'2.5rem 1rem'}}>
-                  <p style={{color:'#cfe4fb',fontSize:'0.95rem',marginBottom:'1.4rem'}}>Tu n'es pas connecte a un compte myNFTlocker.</p>
-                  <button onClick={()=>{setAcctMenuSection(null);setAuthMode('login');setAuthOpen(true);}} style={{background:'rgba(64,232,255,0.12)',border:'1px solid rgba(64,232,255,0.5)',color:'#40e8ff',padding:'0.6rem 2rem',fontSize:'0.78rem',fontWeight:700,letterSpacing:'0.12em',textTransform:'uppercase',cursor:'pointer',borderRadius:'3px'}}>Se connecter</button>
+                  <p style={{color:'#cfe4fb',fontSize:'0.95rem',marginBottom:'1.4rem'}}>{tr('Tu n\'es pas connecte a un compte myNFTlocker.')}</p>
+                  <button onClick={()=>{setAcctMenuSection(null);setAuthMode('login');setAuthOpen(true);}} style={{background:'rgba(64,232,255,0.12)',border:'1px solid rgba(64,232,255,0.5)',color:'#40e8ff',padding:'0.6rem 2rem',fontSize:'0.78rem',fontWeight:700,letterSpacing:'0.12em',textTransform:'uppercase',cursor:'pointer',borderRadius:'3px'}}>{tr('Se connecter')}</button>
                 </div>
               ))}
               {acctMenuSection!=='infos'&&(
                 <div style={{textAlign:'center',padding:'3rem 1rem'}}>
                   <div style={{fontSize:'2.2rem',marginBottom:'1rem',opacity:0.5}}>🚧</div>
-                  <p style={{color:'#cfe4fb',fontSize:'1rem',fontWeight:600,marginBottom:'0.5rem'}}>Bientot disponible</p>
-                  <p style={{color:'#7a8898',fontSize:'0.8rem',lineHeight:1.6,maxWidth:'360px',margin:'0 auto'}}>{acctMenuSection==='auth'?'Tu pourras bientot connecter ton compte Sorare officiel ici.':acctMenuSection==='abo'?'Les formules d’abonnement seront proposees ici le moment venu.':acctMenuSection==='confidentialite'?'Gestion de tes données et suppression de compte à venir.':'Un espace d’aide et de contact arrive prochainement.'}</p>
+                  <p style={{color:'#cfe4fb',fontSize:'1rem',fontWeight:600,marginBottom:'0.5rem'}}>{tr('Bientot disponible')}</p>
+                  <p style={{color:'#7a8898',fontSize:'0.8rem',lineHeight:1.6,maxWidth:'360px',margin:'0 auto'}}>{acctMenuSection==='auth'?'Tu pourras bientot connecter ton compte Sorare officiel ici.':acctMenuSection==='abo'?'Les formules d’abonnement seront proposees ici le moment venu.':acctMenuSection==='confidentialite'?'Gestion de tes données et suppression de compte à venir.':tr('Un espace d’aide et de contact arrive prochainement.')}</p>
                 </div>
               )}
             </div>
@@ -903,15 +910,15 @@ export default function Home() {
             {openPhase===0&&(
               <div style={{position:'relative',zIndex:2,display:'flex',flexDirection:'column' as const,alignItems:'center'}}>
                 <p style={{color:'#40e8ff',letterSpacing:'0.22em',textTransform:'uppercase',fontSize:'0.62rem',marginBottom:'1rem',fontFamily:'Courier New,monospace',textShadow:'0 0 12px rgba(0,255,255,0.45)',minHeight:'1.1em'}}>{typedIntro}<span style={{opacity:typedIntro.length<INTRO_TEXT.length?1:0,animation:'cyanPulse 0.8s ease-in-out infinite'}}>|</span></p>
-                <input className='intro-input' value={slug} onChange={e=>setSlug(e.target.value)} onKeyDown={e=>e.key==='Enter'&&handleIntroClick()} placeholder='ton-slug-sorare' style={{background:'transparent',border:'none',borderBottom:'1px solid rgba(64,232,255,0.42)',color:'#40e8ff',fontSize:'0.9rem',padding:'0.3rem 0.3rem',width:'230px',maxWidth:'78vw',textAlign:'center',fontFamily:'Courier New,monospace',letterSpacing:'0.07em',marginBottom:'1rem',transition:'border-color 0.2s,box-shadow 0.2s',caretColor:'#40e8ff',animation:'introInputGlow 2.5s ease-in-out 1.5s infinite'}}/>
-                <button className='intro-btn' onClick={handleIntroClick} disabled={!slug||loading} style={{background:'transparent',border:'1px solid rgba(64,232,255,0.45)',color:'#40e8ff',padding:'0.5rem 2.2rem',fontSize:'0.7rem',fontWeight:700,letterSpacing:'0.22em',textTransform:'uppercase',cursor:slug&&!loading?'pointer':'not-allowed',fontFamily:'Courier New,monospace',clipPath:'polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px)',transition:'all 0.2s',opacity:slug&&!loading?1:0.35}}>{loading?'CHARGEMENT...':'▶ OUVRIR'}</button>
+                <input className='intro-input' value={slug} onChange={e=>setSlug(e.target.value)} onKeyDown={e=>e.key==='Enter'&&handleIntroClick()} placeholder={tr('ton-slug-sorare')} style={{background:'transparent',border:'none',borderBottom:'1px solid rgba(64,232,255,0.42)',color:'#40e8ff',fontSize:'0.9rem',padding:'0.3rem 0.3rem',width:'230px',maxWidth:'78vw',textAlign:'center',fontFamily:'Courier New,monospace',letterSpacing:'0.07em',marginBottom:'1rem',transition:'border-color 0.2s,box-shadow 0.2s',caretColor:'#40e8ff',animation:'introInputGlow 2.5s ease-in-out 1.5s infinite'}}/>
+                <button className='intro-btn' onClick={handleIntroClick} disabled={!slug||loading} style={{background:'transparent',border:'1px solid rgba(64,232,255,0.45)',color:'#40e8ff',padding:'0.5rem 2.2rem',fontSize:'0.7rem',fontWeight:700,letterSpacing:'0.22em',textTransform:'uppercase',cursor:slug&&!loading?'pointer':'not-allowed',fontFamily:'Courier New,monospace',clipPath:'polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px)',transition:'all 0.2s',opacity:slug&&!loading?1:0.35}}>{loading?'CHARGEMENT...':tr('▶ OUVRIR')}</button>
                 {error&&<p style={{color:'#fca5a5',fontSize:'0.7rem',marginTop:'1rem',fontFamily:'Courier New,monospace'}}>{error}</p>}
                 {!currentUser&&(
                   <>
                     <div style={{display:'flex',alignItems:'center',gap:'0.8rem',marginTop:'1.1rem',fontFamily:'Courier New,monospace',fontSize:'0.6rem',letterSpacing:'0.14em'}}>
-                      <span onClick={()=>{setAuthMode('login');setAuthOpen(true);}} style={{color:'#40e8ff',cursor:'pointer',textTransform:'uppercase',borderBottom:'1px solid rgba(64,232,255,0.45)',paddingBottom:'1px'}}>Connexion</span>
+                      <span onClick={()=>{setAuthMode('login');setAuthOpen(true);}} style={{color:'#40e8ff',cursor:'pointer',textTransform:'uppercase',borderBottom:'1px solid rgba(64,232,255,0.45)',paddingBottom:'1px'}}>{tr('Connexion')}</span>
                       <span style={{color:'rgba(207,228,251,0.25)'}}>|</span>
-                      {SIGNUP_OPEN?(<span onClick={()=>{setAuthMode('signup');setAuthSlugField(slug||'');setAuthOpen(true);}} style={{color:'rgba(207,228,251,0.55)',cursor:'pointer',textDecoration:'underline'}}>Creer un compte</span>):(<span style={{color:'rgba(207,228,251,0.4)'}}>Inscriptions bientôt ouvertes</span>)}
+                      {SIGNUP_OPEN?(<span onClick={()=>{setAuthMode('signup');setAuthSlugField(slug||'');setAuthOpen(true);}} style={{color:'rgba(207,228,251,0.55)',cursor:'pointer',textDecoration:'underline'}}>{tr('Creer un compte')}</span>):(<span style={{color:'rgba(207,228,251,0.4)'}}>{tr('Inscriptions bientôt ouvertes')}</span>)}
                     </div>
                   </>
                 )}
@@ -919,11 +926,11 @@ export default function Home() {
             )}
             {openPhase>=1&&(
               <div style={{position:'relative',zIndex:2,marginTop:'1rem',textAlign:'center'}}>
-                {openPhase===1&&<p style={{color:'rgba(0,255,255,0.65)',fontFamily:'Courier New,monospace',letterSpacing:'0.25em',fontSize:'0.68rem',animation:'cyanPulse 0.8s ease-in-out infinite'}}>{loading?'INITIALISATION...':'SCAN EN COURS...'}</p>}
-                {openPhase===2&&<p style={{color:'rgba(0,225,255,0.65)',fontFamily:'Courier New,monospace',letterSpacing:'0.22em',fontSize:'0.68rem',animation:'cyanPulse 0.4s ease-in-out infinite'}}>{loading?'SCAN EN COURS...':'DONNÉES CHARGÉES'}</p>}
+                {openPhase===1&&<p style={{color:'rgba(0,255,255,0.65)',fontFamily:'Courier New,monospace',letterSpacing:'0.25em',fontSize:'0.68rem',animation:'cyanPulse 0.8s ease-in-out infinite'}}>{loading?'INITIALISATION...':tr('SCAN EN COURS...')}</p>}
+                {openPhase===2&&<p style={{color:'rgba(0,225,255,0.65)',fontFamily:'Courier New,monospace',letterSpacing:'0.22em',fontSize:'0.68rem',animation:'cyanPulse 0.4s ease-in-out infinite'}}>{loading?'SCAN EN COURS...':tr('DONNÉES CHARGÉES')}</p>}
               </div>
             )}
-            <div style={{position:'fixed',bottom:'1rem',left:'50%',transform:'translateX(-50%)',zIndex:2,display:'flex',gap:'2.5rem',alignItems:'center'}}><a href='https://sorare.com' target='_blank' rel='noreferrer' style={{color:'rgba(255,255,255,0.2)',fontSize:'0.6rem',letterSpacing:'0.14em',textTransform:'uppercase',textDecoration:'none',fontFamily:'Courier New,monospace',transition:'color 0.2s',pointerEvents:'auto'}} onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.color='rgba(64,232,255,0.6)';}} onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.color='rgba(255,255,255,0.2)';}}>SORARE</a><span style={{color:'rgba(255,255,255,0.1)',fontSize:'0.5rem'}}>|</span><a href='#' style={{color:'rgba(255,255,255,0.15)',fontSize:'0.6rem',letterSpacing:'0.14em',textTransform:'uppercase',textDecoration:'none',fontFamily:'Courier New,monospace',pointerEvents:'auto',transition:'color 0.2s'}} onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.color='rgba(64,232,255,0.6)';}} onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.color='rgba(255,255,255,0.15)';}}>CGU</a></div>
+            <div style={{position:'fixed',bottom:'1rem',left:'50%',transform:'translateX(-50%)',zIndex:2,display:'flex',gap:'2.5rem',alignItems:'center'}}><a href='https://sorare.com' target='_blank' rel='noreferrer' style={{color:'rgba(255,255,255,0.2)',fontSize:'0.6rem',letterSpacing:'0.14em',textTransform:'uppercase',textDecoration:'none',fontFamily:'Courier New,monospace',transition:'color 0.2s',pointerEvents:'auto'}} onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.color='rgba(64,232,255,0.6)';}} onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.color='rgba(255,255,255,0.2)';}}>SORARE</a><span style={{color:'rgba(255,255,255,0.1)',fontSize:'0.5rem'}}>|</span><a href='#' style={{color:'rgba(255,255,255,0.15)',fontSize:'0.6rem',letterSpacing:'0.14em',textTransform:'uppercase',textDecoration:'none',fontFamily:'Courier New,monospace',pointerEvents:'auto',transition:'color 0.2s'}} onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.color='rgba(64,232,255,0.6)';}} onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.color='rgba(255,255,255,0.15)';}}>CGU</a><span style={{color:'rgba(255,255,255,0.1)',fontSize:'0.5rem'}}>|</span><LangSwitch/></div>
           </div>
         )}
         {cards.length>0&&(
@@ -948,14 +955,14 @@ export default function Home() {
         <div style={{position:'fixed',inset:0,zIndex:99999,display:'flex',alignItems:'center',justifyContent:'center',background:authClosing?'transparent':'rgba(0,0,0,0.6)',backdropFilter:authClosing?'none':'blur(4px)',transition:'background 0.3s'}} onClick={()=>!authClosing&&startAuthClose()}>
           <div onClick={e=>e.stopPropagation()} style={{width:'320px',maxWidth:'88vw',background:'repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(64,232,255,0.03) 2px,rgba(64,232,255,0.03) 3px),linear-gradient(rgba(2,10,22,0.97),rgba(2,10,22,0.97))',border:'1px solid rgba(64,232,255,0.5)',boxShadow:'0 0 40px rgba(64,232,255,0.15),inset 0 0 60px rgba(0,0,0,0.5)',clipPath:authClosing?'none':'polygon(14px 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,0 100%,0 14px)',padding:'1.3rem 1.2rem',fontFamily:'Courier New,Consolas,monospace',animation:authClosing?'mnflClose 0.45s cubic-bezier(0.7,0,0.95,1) both':'mnflDeploy 0.55s ease-out backwards',backdropFilter:authClosing?'none':'blur(12px)'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'1rem'}}>
-              <span style={{color:'#40e8ff',fontSize:'0.85rem',fontWeight:700,letterSpacing:'0.1em'}}>{authMode==='signup'?'CREER UN COMPTE':'SE CONNECTER'}</span>
+              <span style={{color:'#40e8ff',fontSize:'0.85rem',fontWeight:700,letterSpacing:'0.1em'}}>{authMode==='signup'?'CREER UN COMPTE':tr('SE CONNECTER')}</span>
               <button onClick={startAuthClose} style={{background:'transparent',border:'1px solid rgba(64,232,255,0.35)',borderRadius:'50%',width:'20px',height:'20px',color:'#40e8ff',cursor:'pointer',fontSize:'0.55rem'}}>✕</button>
             </div>
-            {authMode==='signup'&&<input value={authPseudo} onChange={e=>setAuthPseudo(e.target.value)} placeholder='Pseudo' style={{width:'100%',boxSizing:'border-box' as const,background:'rgba(255,255,255,0.05)',border:'1px solid rgba(64,232,255,0.3)',color:'#cfe4fb',padding:'0.5rem 0.6rem',fontSize:'0.8rem',marginBottom:'0.6rem',fontFamily:'Courier New,monospace',outline:'none'}}/>}
-            {authMode==='signup'&&<input value={authSlugField} onChange={e=>setAuthSlugField(e.target.value)} placeholder='Slug Sorare (ex: pseudo-email-com)' style={{width:'100%',boxSizing:'border-box' as const,background:'rgba(255,255,255,0.05)',border:'1px solid rgba(64,232,255,0.3)',color:'#cfe4fb',padding:'0.5rem 0.6rem',fontSize:'0.8rem',marginBottom:'0.6rem',fontFamily:'Courier New,monospace',outline:'none'}}/>}
+            {authMode==='signup'&&<input value={authPseudo} onChange={e=>setAuthPseudo(e.target.value)} placeholder={tr('Pseudo')} style={{width:'100%',boxSizing:'border-box' as const,background:'rgba(255,255,255,0.05)',border:'1px solid rgba(64,232,255,0.3)',color:'#cfe4fb',padding:'0.5rem 0.6rem',fontSize:'0.8rem',marginBottom:'0.6rem',fontFamily:'Courier New,monospace',outline:'none'}}/>}
+            {authMode==='signup'&&<input value={authSlugField} onChange={e=>setAuthSlugField(e.target.value)} placeholder={tr('Slug Sorare (ex: pseudo-email-com)')} style={{width:'100%',boxSizing:'border-box' as const,background:'rgba(255,255,255,0.05)',border:'1px solid rgba(64,232,255,0.3)',color:'#cfe4fb',padding:'0.5rem 0.6rem',fontSize:'0.8rem',marginBottom:'0.6rem',fontFamily:'Courier New,monospace',outline:'none'}}/>}
             <input value={authEmail} onChange={e=>setAuthEmail(e.target.value)} placeholder='Email' type='email' style={{width:'100%',boxSizing:'border-box' as const,background:'rgba(255,255,255,0.05)',border:'1px solid rgba(64,232,255,0.3)',color:'#cfe4fb',padding:'0.5rem 0.6rem',fontSize:'0.8rem',marginBottom:'0.6rem',fontFamily:'Courier New,monospace',outline:'none'}}/>
             <div style={{position:'relative',marginBottom:authMode==='signup'?'0.3rem':'0.8rem'}}>
-              <input value={authPassword} onChange={e=>setAuthPassword(e.target.value)} placeholder='Mot de passe' type={authShowPassword?'text':'password'} onKeyDown={e=>e.key==='Enter'&&submitAuth()} style={{width:'100%',boxSizing:'border-box' as const,background:'rgba(255,255,255,0.05)',border:'1px solid rgba(64,232,255,0.3)',color:'#cfe4fb',padding:'0.5rem 2rem 0.5rem 0.6rem',fontSize:'0.8rem',fontFamily:'Courier New,monospace',outline:'none'}}/>
+              <input value={authPassword} onChange={e=>setAuthPassword(e.target.value)} placeholder={tr('Mot de passe')} type={authShowPassword?'text':'password'} onKeyDown={e=>e.key==='Enter'&&submitAuth()} style={{width:'100%',boxSizing:'border-box' as const,background:'rgba(255,255,255,0.05)',border:'1px solid rgba(64,232,255,0.3)',color:'#cfe4fb',padding:'0.5rem 2rem 0.5rem 0.6rem',fontSize:'0.8rem',fontFamily:'Courier New,monospace',outline:'none'}}/>
               <span
                 onMouseDown={()=>setAuthShowPassword(true)}
                 onMouseUp={()=>setAuthShowPassword(false)}
@@ -964,15 +971,15 @@ export default function Home() {
                 onTouchEnd={()=>setAuthShowPassword(false)}
                 style={{position:'absolute',right:'0.6rem',top:'50%',transform:'translateY(-50%)',cursor:'pointer',fontSize:'1.15rem',color:'rgba(64,232,255,0.85)',userSelect:'none' as const}}>👁</span>
             </div>
-            {authMode==='signup'&&<input value={authPasswordConfirm} onChange={e=>setAuthPasswordConfirm(e.target.value)} placeholder='Confirmer le mot de passe' type={authShowPassword?'text':'password'} onKeyDown={e=>e.key==='Enter'&&submitAuth()} style={{width:'100%',boxSizing:'border-box' as const,background:'rgba(255,255,255,0.05)',border:'1px solid '+(authPasswordConfirm&&authPassword!==authPasswordConfirm?'rgba(252,165,165,0.6)':'rgba(64,232,255,0.3)'),color:'#cfe4fb',padding:'0.5rem 0.6rem',fontSize:'0.8rem',marginBottom:'0.3rem',fontFamily:'Courier New,monospace',outline:'none'}}/>}
-            {authMode==='signup'&&<p style={{fontSize:'0.58rem',color:'rgba(207,228,251,0.45)',marginBottom:'0.7rem',lineHeight:1.4}}>8 caracteres min, 1 majuscule, 1 chiffre, 1 caractere special.</p>}
+            {authMode==='signup'&&<input value={authPasswordConfirm} onChange={e=>setAuthPasswordConfirm(e.target.value)} placeholder={tr('Confirmer le mot de passe')} type={authShowPassword?'text':'password'} onKeyDown={e=>e.key==='Enter'&&submitAuth()} style={{width:'100%',boxSizing:'border-box' as const,background:'rgba(255,255,255,0.05)',border:'1px solid '+(authPasswordConfirm&&authPassword!==authPasswordConfirm?'rgba(252,165,165,0.6)':'rgba(64,232,255,0.3)'),color:'#cfe4fb',padding:'0.5rem 0.6rem',fontSize:'0.8rem',marginBottom:'0.3rem',fontFamily:'Courier New,monospace',outline:'none'}}/>}
+            {authMode==='signup'&&<p style={{fontSize:'0.58rem',color:'rgba(207,228,251,0.45)',marginBottom:'0.7rem',lineHeight:1.4}}>{tr('8 caracteres min, 1 majuscule, 1 chiffre, 1 caractere special.')}</p>}
             {authError&&<p style={{color:'#fca5a5',fontSize:'0.66rem',marginBottom:'0.6rem'}}>{authError}</p>}
-            {authVerifyPending&&<p style={{color:'#7dd3fc',fontSize:'0.68rem',marginBottom:'0.7rem',lineHeight:1.5}}>Compte créé ! Vérifie ta boîte mail (et les spams) pour confirmer ton adresse avant de te connecter.</p>}
-            <button onClick={submitAuth} disabled={authLoading||authVerifyPending} style={{width:'100%',background:'rgba(64,232,255,0.12)',border:'1px solid rgba(64,232,255,0.5)',color:'#40e8ff',padding:'0.55rem',fontSize:'0.72rem',fontWeight:700,letterSpacing:'0.15em',textTransform:'uppercase',cursor:authLoading?'not-allowed':'pointer',fontFamily:'Courier New,monospace',opacity:authLoading?0.5:1}}>{authLoading?'...':(authMode==='signup'?'S\'inscrire':'Se connecter')}</button>
+            {authVerifyPending&&<p style={{color:'#7dd3fc',fontSize:'0.68rem',marginBottom:'0.7rem',lineHeight:1.5}}>{tr('Compte créé ! Vérifie ta boîte mail (et les spams) pour confirmer ton adresse avant de te connecter.')}</p>}
+            <button onClick={submitAuth} disabled={authLoading||authVerifyPending} style={{width:'100%',background:'rgba(64,232,255,0.12)',border:'1px solid rgba(64,232,255,0.5)',color:'#40e8ff',padding:'0.55rem',fontSize:'0.72rem',fontWeight:700,letterSpacing:'0.15em',textTransform:'uppercase',cursor:authLoading?'not-allowed':'pointer',fontFamily:'Courier New,monospace',opacity:authLoading?0.5:1}}>{authLoading?'...':(authMode==='signup'?tr("S'inscrire"):tr('Se connecter'))}</button>
             {(SIGNUP_OPEN||authMode==='signup')&&(
             <p style={{textAlign:'center',marginTop:'0.8rem',fontSize:'0.66rem',color:'rgba(207,228,251,0.6)'}}>
-              {authMode==='signup'?'Deja un compte ? ':'Pas encore de compte ? '}
-              <span onClick={()=>{setAuthMode(authMode==='signup'?'login':'signup');setAuthError('');}} style={{color:'#40e8ff',cursor:'pointer',textDecoration:'underline'}}>{authMode==='signup'?'Se connecter':'S\'inscrire'}</span>
+              {authMode==='signup'?'Deja un compte ? ':tr('Pas encore de compte ? ')}
+              <span onClick={()=>{setAuthMode(authMode==='signup'?'login':'signup');setAuthError('');}} style={{color:'#40e8ff',cursor:'pointer',textDecoration:'underline'}}>{authMode==='signup'?'Se connecter':tr("S'inscrire")}</span>
             </p>
             )}
           </div>
@@ -985,47 +992,48 @@ export default function Home() {
       <nav className='mnfl-bottombar' style={{position:'fixed',left:0,right:0,bottom:0,height:'62px',display:'none',alignItems:'stretch',justifyContent:'space-around',background:'rgba(8,11,16,0.92)',backdropFilter:'blur(14px)',WebkitBackdropFilter:'blur(14px)',borderTop:'1px solid rgba(64,232,255,0.28)',boxShadow:'0 -6px 20px -6px rgba(64,232,255,0.25)',zIndex:60}}>
         <button onClick={()=>{setMode('locker');setFiltersOpen(false);}} style={{flex:1,background:'transparent',border:'none',display:'flex',flexDirection:'column' as const,alignItems:'center',justifyContent:'center',gap:'3px',cursor:'pointer',color:mode==='locker'?'#40e8ff':'#7a8898'}}>
           <svg width='22' height='22' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2'><rect x='4' y='3' width='16' height='18' rx='1'/><line x1='12' y1='3' x2='12' y2='21'/><circle cx='9' cy='12' r='0.6' fill='currentColor'/><circle cx='15' cy='12' r='0.6' fill='currentColor'/></svg>
-          <span style={{fontSize:'0.6rem',fontWeight:700,letterSpacing:'0.04em'}}>Vestiaire</span>
+          <span style={{fontSize:'0.6rem',fontWeight:700,letterSpacing:'0.04em'}}>{tr('Vestiaire')}</span>
         </button>
         <button onClick={()=>{setMode('gallery');setFiltersOpen(false);}} style={{flex:1,background:'transparent',border:'none',display:'flex',flexDirection:'column' as const,alignItems:'center',justifyContent:'center',gap:'3px',cursor:'pointer',color:mode==='gallery'?'#40e8ff':'#7a8898'}}>
           <svg width='22' height='22' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2'><rect x='3' y='3' width='7' height='7' rx='1'/><rect x='14' y='3' width='7' height='7' rx='1'/><rect x='3' y='14' width='7' height='7' rx='1'/><rect x='14' y='14' width='7' height='7' rx='1'/></svg>
-          <span style={{fontSize:'0.6rem',fontWeight:700,letterSpacing:'0.04em'}}>Galerie</span>
+          <span style={{fontSize:'0.6rem',fontWeight:700,letterSpacing:'0.04em'}}>{tr('Galerie')}</span>
         </button>
         <button onClick={()=>setFiltersOpen(o=>!o)} style={{flex:1,background:'transparent',border:'none',display:'flex',flexDirection:'column' as const,alignItems:'center',justifyContent:'center',gap:'3px',cursor:'pointer',color:filtersOpen?'#40e8ff':'#7a8898'}}>
           <svg width='22' height='22' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2'><polygon points='3 4 21 4 14 12.5 14 19 10 21 10 12.5 3 4'/></svg>
-          <span style={{fontSize:'0.6rem',fontWeight:700,letterSpacing:'0.04em'}}>Filtres</span>
+          <span style={{fontSize:'0.6rem',fontWeight:700,letterSpacing:'0.04em'}}>{tr('Filtres')}</span>
         </button>
       </nav>
 
       {/* ===== PANNEAU FILTRES MOBILE (placeholder Etape 2, rempli Etape 3) ===== */}
       {filtersOpen&&(
         <div className='mnfl-filters-sheet' style={{position:'fixed',left:0,right:0,bottom:'62px',top:0,background:'rgba(5,7,11,0.97)',backdropFilter:'blur(10px)',zIndex:59,display:'none',flexDirection:'column' as const,padding:'0.6rem 1rem 0.6rem',overflowY:'auto'}}>
+          <div style={{textAlign:'right'}}><LangSwitch/></div>
           {/* LOGO+COMPTE MOBILE : identique au sidebar desktop, absent sur mobile jusqu'ici */}
           <div style={{display:'flex',flexDirection:'column' as const,gap:'0.15rem',marginBottom:'0.35rem'}}>
             {/* LOGO+COMPTE FUSIONNES sur une seule ligne (gain de hauteur + logo plus visible) */}
             <div style={{display:'flex',alignItems:'center',gap:'0.6rem'}}>
-              <img src='/logo-pack.png' alt='myNFTlocker' title="Retour a l'accueil" onClick={()=>{setOpenPhase(0);setCards([]);setSlug('');setError('');setFlippedSlug(null);setMode('locker');setFiltersOpen(false);setAcctOpen(false);setSlugPanelOpen(false);}} style={{height:'62px',width:'auto',flexShrink:0,cursor:'pointer',filter:'drop-shadow(0 6px 18px rgba(0,0,0,0.6))'}} onError={(e)=>{(e.target as HTMLImageElement).style.display='none';}}/>
+              <img src='/logo-pack.png' alt='myNFTlocker' title={tr('Retour a l\'accueil')} onClick={()=>{setOpenPhase(0);setCards([]);setSlug('');setError('');setFlippedSlug(null);setMode('locker');setFiltersOpen(false);setAcctOpen(false);setSlugPanelOpen(false);}} style={{height:'62px',width:'auto',flexShrink:0,cursor:'pointer',filter:'drop-shadow(0 6px 18px rgba(0,0,0,0.6))'}} onError={(e)=>{(e.target as HTMLImageElement).style.display='none';}}/>
               <div onClick={()=>setAcctOpen(o=>!o)} style={{flex:1,minWidth:0,display:'flex',alignItems:'center',gap:'0.5rem',padding:'0.4rem 0.5rem',borderRadius:'0.3rem',cursor:'pointer',background:'rgba(255,255,255,0.03)',border:'1px solid rgba(111,195,232,0.18)'}}>
               <div style={{width:'44px',height:'44px',flexShrink:0,borderRadius:'50%',background:'radial-gradient(circle at 35% 30%,#1a1c24,#0a0b0f)',border:'1.5px solid #6fc3e8',boxShadow:'0 0 10px rgba(111,195,232,0.5)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'1.1rem',fontWeight:900,color:'#6fc3e8'}}>{(slug||'?').trim().charAt(0).toUpperCase()||'?'}</div>
               <div style={{flex:1,minWidth:0,textAlign:'left'}}>
-                <p style={{margin:0,fontSize:'0.8rem',fontWeight:700,color:'#eaf2ff',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{cards.length>0?'Collection':'Mon compte'}</p>
-                <p style={{margin:0,fontSize:'0.62rem',color:'#7a8898'}}>{cards.length>0?(cards.length+' cartes'):'Identifiant Sorare'}</p>
+                <p style={{margin:0,fontSize:'0.8rem',fontWeight:700,color:'#eaf2ff',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{cards.length>0?'Collection':tr('Mon compte')}</p>
+                <p style={{margin:0,fontSize:'0.62rem',color:'#7a8898'}}>{cards.length>0?(cards.length+' '+tr('cartes')):'Identifiant Sorare'}</p>
               </div>
               {/* BADGE REPOSITIONNE : plus grand, sans cercle, juste avant le chevron */}
-              {cards.length>0&&(()=>{const b=collectionBadge(cards.length);return(<img title={cards.length+' cartes'} src={'/'+b.img} alt='' style={{width:'46px',height:'46px',flexShrink:0,objectFit:'contain'}} onError={(e)=>{(e.target as HTMLImageElement).style.display='none';}}/>);})()}
-              <span onClick={e=>{e.stopPropagation();setSlugPanelOpen(o=>!o);}} title='Changer de galerie consultée' style={{fontSize:'1.5rem',lineHeight:1,color:slugPanelOpen?'#f5d76e':'#6fc3e8',opacity:0.95,padding:'0.35rem 0.5rem',borderRadius:'0.35rem',border:'1px solid rgba(111,195,232,0.35)',background:'rgba(111,195,232,0.06)',cursor:'pointer',flexShrink:0}}>⇄</span>
+              {cards.length>0&&(()=>{const b=collectionBadge(cards.length);return(<img title={cards.length+' '+tr('cartes')} src={'/'+b.img} alt='' style={{width:'46px',height:'46px',flexShrink:0,objectFit:'contain'}} onError={(e)=>{(e.target as HTMLImageElement).style.display='none';}}/>);})()}
+              <span onClick={e=>{e.stopPropagation();setSlugPanelOpen(o=>!o);}} title={tr('Changer de galerie consultée')} style={{fontSize:'1.5rem',lineHeight:1,color:slugPanelOpen?'#f5d76e':'#6fc3e8',opacity:0.95,padding:'0.35rem 0.5rem',borderRadius:'0.35rem',border:'1px solid rgba(111,195,232,0.35)',background:'rgba(111,195,232,0.06)',cursor:'pointer',flexShrink:0}}>⇄</span>
               <span style={{fontSize:'1.1rem',color:'#6fc3e8',opacity:0.9,flexShrink:0,padding:'0.2rem'}}>{acctOpen?'▲':'▼'}</span>
               </div>
             </div>
             {acctOpen&&(
               <div style={{background:'#0a0d12',border:'1px solid rgba(111,195,232,0.35)',borderRadius:'0.35rem',overflow:'hidden',marginTop:'0.1rem'}}>
                 {[
-                  {key:'infos',label:'Informations personnelles'},
-                  {key:'auth',label:'Authentification'},
-                  {key:'abo',label:'Abonnement'},
-                  {key:'confidentialite',label:'Confidentialité & données'},
-                  {key:'aide',label:'Aide / Contact'},
-                  {key:'deconnexion',label:'Se déconnecter'},
+                  {key:'infos',label:tr('Informations personnelles')},
+                  {key:'auth',label:tr('Authentification')},
+                  {key:'abo',label:tr('Abonnement')},
+                  {key:'confidentialite',label:tr('Confidentialité & données')},
+                  {key:'aide',label:tr('Aide / Contact')},
+                  {key:'deconnexion',label:tr('Se déconnecter')},
                 ].map(item=>(
                   <div key={item.key} onClick={()=>{if(item.key==='deconnexion'){handleLogout();setFiltersOpen(false);}else{setAcctMenuSection(item.key);setAcctOpen(false);setFiltersOpen(false);}}} style={{padding:'0.6rem 0.7rem',fontSize:'0.8rem',color:item.key==='deconnexion'?'#fca5a5':'#cfe4fb',cursor:'pointer',borderBottom:'1px solid rgba(255,255,255,0.05)'}}>{item.label}</div>
                 ))}
@@ -1033,43 +1041,43 @@ export default function Home() {
             )}
             {(slugPanelOpen||cards.length===0)&&(
               <div style={{display:'flex',gap:'0.4rem',alignItems:'stretch'}}>
-                <input style={{flex:1,minWidth:0,background:'rgba(255,255,255,0.05)',color:'#cfe4fb',padding:'0.5rem 0.6rem',borderRadius:'0.2rem',border:'1px solid rgba(255,255,255,0.1)',outline:'none',fontSize:'0.9rem',boxSizing:'border-box' as const}} placeholder='ton-slug-sorare' value={slug} onChange={e=>setSlug(e.target.value.trim().toLowerCase())} onKeyDown={e=>e.key==='Enter'&&fetchCards()}/>
-                <button onClick={()=>fetchCards()} title='Valider' disabled={!slug} style={{flexShrink:0,minWidth:'52px',background:slug?'rgba(64,232,255,0.18)':'rgba(255,255,255,0.04)',border:'1px solid rgba(64,232,255,0.55)',color:'#40e8ff',borderRadius:'0.3rem',padding:'0 0.9rem',cursor:slug?'pointer':'not-allowed',opacity:slug?1:0.5,fontSize:'1.1rem',fontWeight:800}}>▶</button>
+                <input style={{flex:1,minWidth:0,background:'rgba(255,255,255,0.05)',color:'#cfe4fb',padding:'0.5rem 0.6rem',borderRadius:'0.2rem',border:'1px solid rgba(255,255,255,0.1)',outline:'none',fontSize:'0.9rem',boxSizing:'border-box' as const}} placeholder={tr('ton-slug-sorare')} value={slug} onChange={e=>setSlug(e.target.value.trim().toLowerCase())} onKeyDown={e=>e.key==='Enter'&&fetchCards()}/>
+                <button onClick={()=>fetchCards()} title={tr('Valider')} disabled={!slug} style={{flexShrink:0,minWidth:'52px',background:slug?'rgba(64,232,255,0.18)':'rgba(255,255,255,0.04)',border:'1px solid rgba(64,232,255,0.55)',color:'#40e8ff',borderRadius:'0.3rem',padding:'0 0.9rem',cursor:slug?'pointer':'not-allowed',opacity:slug?1:0.5,fontSize:'1.1rem',fontWeight:800}}>▶</button>
               </div>
             )}
           </div>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'0.4rem'}}>
-            <span style={{color:'#f5d76e',fontWeight:800,fontSize:'1rem',letterSpacing:'0.05em'}}>FILTRES</span>
-            <button onClick={()=>setFiltersOpen(false)} style={{background:'transparent',border:'1px solid rgba(64,232,255,0.4)',color:'#40e8ff',borderRadius:'0.4rem',padding:'0.3rem 0.7rem',cursor:'pointer',fontSize:'0.8rem'}}>Fermer</button>
+            <span style={{color:'#f5d76e',fontWeight:800,fontSize:'1rem',letterSpacing:'0.05em'}}>{tr('FILTRES')}</span>
+            <button onClick={()=>setFiltersOpen(false)} style={{background:'transparent',border:'1px solid rgba(64,232,255,0.4)',color:'#40e8ff',borderRadius:'0.4rem',padding:'0.3rem 0.7rem',cursor:'pointer',fontSize:'0.8rem'}}>{tr('Fermer')}</button>
           </div>
           <div style={{flex:1,overflowY:'auto'}}>
           <div style={{textAlign:'left',flex:1,minHeight:0,display:'flex',flexDirection:'column' as const,gap:0,borderTop:'1px solid rgba(255,255,255,0.06)',paddingTop:'0.3rem'}}>
             <FilterMenu title='Sport' options={[{value:'nba',label:'NBA'},{value:'foot',label:'Football'}]} current={gSport} onSelect={(v:string)=>{setGSport(v as any);setGLeague('all');setGTeamCustom('all');setFSpecial('all');setTeamApi(HOF_KEY);setLockerStart(0);setFlippedSlug(null);teamChosenRef.current=false;}}/>
             <div style={{padding:'0.2rem 0.5rem'}}>
-              <p style={{fontSize:'0.64rem',fontWeight:800,letterSpacing:'0.14em',textTransform:'uppercase',color:'#eaf2ff',margin:'0 0 0.2rem'}}>Joueur</p>
-              <input style={{width:'100%',boxSizing:'border-box',background:'rgba(255,255,255,0.05)',color:'#e8eefc',padding:'0.3rem 0.5rem',borderRadius:'0.15rem',border:'1px solid rgba(255,255,255,0.12)',outline:'none',fontSize:'0.76rem'}} placeholder='Rechercher...' value={fPlayer} onChange={e=>setFPlayer(e.target.value)}/>
+              <p style={{fontSize:'0.64rem',fontWeight:800,letterSpacing:'0.14em',textTransform:'uppercase',color:'#eaf2ff',margin:'0 0 0.2rem'}}>{tr('Joueur')}</p>
+              <input style={{width:'100%',boxSizing:'border-box',background:'rgba(255,255,255,0.05)',color:'#e8eefc',padding:'0.3rem 0.5rem',borderRadius:'0.15rem',border:'1px solid rgba(255,255,255,0.12)',outline:'none',fontSize:'0.76rem'}} placeholder={tr('Rechercher...')} value={fPlayer} onChange={e=>setFPlayer(e.target.value)}/>
             </div>
             {gSport==='nba'?(
-              <FilterMenu title='Équipe' options={(galleryTeamList as string[]).map((n:string)=>({value:n,label:n==='all'?'Hall of Fame':n}))} current={gTeamCustom} onSelect={(v:string)=>{setGTeamCustom(v);if(mode==='locker'){if(v==='all'){setTeamApi(HOF_KEY);teamChosenRef.current=false;}else{setTeamApi(v);teamChosenRef.current=true;}setLockerStart(0);setFlippedSlug(null);}}}/>
+              <FilterMenu title={tr('Équipe')} options={(galleryTeamList as string[]).map((n:string)=>({value:n,label:n==='all'?'Hall of Fame':n}))} current={gTeamCustom} onSelect={(v:string)=>{setGTeamCustom(v);if(mode==='locker'){if(v==='all'){setTeamApi(HOF_KEY);teamChosenRef.current=false;}else{setTeamApi(v);teamChosenRef.current=true;}setLockerStart(0);setFlippedSlug(null);}}}/>
             ):(
               <FootTeamMenu countries={footCountries} teamsByCountry={teamsByCountry} country={gCountry} team={gTeamCustom} onPickCountry={(v:string)=>{setGCountry(v);setGTeamCustom('all');}} onPickTeam={(v:string)=>{if(v==='__HOF__'){setGTeamCustom('all');if(mode==='locker'){setTeamApi(HOF_KEY);setLockerStart(0);setFlippedSlug(null);teamChosenRef.current=false;}return;}setGTeamCustom(v);if(mode==='locker'&&v!=='all'){setTeamApi(v);setLockerStart(0);setFlippedSlug(null);teamChosenRef.current=true;}}}/>
             )}
-            <FilterMenu title='Saison' options={seasonOpts} current={fSeason} onSelect={setFSeason}/>
-            <FilterMenu title='Rareté' options={rarityOpts} current={fRarity} onSelect={setFRarity}/>
-            <FilterMenu title='Édition de la carte' options={specialOpts} current={fSpecial} onSelect={setFSpecial}/>
-            <FilterMenu title='Tri' options={mode==='locker'?[{value:'majeur',label:'L10 Max'},{value:'manual',label:'Manuel'},{value:'collection',label:'Alphabétique'}]:[{value:'default',label:'Défaut'},{value:'score',label:'L10'},{value:'beat',label:'%Beat L10'},{value:'record',label:'GW Record'},{value:'stars',label:'Étoiles'},{value:'rarity',label:'Rareté'},{value:'name',label:'Nom'}]} current={mode==='locker'?lockerSort:gSort} onSelect={(v:string)=>{if(mode==='locker'){setLockerSort(v as any);}else{setGSort(v as any);}}}/>
+            <FilterMenu title={tr('Saison')} options={seasonOpts} current={fSeason} onSelect={setFSeason}/>
+            <FilterMenu title={tr('Rareté')} options={rarityOpts} current={fRarity} onSelect={setFRarity}/>
+            <FilterMenu title={tr('Édition de la carte')} options={specialOpts} current={fSpecial} onSelect={setFSpecial}/>
+            <FilterMenu title={tr('Tri')} options={mode==='locker'?[{value:'majeur',label:'L10 Max'},{value:'manual',label:tr('Manuel')},{value:'collection',label:tr('Alphabétique')}]:[{value:'default',label:tr('Défaut')},{value:'score',label:'L10'},{value:'beat',label:'%Beat L10'},{value:'record',label:'GW Record'},{value:'stars',label:tr('Étoiles')},{value:'rarity',label:tr('Rareté')},{value:'name',label:tr('Nom')}]} current={mode==='locker'?lockerSort:gSort} onSelect={(v:string)=>{if(mode==='locker'){setLockerSort(v as any);}else{setGSort(v as any);}}}/>
             {(mode==='gallery'||lockerSort==='collection')&&(
-              <button onClick={()=>setGDir(d=>d==='desc'?'asc':'desc')} style={{width:'100%',boxSizing:'border-box' as const,padding:'0.3rem',marginTop:'0.45rem',background:'rgba(64,232,255,0.08)',border:'1px solid rgba(64,232,255,0.3)',borderRadius:'0.18rem',color:'#40e8ff',fontSize:'0.64rem',cursor:'pointer',letterSpacing:'0.08em',display:'flex',alignItems:'center',justifyContent:'center',gap:'0.4rem'}}>{gDir==='desc'?'↓ Décroissant':'↑ Croissant'}</button>
+              <button onClick={()=>setGDir(d=>d==='desc'?'asc':'desc')} style={{width:'100%',boxSizing:'border-box' as const,padding:'0.3rem',marginTop:'0.45rem',background:'rgba(64,232,255,0.08)',border:'1px solid rgba(64,232,255,0.3)',borderRadius:'0.18rem',color:'#40e8ff',fontSize:'0.64rem',cursor:'pointer',letterSpacing:'0.08em',display:'flex',alignItems:'center',justifyContent:'center',gap:'0.4rem'}}>{gDir==='desc'?'↓ Décroissant':tr('↑ Croissant')}</button>
             )}
             {mode==='locker'&&(
               <>
-              <button onClick={resetFilters} style={{width:'100%',boxSizing:'border-box' as const,padding:'0.3rem',background:'rgba(111,195,232,0.1)',border:'1px solid rgba(111,195,232,0.35)',borderRadius:'0.18rem',color:'#6fc3e8',fontSize:'0.64rem',cursor:'pointer',letterSpacing:'0.08em',marginTop:'0.5rem'}}>↺ Réinitialiser les filtres</button>
-              <button onClick={()=>handleSetDefault(teamApi)} style={{width:'100%',boxSizing:'border-box' as const,padding:'0.3rem',background:'rgba(212,175,55,0.12)',border:'1px solid rgba(212,175,55,0.35)',borderRadius:'0.18rem',color:'#e8c84a',fontSize:'0.64rem',cursor:'pointer',letterSpacing:'0.08em',marginTop:'0.3rem'}}>{defaultTeam===teamApi&&teamApi?'⭐ Par défaut : '+(teamApi==='__HOF__'?'Hall of Fame':teamApi):'⭐ Définir comme équipe par défaut'}</button>
+              <button onClick={resetFilters} style={{width:'100%',boxSizing:'border-box' as const,padding:'0.3rem',background:'rgba(111,195,232,0.1)',border:'1px solid rgba(111,195,232,0.35)',borderRadius:'0.18rem',color:'#6fc3e8',fontSize:'0.64rem',cursor:'pointer',letterSpacing:'0.08em',marginTop:'0.5rem'}}>{tr('↺ Réinitialiser les filtres')}</button>
+              <button onClick={()=>handleSetDefault(teamApi)} style={{width:'100%',boxSizing:'border-box' as const,padding:'0.3rem',background:'rgba(212,175,55,0.12)',border:'1px solid rgba(212,175,55,0.35)',borderRadius:'0.18rem',color:'#e8c84a',fontSize:'0.64rem',cursor:'pointer',letterSpacing:'0.08em',marginTop:'0.3rem'}}>{defaultTeam===teamApi&&teamApi?tr('⭐ Par défaut : ')+(teamApi==='__HOF__'?'Hall of Fame':teamApi):tr('⭐ Définir comme équipe par défaut')}</button>
               </>
             )}
           </div>
           </div>
-          <button onClick={()=>setFiltersOpen(false)} style={{marginTop:'0.8rem',width:'100%',padding:'0.8rem',background:'linear-gradient(160deg,#00b4d8,#0077b6)',border:'none',borderRadius:'0.5rem',color:'#fff',fontSize:'0.95rem',fontWeight:800,letterSpacing:'0.05em',cursor:'pointer',boxShadow:'0 0 18px rgba(64,232,255,0.4)'}}>Voir les résultats</button>
+          <button onClick={()=>setFiltersOpen(false)} style={{marginTop:'0.8rem',width:'100%',padding:'0.8rem',background:'linear-gradient(160deg,#00b4d8,#0077b6)',border:'none',borderRadius:'0.5rem',color:'#fff',fontSize:'0.95rem',fontWeight:800,letterSpacing:'0.05em',cursor:'pointer',boxShadow:'0 0 18px rgba(64,232,255,0.4)'}}>{tr('Voir les résultats')}</button>
         </div>
       )}
 
@@ -1078,7 +1086,7 @@ export default function Home() {
           <div onClick={(e)=>e.stopPropagation()} style={{maxWidth:'520px',margin:'0 auto',padding:'22px 16px 30px',display:'flex',flexDirection:'column' as const,alignItems:'center',gap:'18px'}}>
             <div style={{width:'min(62vw,250px)'}}><GalleryCard card={sharedCard} isFlipped={false} onFlip={()=>{}} glowScale={1}/></div>
             <div style={{width:'100%'}}><StatPanel key={sharedCard.slug} card={sharedCard} isClosing={sharedClosing} onClose={closeShared} placement='inline'/></div>
-            <button onClick={closeShared} style={{width:'100%',padding:'0.8rem',background:'linear-gradient(160deg,#00b4d8,#0077b6)',border:'none',borderRadius:'0.5rem',color:'#fff',fontSize:'0.8rem',fontWeight:800,letterSpacing:'0.12em',cursor:'pointer'}}>{urlSlugRef.current?'VOIR LA GALERIE COMPLÈTE':'FERMER'}</button>
+            <button onClick={closeShared} style={{width:'100%',padding:'0.8rem',background:'linear-gradient(160deg,#00b4d8,#0077b6)',border:'none',borderRadius:'0.5rem',color:'#fff',fontSize:'0.8rem',fontWeight:800,letterSpacing:'0.12em',cursor:'pointer'}}>{urlSlugRef.current?'VOIR LA GALERIE COMPLÈTE':tr('FERMER')}</button>
           </div>
         </div>
       )}
