@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
   // Inscriptions fermees tant que NEXT_PUBLIC_SIGNUP_OPEN n'est pas 'true' (protege aussi contre les appels directs a l'API)
   if (process.env.NEXT_PUBLIC_SIGNUP_OPEN !== 'true') return NextResponse.json({ error: 'Les inscriptions ne sont pas encore ouvertes.' }, { status: 403 });
   try {
-    const { pseudo, email, password, sorareSlug } = await request.json();
+    const { pseudo, email, password, sorareSlug, lang } = await request.json();
     if (!pseudo || typeof pseudo !== 'string' || pseudo.trim().length < 2) {
       return NextResponse.json({ error: 'pseudo_invalide' }, { status: 400 });
     }
@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
     const verifyUrl = `${SITE_URL}/api/auth/verify?token=${verifyToken}`;
 
     try {
-      await sendVerificationEmail(user.email, verifyUrl);
+      await sendVerificationEmail(user.email, verifyUrl, lang === 'en' ? 'en' : 'fr');
     } catch (emailErr) {
       // L'email n'est pas parti : on annule proprement la creation (compte + token de verif),
       // pour ne jamais laisser de compte fantome qui bloquerait l'adresse email.
