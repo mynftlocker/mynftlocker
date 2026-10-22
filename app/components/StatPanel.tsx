@@ -11,10 +11,10 @@ export const RARITY_GLOW: Record<string,string> = {
   unique:'0 0 24px 5px rgba(168,85,247,1), 0 0 50px 12px rgba(168,85,247,0.55)',
 };
 export const RARITY_COLOR: Record<string,string> = {
-  common:'#9ca3af',limited:'#eab308',rare:'#3b82f6',super_rare:'#ef4444',unique:'#a855f7',
+  common:'#9ca3af',limited:'#eab308',rare:'#ef4444',super_rare:'#3b82f6',unique:'#a855f7',
 };
 export const RARITY_FILL: Record<string,string> = {
-  common:'#a8a8b5',limited:'#b48a14',rare:'#1e4ba8',super_rare:'#a82a2a',unique:'#7e3fc4',
+  common:'#a8a8b5',limited:'#b48a14',rare:'#a82a2a',super_rare:'#1e4ba8',unique:'#7e3fc4',
 };
 export const isNBA=(c:any)=>c?.__typename==='NBACard';
 

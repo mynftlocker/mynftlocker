@@ -15,15 +15,15 @@ const LockerRoomScene = dynamic(() => import('./components/LockerRoom'), { ssr: 
 const RARITY_GLOW: Record<string,string> = {
   common:'0 0 16px 5px rgba(220,220,255,0.45)',
   limited:'0 0 22px 7px rgba(234,179,8,0.75)',
-  rare:'0 0 26px 8px rgba(59,130,246,0.85)',
-  super_rare:'0 0 30px 10px rgba(239,68,68,0.9)',
+  rare:'0 0 26px 8px rgba(239,68,68,0.9)',
+  super_rare:'0 0 30px 10px rgba(59,130,246,0.85)',
   unique:'0 0 36px 12px rgba(168,85,247,0.95)',
 };
 const RARITY_COLOR: Record<string,string> = {
-  common:'#9ca3af',limited:'#eab308',rare:'#3b82f6',super_rare:'#ef4444',unique:'#a855f7',
+  common:'#9ca3af',limited:'#eab308',rare:'#ef4444',super_rare:'#3b82f6',unique:'#a855f7',
 };
 const RARITY_FILL: Record<string,string> = {
-  common:'#a8a8b5',limited:'#b48a14',rare:'#1e4ba8',super_rare:'#a82a2a',unique:'#7e3fc4',
+  common:'#a8a8b5',limited:'#b48a14',rare:'#a82a2a',super_rare:'#1e4ba8',unique:'#7e3fc4',
 };
 const RARITY_ORDER: Record<string,number> = { unique:0, super_rare:1, rare:2, limited:3, common:4 };
 const HOF_KEY = '__HOF__';
