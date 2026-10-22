@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 // Champs demandes pour chaque carte (identiques pour la galerie et pour le lien direct vers une carte)
 const CARD_FIELDS=`
     __typename slug name rarityTyped pictureUrl
-    anyPlayer{slug lastName shirtNumber gameplayTierStars}
+    anyPlayer{slug lastName shirtNumber gameplayTierStars nextClassicFixtureProjectedScore gainOnProjection}
     anyTeam{name ...on Club{country{slug}}}
     ...on NBACard{
       seasonYear specialEdition power xp
@@ -26,7 +26,11 @@ const enrich=(n:any)=>{
   // GW Record = meilleur score de la carte sur une gameweek (Highest Score du dos de carte)
   const rs=n?.cardStats?.bestSo5Appearance?.score;
   const gwRecord=(rs!=null&&Number(rs)>0)?Number(rs):null;
-  return {...n,beatL10,beatGw,beatPct,gwRecord};
+  // Projection Sorare du prochain match + ecart (projection - minimum du palier d'etoiles actuel). NBA uniquement : null pour le foot.
+  const pj=n?.anyPlayer?.nextClassicFixtureProjectedScore, gn=n?.anyPlayer?.gainOnProjection;
+  const proj=(pj!=null&&isFinite(Number(pj)))?Number(pj):null;
+  const gain=(gn!=null&&isFinite(Number(gn)))?Number(gn):null;
+  return {...n,beatL10,beatGw,beatPct,gwRecord,proj,gain};
 };
 const sorareHeaders=()=>{
   const headers:Record<string,string>={'Content-Type':'application/json','Accept':'application/json'};

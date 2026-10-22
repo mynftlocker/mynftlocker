@@ -455,7 +455,7 @@ export default function Home() {
     setLoading(true);setError('');setFlippedSlug(null);setLockerStart(0);sportAutoSetRef.current=false;
     setManager(slug,slug); // signature de partage : pseudo Sorare une fois connu, slug en attendant
     // Cache localStorage (TTL 1h)
-    const CACHE_KEY='mnfl_v3_'+slug;// v3 : force le rechargement des cartes (nouveaux champs gwRecord/beatPct)
+    const CACHE_KEY='mnfl_v4_'+slug;// v4 : force le rechargement des cartes (nouveaux champs proj/gain)
     try{
       const cached=localStorage.getItem(CACHE_KEY);
       if(cached){const{c:cc,ts,m}=JSON.parse(cached);if(Date.now()-ts<3600000&&cc?.length>0){if(m)setManager(m,slug);setCards(cc);setLoading(false);return;}}
@@ -664,6 +664,8 @@ export default function Home() {
   const footCountries=useMemo(()=>{const s=new Set<string>();let hasNational=false;cards.filter((c:any)=>!isNBA(c)).forEach((c:any)=>{const co=c.anyTeam?.country?.slug;if(co)s.add(co);else if(c.anyTeam?.name)hasNational=true;});const arr=Array.from(s).sort();if(hasNational)arr.push('__NATIONAL__');return arr;},[cards]);
   const teamsByCountry=useMemo(()=>{const m:Record<string,Set<string>>={};cards.filter((c:any)=>!isNBA(c)).forEach((c:any)=>{const co=c.anyTeam?.country?.slug;const nm=c.anyTeam?.name;if(nm){const key=co||'__NATIONAL__';(m[key]=m[key]||new Set<string>()).add(nm);}});const out:Record<string,string[]>={};for(const k in m)out[k]=Array.from(m[k]).sort();return out;},[cards]);
   const galleryTeamList=useMemo(()=>{const ts=new Set<string>();cards.filter(c=>isNBA(c)).forEach(c=>{if(!c.anyTeam?.name)return;ts.add(c.anyTeam.name);});return['all',...Array.from(ts).sort()] as string[];},[cards]);
+  // Les tris Projection/Ecart n'existent que pour la NBA : retour au tri L10 si on passe au foot
+  useEffect(()=>{if(gSport!=='nba'&&(gSort==='proj'||gSort==='gain'||gSort==='projstar'))setGSort('score');},[gSport,gSort]);
   const filteredGallery=useMemo(()=>{let base=cards.filter((c:any)=>gSport==='nba'?isNBA(c):!isNBA(c));let r=applyFilters(base);if(gSport==='foot'&&gCountry!=='all'){if(gCountry==='__NATIONAL__')r=r.filter((c:any)=>!c.anyTeam?.country?.slug&&c.anyTeam?.name);else r=r.filter((c:any)=>c.anyTeam?.country?.slug===gCountry);}if(gTeamCustom!=='all')r=r.filter((c:any)=>(c.anyTeam?.name||'')===gTeamCustom);// tri de base (toujours calcule en "desc" logique, le sens final est applique ensuite via gDir)
     let sorted:any[];
     if(gSort==='rarity')sorted=[...r].sort((a:any,b:any)=>(RARITY_ORDER[a.rarityTyped]??9)-(RARITY_ORDER[b.rarityTyped]??9));
@@ -680,6 +682,13 @@ export default function Home() {
       const MIN_GW=10;
       const rk=(c:any)=>{const gw=c.beatGw==null?0:Number(c.beatGw);return gw>=MIN_GW?2:(gw>0?1:0);};// 2=fiable, 1=petit echantillon, 0=jamais alignee/pas de data
       sorted=[...r].sort((a:any,b:any)=>{const ta=rk(a),tb=rk(b);if(tb!==ta)return tb-ta;const pa=a.beatPct==null?-1:a.beatPct,pb=b.beatPct==null?-1:b.beatPct;if(pb!==pa)return pb-pa;return (Number(b.beatGw)||0)-(Number(a.beatGw)||0);});
+    }
+    else if(gSort==='proj'||gSort==='gain'||gSort==='projstar'){
+      // Projection / Ecart / Projection par etoile (NBA uniquement). Les cartes sans valeur restent TOUJOURS en bas, quel que soit le sens.
+      const val=(c:any):number|null=>{if(gSort==='proj')return c.proj??null;if(gSort==='gain')return c.gain??null;const st=Number(c.anyPlayer?.gameplayTierStars);return(c.proj!=null&&st>0)?c.proj/st:null;};
+      const has=[...r].filter((c:any)=>val(c)!=null).sort((a:any,b:any)=>(val(b) as number)-(val(a) as number));
+      const none=r.filter((c:any)=>val(c)==null);
+      return [...(gDir==='asc'?has.reverse():has),...none];
     }
     else if(gSort==='score')sorted=[...r].sort((a:any,b:any)=>parseFloat(String(b.averageScore||0))-parseFloat(String(a.averageScore||0)));
     else sorted=[...r];// Defaut = ordre de la collection (acquisition Sorare), distinct du tri L10
@@ -793,7 +802,7 @@ export default function Home() {
             <FilterMenu title={tr('Saison')} options={seasonOpts} current={fSeason} onSelect={setFSeason}/>
             <FilterMenu title={tr('Rareté')} options={rarityOpts} current={fRarity} onSelect={setFRarity}/>
             <FilterMenu title={tr('Édition de la carte')} options={specialOpts} current={fSpecial} onSelect={setFSpecial}/>
-            <FilterMenu title={tr('Tri')} options={mode==='locker'?[{value:'majeur',label:'L10 Max'},{value:'manual',label:tr('Manuel')},{value:'collection',label:tr('Alphabétique')}]:[{value:'default',label:tr('Défaut')},{value:'score',label:'L10'},{value:'beat',label:'%Beat L10'},{value:'record',label:'GW Record'},{value:'stars',label:tr('Étoiles')},{value:'rarity',label:tr('Rareté')},{value:'name',label:tr('Nom')}]} current={mode==='locker'?lockerSort:gSort} onSelect={(v:string)=>{if(mode==='locker'){setLockerSort(v as any);}else{setGSort(v as any);}}}/>
+            <FilterMenu title={tr('Tri')} options={mode==='locker'?[{value:'majeur',label:'L10 Max'},{value:'manual',label:tr('Manuel')},{value:'collection',label:tr('Alphabétique')}]:[{value:'default',label:tr('Défaut')},{value:'score',label:'L10'},{value:'beat',label:'%Beat L10'},{value:'record',label:'GW Record'},{value:'stars',label:tr('Étoiles')},{value:'rarity',label:tr('Rareté')},...(gSport==='nba'?[{value:'proj',label:tr('Projection')},{value:'gain',label:tr('Écart')},{value:'projstar',label:tr('Proj. / ★')}]:[]),{value:'name',label:tr('Nom')}]} current={mode==='locker'?lockerSort:gSort} onSelect={(v:string)=>{if(mode==='locker'){setLockerSort(v as any);}else{setGSort(v as any);}}}/>
             {(mode==='gallery'||lockerSort==='collection')&&(
               <button onClick={()=>setGDir(d=>d==='desc'?'asc':'desc')} style={{width:'100%',boxSizing:'border-box' as const,padding:'0.3rem',marginTop:'0.45rem',background:'rgba(64,232,255,0.08)',border:'1px solid rgba(64,232,255,0.3)',borderRadius:'0.18rem',color:'#40e8ff',fontSize:'0.64rem',cursor:'pointer',letterSpacing:'0.08em',display:'flex',alignItems:'center',justifyContent:'center',gap:'0.4rem'}}>{gDir==='desc'?tr('↓ Décroissant'):tr('↑ Croissant')}</button>
             )}
@@ -947,7 +956,7 @@ export default function Home() {
     
       {(mode==='gallery'||galleryWarm)&&(
             <div style={{...galleryBg,minHeight:'100vh',display:mode==='gallery'?'block':'none'}}>
-              <GalleryView cards={filteredGallery}/>
+              <GalleryView cards={filteredGallery} badgeSort={mode==='gallery'?gSort:undefined}/>
             </div>
           )}
           </div>
@@ -1066,7 +1075,7 @@ export default function Home() {
             <FilterMenu title={tr('Saison')} options={seasonOpts} current={fSeason} onSelect={setFSeason}/>
             <FilterMenu title={tr('Rareté')} options={rarityOpts} current={fRarity} onSelect={setFRarity}/>
             <FilterMenu title={tr('Édition de la carte')} options={specialOpts} current={fSpecial} onSelect={setFSpecial}/>
-            <FilterMenu title={tr('Tri')} options={mode==='locker'?[{value:'majeur',label:'L10 Max'},{value:'manual',label:tr('Manuel')},{value:'collection',label:tr('Alphabétique')}]:[{value:'default',label:tr('Défaut')},{value:'score',label:'L10'},{value:'beat',label:'%Beat L10'},{value:'record',label:'GW Record'},{value:'stars',label:tr('Étoiles')},{value:'rarity',label:tr('Rareté')},{value:'name',label:tr('Nom')}]} current={mode==='locker'?lockerSort:gSort} onSelect={(v:string)=>{if(mode==='locker'){setLockerSort(v as any);}else{setGSort(v as any);}}}/>
+            <FilterMenu title={tr('Tri')} options={mode==='locker'?[{value:'majeur',label:'L10 Max'},{value:'manual',label:tr('Manuel')},{value:'collection',label:tr('Alphabétique')}]:[{value:'default',label:tr('Défaut')},{value:'score',label:'L10'},{value:'beat',label:'%Beat L10'},{value:'record',label:'GW Record'},{value:'stars',label:tr('Étoiles')},{value:'rarity',label:tr('Rareté')},...(gSport==='nba'?[{value:'proj',label:tr('Projection')},{value:'gain',label:tr('Écart')},{value:'projstar',label:tr('Proj. / ★')}]:[]),{value:'name',label:tr('Nom')}]} current={mode==='locker'?lockerSort:gSort} onSelect={(v:string)=>{if(mode==='locker'){setLockerSort(v as any);}else{setGSort(v as any);}}}/>
             {(mode==='gallery'||lockerSort==='collection')&&(
               <button onClick={()=>setGDir(d=>d==='desc'?'asc':'desc')} style={{width:'100%',boxSizing:'border-box' as const,padding:'0.3rem',marginTop:'0.45rem',background:'rgba(64,232,255,0.08)',border:'1px solid rgba(64,232,255,0.3)',borderRadius:'0.18rem',color:'#40e8ff',fontSize:'0.64rem',cursor:'pointer',letterSpacing:'0.08em',display:'flex',alignItems:'center',justifyContent:'center',gap:'0.4rem'}}>{gDir==='desc'?tr('↓ Décroissant'):tr('↑ Croissant')}</button>
             )}

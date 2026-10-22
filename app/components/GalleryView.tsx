@@ -149,7 +149,7 @@ async function buildSlabImage(el:HTMLElement,card:any,fill:string,rc:string):Pro
   const fname='mynftlocker-'+String(card.slug||'carte').slice(0,60)+'.png';
   return {blob,file:new File([blob],fname,{type:'image/png'}),fname};
 }
-export const GalleryCard=memo(({card,isFlipped,onFlip,glowScale}:any)=>{
+export const GalleryCard=memo(({card,isFlipped,onFlip,glowScale,badgeText,badgeTone}:any)=>{
   const [hover,setHover]=useState(false);
   const glowRaw=RARITY_GLOW[card.rarityTyped]||RARITY_GLOW.common;
   const glow=scaleGlow(glowRaw,glowScale??1);
@@ -223,11 +223,19 @@ export const GalleryCard=memo(({card,isFlipped,onFlip,glowScale}:any)=>{
         </div>
         <CardBack card={card} rc={rc} mobile={true}/>
       </div>
+      {badgeText&&(<div style={{textAlign:'center' as const,marginTop:'3cqw',fontFamily:'ui-monospace,Menlo,monospace',fontSize:'5cqw',fontWeight:700,letterSpacing:'0.08em',color:badgeTone==='neg'?'#ff6b6b':(badgeTone==='pos'?'#35e6ff':'#f5d76e'),whiteSpace:'nowrap' as const}}>{badgeText}</div>)}
       {isFlipped&&(<svg style={{position:'absolute',top:0,left:0,width:'100%',height:'100%',zIndex:22,pointerEvents:'none',overflow:'visible'}}><rect x='0' y='0' width='100%' height='100%' rx='8' pathLength='1000' fill='none' stroke='#40e8ff' strokeWidth='2.5' style={{filter:'drop-shadow(0 0 9px rgba(64,232,255,0.9))',strokeDasharray:'1000',strokeDashoffset:'1000',animation:'mnflCardTrace 1.4s ease-in-out 0.5s both'}}/></svg>)}
     </div>
   );
 });
 GalleryCard.displayName='GalleryCard';
+// Pastille sous la carte, affichee SEULEMENT quand le tri Projection / Ecart / Proj par etoile est actif (NBA). Rien sur la face de la carte -> l'image de partage ne change pas.
+const sortBadge=(c:any,k?:string):{text:string;tone:string}|undefined=>{
+  if(k==='proj'&&c.proj!=null)return{text:tr('PROJ')+' '+Number(c.proj).toFixed(1),tone:'gold'};
+  if(k==='gain'&&c.gain!=null){const g=Number(c.gain);return{text:tr('ÉCART')+' '+(g>0?'+':'')+g.toFixed(1),tone:g<0?'neg':'pos'};}
+  if(k==='projstar'&&c.proj!=null){const st=Number(c.anyPlayer?.gameplayTierStars);if(st>0)return{text:tr('PROJ/★')+' '+(Number(c.proj)/st).toFixed(1),tone:'gold'};}
+  return undefined;
+};
 
 // ===== PARTAGE depuis le vestiaire : meme image que la galerie. Le slab est rendu hors ecran (meme composant GalleryCard) puis exporte. =====
 export async function exportCardImage(card:any):Promise<{blob:Blob,file:File,fname:string}>{
@@ -254,7 +262,7 @@ export async function exportCardImage(card:any):Promise<{blob:Blob,file:File,fna
     return await buildSlabImage(slab,card,fill,rc);
   } finally { root.unmount(); holder.remove(); }
 }
-export default function GalleryView({cards}:{cards:any[]}){
+export default function GalleryView({cards,badgeSort}:{cards:any[];badgeSort?:string}){
   useLang();
   const [activeSlug,setActiveSlug]=useState<string|null>(null);
   const [galleryCols,setGalleryCols]=useState(4);
@@ -321,7 +329,7 @@ export default function GalleryView({cards}:{cards:any[]}){
           </div>
         </div>
         <div ref={gridRef} style={{display:'grid',gridTemplateColumns:'repeat('+galleryCols+',1fr)',gap:gapFor(galleryCols),touchAction:'pan-y'}}>
-          {cards.slice(0,shown).map(c=>(<GalleryCard key={c.slug} card={c} isFlipped={activeSlug===c.slug} onFlip={handleFlip} glowScale={glowScaleFor(galleryCols)}/>))}
+          {cards.slice(0,shown).map(c=>{const b=sortBadge(c,badgeSort);return(<GalleryCard key={c.slug} card={c} isFlipped={activeSlug===c.slug} onFlip={handleFlip} glowScale={glowScaleFor(galleryCols)} badgeText={b?.text} badgeTone={b?.tone}/>);})}
         </div>
         {shown<cards.length&&(<div ref={sentinelRef} style={{height:'1px'}}/>)}
         </>
