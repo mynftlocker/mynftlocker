@@ -4,7 +4,7 @@ import { useLang, initLang, LangSwitch } from '../i18n';
 
 // Conditions generales d'utilisation + mentions legales + confidentialite.
 // Pour afficher la section "Editeur", renseigner EDITOR.name (les autres champs vides sont simplement omis).
-const EDITOR={ name:'', status:'', address:'', publisher:'', email:'mynftlocker@gmail.com', x:'@myNFTlocker' };
+const EDITOR={ name:'', status:'', address:'', publisher:'', email:'contact@mynftlocker.com', x:'@myNFTlocker' };
 const UPDATED='27/10/2026';
 
 type Sec={h:string;p:string[]};

@@ -131,7 +131,7 @@ export default function AccountSection({section,user,onLogin,onDeleted}:{section
     <p style={h2}>{tr('Nous contacter')}</p>
     <div style={{display:'flex',gap:'0.6rem',flexWrap:'wrap'}}>
       <a href='https://x.com/myNFTlocker' target='_blank' rel='noopener noreferrer' style={{...btn(),textDecoration:'none',display:'inline-block'}}>{tr('Nous suivre sur X')}</a>
-      <a href='mailto:mynftlocker@gmail.com' style={{...btn(),textDecoration:'none',display:'inline-block'}}>{tr('Nous écrire par e-mail')}</a>
+      <a href='mailto:contact@mynftlocker.com' style={{...btn(),textDecoration:'none',display:'inline-block'}}>{tr('Nous écrire par e-mail')}</a>
     </div>
   </div>);
 }
