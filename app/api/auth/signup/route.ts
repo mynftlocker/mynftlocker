@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { redis } from '../../../../lib/redis';
 import { sendVerificationEmail } from '../../../../lib/email';
+import { checkSorareSlug } from '../../../../lib/sorareUser';
 
 const VERIFY_HOURS = 24;
 const SITE_URL = 'https://mynftlocker.com';
@@ -19,15 +20,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'email_invalide' }, { status: 400 });
     }
     const pwdOk = typeof password === 'string'
-      && password.length >= 10
-      && /[A-Za-z]/.test(password)
-      && /[0-9]/.test(password);
+      && password.length >= 8
+      && /[A-Z]/.test(password)
+      && /[0-9]/.test(password)
+      && /[^A-Za-z0-9]/.test(password);
     if (!pwdOk) {
       return NextResponse.json({ error: 'mot_de_passe_invalide' }, { status: 400 });
     }
     if (!sorareSlug || typeof sorareSlug !== 'string' || sorareSlug.trim().length < 2) {
       return NextResponse.json({ error: 'slug_requis' }, { status: 400 });
     }
+    // Le slug Sorare doit exister (verifie chez Sorare) : evite un compte lie a une faute de frappe. Si Sorare est injoignable, on ne bloque pas.
+    const slugCheck = await checkSorareSlug(sorareSlug.trim().toLowerCase());
+    if (slugCheck.status === 'missing') return NextResponse.json({ error: 'slug_introuvable' }, { status: 400 });
     const emailKey = 'user:' + email.toLowerCase().trim();
     const existing = await redis.get(emailKey);
     if (existing) {
