@@ -20,7 +20,8 @@ export async function POST(request: NextRequest) {
     }
 
     const user = typeof raw === 'string' ? JSON.parse(raw) : raw;
-    const match = await bcrypt.compare(password, user.passwordHash);
+    // Compte cree via Google : pas de mot de passe, connexion par le bouton Google
+    const match = user.passwordHash ? await bcrypt.compare(password, user.passwordHash) : false;
     if (!match) {
       return NextResponse.json({ error: 'identifiants_invalides' }, { status: 401 });
     }

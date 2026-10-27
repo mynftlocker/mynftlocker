@@ -572,11 +572,12 @@ export default function Home() {
   const [slugEditing,setSlugEditing]=useState(false);
   const [slugDraft,setSlugDraft]=useState('');
   const [slugBusy,setSlugBusy]=useState(false);
+  const [needSlug,setNeedSlug]=useState(false); // compte cree via Google : il manque encore le slug Sorare
   const [slugMsg,setSlugMsg]=useState<{ok:boolean;text:string}|null>(null);
   const currentUserRef=useRef<typeof currentUser>(null);
   currentUserRef.current=currentUser;
   const slugCheckSignup=useSlugCheck(authOpen&&authMode==='signup'?authSlugField:'');
-  const slugCheckDraft=useSlugCheck(slugProblem||slugEditing?slugDraft:'');
+  const slugCheckDraft=useSlugCheck(slugProblem||slugEditing||needSlug?slugDraft:'');
   const [authShowPassword,setAuthShowPassword]=useState(false);
   const [authVerifyPending,setAuthVerifyPending]=useState(false);
   const [authError,setAuthError]=useState('');
@@ -600,7 +601,8 @@ export default function Home() {
     }catch(e){}
   },[]);
   useEffect(()=>{
-    fetch('/api/auth/me').then(r=>r.json()).then(d=>{ if(d.loggedIn){ setCurrentUser({pseudo:d.pseudo,email:d.email,sorareSlug:d.sorareSlug}); if(d.sorareSlug&&!urlSlugRef.current){ setSlug(d.sorareSlug); setJustLoggedIn(true); } } }).catch(()=>{});
+    try{ const g=new URLSearchParams(window.location.search).get('google'); if(g==='error'||g==='closed'){ setAuthMode('login'); setAuthError(g==='closed'?'Les inscriptions ne sont pas encore ouvertes.':'Connexion Google impossible, réessaie.'); setAuthOpen(true); } }catch(e){}
+    fetch('/api/auth/me').then(r=>r.json()).then(d=>{ if(d.loggedIn){ setCurrentUser({pseudo:d.pseudo,email:d.email,sorareSlug:d.sorareSlug}); if(!d.sorareSlug){ setNeedSlug(true); setSlugDraft(''); } if(d.sorareSlug&&!urlSlugRef.current){ setSlug(d.sorareSlug); setJustLoggedIn(true); } } }).catch(()=>{});
   },[]);
   // ===== PREFERENCES DU COMPTE : recuperees a la connexion (le compte l'emporte), puis recopiees dans le compte des qu'elles changent =====
   slugNowRef.current=slug;
@@ -841,7 +843,7 @@ export default function Home() {
       if(r.ok&&d.ok){
         setCurrentUser(u=>u?{...u,sorareSlug:d.slug}:u);
         setSlugEditing(false);
-        if(slugProblem){ setSlugProblem(null); openManager(d.slug); } // compte bloque : on ouvre directement la galerie corrigee
+        if(slugProblem||needSlug){ setSlugProblem(null); setNeedSlug(false); openManager(d.slug); } // compte bloque : on ouvre directement la galerie corrigee
         else setSlugMsg({ok:true,text:tr('Slug enregistré.')});
       }else if(d.error==='slug_introuvable')setSlugMsg({ok:false,text:tr('Aucun manager Sorare avec ce slug. Vérifie l’orthographe.')});
       else setSlugMsg({ok:false,text:tr('Impossible de vérifier le slug, réessaie dans un instant.')});
@@ -1093,6 +1095,20 @@ export default function Home() {
             <div style={{position:'fixed',bottom:'1rem',left:'50%',transform:'translateX(-50%)',zIndex:2,display:'flex',gap:'2.5rem',alignItems:'center'}}><a href='https://sorare.com' target='_blank' rel='noreferrer' style={{color:'rgba(255,255,255,0.2)',fontSize:'0.6rem',letterSpacing:'0.14em',textTransform:'uppercase',textDecoration:'none',fontFamily:'Courier New,monospace',transition:'color 0.2s',pointerEvents:'auto'}} onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.color='rgba(64,232,255,0.6)';}} onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.color='rgba(255,255,255,0.2)';}}>SORARE</a><span style={{color:'rgba(255,255,255,0.1)',fontSize:'0.5rem'}}>|</span><a href='/cgu' target='_blank' rel='noopener noreferrer' style={{color:'rgba(255,255,255,0.15)',fontSize:'0.6rem',letterSpacing:'0.14em',textTransform:'uppercase',textDecoration:'none',fontFamily:'Courier New,monospace',pointerEvents:'auto',transition:'color 0.2s'}} onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.color='rgba(64,232,255,0.6)';}} onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.color='rgba(255,255,255,0.15)';}}>{tr('CGU')}</a><span style={{color:'rgba(255,255,255,0.1)',fontSize:'0.5rem'}}>|</span><LangSwitch/></div>
           </div>
         )}
+        {needSlug&&!slugProblem&&cards.length===0&&!loading&&(
+          <div style={{position:'fixed',inset:0,zIndex:150,display:'flex',alignItems:'center',justifyContent:'center',padding:'2rem 1.2rem',boxSizing:'border-box' as const,overflow:'auto'}}>
+            <StarCanvas phase={0} burst={false}/>
+            <div style={{position:'relative',zIndex:1,width:'100%',maxWidth:'440px',textAlign:'center' as const,padding:'2rem 1.6rem',background:'rgba(4,10,22,0.72)',backdropFilter:'blur(6px)',border:'1px solid rgba(64,232,255,0.35)',borderRadius:'0.5rem'}}>
+              <p style={{margin:'0 0 0.8rem',fontSize:'0.85rem',fontWeight:800,letterSpacing:'0.14em',textTransform:'uppercase' as const,color:'#40e8ff'}}>{tr('Bienvenue sur myNFTlocker !')}</p>
+              <p style={{margin:'0 0 1.1rem',fontSize:'0.8rem',lineHeight:1.6,color:'#cfe4fb'}}>{tr('Dernière étape : indique ton slug Sorare (ton pseudo Sorare, en minuscules). Ta galerie s’ouvre aussitôt.')}</p>
+              <input value={slugDraft} autoFocus autoCapitalize='none' autoCorrect='off' spellCheck={false} onChange={e=>{setSlugDraft(toSlug(e.target.value));setSlugMsg(null);}} onKeyDown={e=>e.key==='Enter'&&saveSlug()} placeholder={tr('ton-slug-sorare')} style={{width:'100%',boxSizing:'border-box' as const,background:'rgba(255,255,255,0.05)',border:'1px solid rgba(64,232,255,0.4)',color:'#eaf2ff',padding:'0.55rem 0.7rem',fontSize:'0.9rem',outline:'none',marginBottom:'0.6rem',textAlign:'center' as const}}/>
+              <SlugHint st={slugCheckDraft}/>
+              {slugMsg&&<p style={{margin:'0 0 0.6rem',fontSize:'0.7rem',color:slugMsg.ok?'#7ee0a0':'#ff8a7a'}}>{slugMsg.text}</p>}
+              <button onClick={saveSlug} disabled={slugBusy||slugCheckDraft.s!=='ok'} style={{background:'rgba(64,232,255,0.12)',border:'1px solid rgba(64,232,255,0.5)',color:'#40e8ff',padding:'0.6rem 1.6rem',fontSize:'0.74rem',fontWeight:700,letterSpacing:'0.12em',textTransform:'uppercase' as const,cursor:slugCheckDraft.s==='ok'?'pointer':'not-allowed',opacity:slugCheckDraft.s==='ok'&&!slugBusy?1:0.45}}>{slugBusy?'...':tr('Valider et ouvrir')}</button>
+              <p style={{margin:'0.9rem 0 0',fontSize:'0.66rem',color:'rgba(207,228,251,0.6)'}}><a href='https://sorare.com/fr/settings/account' target='_blank' rel='noopener noreferrer' style={{color:'#40e8ff'}}>{tr('Retrouve-le sur Sorare')}</a> · <span onClick={()=>setNeedSlug(false)} style={{cursor:'pointer',textDecoration:'underline'}}>{tr('Plus tard')}</span></p>
+            </div>
+          </div>
+        )}
         {slugProblem&&cards.length===0&&!loading&&(
           <div className='mnfl-slugfix' style={{position:'fixed',top:0,right:0,bottom:0,left:'220px',zIndex:50,display:'flex',alignItems:'center',justifyContent:'center',padding:'2rem 1.2rem',boxSizing:'border-box' as const,clipPath:'inset(0)',overflow:'auto'}}>
             <style>{`@media(max-width:768px){.mnfl-slugfix{left:0!important;bottom:60px!important}}`}</style>
@@ -1155,6 +1171,13 @@ export default function Home() {
             {authVerifyPending&&<p style={{color:'#7dd3fc',fontSize:'0.68rem',marginBottom:'0.7rem',lineHeight:1.5}}>{tr('Compte créé ! Vérifie ta boîte mail (et les spams) pour confirmer ton adresse avant de te connecter.')}</p>}
             <button type='submit' disabled={authLoading||authVerifyPending||(authMode==='signup'&&(slugCheckSignup.s==='missing'||slugCheckSignup.s==='checking'))} style={{width:'100%',background:'rgba(64,232,255,0.12)',border:'1px solid rgba(64,232,255,0.5)',color:'#40e8ff',padding:'0.55rem',fontSize:'0.72rem',fontWeight:700,letterSpacing:'0.15em',textTransform:'uppercase',cursor:authLoading?'not-allowed':'pointer',fontFamily:'Courier New,monospace',opacity:authLoading?0.5:1}}>{authLoading?'...':(authMode==='signup'?tr("S'inscrire"):tr('Se connecter'))}</button>
             </form>
+            {(SIGNUP_OPEN||authMode==='login')&&(<>
+              <div style={{display:'flex',alignItems:'center',gap:'0.6rem',margin:'0.9rem 0 0.7rem',color:'rgba(207,228,251,0.4)',fontSize:'0.6rem'}}><span style={{flex:1,height:'1px',background:'rgba(255,255,255,0.12)'}}/>{tr('ou')}<span style={{flex:1,height:'1px',background:'rgba(255,255,255,0.12)'}}/></div>
+              <a href='/api/auth/google/start' style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'0.6rem',width:'100%',boxSizing:'border-box' as const,background:'#fff',color:'#1f1f1f',padding:'0.55rem',fontSize:'0.74rem',fontWeight:600,textDecoration:'none',borderRadius:'0.2rem'}}>
+                <svg width='16' height='16' viewBox='0 0 48 48'><path fill='#EA4335' d='M24 9.5c3.5 0 6.6 1.2 9.1 3.5l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.4 13.6 17.7 9.5 24 9.5z'/><path fill='#4285F4' d='M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.7 6c4.5-4.2 6.9-10.3 6.9-17.7z'/><path fill='#FBBC05' d='M10.5 28.7c-.5-1.4-.8-3-.8-4.7s.3-3.200.8-4.700l-7.900-6.100C.9 16.400 0 20.100 0 24s.9 7.600 2.600 10.800l7.900-6.100z'/><path fill='#34A853' d='M24 48c6.500 0 11.900-2.100 15.900-5.800l-7.700-6c-2.200 1.500-4.900 2.300-8.200 2.300-6.300 0-11.600-4.100-13.500-9.800l-7.900 6.100C6.500 42.600 14.600 48 24 48z'/></svg>
+                {tr('Continuer avec Google')}
+              </a>
+            </>)}
             {(SIGNUP_OPEN||authMode==='signup')&&(
             <p style={{textAlign:'center',marginTop:'0.8rem',fontSize:'0.66rem',color:'rgba(207,228,251,0.6)'}}>
               {authMode==='signup'?'Deja un compte ? ':tr('Pas encore de compte ? ')}

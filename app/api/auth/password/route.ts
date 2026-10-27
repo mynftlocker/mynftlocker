@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
 
     const { current, next } = await request.json();
     if (typeof current !== 'string' || typeof next !== 'string') return NextResponse.json({ error: 'requete_invalide' }, { status: 400 });
-    if (!(await bcrypt.compare(current, user.passwordHash))) return NextResponse.json({ error: 'mot_de_passe_actuel_invalide' }, { status: 403 });
+    if (!user.passwordHash || !(await bcrypt.compare(current, user.passwordHash))) return NextResponse.json({ error: 'mot_de_passe_actuel_invalide' }, { status: 403 });
     const pwdOk = next.length >= 10 && /[A-Za-z]/.test(next) && /[0-9]/.test(next);
     if (!pwdOk) return NextResponse.json({ error: 'mot_de_passe_invalide' }, { status: 400 });
 
