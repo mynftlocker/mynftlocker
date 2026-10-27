@@ -3,7 +3,7 @@ import { memo, useState, useEffect, useRef } from 'react';
 import { getManager, cardLink } from '../lib-share';
 import { t as tr, useLang } from '../i18n';
 import { StatPanel, CardBack, RARITY_GLOW, RARITY_COLOR, RARITY_FILL, parseCard, isNBA, FootStars } from './StatPanel';
-import { activeInjury, losesStar } from '../lib/gameplay';
+import { activeInjury } from '../lib/gameplay';
 
 // Embleme rond myNFTlocker dessine (repli si /logo-rond.png absent) : anneau or + etoile centrale facon crest.
 const Emblem=({w}:{w:string})=>(
@@ -150,7 +150,7 @@ async function buildSlabImage(el:HTMLElement,card:any,fill:string,rc:string):Pro
   const fname='mynftlocker-'+String(card.slug||'carte').slice(0,60)+'.png';
   return {blob,file:new File([blob],fname,{type:'image/png'}),fname};
 }
-export const GalleryCard=memo(({card,isFlipped,onFlip,glowScale,badgeText,badgeTone,badgePill}:any)=>{
+export const GalleryCard=memo(({card,isFlipped,onFlip,glowScale,badgeText,badgeTone,badgePill,badgeStar}:any)=>{
   const [hover,setHover]=useState(false);
   const glowRaw=RARITY_GLOW[card.rarityTyped]||RARITY_GLOW.common;
   const glow=scaleGlow(glowRaw,glowScale??1);
@@ -224,8 +224,11 @@ export const GalleryCard=memo(({card,isFlipped,onFlip,glowScale,badgeText,badgeT
         </div>
         <CardBack card={card} rc={rc} mobile={true}/>
       </div>
-      {badgeText&&(<div style={{textAlign:'center' as const,marginTop:'3cqw',fontFamily:'ui-monospace,Menlo,monospace',fontSize:'5cqw',fontWeight:700,letterSpacing:'0.08em',color:badgeTone==='neg'?'#ff6b6b':(badgeTone==='pos'?'#35e6ff':(badgeTone==='warn'?'#ffa94d':'#f5d76e')),whiteSpace:'nowrap' as const}}>{badgeText}</div>)}
-      {badgePill&&(<div style={{display:'flex',justifyContent:'center',marginTop:badgeText?'1.5cqw':'3cqw'}}><span style={{display:'inline-block',padding:'0.6cqw 3.2cqw',borderRadius:'100px',fontSize:'4.4cqw',lineHeight:1.2,fontWeight:700,letterSpacing:'0.04em',background:badgePill==='GTD'?'#ffd914':'#ff2828',color:badgePill==='GTD'?'#0e0e0e':'#ffffff'}}>{badgePill}</span></div>)}
+      {(badgeText||badgePill||badgeStar)&&(<div style={{display:'flex',flexWrap:'nowrap' as const,alignItems:'center',justifyContent:'center',gap:'2.2cqw',marginTop:'3cqw',whiteSpace:'nowrap' as const}}>
+        {badgeText&&(<span style={{fontFamily:'ui-monospace,Menlo,monospace',fontSize:'6.5cqw',fontWeight:700,letterSpacing:'0.06em',color:badgeTone==='neg'?'#ff6b6b':(badgeTone==='pos'?'#35e6ff':'#f5d76e')}}>{badgeText}</span>)}
+        {badgeStar&&(<span style={{fontSize:'9cqw',fontWeight:800,lineHeight:1,color:String(badgeStar).startsWith('▼')?'#ff6b6b':'#35e6ff'}}>{badgeStar}</span>)}
+        {badgePill&&(<span style={{display:'inline-block',padding:'1.1cqw 4.2cqw',borderRadius:'100px',fontSize:'8cqw',lineHeight:1.15,fontWeight:700,letterSpacing:'0.03em',background:badgePill==='GTD'?'#ffd914':'#ff2828',color:badgePill==='GTD'?'#0e0e0e':'#ffffff'}}>{badgePill}</span>)}
+      </div>)}
       {isFlipped&&(<svg style={{position:'absolute',top:0,left:0,width:'100%',height:'100%',zIndex:22,pointerEvents:'none',overflow:'visible'}}><rect x='0' y='0' width='100%' height='100%' rx='8' pathLength='1000' fill='none' stroke='#40e8ff' strokeWidth='2.5' style={{filter:'drop-shadow(0 0 9px rgba(64,232,255,0.9))',strokeDasharray:'1000',strokeDashoffset:'1000',animation:'mnflCardTrace 1.4s ease-in-out 0.5s both'}}/></svg>)}
     </div>
   );
@@ -239,17 +242,22 @@ const sortBadge=(c:any,k?:string):{text:string;tone:string}|undefined=>{
   return undefined;
 };
 // Mode Gameplay : drapeaux sous la carte (blessure/disponibilite + "va perdre une etoile"), ajoutes a la pastille de tri. Rien sur la face de la carte.
-const gameplayBadge=(c:any,k:string|undefined,on?:boolean):{text:string;tone:string;pill?:string}|undefined=>{
+const gameplayBadge=(c:any,k:string|undefined,on?:boolean):{text:string;tone:string;pill?:string;star?:string}|undefined=>{
   const base=sortBadge(c,k);
   if(!on)return base;
-  const parts:string[]=base?[base.text]:[];
-  let tone=base?.tone||'gold';
   // Pastille de statut, codes et couleurs de Sorare : GTD (jaune), OUT / OFS (rouge)
   const inj=activeInjury(c);
   const st=inj?.status?String(inj.status).toUpperCase():'';
   const pill=(st==='GTD'||st==='OUT'||st==='OFS')?st:undefined;
-  if(losesStar(c)){parts.push('▼★');tone='neg';}
-  return (parts.length||pill)?{text:parts.join(' · '),tone,pill}:undefined;
+  // Etoile : ecart projection - minimum du palier. Chaque demi-etoile = 5 points ; sous le palier = perte, 5 points ou plus au-dessus = gain.
+  let star:string|undefined;
+  if(c?.gain!=null&&isFinite(Number(c.gain))){
+    const g=Number(c.gain);
+    const fmt=(n:number)=>Number.isInteger(n)?String(n):n.toFixed(1);
+    if(g<0)star='▼ −'+fmt(Math.ceil(-g/5)*0.5)+'★';
+    else if(g>=5)star='▲ +'+fmt(Math.floor(g/5)*0.5)+'★';
+  }
+  return (base||pill||star)?{text:base?.text||'',tone:base?.tone||'gold',pill,star}:undefined;
 };
 
 // ===== PARTAGE depuis le vestiaire : meme image que la galerie. Le slab est rendu hors ecran (meme composant GalleryCard) puis exporte. =====
@@ -344,7 +352,7 @@ export default function GalleryView({cards,badgeSort,gameplay}:{cards:any[];badg
           </div>
         </div>
         <div ref={gridRef} style={{display:'grid',gridTemplateColumns:'repeat('+galleryCols+',1fr)',gap:gapFor(galleryCols),touchAction:'pan-y'}}>
-          {cards.slice(0,shown).map(c=>{const b=gameplayBadge(c,badgeSort,gameplay);return(<GalleryCard key={c.slug} card={c} isFlipped={activeSlug===c.slug} onFlip={handleFlip} glowScale={glowScaleFor(galleryCols)} badgeText={b?.text||undefined} badgeTone={b?.tone} badgePill={b?.pill}/>);})}
+          {cards.slice(0,shown).map(c=>{const b=gameplayBadge(c,badgeSort,gameplay);return(<GalleryCard key={c.slug} card={c} isFlipped={activeSlug===c.slug} onFlip={handleFlip} glowScale={glowScaleFor(galleryCols)} badgeText={b?.text||undefined} badgeTone={b?.tone} badgePill={(b as any)?.pill} badgeStar={(b as any)?.star}/>);})}
         </div>
         {shown<cards.length&&(<div ref={sentinelRef} style={{height:'1px'}}/>)}
         </>
