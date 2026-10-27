@@ -1,6 +1,6 @@
 // Verification d'un slug Sorare (pseudo en minuscules) via l'API publique Sorare.
 // found = le manager existe ; missing = il n'existe pas ; error = Sorare injoignable (on ne bloque pas l'utilisateur pour autant).
-export type SlugCheck = { status: 'found'; nickname: string | null } | { status: 'missing' } | { status: 'error' };
+export type SlugCheck = { status: 'found'; nickname: string | null } | { status: 'missing' } | { status: 'error'; detail?: string };
 
 export async function checkSorareSlug(slug: string): Promise<SlugCheck> {
   if (!/^[a-z0-9_-]{2,80}$/.test(slug)) return { status: 'missing' };
@@ -19,7 +19,12 @@ export async function checkSorareSlug(slug: string): Promise<SlugCheck> {
     });
     if (!r.ok) return { status: 'error' };
     const j = await r.json();
-    if (j.errors?.length) return { status: 'error' };
+    if (j.errors?.length) {
+      // Sorare repond par une erreur GraphQL (et non null) quand le manager n'existe pas
+      const txt = JSON.stringify(j.errors);
+      if (/not.?found|couldn.?t find|could not find|does not exist|doesn.?t exist|no user|unknown user/i.test(txt)) return { status: 'missing' };
+      return { status: 'error', detail: txt.slice(0, 300) };
+    }
     const u = j?.data?.user;
     return u ? { status: 'found', nickname: u.nickname || null } : { status: 'missing' };
   } catch {
