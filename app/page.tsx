@@ -803,7 +803,7 @@ export default function Home() {
 
         {/* HEADER logo (x3) */}
         <div style={{textAlign:'center',marginBottom:'0.2rem'}}>
-          <img src='/logo-pack.png' alt='myNFTlocker' title={tr('Retour a l\'accueil')} onClick={()=>{setOpenPhase(0);setCards([]);setSlug('');setError('');setFlippedSlug(null);setMode('locker');setFiltersOpen(false);setAcctOpen(false);setSlugPanelOpen(false);setAcctMenuSection(null);}} style={{display:'inline-block',height:'126px',width:'auto',cursor:'pointer',filter:'drop-shadow(0 6px 18px rgba(0,0,0,0.6))'}} onError={(e)=>{(e.target as HTMLImageElement).style.display='none';}}/>
+          <img src='/logo-pack.png' alt='myNFTlocker' title={tr('Retour à l\'accueil')} onClick={()=>{setOpenPhase(0);setCards([]);setSlug('');setError('');setFlippedSlug(null);setMode('locker');setFiltersOpen(false);setAcctOpen(false);setSlugPanelOpen(false);setAcctMenuSection(null);}} style={{display:'inline-block',height:'126px',width:'auto',cursor:'pointer',filter:'drop-shadow(0 6px 18px rgba(0,0,0,0.6))'}} onError={(e)=>{(e.target as HTMLImageElement).style.display='none';}}/>
         </div>
 
         <div style={{textAlign:'center',marginBottom:'0.3rem'}}><LangSwitch/></div>
@@ -926,7 +926,7 @@ export default function Home() {
                 </div>
               ):(
                 <div style={{textAlign:'center',padding:'2.5rem 1rem'}}>
-                  <p style={{color:'#cfe4fb',fontSize:'0.95rem',marginBottom:'1.4rem'}}>{tr('Tu n\'es pas connecte a un compte myNFTlocker.')}</p>
+                  <p style={{color:'#cfe4fb',fontSize:'0.95rem',marginBottom:'1.4rem'}}>{tr('Tu n\'es pas connecté à un compte myNFTlocker.')}</p>
                   <button onClick={()=>{setAcctMenuSection(null);setAuthMode('login');setAuthOpen(true);}} style={{background:'rgba(64,232,255,0.12)',border:'1px solid rgba(64,232,255,0.5)',color:'#40e8ff',padding:'0.6rem 2rem',fontSize:'0.78rem',fontWeight:700,letterSpacing:'0.12em',textTransform:'uppercase',cursor:'pointer',borderRadius:'3px'}}>{tr('Se connecter')}</button>
                 </div>
               ))}
@@ -1105,7 +1105,7 @@ export default function Home() {
           <div style={{display:'flex',flexDirection:'column' as const,gap:'0.15rem',marginBottom:'0.35rem'}}>
             {/* LOGO+COMPTE FUSIONNES sur une seule ligne (gain de hauteur + logo plus visible) */}
             <div style={{display:'flex',alignItems:'center',gap:'0.6rem'}}>
-              <img src='/logo-pack.png' alt='myNFTlocker' title={tr('Retour a l\'accueil')} onClick={()=>{setOpenPhase(0);setCards([]);setSlug('');setError('');setFlippedSlug(null);setMode('locker');setFiltersOpen(false);setAcctOpen(false);setSlugPanelOpen(false);setAcctMenuSection(null);}} style={{height:'62px',width:'auto',flexShrink:0,cursor:'pointer',filter:'drop-shadow(0 6px 18px rgba(0,0,0,0.6))'}} onError={(e)=>{(e.target as HTMLImageElement).style.display='none';}}/>
+              <img src='/logo-pack.png' alt='myNFTlocker' title={tr('Retour à l\'accueil')} onClick={()=>{setOpenPhase(0);setCards([]);setSlug('');setError('');setFlippedSlug(null);setMode('locker');setFiltersOpen(false);setAcctOpen(false);setSlugPanelOpen(false);setAcctMenuSection(null);}} style={{height:'62px',width:'auto',flexShrink:0,cursor:'pointer',filter:'drop-shadow(0 6px 18px rgba(0,0,0,0.6))'}} onError={(e)=>{(e.target as HTMLImageElement).style.display='none';}}/>
               <div onClick={()=>setAcctOpen(o=>!o)} style={{flex:1,minWidth:0,display:'flex',alignItems:'center',gap:'0.5rem',padding:'0.4rem 0.5rem',borderRadius:'0.3rem',cursor:'pointer',background:'rgba(255,255,255,0.03)',border:'1px solid rgba(111,195,232,0.18)'}}>
               <div style={{width:'44px',height:'44px',flexShrink:0,borderRadius:'50%',background:'radial-gradient(circle at 35% 30%,#1a1c24,#0a0b0f)',border:'1.5px solid #6fc3e8',boxShadow:'0 0 10px rgba(111,195,232,0.5)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'1.1rem',fontWeight:900,color:'#6fc3e8'}}>{(slug||'?').trim().charAt(0).toUpperCase()||'?'}</div>
               <div style={{flex:1,minWidth:0,textAlign:'left'}}>
