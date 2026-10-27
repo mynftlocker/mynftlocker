@@ -6,6 +6,10 @@ export async function checkSorareSlug(slug: string): Promise<SlugCheck> {
   if (!/^[a-z0-9_-]{2,80}$/.test(slug)) return { status: 'missing' };
   try {
     const headers: Record<string, string> = { 'Content-Type': 'application/json', 'Accept': 'application/json' };
+    // Memes en-tetes que la route /api/cards (qui fonctionne depuis Vercel)
+    const jwt = process.env.SORARE_JWT || '';
+    const aud = process.env.SORARE_AUD || '';
+    if (jwt && aud) { headers['Authorization'] = `Bearer ${jwt}`; headers['JWT-AUD'] = aud; }
     if (process.env.SORARE_API_KEY) headers['APIKEY'] = process.env.SORARE_API_KEY;
     const r = await fetch('https://api.sorare.com/graphql', {
       method: 'POST',
