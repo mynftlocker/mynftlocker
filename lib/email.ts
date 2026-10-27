@@ -2,7 +2,7 @@
 // Envoi d'email via l'API REST Resend (pas besoin du package npm resend)
 
 const RESEND_API_URL = 'https://api.resend.com/emails';
-const FROM_ADDRESS = 'myNFTlocker <onboarding@resend.dev>'; // TODO: remplacer par une adresse sur votre domaine une fois celui-ci créé et vérifié dans Resend
+const FROM_ADDRESS = 'myNFTlocker <no-reply@mynftlocker.com>';
 
 export async function sendVerificationEmail(to: string, verifyUrl: string, lang: 'fr' | 'en' = 'fr') {
   const en = lang === 'en';
