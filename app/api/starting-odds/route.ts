@@ -15,24 +15,23 @@ export async function GET(request: NextRequest) {
   if (auth) { headers['Authorization'] = `Bearer ${jwt}`; headers['JWT-AUD'] = aud; }
   if (process.env.SORARE_API_KEY) headers['APIKEY'] = process.env.SORARE_API_KEY;
 
-  const body = slugs.map((s, i) =>
-    `p${i}:players(slugs:["${s}"]){...on Player{slug nextGame{playerGameScore(playerSlug:"${s}"){anyPlayerGameStats{...on PlayerGameStats{footballPlayingStatusOdds{reliability starterOddsBasisPoints}}}}}}}`
-  ).join(' ');
-  try {
-    const r = await fetch('https://api.sorare.com/graphql', {
-      method: 'POST', headers, body: JSON.stringify({ query: `query{${body}}` }), signal: AbortSignal.timeout(9000),
-    });
-    if (!r.ok) return NextResponse.json({ odds: {}, auth, error: 'http_' + r.status });
-    const j = await r.json();
-    const odds: Record<string, { pct: number; rel: string | null } | null> = {};
-    slugs.forEach((s, i) => {
-      const o = j?.data?.['p' + i]?.[0]?.nextGame?.playerGameScore?.anyPlayerGameStats?.footballPlayingStatusOdds;
-      odds[s] = o && o.starterOddsBasisPoints != null ? { pct: Math.round(Number(o.starterOddsBasisPoints)) / 100, rel: o.reliability ?? null } : null;
-    });
-    const res = NextResponse.json({ odds, auth, err: j?.errors?.[0]?.message || null });
-    res.headers.set('Cache-Control', 's-maxage=600, stale-while-revalidate=1200');
-    return res;
-  } catch (e) {
-    return NextResponse.json({ odds: {}, auth, error: 'fetch_failed' });
-  }
+  const one = async (s: string) => {
+    const query = `query{players(slugs:["${s}"]){...on Player{slug nextGame{playerGameScore(playerSlug:"${s}"){anyPlayerGameStats{...on PlayerGameStats{footballPlayingStatusOdds{reliability starterOddsBasisPoints}}}}}}}}`;
+    try {
+      const r = await fetch('https://api.sorare.com/graphql', {
+        method: 'POST', headers, body: JSON.stringify({ query }), signal: AbortSignal.timeout(8000),
+      });
+      if (!r.ok) return { s, o: null, err: 'http_' + r.status };
+      const j = await r.json();
+      const o = j?.data?.players?.[0]?.nextGame?.playerGameScore?.anyPlayerGameStats?.footballPlayingStatusOdds;
+      return { s, o: o && o.starterOddsBasisPoints != null ? { pct: Math.round(Number(o.starterOddsBasisPoints)) / 100, rel: o.reliability ?? null } : null, err: j?.errors?.[0]?.message || null };
+    } catch (e) { return { s, o: null, err: 'fetch_failed' }; }
+  };
+  // Sorare refuse plusieurs fois le meme champ racine dans une requete : une requete par joueur, en parallele.
+  const rs = await Promise.all(slugs.map(one));
+  const odds: Record<string, { pct: number; rel: string | null } | null> = {};
+  rs.forEach(x => { odds[x.s] = x.o; });
+  const res = NextResponse.json({ odds, auth, err: rs.find(x => x.err)?.err || null });
+  res.headers.set('Cache-Control', 's-maxage=600, stale-while-revalidate=1200');
+  return res;
 }
