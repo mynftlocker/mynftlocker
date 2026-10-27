@@ -38,7 +38,7 @@ const btn=(danger?:boolean):React.CSSProperties=>({background:danger?'rgba(255,1
 
 const pwdOk=(p:string)=>p.length>=10&&/[A-Za-z]/.test(p)&&/[0-9]/.test(p);
 
-function ChangePassword(){
+export function ChangePassword(){
   useLang();
   const [cur,setCur]=useState('');const [nw,setNw]=useState('');const [cf,setCf]=useState('');
   const [msg,setMsg]=useState<{ok:boolean;text:string}|null>(null);const [busy,setBusy]=useState(false);
@@ -109,9 +109,7 @@ export default function AccountSection({section,user,onLogin,onDeleted}:{section
   if(section==='auth'){
     if(!user)return(<div style={{textAlign:'center',padding:'2.5rem 1rem'}}><p style={{color:'#cfe4fb',fontSize:'0.95rem',marginBottom:'1.4rem'}}>{tr('Connecte-toi pour gérer ton compte.')}</p><button onClick={onLogin} style={btn()}>{tr('Se connecter')}</button></div>);
     return(<div>
-      <div style={{...box,display:'flex',justifyContent:'space-between',gap:'1rem'}}><span style={label}>{tr('Connexion')}</span><span style={val}>{tr('E-mail + mot de passe')}</span></div>
       <div style={{...box,display:'flex',justifyContent:'space-between',gap:'1rem'}}><span style={label}>{tr('Compte Sorare lié')}</span><span style={val}>{user.sorareSlug||'—'}</span></div>
-      <ChangePassword/>
       <p style={{fontSize:'0.74rem',color:'#7a8898',lineHeight:1.6}}>{tr('La connexion avec ton compte Sorare officiel arrive prochainement.')}</p>
     </div>);
   }

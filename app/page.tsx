@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, memo, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import dynamic from 'next/dynamic';
 import GalleryView, { GalleryCard } from './components/GalleryView';
-import AccountSection from './components/AccountSections';
+import AccountSection, { ChangePassword } from './components/AccountSections';
 import { StatPanel } from './components/StatPanel';
 // INSCRIPTIONS : fermees tant que NEXT_PUBLIC_SIGNUP_OPEN n'est pas 'true' (Vercel > Settings > Environment Variables). Les comptes existants peuvent toujours se connecter.
 const SIGNUP_OPEN=process.env.NEXT_PUBLIC_SIGNUP_OPEN==='true';
@@ -992,7 +992,8 @@ export default function Home() {
                   </div>
                   {slugEditing&&<SlugHint st={slugCheckDraft}/>}
                   {slugMsg&&<p style={{margin:'0.4rem 0 0.2rem',fontSize:'0.72rem',color:slugMsg.ok?'#7ee0a0':'#ff8a7a'}}>{slugMsg.text}</p>}
-                  <p style={{fontSize:'0.72rem',color:'#7a8898',marginTop:'1rem',lineHeight:1.6}}>{tr('La modification de ces informations arrive prochainement.')}</p>
+                  <div style={{marginTop:'1.2rem'}}><ChangePassword/></div>
+                  <p style={{fontSize:'0.72rem',color:'#7a8898',marginTop:'1rem',lineHeight:1.6}}>{tr('La modification du pseudo et de l’adresse e-mail arrive prochainement.')}</p>
                 </div>
               ):(
                 <div style={{textAlign:'center',padding:'2.5rem 1rem'}}>
@@ -1093,8 +1094,10 @@ export default function Home() {
           </div>
         )}
         {slugProblem&&cards.length===0&&!loading&&(
-          <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',padding:'2rem 1.2rem',boxSizing:'border-box' as const}}>
-            <div style={{width:'100%',maxWidth:'440px',textAlign:'center' as const,padding:'2rem 1.6rem',border:'1px solid rgba(245,215,110,0.35)',borderRadius:'0.5rem',background:'rgba(245,215,110,0.05)'}}>
+          <div className='mnfl-slugfix' style={{position:'fixed',top:0,right:0,bottom:0,left:'220px',zIndex:50,display:'flex',alignItems:'center',justifyContent:'center',padding:'2rem 1.2rem',boxSizing:'border-box' as const,clipPath:'inset(0)',overflow:'auto'}}>
+            <style>{`@media(max-width:768px){.mnfl-slugfix{left:0!important;bottom:60px!important}}`}</style>
+            <StarCanvas phase={0} burst={false}/>
+            <div style={{position:'relative',zIndex:1,width:'100%',maxWidth:'440px',textAlign:'center' as const,padding:'2rem 1.6rem',background:'rgba(4,10,22,0.72)',backdropFilter:'blur(6px)',border:'1px solid rgba(245,215,110,0.35)',borderRadius:'0.5rem'}}>
               <p style={{margin:'0 0 0.8rem',fontSize:'0.85rem',fontWeight:800,letterSpacing:'0.14em',textTransform:'uppercase' as const,color:'#f5d76e'}}>{tr('Oups, on ne trouve pas ton vestiaire')}</p>
               <p style={{margin:'0 0 0.5rem',fontSize:'0.8rem',lineHeight:1.6,color:'#cfe4fb'}}>{tr('Tu as dû te tromper dans ton slug Sorare')} <b style={{color:'#40e8ff'}}>« {slugProblem} »</b>. {tr('Rien de grave : vérifie-le et corrige-le en un clic, ta galerie s’ouvrira aussitôt.')}</p>
               <button onClick={()=>{startSlugEdit();setAcctMenuSection('infos');}} style={{margin:'1rem 0 0.9rem',background:'rgba(64,232,255,0.12)',border:'1px solid rgba(64,232,255,0.5)',color:'#40e8ff',padding:'0.6rem 1.6rem',fontSize:'0.74rem',fontWeight:700,letterSpacing:'0.12em',textTransform:'uppercase' as const,cursor:'pointer'}}>{tr('Vérifier et modifier mon slug')}</button>

@@ -69,6 +69,7 @@ const EN: Record<string, string> = {
   'Aucun manager Sorare ne porte le slug': 'No Sorare manager has the slug', 'Corrige-le ci-dessous : ta galerie s’ouvre aussitôt.': 'Fix it below: your gallery opens right away.',
   'Oups, on ne trouve pas ton vestiaire': 'Oops, we can’t find your locker', 'Tu as dû te tromper dans ton slug Sorare': 'You probably made a typo in your Sorare slug', 'Rien de grave : vérifie-le et corrige-le en un clic, ta galerie s’ouvrira aussitôt.': 'No worries: check and fix it in one click, your gallery will open right away.',
   'Vérifier et modifier mon slug': 'Check and edit my slug', 'Tu ne sais plus ton slug ?': 'Forgot your slug?', 'Retrouve-le sur Sorare': 'Find it on Sorare', '(c’est ton pseudo, dans l’adresse de ton profil).': '(it’s your username, in your profile address).',
+  'La modification du pseudo et de l’adresse e-mail arrive prochainement.': 'Editing your username and email address is coming soon.',
   'Slug Sorare introuvable': 'Sorare slug not found', 'Ton compte est lié au slug': 'Your account is linked to the slug', ', mais aucun manager Sorare ne porte ce nom.': ', but no Sorare manager has that name.',
   'Ton slug est ton pseudo Sorare, en minuscules et sans accents. Corrige-le ici : ta galerie s’ouvre aussitôt.': 'Your slug is your Sorare username, in lowercase and without accents. Fix it here and your gallery opens right away.',
   'Valider et ouvrir': 'Confirm and open', 'Modifier': 'Edit', 'Enregistrer': 'Save', 'Annuler': 'Cancel', 'Slug enregistré.': 'Slug saved.',
