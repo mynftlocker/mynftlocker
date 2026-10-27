@@ -9,6 +9,7 @@ import { StatPanel } from './components/StatPanel';
 const SIGNUP_OPEN=process.env.NEXT_PUBLIC_SIGNUP_OPEN==='true';
 import { setManager } from './lib-share';
 import { isArcadeCard, ARCADE_DEFAULT, activeInjury } from './lib/gameplay';
+import { collectPrefs, pullPrefs, pushPrefs } from './lib/prefsSync';
 import StarCanvas from './components/StarCanvas';
 import { t as tr, useLang, initLang, LangSwitch, getLang } from './i18n';
 
@@ -371,7 +372,9 @@ export default function Home() {
   const [fComp,setFComp]=useState('all');
   const [fStars,setFStars]=useState('all');
   const [fAvail,setFAvail]=useState('all');
-  useEffect(()=>{try{const a=localStorage.getItem('mnfl_arcade');if(a!=null)setArcadeOnly(a==='1');const g=localStorage.getItem('mnfl_gameplay');if(g!=null)setGameplay(g==='1');}catch{}},[]);
+  const [favs,setFavs]=useState<string[]>([]); // managers favoris (slugs), synchronises avec le compte
+  const slugNowRef=useRef('');
+  useEffect(()=>{try{const a=localStorage.getItem('mnfl_arcade');if(a!=null)setArcadeOnly(a==='1');const g=localStorage.getItem('mnfl_gameplay');if(g!=null)setGameplay(g==='1');const f=localStorage.getItem('mnfl_favs');if(f)setFavs(JSON.parse(f));}catch{}},[]);
   const toggleArcade=()=>{const n=!arcadeOnly;setArcadeOnly(n);try{localStorage.setItem('mnfl_arcade',n?'1':'0');}catch{}setLockerStart(0);setFlippedSlug(null);};
   const toggleGameplay=()=>{const n=!gameplay;setGameplay(n);try{localStorage.setItem('mnfl_gameplay',n?'1':'0');}catch{}};
   const [openPhase,setOpenPhase]=useState(0);
@@ -559,6 +562,34 @@ export default function Home() {
   useEffect(()=>{
     fetch('/api/auth/me').then(r=>r.json()).then(d=>{ if(d.loggedIn){ setCurrentUser({pseudo:d.pseudo,email:d.email,sorareSlug:d.sorareSlug}); if(d.sorareSlug&&!urlSlugRef.current){ setSlug(d.sorareSlug); setJustLoggedIn(true); } } }).catch(()=>{});
   },[]);
+  // ===== PREFERENCES DU COMPTE : recuperees a la connexion (le compte l'emporte), puis recopiees dans le compte des qu'elles changent =====
+  slugNowRef.current=slug;
+  const refreshPrefsState=()=>{
+    try{
+      const sl=slugNowRef.current;
+      const rd=(k:string)=>{const v=localStorage.getItem(k);return v?JSON.parse(v):null;};
+      if(sl){const h=rd('mynftlocker_hof_'+sl);if(h)setHof(h);const hf=rd('mynftlocker_hof_foot_'+sl);if(hf)setHofFoot(hf);setDefaultTeam(localStorage.getItem('mynftlocker_default_team_'+sl)||'');}
+      const ln=rd('mynftlocker_lineup');if(ln)setLineup(ln);
+      const a=localStorage.getItem('mnfl_arcade');if(a!=null)setArcadeOnly(a==='1');
+      const g=localStorage.getItem('mnfl_gameplay');if(g!=null)setGameplay(g==='1');
+      const f=rd('mnfl_favs');if(f)setFavs(f);
+    }catch{}
+  };
+  useEffect(()=>{
+    if(!currentUser)return;
+    let stop=false,ready=false,last='',iv:any;
+    const flush=()=>{if(!ready)return;const cur=JSON.stringify(collectPrefs());if(cur!==last){last=cur;pushPrefs(JSON.parse(cur));}};
+    (async()=>{
+      const changed=await pullPrefs();
+      if(stop||changed===null)return; // echec de lecture : on ne pousse rien (pour ne pas ecraser le compte)
+      if(changed)refreshPrefsState();
+      ready=true; last='';flush(); // envoie aussi ce qui n'existait qu'en local
+      iv=setInterval(flush,4000);
+    })();
+    const vis=()=>{if(document.visibilityState==='hidden')flush();};
+    document.addEventListener('visibilitychange',vis);
+    return()=>{stop=true;clearInterval(iv);document.removeEventListener('visibilitychange',vis);};
+  },[currentUser]);
   useEffect(()=>{
     if(justLoggedIn&&slug&&openPhase===0){ fragStartedRef.current=false; setOpenPhase(1); fetchCards(); setJustLoggedIn(false); }
   },[justLoggedIn,slug]);
@@ -591,6 +622,7 @@ export default function Home() {
     setAcctOpen(false);
     setAcctMenuSection(null);
   };
+  useEffect(()=>{if(!acctMenuSection)return;const h=(e:KeyboardEvent)=>{if(e.key==='Escape')setAcctMenuSection(null);};window.addEventListener('keydown',h);return()=>window.removeEventListener('keydown',h);},[acctMenuSection]); // Echap : retour a la galerie / au vestiaire
   useEffect(()=>{if(showFlash&&error){setShowFlash(false);setOpenPhase(0);}},[showFlash,error]);
   useEffect(()=>{if(!showFlash)return;const t=setTimeout(()=>setShowFlash(false),650);return()=>clearTimeout(t);},[showFlash]);
   useEffect(()=>{if(openPhase===1&&!loading&&cards.length>0&&!fragStartedRef.current){
@@ -756,6 +788,13 @@ export default function Home() {
   const specialOpts=[{value:'all',label:tr('Toutes les cartes')},{value:'standard',label:tr('Standard uniquement')},{value:'special',label:tr('Spéciales uniquement')},...specialOptions.map(s=>({value:s,label:s.charAt(0)+s.slice(1).toLowerCase()}))]; // labels en "Majuscule initiale" (valeurs techniques inchangées)
   // (composant Filters retiré — filtres inlinés dans la sidebar)
 
+  // ===== MANAGERS FAVORIS (inscrits) =====
+  const saveFavs=(next:string[])=>{setFavs(next);try{localStorage.setItem('mnfl_favs',JSON.stringify(next));}catch{}};
+  const openManager=(sl:string)=>{setAcctMenuSection(null);setOpenPhase(0);setCards([]);setError('');setFlippedSlug(null);setLockerStart(0);setSlugPanelOpen(false);setSlug(sl);setJustLoggedIn(true);};
+  const canAddFav=cards.length>0&&!!slug&&!favs.includes(slug);
+  const favOptions=[...(canAddFav?[{value:'__add__',label:'+ '+tr('Ajouter')+' '+slug}]:[]),...(slug&&favs.includes(slug)?[{value:'__rm__',label:'✕ '+tr('Retirer')+' '+slug}]:[]),...favs.map(f=>({value:f,label:f}))];
+  const favMenu=currentUser?(<FilterMenu title={tr('Managers favoris')} options={favOptions.length?favOptions:[{value:'__none__',label:tr('Aucun favori pour l’instant')}]} current={slug} onSelect={(v:string)=>{if(v==='__add__')saveFavs([...favs,slug]);else if(v==='__rm__')saveFavs(favs.filter(x=>x!==slug));else if(v!=='__none__')openManager(v);}}/>):null;
+
   return(
     <main style={{minHeight:'100vh',background:contentBg,backgroundAttachment:'fixed',color:'white',fontFamily:'system-ui,sans-serif',display:'flex'}}>
       <style>{`.noscroll::-webkit-scrollbar{width:0;height:0;display:none} .noscroll{scrollbar-width:none} .thin-sb::-webkit-scrollbar{width:6px} .thin-sb::-webkit-scrollbar-thumb{background:rgba(111,195,232,0.45);border-radius:3px} .thin-sb::-webkit-scrollbar-track{background:transparent} .thin-sb{scrollbar-width:thin;scrollbar-color:rgba(111,195,232,0.45) transparent} @keyframes mnflBuild{0%{opacity:0;transform:translateX(-50%) translateY(12px);filter:blur(3.5px) brightness(1.6) saturate(0.4);box-shadow:0 0 28px 7px rgba(111,195,232,0.5)}50%{opacity:0.65;filter:blur(1.5px) brightness(1.2) saturate(0.75)}100%{opacity:1;transform:translateX(-50%) translateY(0);filter:blur(0) brightness(1) saturate(1);box-shadow:0 0 0 0 rgba(111,195,232,0)}} @keyframes mnflSlideLeft{from{opacity:0;transform:translateX(70px);filter:blur(2px)}to{opacity:1;transform:translateX(0);filter:blur(0)}} @keyframes mnflSlideRight{from{opacity:0;transform:translateX(-70px);filter:blur(2px)}to{opacity:1;transform:translateX(0);filter:blur(0)}} @keyframes mnflLaser{0%{height:0;opacity:0.95}50%{height:29%;opacity:1}75%{height:29%;opacity:0.85}100%{height:29%;opacity:0}} @keyframes mnflDeploy{0%{opacity:0;clip-path:inset(0 100% 0 0);transform:perspective(900px) rotateY(-4deg) translateX(-6px)}35%{opacity:0.6}100%{opacity:1;clip-path:inset(0 0% 0 0);transform:perspective(900px) rotateY(0deg) translateX(0)}} @keyframes mnflClose{0%{opacity:1;transform:scaleY(1);filter:brightness(1)}30%{transform:scaleY(0.84);filter:brightness(1.2)}55%{transform:scaleY(0.42);filter:brightness(1.7)}72%{transform:scaleY(0.12);filter:brightness(2.5)}80%{transform:scaleY(0.025);filter:brightness(4) blur(0.5px)}88%{transform:scaleY(0.008);filter:brightness(6);opacity:1}95%{transform:scaleY(0.003);filter:brightness(9)}100%{transform:scaleY(0);opacity:0;filter:brightness(0)}} @keyframes mnflIcebreaker{0%{opacity:0;transform:translate(-50%,-50%) scaleX(0.05) scaleY(1)}18%{opacity:1;transform:translate(-50%,-50%) scaleX(1) scaleY(1);filter:brightness(2)}52%{opacity:1;transform:translate(-50%,-50%) scaleX(1) scaleY(1)}70%{opacity:1;transform:translate(-50%,-50%) scaleX(0.14) scaleY(2.5);filter:brightness(5)}82%{opacity:1;transform:translate(-50%,-50%) scaleX(0.04) scaleY(7);filter:brightness(10)}90%{opacity:1;transform:translate(-50%,-50%) scaleX(0.01) scaleY(2);filter:brightness(4)}100%{opacity:0;transform:translate(-50%,-50%) scaleX(0) scaleY(0)}} @keyframes mnflFloat{0%{transform:translateY(8px);opacity:0}25%{opacity:0.55}75%{opacity:0.45}100%{transform:translateY(-26px);opacity:0}} @keyframes mnflPulse{0%,100%{box-shadow:0 0 9px 1px var(--rc)}50%{box-shadow:0 0 24px 6px var(--rc)}}@keyframes mnflCyanPulse{0%,100%{box-shadow:0 0 12px 3px rgba(64,232,255,0.45),0 0 22px 5px rgba(64,232,255,0.18)}50%{box-shadow:0 0 22px 6px rgba(64,232,255,0.75),0 0 40px 10px rgba(64,232,255,0.32)}}@keyframes mnflCardTrace{0%{stroke-dashoffset:1000}100%{stroke-dashoffset:0}} @keyframes mnflTwinkle{0%,100%{transform:scale(0) rotate(0deg);opacity:0}45%{transform:scale(1) rotate(15deg);opacity:1}70%{transform:scale(0.4) rotate(0deg);opacity:0.3}} @keyframes mnflIdleFloat{0%,100%{transform:rotateY(-6deg) translateY(0px)}50%{transform:rotateY(6deg) translateY(-5px)}} @media(max-width:768px){.mnfl-sidebar{display:none!important} .mnfl-content{margin-left:0!important;padding-bottom:70px!important;max-width:100vw!important;overflow-x:hidden!important} .mnfl-bottombar{display:flex!important} .mnfl-filters-sheet{display:flex!important} .mnfl-account-panel{left:0!important}}`}</style>
@@ -764,7 +803,7 @@ export default function Home() {
 
         {/* HEADER logo (x3) */}
         <div style={{textAlign:'center',marginBottom:'0.2rem'}}>
-          <img src='/logo-pack.png' alt='myNFTlocker' title={tr('Retour a l\'accueil')} onClick={()=>{setOpenPhase(0);setCards([]);setSlug('');setError('');setFlippedSlug(null);setMode('locker');setFiltersOpen(false);setAcctOpen(false);setSlugPanelOpen(false);}} style={{display:'inline-block',height:'126px',width:'auto',cursor:'pointer',filter:'drop-shadow(0 6px 18px rgba(0,0,0,0.6))'}} onError={(e)=>{(e.target as HTMLImageElement).style.display='none';}}/>
+          <img src='/logo-pack.png' alt='myNFTlocker' title={tr('Retour a l\'accueil')} onClick={()=>{setOpenPhase(0);setCards([]);setSlug('');setError('');setFlippedSlug(null);setMode('locker');setFiltersOpen(false);setAcctOpen(false);setSlugPanelOpen(false);setAcctMenuSection(null);}} style={{display:'inline-block',height:'126px',width:'auto',cursor:'pointer',filter:'drop-shadow(0 6px 18px rgba(0,0,0,0.6))'}} onError={(e)=>{(e.target as HTMLImageElement).style.display='none';}}/>
         </div>
 
         <div style={{textAlign:'center',marginBottom:'0.3rem'}}><LangSwitch/></div>
@@ -794,6 +833,7 @@ export default function Home() {
               <button onClick={()=>fetchCards()} title={tr('Valider')} disabled={!slug} style={{flexShrink:0,background:slug?'rgba(64,232,255,0.16)':'rgba(255,255,255,0.04)',border:'1px solid rgba(64,232,255,0.5)',color:'#40e8ff',borderRadius:'0.2rem',padding:'0 0.7rem',cursor:slug?'pointer':'not-allowed',opacity:slug?1:0.5,fontSize:'0.85rem',fontWeight:800}}>▶</button>
             </div>
           )}
+          {favMenu}
           {acctOpen&&(
             <div className='thin-sb' style={{position:'absolute',top:'100%',left:0,right:0,marginTop:'0.3rem',background:'#0a0d12',border:'1px solid rgba(111,195,232,0.35)',borderRadius:'0.35rem',boxShadow:'0 10px 28px rgba(0,0,0,0.6)',zIndex:200,overflow:'hidden'}}>
               {[
@@ -813,9 +853,9 @@ export default function Home() {
 
         {/* NAV Vestiaire / Galerie */}
         <div style={{display:'flex',overflow:'hidden',border:'1px solid rgba(255,255,255,0.12)',marginBottom:'0.25rem',clipPath:'polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px)'}}>
-          <button style={{flex:1,padding:'0.26rem 0',border:'none',cursor:'pointer',fontSize:'0.72rem',fontWeight:700,background:mode==='locker'?'linear-gradient(160deg,#a86f15 0%,#d9a52e 22%,#f7da80 48%,#e8b84a 68%,#b8801a 100%)':'rgba(255,255,255,0.04)',color:mode==='locker'?'#1a0d00':'#7a8898',transition:'all 0.15s'}} onClick={()=>setMode('locker')}>{tr('Vestiaire')}</button>
+          <button style={{flex:1,padding:'0.26rem 0',border:'none',cursor:'pointer',fontSize:'0.72rem',fontWeight:700,background:mode==='locker'?'linear-gradient(160deg,#a86f15 0%,#d9a52e 22%,#f7da80 48%,#e8b84a 68%,#b8801a 100%)':'rgba(255,255,255,0.04)',color:mode==='locker'?'#1a0d00':'#7a8898',transition:'all 0.15s'}} onClick={()=>{setMode('locker');setAcctMenuSection(null);}}>{tr('Vestiaire')}</button>
           <div style={{width:'1px',background:'rgba(255,255,255,0.1)',flexShrink:0}}/>
-          <button style={{flex:1,padding:'0.26rem 0',border:'none',cursor:'pointer',fontSize:'0.72rem',fontWeight:700,background:mode==='gallery'?'linear-gradient(160deg,#a86f15 0%,#d9a52e 22%,#f7da80 48%,#e8b84a 68%,#b8801a 100%)':'rgba(255,255,255,0.04)',color:mode==='gallery'?'#1a0d00':'#7a8898',transition:'all 0.15s'}} onClick={()=>setMode('gallery')}>{tr('Galerie')}</button>
+          <button style={{flex:1,padding:'0.26rem 0',border:'none',cursor:'pointer',fontSize:'0.72rem',fontWeight:700,background:mode==='gallery'?'linear-gradient(160deg,#a86f15 0%,#d9a52e 22%,#f7da80 48%,#e8b84a 68%,#b8801a 100%)':'rgba(255,255,255,0.04)',color:mode==='gallery'?'#1a0d00':'#7a8898',transition:'all 0.15s'}} onClick={()=>{setMode('gallery');setAcctMenuSection(null);}}>{tr('Galerie')}</button>
         </div>
 
         {error&&<p style={{color:'#fca5a5',fontSize:'0.7rem',marginBottom:'0.4rem'}}>{error}</p>}
@@ -870,7 +910,10 @@ export default function Home() {
           <div style={{position:'fixed',inset:0,left:'220px',zIndex:120,background:'radial-gradient(ellipse 120% 90% at 50% -10%,#0d111a 0%,#080b10 55%,#040507 100%)',overflow:'auto',padding:'2.5rem 2rem'}} className='thin-sb mnfl-account-panel'>
             <div style={{maxWidth:'620px',margin:'0 auto'}}>
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'1.6rem',borderBottom:'1px solid rgba(111,195,232,0.25)',paddingBottom:'1rem'}}>
-                <h1 style={{margin:0,fontSize:'1.35rem',fontWeight:800,color:'#eaf2ff',letterSpacing:'0.02em'}}>{title}</h1>
+                <div style={{display:'flex',flexDirection:'column' as const,gap:'0.35rem',minWidth:0}}>
+                  <button onClick={()=>setAcctMenuSection(null)} style={{alignSelf:'flex-start',background:'transparent',border:'none',padding:0,cursor:'pointer',color:'#40e8ff',fontSize:'0.74rem',letterSpacing:'0.08em',textTransform:'uppercase'}}>{'← '+(mode==='gallery'?tr('Retour à la galerie'):tr('Retour au vestiaire'))}</button>
+                  <h1 style={{margin:0,fontSize:'1.35rem',fontWeight:800,color:'#eaf2ff',letterSpacing:'0.02em'}}>{title}</h1>
+                </div>
                 <button onClick={()=>setAcctMenuSection(null)} title={tr('Fermer')} style={{background:'rgba(255,255,255,0.05)',border:'1px solid rgba(111,195,232,0.35)',borderRadius:'50%',width:'34px',height:'34px',color:'#6fc3e8',cursor:'pointer',fontSize:'0.85rem',flexShrink:0}}>✕</button>
               </div>
               {acctMenuSection==='infos'&&(currentUser?(
@@ -1001,9 +1044,13 @@ export default function Home() {
         <div style={{position:'fixed',inset:0,zIndex:99999,display:'flex',alignItems:'center',justifyContent:'center',background:authClosing?'transparent':'rgba(0,0,0,0.6)',backdropFilter:authClosing?'none':'blur(4px)',transition:'background 0.3s'}} onClick={()=>!authClosing&&startAuthClose()}>
           <div onClick={e=>e.stopPropagation()} style={{width:'320px',maxWidth:'88vw',background:'repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(64,232,255,0.03) 2px,rgba(64,232,255,0.03) 3px),linear-gradient(rgba(2,10,22,0.97),rgba(2,10,22,0.97))',border:'1px solid rgba(64,232,255,0.5)',boxShadow:'0 0 40px rgba(64,232,255,0.15),inset 0 0 60px rgba(0,0,0,0.5)',clipPath:authClosing?'none':'polygon(14px 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,0 100%,0 14px)',padding:'1.3rem 1.2rem',fontFamily:'Courier New,Consolas,monospace',animation:authClosing?'mnflClose 0.45s cubic-bezier(0.7,0,0.95,1) both':'mnflDeploy 0.55s ease-out backwards',backdropFilter:authClosing?'none':'blur(12px)'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'1rem'}}>
-              <span style={{color:'#40e8ff',fontSize:'0.85rem',fontWeight:700,letterSpacing:'0.1em'}}>{authMode==='signup'?'CREER UN COMPTE':tr('SE CONNECTER')}</span>
+              <span style={{color:'#40e8ff',fontSize:'0.85rem',fontWeight:700,letterSpacing:'0.1em'}}>{authMode==='signup'?tr('CRÉER UN COMPTE'):tr('SE CONNECTER')}</span>
               <button onClick={startAuthClose} style={{background:'transparent',border:'1px solid rgba(64,232,255,0.35)',borderRadius:'50%',width:'20px',height:'20px',color:'#40e8ff',cursor:'pointer',fontSize:'0.55rem'}}>✕</button>
             </div>
+            {authMode==='signup'&&(<div style={{margin:'0 0 0.9rem',padding:'0.6rem 0.7rem',border:'1px solid rgba(245,215,110,0.35)',borderRadius:'0.3rem',background:'rgba(245,215,110,0.06)'}}>
+              <p style={{margin:'0 0 0.35rem',fontSize:'0.66rem',fontWeight:800,letterSpacing:'0.1em',textTransform:'uppercase',color:'#f5d76e'}}>{tr('Pourquoi créer un compte ?')}</p>
+              {['Ton Hall of Fame et ton 5 majeur gardés en mémoire','Ton équipe par défaut : le vestiaire s’ouvre où tu veux','Tes managers favoris : leurs galeries en un clic','Tes réglages (Arcade, Gameplay) retrouvés sur tous tes appareils'].map(x=>(<p key={x} style={{margin:'0 0 0.2rem',fontSize:'0.66rem',lineHeight:1.45,color:'#cfe4fb'}}><span style={{color:'#40e8ff'}}>✓ </span>{tr(x)}</p>))}
+            </div>)}
             {authMode==='signup'&&<input value={authPseudo} onChange={e=>setAuthPseudo(e.target.value)} placeholder={tr('Pseudo')} style={{width:'100%',boxSizing:'border-box' as const,background:'rgba(255,255,255,0.05)',border:'1px solid rgba(64,232,255,0.3)',color:'#cfe4fb',padding:'0.5rem 0.6rem',fontSize:'0.8rem',marginBottom:'0.6rem',fontFamily:'Courier New,monospace',outline:'none'}}/>}
             {authMode==='signup'&&<input value={authSlugField} onChange={e=>setAuthSlugField(e.target.value)} placeholder={tr('Slug Sorare (ex: pseudo-email-com)')} style={{width:'100%',boxSizing:'border-box' as const,background:'rgba(255,255,255,0.05)',border:'1px solid rgba(64,232,255,0.3)',color:'#cfe4fb',padding:'0.5rem 0.6rem',fontSize:'0.8rem',marginBottom:'0.6rem',fontFamily:'Courier New,monospace',outline:'none'}}/>}
             <input value={authEmail} onChange={e=>setAuthEmail(e.target.value)} placeholder='Email' type='email' style={{width:'100%',boxSizing:'border-box' as const,background:'rgba(255,255,255,0.05)',border:'1px solid rgba(64,232,255,0.3)',color:'#cfe4fb',padding:'0.5rem 0.6rem',fontSize:'0.8rem',marginBottom:'0.6rem',fontFamily:'Courier New,monospace',outline:'none'}}/>
@@ -1036,11 +1083,11 @@ export default function Home() {
 
       {/* ===== BARRE NAV MOBILE (visible <768px) ===== */}
       <nav className='mnfl-bottombar' style={{position:'fixed',left:0,right:0,bottom:0,height:'62px',display:'none',alignItems:'stretch',justifyContent:'space-around',background:'rgba(8,11,16,0.92)',backdropFilter:'blur(14px)',WebkitBackdropFilter:'blur(14px)',borderTop:'1px solid rgba(64,232,255,0.28)',boxShadow:'0 -6px 20px -6px rgba(64,232,255,0.25)',zIndex:60}}>
-        <button onClick={()=>{setMode('locker');setFiltersOpen(false);}} style={{flex:1,background:'transparent',border:'none',display:'flex',flexDirection:'column' as const,alignItems:'center',justifyContent:'center',gap:'3px',cursor:'pointer',color:mode==='locker'?'#40e8ff':'#7a8898'}}>
+        <button onClick={()=>{setMode('locker');setFiltersOpen(false);setAcctMenuSection(null);}} style={{flex:1,background:'transparent',border:'none',display:'flex',flexDirection:'column' as const,alignItems:'center',justifyContent:'center',gap:'3px',cursor:'pointer',color:mode==='locker'?'#40e8ff':'#7a8898'}}>
           <svg width='22' height='22' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2'><rect x='4' y='3' width='16' height='18' rx='1'/><line x1='12' y1='3' x2='12' y2='21'/><circle cx='9' cy='12' r='0.6' fill='currentColor'/><circle cx='15' cy='12' r='0.6' fill='currentColor'/></svg>
           <span style={{fontSize:'0.6rem',fontWeight:700,letterSpacing:'0.04em'}}>{tr('Vestiaire')}</span>
         </button>
-        <button onClick={()=>{setMode('gallery');setFiltersOpen(false);}} style={{flex:1,background:'transparent',border:'none',display:'flex',flexDirection:'column' as const,alignItems:'center',justifyContent:'center',gap:'3px',cursor:'pointer',color:mode==='gallery'?'#40e8ff':'#7a8898'}}>
+        <button onClick={()=>{setMode('gallery');setFiltersOpen(false);setAcctMenuSection(null);}} style={{flex:1,background:'transparent',border:'none',display:'flex',flexDirection:'column' as const,alignItems:'center',justifyContent:'center',gap:'3px',cursor:'pointer',color:mode==='gallery'?'#40e8ff':'#7a8898'}}>
           <svg width='22' height='22' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2'><rect x='3' y='3' width='7' height='7' rx='1'/><rect x='14' y='3' width='7' height='7' rx='1'/><rect x='3' y='14' width='7' height='7' rx='1'/><rect x='14' y='14' width='7' height='7' rx='1'/></svg>
           <span style={{fontSize:'0.6rem',fontWeight:700,letterSpacing:'0.04em'}}>{tr('Galerie')}</span>
         </button>
@@ -1058,7 +1105,7 @@ export default function Home() {
           <div style={{display:'flex',flexDirection:'column' as const,gap:'0.15rem',marginBottom:'0.35rem'}}>
             {/* LOGO+COMPTE FUSIONNES sur une seule ligne (gain de hauteur + logo plus visible) */}
             <div style={{display:'flex',alignItems:'center',gap:'0.6rem'}}>
-              <img src='/logo-pack.png' alt='myNFTlocker' title={tr('Retour a l\'accueil')} onClick={()=>{setOpenPhase(0);setCards([]);setSlug('');setError('');setFlippedSlug(null);setMode('locker');setFiltersOpen(false);setAcctOpen(false);setSlugPanelOpen(false);}} style={{height:'62px',width:'auto',flexShrink:0,cursor:'pointer',filter:'drop-shadow(0 6px 18px rgba(0,0,0,0.6))'}} onError={(e)=>{(e.target as HTMLImageElement).style.display='none';}}/>
+              <img src='/logo-pack.png' alt='myNFTlocker' title={tr('Retour a l\'accueil')} onClick={()=>{setOpenPhase(0);setCards([]);setSlug('');setError('');setFlippedSlug(null);setMode('locker');setFiltersOpen(false);setAcctOpen(false);setSlugPanelOpen(false);setAcctMenuSection(null);}} style={{height:'62px',width:'auto',flexShrink:0,cursor:'pointer',filter:'drop-shadow(0 6px 18px rgba(0,0,0,0.6))'}} onError={(e)=>{(e.target as HTMLImageElement).style.display='none';}}/>
               <div onClick={()=>setAcctOpen(o=>!o)} style={{flex:1,minWidth:0,display:'flex',alignItems:'center',gap:'0.5rem',padding:'0.4rem 0.5rem',borderRadius:'0.3rem',cursor:'pointer',background:'rgba(255,255,255,0.03)',border:'1px solid rgba(111,195,232,0.18)'}}>
               <div style={{width:'44px',height:'44px',flexShrink:0,borderRadius:'50%',background:'radial-gradient(circle at 35% 30%,#1a1c24,#0a0b0f)',border:'1.5px solid #6fc3e8',boxShadow:'0 0 10px rgba(111,195,232,0.5)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'1.1rem',fontWeight:900,color:'#6fc3e8'}}>{(slug||'?').trim().charAt(0).toUpperCase()||'?'}</div>
               <div style={{flex:1,minWidth:0,textAlign:'left'}}>
@@ -1071,6 +1118,7 @@ export default function Home() {
               <span style={{fontSize:'1.1rem',color:'#6fc3e8',opacity:0.9,flexShrink:0,padding:'0.2rem'}}>{acctOpen?'▲':'▼'}</span>
               </div>
             </div>
+            {favMenu}
             {acctOpen&&(
               <div style={{background:'#0a0d12',border:'1px solid rgba(111,195,232,0.35)',borderRadius:'0.35rem',overflow:'hidden',marginTop:'0.1rem'}}>
                 {[

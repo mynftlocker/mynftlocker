@@ -18,6 +18,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'mot_de_passe_invalide' }, { status: 403 });
     }
     await redis.del(emailKey);
+    await redis.del('prefs:' + emailKey);
     await redis.del('session:' + token);
     const res = NextResponse.json({ ok: true });
     res.cookies.set('mnfl_session', '', { path: '/', maxAge: 0 });
