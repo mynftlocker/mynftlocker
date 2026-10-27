@@ -360,7 +360,7 @@ export const StatPanel=memo(({card,onClose,isClosing=false,placement='scene'}:an
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0.18em 0.6em'}}>
               <div style={{minWidth:0}}>
                 <span style={{display:'block',fontSize:'0.52em',color:CYL,letterSpacing:'0.1em',textTransform:'uppercase'}}>{tr('Prix d’achat')}</span>
-                <span style={{display:'block',fontSize:'0.8em',fontWeight:800,color:WV,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{owner&&owner.price!=null?((getLang()==='en'?Number(owner.price).toFixed(2):Number(owner.price).toFixed(2).replace('.',','))+' €'):(owner?'—':'…')}{owner&&owner.type?(<span style={{color:CYL,fontWeight:600}}> ({tr(owner.type)})</span>):null}</span>
+                <span style={{display:'block',fontSize:'0.8em',fontWeight:800,color:WV,whiteSpace:'normal',overflowWrap:'anywhere' as const,lineHeight:1.15}}>{owner&&owner.price!=null?((getLang()==='en'?Number(owner.price).toFixed(2):Number(owner.price).toFixed(2).replace('.',','))+' €'):(owner?'—':'…')}{owner&&owner.type?(<span style={{color:CYL,fontWeight:600}}> ({tr(owner.type)})</span>):null}</span>
               </div>
               <div style={{minWidth:0}}>
                 <span style={{display:'block',fontSize:'0.52em',color:CYL,letterSpacing:'0.1em',textTransform:'uppercase'}}>{tr('Acquise le')}</span>

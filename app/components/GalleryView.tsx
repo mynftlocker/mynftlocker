@@ -3,6 +3,7 @@ import { memo, useState, useEffect, useRef } from 'react';
 import { getManager, cardLink } from '../lib-share';
 import { t as tr, useLang } from '../i18n';
 import { StatPanel, CardBack, RARITY_GLOW, RARITY_COLOR, RARITY_FILL, parseCard, isNBA, FootStars } from './StatPanel';
+import { activeInjury, losesStar } from '../lib/gameplay';
 
 // Embleme rond myNFTlocker dessine (repli si /logo-rond.png absent) : anneau or + etoile centrale facon crest.
 const Emblem=({w}:{w:string})=>(
@@ -223,7 +224,7 @@ export const GalleryCard=memo(({card,isFlipped,onFlip,glowScale,badgeText,badgeT
         </div>
         <CardBack card={card} rc={rc} mobile={true}/>
       </div>
-      {badgeText&&(<div style={{textAlign:'center' as const,marginTop:'3cqw',fontFamily:'ui-monospace,Menlo,monospace',fontSize:'5cqw',fontWeight:700,letterSpacing:'0.08em',color:badgeTone==='neg'?'#ff6b6b':(badgeTone==='pos'?'#35e6ff':'#f5d76e'),whiteSpace:'nowrap' as const}}>{badgeText}</div>)}
+      {badgeText&&(<div style={{textAlign:'center' as const,marginTop:'3cqw',fontFamily:'ui-monospace,Menlo,monospace',fontSize:'5cqw',fontWeight:700,letterSpacing:'0.08em',color:badgeTone==='neg'?'#ff6b6b':(badgeTone==='pos'?'#35e6ff':(badgeTone==='warn'?'#ffa94d':'#f5d76e')),whiteSpace:'nowrap' as const}}>{badgeText}</div>)}
       {isFlipped&&(<svg style={{position:'absolute',top:0,left:0,width:'100%',height:'100%',zIndex:22,pointerEvents:'none',overflow:'visible'}}><rect x='0' y='0' width='100%' height='100%' rx='8' pathLength='1000' fill='none' stroke='#40e8ff' strokeWidth='2.5' style={{filter:'drop-shadow(0 0 9px rgba(64,232,255,0.9))',strokeDasharray:'1000',strokeDashoffset:'1000',animation:'mnflCardTrace 1.4s ease-in-out 0.5s both'}}/></svg>)}
     </div>
   );
@@ -235,6 +236,17 @@ const sortBadge=(c:any,k?:string):{text:string;tone:string}|undefined=>{
   if(k==='gain'&&c.gain!=null){const g=Number(c.gain);return{text:tr('ÉCART')+' '+(g>0?'+':'')+g.toFixed(1),tone:g<0?'neg':'pos'};}
   if(k==='projstar'&&c.proj!=null){const st=Number(c.anyPlayer?.gameplayTierStars);if(st>0)return{text:tr('PROJ/★')+' '+(Number(c.proj)/st).toFixed(1),tone:'gold'};}
   return undefined;
+};
+// Mode Gameplay : drapeaux sous la carte (blessure/disponibilite + "va perdre une etoile"), ajoutes a la pastille de tri. Rien sur la face de la carte.
+const gameplayBadge=(c:any,k:string|undefined,on?:boolean):{text:string;tone:string}|undefined=>{
+  const base=sortBadge(c,k);
+  if(!on)return base;
+  const parts:string[]=base?[base.text]:[];
+  let tone=base?.tone||'gold';
+  const inj=activeInjury(c);
+  if(inj){const st=(inj.status||'INJ').toUpperCase();parts.push(st);tone=st==='OUT'?'neg':(tone==='neg'?'neg':'warn');}
+  if(losesStar(c)){parts.push('▼★');tone='neg';}
+  return parts.length?{text:parts.join(' · '),tone}:undefined;
 };
 
 // ===== PARTAGE depuis le vestiaire : meme image que la galerie. Le slab est rendu hors ecran (meme composant GalleryCard) puis exporte. =====
@@ -262,7 +274,7 @@ export async function exportCardImage(card:any):Promise<{blob:Blob,file:File,fna
     return await buildSlabImage(slab,card,fill,rc);
   } finally { root.unmount(); holder.remove(); }
 }
-export default function GalleryView({cards,badgeSort}:{cards:any[];badgeSort?:string}){
+export default function GalleryView({cards,badgeSort,gameplay}:{cards:any[];badgeSort?:string;gameplay?:boolean}){
   useLang();
   const [activeSlug,setActiveSlug]=useState<string|null>(null);
   const [galleryCols,setGalleryCols]=useState(4);
@@ -329,7 +341,7 @@ export default function GalleryView({cards,badgeSort}:{cards:any[];badgeSort?:st
           </div>
         </div>
         <div ref={gridRef} style={{display:'grid',gridTemplateColumns:'repeat('+galleryCols+',1fr)',gap:gapFor(galleryCols),touchAction:'pan-y'}}>
-          {cards.slice(0,shown).map(c=>{const b=sortBadge(c,badgeSort);return(<GalleryCard key={c.slug} card={c} isFlipped={activeSlug===c.slug} onFlip={handleFlip} glowScale={glowScaleFor(galleryCols)} badgeText={b?.text} badgeTone={b?.tone}/>);})}
+          {cards.slice(0,shown).map(c=>{const b=gameplayBadge(c,badgeSort,gameplay);return(<GalleryCard key={c.slug} card={c} isFlipped={activeSlug===c.slug} onFlip={handleFlip} glowScale={glowScaleFor(galleryCols)} badgeText={b?.text} badgeTone={b?.tone}/>);})}
         </div>
         {shown<cards.length&&(<div ref={sentinelRef} style={{height:'1px'}}/>)}
         </>

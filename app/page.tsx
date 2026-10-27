@@ -3,10 +3,12 @@ import { useState, useEffect, useRef, memo, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import dynamic from 'next/dynamic';
 import GalleryView, { GalleryCard } from './components/GalleryView';
+import AccountSection from './components/AccountSections';
 import { StatPanel } from './components/StatPanel';
 // INSCRIPTIONS : fermees tant que NEXT_PUBLIC_SIGNUP_OPEN n'est pas 'true' (Vercel > Settings > Environment Variables). Les comptes existants peuvent toujours se connecter.
 const SIGNUP_OPEN=process.env.NEXT_PUBLIC_SIGNUP_OPEN==='true';
 import { setManager } from './lib-share';
+import { isArcadeCard, ARCADE_DEFAULT, activeInjury } from './lib/gameplay';
 import StarCanvas from './components/StarCanvas';
 import { t as tr, useLang, initLang, LangSwitch, getLang } from './i18n';
 
@@ -197,6 +199,17 @@ const FilterMenu=({title,options,current,onSelect}:any)=>{
   );
 };
 
+// Interrupteur de la sidebar (meme style que les menus de filtre) : Arcade, Gameplay
+const ToggleRow=({title,hint,on,onToggle}:any)=>{
+  useLang();
+  return(<div style={{padding:'0.35rem 0.5rem',marginBottom:'0.15rem'}}>
+    <button type='button' role='switch' aria-checked={on} onClick={onToggle} style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',gap:'0.5rem',background:'transparent',border:'none',padding:0,cursor:'pointer',textAlign:'left'}}>
+      <span><span style={{display:'block',fontSize:'0.64rem',fontWeight:800,letterSpacing:'0.14em',textTransform:'uppercase',color:'#eaf2ff'}}>{title}</span>{hint&&<span style={{display:'block',fontSize:'0.62rem',color:'#7a8898',marginTop:'0.05rem'}}>{hint}</span>}</span>
+      <span style={{flexShrink:0,width:'2rem',height:'1.05rem',borderRadius:'1rem',position:'relative',background:on?'linear-gradient(90deg,#00b4d8,#40e8ff)':'rgba(255,255,255,0.12)',boxShadow:on?'0 0 8px rgba(64,232,255,0.45)':'none',transition:'all 0.15s'}}><span style={{position:'absolute',top:'0.1rem',left:on?'1.05rem':'0.1rem',width:'0.85rem',height:'0.85rem',borderRadius:'50%',background:on?'#04121a':'#9fb0c4',transition:'left 0.15s'}}/></span>
+    </button>
+  </div>);
+};
+
 const COUNTRY_FR: Record<string,string> = {
   'be':'Belgique','ca':'Canada','de':'Allemagne','es':'Espagne',
   'fr':'France','gb-eng':'Angleterre','gb-sco':'Ecosse','gb-wls':'Pays de Galles',
@@ -352,6 +365,15 @@ export default function Home() {
   const [gCountry,setGCountry]=useState('all');
   const [gSort,setGSort]=useState('score');
   const [gDir,setGDir]=useState<'desc'|'asc'>('desc');
+  // Modes : Arcade (set Arcade uniquement) et Gameplay (outils de composition, caches par defaut pour garder la galerie propre)
+  const [arcadeOnly,setArcadeOnly]=useState(ARCADE_DEFAULT);
+  const [gameplay,setGameplay]=useState(false);
+  const [fComp,setFComp]=useState('all');
+  const [fStars,setFStars]=useState('all');
+  const [fAvail,setFAvail]=useState('all');
+  useEffect(()=>{try{const a=localStorage.getItem('mnfl_arcade');if(a!=null)setArcadeOnly(a==='1');const g=localStorage.getItem('mnfl_gameplay');if(g!=null)setGameplay(g==='1');}catch{}},[]);
+  const toggleArcade=()=>{const n=!arcadeOnly;setArcadeOnly(n);try{localStorage.setItem('mnfl_arcade',n?'1':'0');}catch{}setLockerStart(0);setFlippedSlug(null);};
+  const toggleGameplay=()=>{const n=!gameplay;setGameplay(n);try{localStorage.setItem('mnfl_gameplay',n?'1':'0');}catch{}};
   const [openPhase,setOpenPhase]=useState(0);
   const canvasRef=useRef<HTMLCanvasElement|null>(null);
   const mouseXYRef=useRef<{x:number,y:number}>({x:0,y:0});
@@ -433,7 +455,7 @@ export default function Home() {
   };
   const clearDefault=useCallback(()=>{ localStorage.removeItem('mynftlocker_default_team_'+slug); setDefaultTeam(''); },[slug]);
   const resetFilters=useCallback(()=>{
-    setGSport('nba');setGLeague('all');setGTeamCustom('all');setGCountry('all');setFSpecial('all');
+    setGSport('nba');setGLeague('all');setGTeamCustom('all');setGCountry('all');setFSpecial('all');setFComp('all');setFStars('all');setFAvail('all');
     setTeamApi(HOF_KEY);setLockerStart(0);setFlippedSlug(null);
     teamChosenRef.current=false;
   },[slug]);
@@ -591,6 +613,14 @@ export default function Home() {
   // Filtre cumulable applique a n'importe quelle liste
   const applyFilters=useCallback((list:any[])=>{
     return list.filter(c=>{
+      if(arcadeOnly && !isArcadeCard(c)) return false;
+      if(gameplay){
+        if(fComp==='inseason' && !c.inSeasonEligible) return false;
+        if(fComp==='classic' && c.inSeasonEligible) return false;
+        if(fStars!=='all' && Number(c.anyPlayer?.gameplayTierStars)!==Number(fStars)) return false;
+        if(fAvail==='ok' && activeInjury(c)) return false;
+        if(fAvail==='injured' && !activeInjury(c)) return false;
+      }
       if(fRarity!=='all' && c.rarityTyped!==fRarity) return false;
       if(fSeason!=='all' && c.seasonYear!==Number(fSeason)) return false;
       if(fSpecial==='standard' && isSpecialCard(c)) return false;
@@ -602,7 +632,7 @@ export default function Home() {
       }
       return true;
     });
-  },[fRarity,fSeason,fSpecial,fPlayer]);
+  },[fRarity,fSeason,fSpecial,fPlayer,arcadeOnly,gameplay,fComp,fStars,fAvail]);
 
   // Liste equipes : ordre alphabetique par ville + Hall of Fame en tete
   const teamList=useMemo(()=>{
@@ -665,7 +695,7 @@ export default function Home() {
   const teamsByCountry=useMemo(()=>{const m:Record<string,Set<string>>={};cards.filter((c:any)=>!isNBA(c)).forEach((c:any)=>{const co=c.anyTeam?.country?.slug;const nm=c.anyTeam?.name;if(nm){const key=co||'__NATIONAL__';(m[key]=m[key]||new Set<string>()).add(nm);}});const out:Record<string,string[]>={};for(const k in m)out[k]=Array.from(m[k]).sort();return out;},[cards]);
   const galleryTeamList=useMemo(()=>{const ts=new Set<string>();cards.filter(c=>isNBA(c)).forEach(c=>{if(!c.anyTeam?.name)return;ts.add(c.anyTeam.name);});return['all',...Array.from(ts).sort()] as string[];},[cards]);
   // Les tris Projection/Ecart n'existent que pour la NBA : retour au tri L10 si on passe au foot
-  useEffect(()=>{if(gSport!=='nba'&&(gSort==='proj'||gSort==='gain'||gSort==='projstar'))setGSort('score');},[gSport,gSort]);
+  useEffect(()=>{if((gSport!=='nba'||!gameplay)&&(gSort==='proj'||gSort==='gain'||gSort==='projstar'))setGSort('score');},[gSport,gSort,gameplay]);
   const filteredGallery=useMemo(()=>{let base=cards.filter((c:any)=>gSport==='nba'?isNBA(c):!isNBA(c));let r=applyFilters(base);if(gSport==='foot'&&gCountry!=='all'){if(gCountry==='__NATIONAL__')r=r.filter((c:any)=>!c.anyTeam?.country?.slug&&c.anyTeam?.name);else r=r.filter((c:any)=>c.anyTeam?.country?.slug===gCountry);}if(gTeamCustom!=='all')r=r.filter((c:any)=>(c.anyTeam?.name||'')===gTeamCustom);// tri de base (toujours calcule en "desc" logique, le sens final est applique ensuite via gDir)
     let sorted:any[];
     if(gSort==='rarity')sorted=[...r].sort((a:any,b:any)=>(RARITY_ORDER[a.rarityTyped]??9)-(RARITY_ORDER[b.rarityTyped]??9));
@@ -719,6 +749,10 @@ export default function Home() {
   // Bloc filtres vertical (barre laterale)
   const rarityOpts=[{value:'all',label:tr('Toutes les raretés')},{value:'common',label:'Set'},{value:'limited',label:'Limited'},{value:'rare',label:'Rare'},{value:'super_rare',label:'Super Rare'},{value:'unique',label:'Unique'}];
   const seasonOpts=[{value:'all',label:tr('Toutes les saisons')},...seasonOptions.map(y=>({value:String(y),label:y+'-'+String((y+1)%100).padStart(2,'0')}))];
+  const arcadeCount=cards.filter((c:any)=>(gSport==='nba'?isNBA(c):!isNBA(c))&&isArcadeCard(c)).length;
+  const compOpts=[{value:'all',label:tr('Toutes')},{value:'inseason',label:'In-Season'},{value:'classic',label:'Classic'}];
+  const starOpts=[{value:'all',label:tr('Toutes')},...[...new Set(cards.filter((c:any)=>(gSport==='nba'?isNBA(c):!isNBA(c))&&Number(c.anyPlayer?.gameplayTierStars)>0).map((c:any)=>Number(c.anyPlayer.gameplayTierStars)))].sort((a:number,b:number)=>b-a).map((v:number)=>({value:String(v),label:v+' ★'}))];
+  const availOpts=[{value:'all',label:tr('Tous')},{value:'ok',label:tr('Sans blessure')},{value:'injured',label:tr('Blessés')}];
   const specialOpts=[{value:'all',label:tr('Toutes les cartes')},{value:'standard',label:tr('Standard uniquement')},{value:'special',label:tr('Spéciales uniquement')},...specialOptions.map(s=>({value:s,label:s.charAt(0)+s.slice(1).toLowerCase()}))]; // labels en "Majuscule initiale" (valeurs techniques inchangées)
   // (composant Filters retiré — filtres inlinés dans la sidebar)
 
@@ -790,6 +824,8 @@ export default function Home() {
         {cards.length>0&&(
           <div style={{textAlign:'left',flex:1,minHeight:0,display:'flex',flexDirection:'column' as const,gap:0,borderTop:'1px solid rgba(255,255,255,0.06)',paddingTop:'0.3rem'}}>
             <FilterMenu title='Sport' options={[{value:'nba',label:'NBA'},{value:'foot',label:'Football'}]} current={gSport} onSelect={(v:string)=>{setGSport(v as any);setGLeague('all');setGTeamCustom('all');setFSpecial('all');setTeamApi(HOF_KEY);setLockerStart(0);setFlippedSlug(null);teamChosenRef.current=false;}}/>
+            <ToggleRow title='Arcade' hint={tr('Set Arcade uniquement')} on={arcadeOnly} onToggle={toggleArcade}/>
+            {arcadeOnly&&arcadeCount===0&&<p style={{fontSize:'0.62rem',color:'#f5d76e',margin:'0 0.5rem 0.3rem'}}>{tr('Aucune carte Arcade pour ce sport')}</p>}
             <div style={{padding:'0.2rem 0.5rem'}}>
               <p style={{fontSize:'0.64rem',fontWeight:800,letterSpacing:'0.14em',textTransform:'uppercase',color:'#eaf2ff',margin:'0 0 0.2rem'}}>{tr('Joueur')}</p>
               <input style={{width:'100%',boxSizing:'border-box',background:'rgba(255,255,255,0.05)',color:'#e8eefc',padding:'0.3rem 0.5rem',borderRadius:'0.15rem',border:'1px solid rgba(255,255,255,0.12)',outline:'none',fontSize:'0.76rem'}} placeholder={tr('Rechercher...')} value={fPlayer} onChange={e=>setFPlayer(e.target.value)}/>
@@ -802,7 +838,13 @@ export default function Home() {
             <FilterMenu title={tr('Saison')} options={seasonOpts} current={fSeason} onSelect={setFSeason}/>
             <FilterMenu title={tr('Rareté')} options={rarityOpts} current={fRarity} onSelect={setFRarity}/>
             <FilterMenu title={tr('Édition de la carte')} options={specialOpts} current={fSpecial} onSelect={setFSpecial}/>
-            <FilterMenu title={tr('Tri')} options={mode==='locker'?[{value:'majeur',label:'L10 Max'},{value:'manual',label:tr('Manuel')},{value:'collection',label:tr('Alphabétique')}]:[{value:'default',label:tr('Défaut')},{value:'score',label:'L10'},{value:'beat',label:'%Beat L10'},{value:'record',label:'GW Record'},{value:'stars',label:tr('Étoiles')},{value:'rarity',label:tr('Rareté')},...(gSport==='nba'?[{value:'proj',label:tr('Projection')},{value:'gain',label:tr('Écart')},{value:'projstar',label:tr('Proj. / ★')}]:[]),{value:'name',label:tr('Nom')}]} current={mode==='locker'?lockerSort:gSort} onSelect={(v:string)=>{if(mode==='locker'){setLockerSort(v as any);}else{setGSort(v as any);}}}/>
+            <ToggleRow title='Gameplay' hint={tr('Outils de composition')} on={gameplay} onToggle={toggleGameplay}/>
+            {gameplay&&(<>
+              <FilterMenu title={tr('Compétition')} options={compOpts} current={fComp} onSelect={setFComp}/>
+              <FilterMenu title={tr('Étoiles')} options={starOpts} current={fStars} onSelect={setFStars}/>
+              <FilterMenu title={tr('Disponibilité')} options={availOpts} current={fAvail} onSelect={setFAvail}/>
+            </>)}
+            <FilterMenu title={tr('Tri')} options={mode==='locker'?[{value:'majeur',label:'L10 Max'},{value:'manual',label:tr('Manuel')},{value:'collection',label:tr('Alphabétique')}]:[{value:'default',label:tr('Défaut')},{value:'score',label:'L10'},{value:'beat',label:'%Beat L10'},{value:'record',label:'GW Record'},{value:'stars',label:tr('Étoiles')},{value:'rarity',label:tr('Rareté')},...(gSport==='nba'&&gameplay?[{value:'proj',label:tr('Projection')},{value:'gain',label:tr('Écart')},{value:'projstar',label:tr('Proj. / ★')}]:[]),{value:'name',label:tr('Nom')}]} current={mode==='locker'?lockerSort:gSort} onSelect={(v:string)=>{if(mode==='locker'){setLockerSort(v as any);}else{setGSort(v as any);}}}/>
             {(mode==='gallery'||lockerSort==='collection')&&(
               <button onClick={()=>setGDir(d=>d==='desc'?'asc':'desc')} style={{width:'100%',boxSizing:'border-box' as const,padding:'0.3rem',marginTop:'0.45rem',background:'rgba(64,232,255,0.08)',border:'1px solid rgba(64,232,255,0.3)',borderRadius:'0.18rem',color:'#40e8ff',fontSize:'0.64rem',cursor:'pointer',letterSpacing:'0.08em',display:'flex',alignItems:'center',justifyContent:'center',gap:'0.4rem'}}>{gDir==='desc'?tr('↓ Décroissant'):tr('↑ Croissant')}</button>
             )}
@@ -845,13 +887,7 @@ export default function Home() {
                   <button onClick={()=>{setAcctMenuSection(null);setAuthMode('login');setAuthOpen(true);}} style={{background:'rgba(64,232,255,0.12)',border:'1px solid rgba(64,232,255,0.5)',color:'#40e8ff',padding:'0.6rem 2rem',fontSize:'0.78rem',fontWeight:700,letterSpacing:'0.12em',textTransform:'uppercase',cursor:'pointer',borderRadius:'3px'}}>{tr('Se connecter')}</button>
                 </div>
               ))}
-              {acctMenuSection!=='infos'&&(
-                <div style={{textAlign:'center',padding:'3rem 1rem'}}>
-                  <div style={{fontSize:'2.2rem',marginBottom:'1rem',opacity:0.5}}>🚧</div>
-                  <p style={{color:'#cfe4fb',fontSize:'1rem',fontWeight:600,marginBottom:'0.5rem'}}>{tr('Bientot disponible')}</p>
-                  <p style={{color:'#7a8898',fontSize:'0.8rem',lineHeight:1.6,maxWidth:'360px',margin:'0 auto'}}>{acctMenuSection==='auth'?'Tu pourras bientot connecter ton compte Sorare officiel ici.':acctMenuSection==='abo'?'Les formules d’abonnement seront proposees ici le moment venu.':acctMenuSection==='confidentialite'?'Gestion de tes données et suppression de compte à venir.':tr('Un espace d’aide et de contact arrive prochainement.')}</p>
-                </div>
-              )}
+              {acctMenuSection!=='infos'&&(<AccountSection section={acctMenuSection} user={currentUser} onLogin={()=>{setAcctMenuSection(null);setAuthMode('login');setAuthOpen(true);}} onDeleted={()=>{setCurrentUser(null);setAcctOpen(false);setAcctMenuSection(null);}}/>)}
             </div>
           </div>
           );
@@ -940,7 +976,7 @@ export default function Home() {
                 {openPhase===2&&<p style={{color:'rgba(0,225,255,0.65)',fontFamily:'Courier New,monospace',letterSpacing:'0.22em',fontSize:'0.68rem',animation:'cyanPulse 0.4s ease-in-out infinite'}}>{loading?'SCAN EN COURS...':tr('DONNÉES CHARGÉES')}</p>}
               </div>
             )}
-            <div style={{position:'fixed',bottom:'1rem',left:'50%',transform:'translateX(-50%)',zIndex:2,display:'flex',gap:'2.5rem',alignItems:'center'}}><a href='https://sorare.com' target='_blank' rel='noreferrer' style={{color:'rgba(255,255,255,0.2)',fontSize:'0.6rem',letterSpacing:'0.14em',textTransform:'uppercase',textDecoration:'none',fontFamily:'Courier New,monospace',transition:'color 0.2s',pointerEvents:'auto'}} onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.color='rgba(64,232,255,0.6)';}} onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.color='rgba(255,255,255,0.2)';}}>SORARE</a><span style={{color:'rgba(255,255,255,0.1)',fontSize:'0.5rem'}}>|</span><a href='#' style={{color:'rgba(255,255,255,0.15)',fontSize:'0.6rem',letterSpacing:'0.14em',textTransform:'uppercase',textDecoration:'none',fontFamily:'Courier New,monospace',pointerEvents:'auto',transition:'color 0.2s'}} onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.color='rgba(64,232,255,0.6)';}} onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.color='rgba(255,255,255,0.15)';}}>{tr('CGU')}</a><span style={{color:'rgba(255,255,255,0.1)',fontSize:'0.5rem'}}>|</span><LangSwitch/></div>
+            <div style={{position:'fixed',bottom:'1rem',left:'50%',transform:'translateX(-50%)',zIndex:2,display:'flex',gap:'2.5rem',alignItems:'center'}}><a href='https://sorare.com' target='_blank' rel='noreferrer' style={{color:'rgba(255,255,255,0.2)',fontSize:'0.6rem',letterSpacing:'0.14em',textTransform:'uppercase',textDecoration:'none',fontFamily:'Courier New,monospace',transition:'color 0.2s',pointerEvents:'auto'}} onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.color='rgba(64,232,255,0.6)';}} onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.color='rgba(255,255,255,0.2)';}}>SORARE</a><span style={{color:'rgba(255,255,255,0.1)',fontSize:'0.5rem'}}>|</span><a href='/cgu' target='_blank' rel='noopener noreferrer' style={{color:'rgba(255,255,255,0.15)',fontSize:'0.6rem',letterSpacing:'0.14em',textTransform:'uppercase',textDecoration:'none',fontFamily:'Courier New,monospace',pointerEvents:'auto',transition:'color 0.2s'}} onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.color='rgba(64,232,255,0.6)';}} onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.color='rgba(255,255,255,0.15)';}}>{tr('CGU')}</a><span style={{color:'rgba(255,255,255,0.1)',fontSize:'0.5rem'}}>|</span><LangSwitch/></div>
           </div>
         )}
         {cards.length>0&&(
@@ -956,7 +992,7 @@ export default function Home() {
     
       {(mode==='gallery'||galleryWarm)&&(
             <div style={{...galleryBg,minHeight:'100vh',display:mode==='gallery'?'block':'none'}}>
-              <GalleryView cards={filteredGallery} badgeSort={mode==='gallery'?gSort:undefined}/>
+              <GalleryView cards={filteredGallery} badgeSort={mode==='gallery'?gSort:undefined} gameplay={gameplay}/>
             </div>
           )}
           </div>
@@ -1063,6 +1099,8 @@ export default function Home() {
           <div style={{flex:1,overflowY:'auto'}}>
           <div style={{textAlign:'left',flex:1,minHeight:0,display:'flex',flexDirection:'column' as const,gap:0,borderTop:'1px solid rgba(255,255,255,0.06)',paddingTop:'0.3rem'}}>
             <FilterMenu title='Sport' options={[{value:'nba',label:'NBA'},{value:'foot',label:'Football'}]} current={gSport} onSelect={(v:string)=>{setGSport(v as any);setGLeague('all');setGTeamCustom('all');setFSpecial('all');setTeamApi(HOF_KEY);setLockerStart(0);setFlippedSlug(null);teamChosenRef.current=false;}}/>
+            <ToggleRow title='Arcade' hint={tr('Set Arcade uniquement')} on={arcadeOnly} onToggle={toggleArcade}/>
+            {arcadeOnly&&arcadeCount===0&&<p style={{fontSize:'0.62rem',color:'#f5d76e',margin:'0 0.5rem 0.3rem'}}>{tr('Aucune carte Arcade pour ce sport')}</p>}
             <div style={{padding:'0.2rem 0.5rem'}}>
               <p style={{fontSize:'0.64rem',fontWeight:800,letterSpacing:'0.14em',textTransform:'uppercase',color:'#eaf2ff',margin:'0 0 0.2rem'}}>{tr('Joueur')}</p>
               <input style={{width:'100%',boxSizing:'border-box',background:'rgba(255,255,255,0.05)',color:'#e8eefc',padding:'0.3rem 0.5rem',borderRadius:'0.15rem',border:'1px solid rgba(255,255,255,0.12)',outline:'none',fontSize:'0.76rem'}} placeholder={tr('Rechercher...')} value={fPlayer} onChange={e=>setFPlayer(e.target.value)}/>
@@ -1075,7 +1113,13 @@ export default function Home() {
             <FilterMenu title={tr('Saison')} options={seasonOpts} current={fSeason} onSelect={setFSeason}/>
             <FilterMenu title={tr('Rareté')} options={rarityOpts} current={fRarity} onSelect={setFRarity}/>
             <FilterMenu title={tr('Édition de la carte')} options={specialOpts} current={fSpecial} onSelect={setFSpecial}/>
-            <FilterMenu title={tr('Tri')} options={mode==='locker'?[{value:'majeur',label:'L10 Max'},{value:'manual',label:tr('Manuel')},{value:'collection',label:tr('Alphabétique')}]:[{value:'default',label:tr('Défaut')},{value:'score',label:'L10'},{value:'beat',label:'%Beat L10'},{value:'record',label:'GW Record'},{value:'stars',label:tr('Étoiles')},{value:'rarity',label:tr('Rareté')},...(gSport==='nba'?[{value:'proj',label:tr('Projection')},{value:'gain',label:tr('Écart')},{value:'projstar',label:tr('Proj. / ★')}]:[]),{value:'name',label:tr('Nom')}]} current={mode==='locker'?lockerSort:gSort} onSelect={(v:string)=>{if(mode==='locker'){setLockerSort(v as any);}else{setGSort(v as any);}}}/>
+            <ToggleRow title='Gameplay' hint={tr('Outils de composition')} on={gameplay} onToggle={toggleGameplay}/>
+            {gameplay&&(<>
+              <FilterMenu title={tr('Compétition')} options={compOpts} current={fComp} onSelect={setFComp}/>
+              <FilterMenu title={tr('Étoiles')} options={starOpts} current={fStars} onSelect={setFStars}/>
+              <FilterMenu title={tr('Disponibilité')} options={availOpts} current={fAvail} onSelect={setFAvail}/>
+            </>)}
+            <FilterMenu title={tr('Tri')} options={mode==='locker'?[{value:'majeur',label:'L10 Max'},{value:'manual',label:tr('Manuel')},{value:'collection',label:tr('Alphabétique')}]:[{value:'default',label:tr('Défaut')},{value:'score',label:'L10'},{value:'beat',label:'%Beat L10'},{value:'record',label:'GW Record'},{value:'stars',label:tr('Étoiles')},{value:'rarity',label:tr('Rareté')},...(gSport==='nba'&&gameplay?[{value:'proj',label:tr('Projection')},{value:'gain',label:tr('Écart')},{value:'projstar',label:tr('Proj. / ★')}]:[]),{value:'name',label:tr('Nom')}]} current={mode==='locker'?lockerSort:gSort} onSelect={(v:string)=>{if(mode==='locker'){setLockerSort(v as any);}else{setGSort(v as any);}}}/>
             {(mode==='gallery'||lockerSort==='collection')&&(
               <button onClick={()=>setGDir(d=>d==='desc'?'asc':'desc')} style={{width:'100%',boxSizing:'border-box' as const,padding:'0.3rem',marginTop:'0.45rem',background:'rgba(64,232,255,0.08)',border:'1px solid rgba(64,232,255,0.3)',borderRadius:'0.18rem',color:'#40e8ff',fontSize:'0.64rem',cursor:'pointer',letterSpacing:'0.08em',display:'flex',alignItems:'center',justifyContent:'center',gap:'0.4rem'}}>{gDir==='desc'?tr('↓ Décroissant'):tr('↑ Croissant')}</button>
             )}

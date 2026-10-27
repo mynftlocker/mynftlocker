@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { BEST_APPEARANCE_FRAG, gwRecordOf } from '../../lib/gwRecord';
 
 // Beat L10 : on lit le compteur OFFICIEL de Sorare (card.cardStats.highlightedStats, type BEAT_L10),
 // c'est exactement ce qui est affiche au dos de la carte. Sorare gere lui-meme l'echantillon et exclut la presaison.
@@ -8,7 +9,7 @@ export async function GET(request: NextRequest) {
   const slug = (request.nextUrl.searchParams.get('slug') || '').trim();
   if (!slug) return NextResponse.json({}, { status: 200 });
 
-  const frag = `cardStats{ so5LineupsCount bestSo5Appearance{ score } highlightedStats{ type value } }`;
+  const frag = `cardStats{ so5LineupsCount ${BEST_APPEARANCE_FRAG} highlightedStats{ type value } }`;
   const query = `query{ anyCard(slug:"${slug}"){ __typename ...on NBACard{ ${frag} } ...on Card{ ${frag} } } }`;
   try {
     const headers: Record<string, string> = { 'Content-Type': 'application/json', 'Accept': 'application/json' };
@@ -31,7 +32,7 @@ export async function GET(request: NextRequest) {
     const beatL10 = findVal(/BEAT_L10/i);
     // GW = nombre de gameweeks ou la carte a ete alignee (so5LineupsCount) -> denominateur du %
     const gw = (cs.so5LineupsCount != null && Number(cs.so5LineupsCount) > 0) ? Number(cs.so5LineupsCount) : findVal(/GAME_?WEEK|^GW$|PLAYED|APPEARANCE|MATCH/i);
-    const highest = cs.bestSo5Appearance?.score != null ? Math.round(Number(cs.bestSo5Appearance.score)) : findVal(/HIGHEST/i);
+    const highest = gwRecordOf(cs.bestSo5Appearance) != null ? Math.round(gwRecordOf(cs.bestSo5Appearance) as number) : findVal(/HIGHEST/i);
     const pct = (beatL10 != null && gw && gw > 0) ? Math.round((beatL10 / gw) * 100) : null;
     return NextResponse.json({ beatL10, gw, highest, pct, raw: hs.map((h) => ({ type: h?.type, value: h?.value })) });
   } catch (e) {

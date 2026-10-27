@@ -34,7 +34,7 @@ export function useLang(): Lang {
 const EN: Record<string, string> = {
   // --- Navigation / filtres ---
   'Vestiaire': 'Locker room', 'Galerie': 'Gallery', 'Joueur': 'Player', 'Équipe': 'Team', 'Saison': 'Season',
-  'Rareté': 'Scarcity', 'Projection': 'Projection', 'Écart': 'Gap', 'ÉCART': 'GAP', 'Proj. / ★': 'Proj. / ★', 'Édition de la carte': 'Card edition', 'Tri': 'Sort', 'Alphabétique': 'Alphabetical',
+  'Rareté': 'Scarcity', 'Set Arcade uniquement': 'Arcade set only', 'Aucune carte Arcade pour ce sport': 'No Arcade cards for this sport', 'Outils de composition': 'Lineup tools', 'Compétition': 'Competition', 'Disponibilité': 'Availability', 'Toutes': 'All', 'Tous': 'All', 'Sans blessure': 'Healthy', 'Blessés': 'Injured', 'Projection': 'Projection', 'Écart': 'Gap', 'ÉCART': 'GAP', 'Proj. / ★': 'Proj. / ★', 'Édition de la carte': 'Card edition', 'Tri': 'Sort', 'Alphabétique': 'Alphabetical',
   'Défaut': 'Default', 'Étoiles': 'Stars', '↓ Décroissant': '↓ Descending', '↑ Croissant': '↑ Ascending',
   '↺ Réinitialiser les filtres': '↺ Reset filters', '⭐ Par défaut :': '⭐ Default:',
   '⭐ Définir comme équipe par défaut': '⭐ Set as default team', 'Filtres': 'Filters', 'FILTRES': 'FILTERS',
