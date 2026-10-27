@@ -604,7 +604,7 @@ export default function Home() {
       const body = authMode==='signup' ? {pseudo:authPseudo,email:authEmail,password:authPassword,sorareSlug:authSlugField||undefined,lang:getLang()} : {email:authEmail,password:authPassword};
       const r = await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
       const d = await r.json();
-      if(!r.ok){ setAuthError(d.error==='email_deja_utilise'?'Cet email est déjà utilisé.':d.error==='identifiants_invalides'?'Email ou mot de passe incorrect.':d.error==='mot_de_passe_invalide'?'Mot de passe : 8 caracteres min, 1 majuscule, 1 chiffre, 1 caractere special.':d.error==='slug_requis'?'Le slug Sorare est obligatoire.':tr('Une erreur est survenue.')); setAuthLoading(false); return; }
+      if(!r.ok){ setAuthError(d.error==='email_deja_utilise'?'Cet email est déjà utilisé.':d.error==='identifiants_invalides'?'Email ou mot de passe incorrect.':d.error==='mot_de_passe_invalide'?'Mot de passe : 10 caractères minimum, avec au moins une lettre et un chiffre.':d.error==='slug_requis'?'Le slug Sorare est obligatoire.':tr('Une erreur est survenue.')); setAuthLoading(false); return; }
       if(d.pendingVerification){
         setAuthLoading(false);
         setAuthError('');
@@ -1068,7 +1068,7 @@ export default function Home() {
                 style={{position:'absolute',right:'0.6rem',top:'50%',transform:'translateY(-50%)',cursor:'pointer',fontSize:'1.15rem',color:'rgba(64,232,255,0.85)',userSelect:'none' as const}}>👁</span>
             </div>
             {authMode==='signup'&&<input value={authPasswordConfirm} name='confirm-password' autoComplete='new-password' onChange={e=>setAuthPasswordConfirm(e.target.value)} placeholder={tr('Confirmer le mot de passe')} type={authShowPassword?'text':'password'} style={{width:'100%',boxSizing:'border-box' as const,background:'rgba(255,255,255,0.05)',border:'1px solid '+(authPasswordConfirm&&authPassword!==authPasswordConfirm?'rgba(252,165,165,0.6)':'rgba(64,232,255,0.3)'),color:'#cfe4fb',padding:'0.5rem 0.6rem',fontSize:'0.8rem',marginBottom:'0.3rem',fontFamily:'Courier New,monospace',outline:'none'}}/>}
-            {authMode==='signup'&&<p style={{fontSize:'0.58rem',color:'rgba(207,228,251,0.45)',marginBottom:'0.7rem',lineHeight:1.4}}>{tr('8 caracteres min, 1 majuscule, 1 chiffre, 1 caractere special.')}</p>}
+            {authMode==='signup'&&<p style={{fontSize:'0.58rem',color:'rgba(207,228,251,0.45)',marginBottom:'0.7rem',lineHeight:1.4}}>{tr('10 caractères minimum, avec au moins une lettre et un chiffre.')}</p>}
             {authError&&<p style={{color:'#fca5a5',fontSize:'0.66rem',marginBottom:'0.6rem'}}>{tr(authError)}</p>}
             {authVerifyPending&&<p style={{color:'#7dd3fc',fontSize:'0.68rem',marginBottom:'0.7rem',lineHeight:1.5}}>{tr('Compte créé ! Vérifie ta boîte mail (et les spams) pour confirmer ton adresse avant de te connecter.')}</p>}
             <button type='submit' disabled={authLoading||authVerifyPending} style={{width:'100%',background:'rgba(64,232,255,0.12)',border:'1px solid rgba(64,232,255,0.5)',color:'#40e8ff',padding:'0.55rem',fontSize:'0.72rem',fontWeight:700,letterSpacing:'0.15em',textTransform:'uppercase',cursor:authLoading?'not-allowed':'pointer',fontFamily:'Courier New,monospace',opacity:authLoading?0.5:1}}>{authLoading?'...':(authMode==='signup'?tr("S'inscrire"):tr('Se connecter'))}</button>

@@ -19,10 +19,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'email_invalide' }, { status: 400 });
     }
     const pwdOk = typeof password === 'string'
-      && password.length >= 8
-      && /[A-Z]/.test(password)
-      && /[0-9]/.test(password)
-      && /[^A-Za-z0-9]/.test(password);
+      && password.length >= 10
+      && /[A-Za-z]/.test(password)
+      && /[0-9]/.test(password);
     if (!pwdOk) {
       return NextResponse.json({ error: 'mot_de_passe_invalide' }, { status: 400 });
     }

@@ -61,10 +61,10 @@ const EN: Record<string, string> = {
   'Slug Sorare (ex: pseudo-email-com)': 'Sorare slug (e.g. username-email-com)', 'Confirmer le mot de passe': 'Confirm password',
   'Compte créé ! Vérifie ta boîte mail (et les spams) pour confirmer ton adresse avant de te connecter.': 'Account created! Check your inbox (and spam) to confirm your address before logging in.',
   'Deja un compte ? ': 'Already have an account? ', 'Pas encore de compte ? ': 'No account yet? ',
-  '8 caracteres min, 1 majuscule, 1 chiffre, 1 caractere special.': '8 characters min, 1 uppercase, 1 digit, 1 special character.',
+  '10 caractères minimum, avec au moins une lettre et un chiffre.': '10 characters minimum, with at least one letter and one digit.',
   'Les mots de passe ne correspondent pas.': 'Passwords do not match.', 'Cet email est déjà utilisé.': 'This email is already in use.',
   'Email ou mot de passe incorrect.': 'Incorrect email or password.',
-  'Mot de passe : 8 caracteres min, 1 majuscule, 1 chiffre, 1 caractere special.': 'Password: 8 characters min, 1 uppercase, 1 digit, 1 special character.',
+  'Mot de passe : 10 caractères minimum, avec au moins une lettre et un chiffre.': 'Password: 10 characters minimum, with at least one letter and one digit.',
   'Le slug Sorare est obligatoire.': 'The Sorare slug is required.', 'Une erreur est survenue.': 'Something went wrong.',
   'Connexion au serveur impossible.': 'Cannot reach the server.', 'Joueur introuvable': 'Player not found', 'Erreur réseau': 'Network error',
   // --- Ecran d'accueil ---

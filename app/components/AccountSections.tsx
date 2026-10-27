@@ -7,7 +7,7 @@ addEn({
   'Connexion': 'Sign-in', 'E-mail + mot de passe': 'Email + password', 'Compte Sorare lié': 'Linked Sorare account',
   'Changer le mot de passe': 'Change password', 'Mot de passe actuel': 'Current password', 'Nouveau mot de passe': 'New password', 'Confirmer le nouveau mot de passe': 'Confirm new password',
   'Mettre à jour': 'Update', 'Mot de passe mis à jour.': 'Password updated.', 'Mot de passe actuel incorrect.': 'Current password is incorrect.',
-  '8 caractères minimum, avec une majuscule, un chiffre et un caractère spécial.': 'At least 8 characters, with an uppercase letter, a number and a special character.',
+  '10 caractères minimum, avec au moins une lettre et un chiffre.': '10 characters minimum, with at least one letter and one digit.',
   'Les deux mots de passe ne correspondent pas.': 'The two passwords do not match.', 'Erreur, réessaie dans un instant.': 'Something went wrong, please try again in a moment.',
   'La connexion avec ton compte Sorare officiel arrive prochainement.': 'Signing in with your official Sorare account is coming soon.',
   'Connecte-toi pour gérer ton compte.': 'Sign in to manage your account.',
@@ -36,14 +36,14 @@ const txt:React.CSSProperties={fontSize:'0.8rem',color:'#b9c7d9',lineHeight:1.65
 const input:React.CSSProperties={width:'100%',boxSizing:'border-box',background:'rgba(255,255,255,0.05)',color:'#e8eefc',padding:'0.5rem 0.7rem',borderRadius:'0.2rem',border:'1px solid rgba(255,255,255,0.14)',outline:'none',fontSize:'0.85rem',marginBottom:'0.5rem'};
 const btn=(danger?:boolean):React.CSSProperties=>({background:danger?'rgba(255,107,107,0.12)':'rgba(64,232,255,0.12)',border:'1px solid '+(danger?'rgba(255,107,107,0.55)':'rgba(64,232,255,0.5)'),color:danger?'#ff8a8a':'#40e8ff',padding:'0.55rem 1.4rem',fontSize:'0.74rem',fontWeight:700,letterSpacing:'0.1em',textTransform:'uppercase',cursor:'pointer',borderRadius:'3px'});
 
-const pwdOk=(p:string)=>p.length>=8&&/[A-Z]/.test(p)&&/[0-9]/.test(p)&&/[^A-Za-z0-9]/.test(p);
+const pwdOk=(p:string)=>p.length>=10&&/[A-Za-z]/.test(p)&&/[0-9]/.test(p);
 
 function ChangePassword(){
   useLang();
   const [cur,setCur]=useState('');const [nw,setNw]=useState('');const [cf,setCf]=useState('');
   const [msg,setMsg]=useState<{ok:boolean;text:string}|null>(null);const [busy,setBusy]=useState(false);
   const submit=async()=>{
-    if(!pwdOk(nw)){setMsg({ok:false,text:tr('8 caractères minimum, avec une majuscule, un chiffre et un caractère spécial.')});return;}
+    if(!pwdOk(nw)){setMsg({ok:false,text:tr('10 caractères minimum, avec au moins une lettre et un chiffre.')});return;}
     if(nw!==cf){setMsg({ok:false,text:tr('Les deux mots de passe ne correspondent pas.')});return;}
     setBusy(true);setMsg(null);
     try{
