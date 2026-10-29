@@ -558,7 +558,7 @@ export default function Home() {
   };
   const handleIntroClick=useCallback(()=>{if(!slug||loading||openPhase>0)return;fragStartedRef.current=false;setOpenPhase(1);fetchCards();},[slug,loading,openPhase]);
   // ===== AUTH : compte myNFTlocker (inscription/connexion) =====
-  const [currentUser,setCurrentUser]=useState<{pseudo:string;email:string;sorareSlug:string|null}|null>(null);
+  const [currentUser,setCurrentUser]=useState<{pseudo:string;email:string;sorareSlug:string|null;pseudoChangedAt?:number|null;hasPassword?:boolean}|null>(null);
   const [authOpen,setAuthOpen]=useState(false);
   const [authClosing,setAuthClosing]=useState(false);
   const [authMode,setAuthMode]=useState<'signup'|'login'>('signup');
@@ -573,6 +573,18 @@ export default function Home() {
   const [slugDraft,setSlugDraft]=useState('');
   const [slugBusy,setSlugBusy]=useState(false);
   const [needSlug,setNeedSlug]=useState(false); // compte cree via Google : il manque encore le slug Sorare
+  const [setupPseudo,setSetupPseudo]=useState(''); // ecran Bienvenue : pseudo choisi en meme temps que le slug
+  // PSEUDO (1 changement / 3 mois) et E-MAIL (confirmation par lien) modifiables dans Informations personnelles
+  const [pseudoEditing,setPseudoEditing]=useState(false);
+  const [pseudoDraft,setPseudoDraft]=useState('');
+  const [pseudoBusy,setPseudoBusy]=useState(false);
+  const [pseudoMsg,setPseudoMsg]=useState<{ok:boolean;text:string}|null>(null);
+  const [emailEditing,setEmailEditing]=useState(false);
+  const [emailDraft,setEmailDraft]=useState('');
+  const [emailPwd,setEmailPwd]=useState('');
+  const [emailBusy,setEmailBusy]=useState(false);
+  const [emailMsg,setEmailMsg]=useState<{ok:boolean;text:string}|null>(null);
+  const [emailNotice,setEmailNotice]=useState<{ok:boolean;text:string}|null>(null);
   const [slugMsg,setSlugMsg]=useState<{ok:boolean;text:string}|null>(null);
   const currentUserRef=useRef<typeof currentUser>(null);
   currentUserRef.current=currentUser;
@@ -601,8 +613,9 @@ export default function Home() {
     }catch(e){}
   },[]);
   useEffect(()=>{
+    try{ const em=new URLSearchParams(window.location.search).get('email'); if(em){ setEmailNotice(em==='changed'?{ok:true,text:'Adresse e-mail modifiée. Utilise-la dès maintenant pour te connecter.'}:{ok:false,text:em==='expired'?'Ce lien a expiré. Refais la demande depuis Informations personnelles.':em==='taken'?'Cette adresse est déjà utilisée par un autre compte.':'Impossible de confirmer cette adresse, réessaie.'}); window.history.replaceState({},'','/'); } }catch(e){}
     try{ const g=new URLSearchParams(window.location.search).get('google'); if(g==='error'||g==='closed'){ setAuthMode('login'); setAuthError(g==='closed'?'Les inscriptions ne sont pas encore ouvertes.':'Connexion Google impossible, réessaie.'); setAuthOpen(true); } }catch(e){}
-    fetch('/api/auth/me').then(r=>r.json()).then(d=>{ if(d.loggedIn){ setCurrentUser({pseudo:d.pseudo,email:d.email,sorareSlug:d.sorareSlug}); if(!d.sorareSlug){ setNeedSlug(true); setSlugDraft(''); } if(d.sorareSlug&&!urlSlugRef.current){ setSlug(d.sorareSlug); setJustLoggedIn(true); } } }).catch(()=>{});
+    fetch('/api/auth/me').then(r=>r.json()).then(d=>{ if(d.loggedIn){ setCurrentUser({pseudo:d.pseudo,email:d.email,sorareSlug:d.sorareSlug,pseudoChangedAt:d.pseudoChangedAt,hasPassword:d.hasPassword}); if(!d.sorareSlug){ setNeedSlug(true); setSlugDraft(''); setSetupPseudo(d.pseudo||''); } if(d.sorareSlug&&!urlSlugRef.current){ setSlug(d.sorareSlug); setJustLoggedIn(true); } } }).catch(()=>{});
   },[]);
   // ===== PREFERENCES DU COMPTE : recuperees a la connexion (le compte l'emporte), puis recopiees dans le compte des qu'elles changent =====
   slugNowRef.current=slug;
@@ -835,20 +848,52 @@ export default function Home() {
   const openManager=(sl:string)=>{setAcctMenuSection(null);setOpenPhase(0);setCards([]);setError('');setFlippedSlug(null);setLockerStart(0);setSlugPanelOpen(false);setSlug(sl);setJustLoggedIn(true);};
   const startSlugEdit=()=>{setSlugDraft(slugProblem||currentUser?.sorareSlug||'');setSlugMsg(null);setSlugEditing(true);};
   const saveSlug=async()=>{
-    if(slugBusy||slugCheckDraft.s!=='ok')return;
+    if(slugBusy||slugCheckDraft.s!=='ok'||(needSlug&&setupPseudo.trim().length<2))return;
     setSlugBusy(true);setSlugMsg(null);
     try{
-      const r=await fetch('/api/auth/slug',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({slug:slugDraft})});
+      const r=await fetch('/api/auth/slug',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({slug:slugDraft,...(needSlug?{pseudo:setupPseudo.trim()}:{})})});
       const d=await r.json().catch(()=>({}));
       if(r.ok&&d.ok){
-        setCurrentUser(u=>u?{...u,sorareSlug:d.slug}:u);
+        setCurrentUser(u=>u?{...u,sorareSlug:d.slug,pseudo:d.pseudo||u.pseudo}:u);
         setSlugEditing(false);
         if(slugProblem||needSlug){ setSlugProblem(null); setNeedSlug(false); openManager(d.slug); } // compte bloque : on ouvre directement la galerie corrigee
         else setSlugMsg({ok:true,text:tr('Slug enregistré.')});
-      }else if(d.error==='slug_introuvable')setSlugMsg({ok:false,text:tr('Aucun manager Sorare avec ce slug. Vérifie l’orthographe.')});
+      }else if(d.error==='pseudo_invalide')setSlugMsg({ok:false,text:tr('Choisis un pseudo de 2 à 30 caractères.')});
+      else if(d.error==='slug_introuvable')setSlugMsg({ok:false,text:tr('Aucun manager Sorare avec ce slug. Vérifie l’orthographe.')});
       else setSlugMsg({ok:false,text:tr('Impossible de vérifier le slug, réessaie dans un instant.')});
     }catch(e){setSlugMsg({ok:false,text:tr('Impossible de vérifier le slug, réessaie dans un instant.')});}
     setSlugBusy(false);
+  };
+  const pseudoNextAt=currentUser?.pseudoChangedAt?currentUser.pseudoChangedAt+90*24*3600*1000:0;
+  const pseudoLocked=pseudoNextAt>Date.now();
+  const savePseudo=async()=>{
+    const p=pseudoDraft.trim();
+    if(pseudoBusy||p.length<2||p.length>30)return;
+    setPseudoBusy(true);setPseudoMsg(null);
+    try{
+      const r=await fetch('/api/auth/profile',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pseudo:p})});
+      const d=await r.json().catch(()=>({}));
+      if(r.ok&&d.ok){ setCurrentUser(u=>u?{...u,pseudo:d.pseudo,pseudoChangedAt:d.pseudoChangedAt}:u); setPseudoEditing(false); setPseudoMsg({ok:true,text:tr('Pseudo enregistré.')}); }
+      else if(d.error==='pseudo_trop_recent')setPseudoMsg({ok:false,text:tr('Le pseudo ne peut être modifié qu’une fois tous les 3 mois. Prochain changement possible le')+' '+new Date(d.nextAt).toLocaleDateString(getLang()==='en'?'en-GB':'fr-FR')+'.'});
+      else setPseudoMsg({ok:false,text:tr('Choisis un pseudo de 2 à 30 caractères.')});
+    }catch(e){setPseudoMsg({ok:false,text:tr('Impossible d’enregistrer, réessaie dans un instant.')});}
+    setPseudoBusy(false);
+  };
+  const sendEmailChange=async()=>{
+    const em=emailDraft.trim().toLowerCase();
+    if(emailBusy||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em))return;
+    setEmailBusy(true);setEmailMsg(null);
+    try{
+      const r=await fetch('/api/auth/email-change',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({newEmail:em,password:emailPwd,lang:getLang()})});
+      const d=await r.json().catch(()=>({}));
+      if(r.ok&&d.ok){ setEmailEditing(false); setEmailPwd(''); setEmailMsg({ok:true,text:tr('Un lien de confirmation vient d’être envoyé à')+' '+em+'. '+tr('Ton adresse actuelle ne change qu’après ton clic sur ce lien.')}); }
+      else if(d.error==='mot_de_passe_invalide')setEmailMsg({ok:false,text:tr('Mot de passe incorrect.')});
+      else if(d.error==='email_deja_utilise')setEmailMsg({ok:false,text:tr('Cette adresse est déjà utilisée par un autre compte.')});
+      else if(d.error==='email_identique')setEmailMsg({ok:false,text:tr('C’est déjà ton adresse actuelle.')});
+      else if(d.error==='trop_de_demandes')setEmailMsg({ok:false,text:tr('Trop de demandes. Réessaie dans une heure.')});
+      else setEmailMsg({ok:false,text:tr('Impossible d’envoyer le lien, réessaie dans un instant.')});
+    }catch(e){setEmailMsg({ok:false,text:tr('Impossible d’envoyer le lien, réessaie dans un instant.')});}
+    setEmailBusy(false);
   };
   const canAddFav=cards.length>0&&!!slug&&!favs.includes(slug);
   const favOptions=[...(canAddFav?[{value:'__add__',label:'+ '+tr('Ajouter')+' '+slug}]:[]),...(slug&&favs.includes(slug)?[{value:'__rm__',label:'✕ '+tr('Retirer')+' '+slug}]:[]),...favs.map(f=>({value:f,label:f}))];
@@ -978,8 +1023,31 @@ export default function Home() {
               {acctMenuSection==='infos'&&(currentUser?(
                 <div>
                   {slugProblem&&<div style={{marginBottom:'1rem',padding:'0.8rem 1rem',border:'1px solid rgba(245,215,110,0.4)',borderRadius:'0.4rem',background:'rgba(245,215,110,0.06)',fontSize:'0.78rem',lineHeight:1.6,color:'#f5d76e'}}>{tr('Aucun manager Sorare ne porte le slug')} « {slugProblem} ». {tr('Corrige-le ci-dessous : ta galerie s’ouvre aussitôt.')}</div>}
-                  <div style={rowStyle}><span style={labelStyle}>{tr('Pseudo')}</span><span style={valStyle}>{currentUser.pseudo}</span></div>
-                  <div style={rowStyle}><span style={labelStyle}>{tr('Adresse email')}</span><span style={valStyle}>{currentUser.email}</span></div>
+                  <div style={rowStyle}><span style={labelStyle}>{tr('Pseudo')}</span>
+                    {pseudoEditing?(
+                      <span style={{display:'flex',alignItems:'center',gap:'0.5rem',flexWrap:'wrap' as const,justifyContent:'flex-end'}}>
+                        <input value={pseudoDraft} autoFocus maxLength={30} onChange={e=>{setPseudoDraft(e.target.value);setPseudoMsg(null);}} onKeyDown={e=>e.key==='Enter'&&savePseudo()} style={{background:'rgba(255,255,255,0.05)',border:'1px solid rgba(64,232,255,0.4)',color:'#eaf2ff',padding:'0.35rem 0.5rem',fontSize:'0.85rem',outline:'none',width:'170px'}}/>
+                        <button onClick={savePseudo} disabled={pseudoBusy||pseudoDraft.trim().length<2} style={{background:'rgba(64,232,255,0.12)',border:'1px solid rgba(64,232,255,0.5)',color:'#40e8ff',padding:'0.35rem 0.8rem',fontSize:'0.7rem',fontWeight:700,cursor:'pointer',opacity:pseudoBusy||pseudoDraft.trim().length<2?0.45:1}}>{pseudoBusy?'...':tr('Enregistrer')}</button>
+                        <button onClick={()=>{setPseudoEditing(false);setPseudoMsg(null);}} style={{background:'transparent',border:'none',color:'#7a8898',fontSize:'0.7rem',cursor:'pointer',textDecoration:'underline'}}>{tr('Annuler')}</button>
+                      </span>
+                    ):(
+                      <span style={{display:'flex',alignItems:'center',gap:'0.9rem'}}><span style={valStyle}>{currentUser.pseudo}</span>{pseudoLocked?<span title={tr('Prochain changement possible le')+' '+new Date(pseudoNextAt).toLocaleDateString(getLang()==='en'?'en-GB':'fr-FR')} style={{color:'#7a8898',fontSize:'0.66rem'}}>{tr('Modifiable le')+' '+new Date(pseudoNextAt).toLocaleDateString(getLang()==='en'?'en-GB':'fr-FR')}</span>:<span onClick={()=>{setPseudoDraft(currentUser.pseudo);setPseudoMsg(null);setPseudoEditing(true);}} style={{color:'#40e8ff',cursor:'pointer',fontSize:'0.72rem',textDecoration:'underline'}}>{tr('Modifier')}</span>}</span>
+                    )}
+                  </div>
+                  {pseudoMsg&&<p style={{margin:'0 0 0.6rem',fontSize:'0.72rem',color:pseudoMsg.ok?'#7ee0a0':'#ff8a7a'}}>{pseudoMsg.text}</p>}
+                  <div style={rowStyle}><span style={labelStyle}>{tr('Adresse email')}</span>
+                    {emailEditing?(
+                      <span style={{display:'flex',alignItems:'center',gap:'0.5rem',flexWrap:'wrap' as const,justifyContent:'flex-end'}}>
+                        <input value={emailDraft} autoFocus type='email' autoCapitalize='none' autoCorrect='off' spellCheck={false} placeholder={tr('nouvelle adresse e-mail')} onChange={e=>{setEmailDraft(e.target.value);setEmailMsg(null);}} onKeyDown={e=>e.key==='Enter'&&sendEmailChange()} style={{background:'rgba(255,255,255,0.05)',border:'1px solid rgba(64,232,255,0.4)',color:'#eaf2ff',padding:'0.35rem 0.5rem',fontSize:'0.85rem',outline:'none',width:'210px'}}/>
+                        {currentUser.hasPassword&&<input value={emailPwd} type='password' autoComplete='current-password' placeholder={tr('Mot de passe actuel')} onChange={e=>{setEmailPwd(e.target.value);setEmailMsg(null);}} onKeyDown={e=>e.key==='Enter'&&sendEmailChange()} style={{background:'rgba(255,255,255,0.05)',border:'1px solid rgba(64,232,255,0.4)',color:'#eaf2ff',padding:'0.35rem 0.5rem',fontSize:'0.85rem',outline:'none',width:'150px'}}/>}
+                        <button onClick={sendEmailChange} disabled={emailBusy||!emailDraft.includes('@')||(!!currentUser.hasPassword&&!emailPwd)} style={{background:'rgba(64,232,255,0.12)',border:'1px solid rgba(64,232,255,0.5)',color:'#40e8ff',padding:'0.35rem 0.8rem',fontSize:'0.7rem',fontWeight:700,cursor:'pointer',opacity:emailBusy||!emailDraft.includes('@')||(!!currentUser.hasPassword&&!emailPwd)?0.45:1}}>{emailBusy?'...':tr('Envoyer le lien')}</button>
+                        <button onClick={()=>{setEmailEditing(false);setEmailMsg(null);setEmailPwd('');}} style={{background:'transparent',border:'none',color:'#7a8898',fontSize:'0.7rem',cursor:'pointer',textDecoration:'underline'}}>{tr('Annuler')}</button>
+                      </span>
+                    ):(
+                      <span style={{display:'flex',alignItems:'center',gap:'0.9rem'}}><span style={valStyle}>{currentUser.email}</span><span onClick={()=>{setEmailDraft('');setEmailPwd('');setEmailMsg(null);setEmailEditing(true);}} style={{color:'#40e8ff',cursor:'pointer',fontSize:'0.72rem',textDecoration:'underline'}}>{tr('Modifier')}</span></span>
+                    )}
+                  </div>
+                  {emailMsg&&<p style={{margin:'0 0 0.6rem',fontSize:'0.72rem',lineHeight:1.5,color:emailMsg.ok?'#7ee0a0':'#ff8a7a'}}>{emailMsg.text}</p>}
                   <div style={rowStyle}><span style={labelStyle}>{tr('Mot de passe')}</span><span style={valStyle}>••••••••</span></div>
                   <div style={rowStyle}><span style={labelStyle}>{tr('Slug Sorare')}</span>
                     {slugEditing?(
@@ -995,7 +1063,7 @@ export default function Home() {
                   {slugEditing&&<SlugHint st={slugCheckDraft}/>}
                   {slugMsg&&<p style={{margin:'0.4rem 0 0.2rem',fontSize:'0.72rem',color:slugMsg.ok?'#7ee0a0':'#ff8a7a'}}>{slugMsg.text}</p>}
                   <div style={{marginTop:'1.2rem'}}><ChangePassword/></div>
-                  <p style={{fontSize:'0.72rem',color:'#7a8898',marginTop:'1rem',lineHeight:1.6}}>{tr('La modification du pseudo et de l’adresse e-mail arrive prochainement.')}</p>
+                  <p style={{fontSize:'0.72rem',color:'#7a8898',marginTop:'1rem',lineHeight:1.6}}>{tr('Le pseudo peut être modifié une fois tous les 3 mois. Pour l’adresse e-mail, un lien de confirmation est envoyé à la nouvelle adresse.')}</p>
                 </div>
               ):(
                 <div style={{textAlign:'center',padding:'2.5rem 1rem'}}>
@@ -1095,16 +1163,20 @@ export default function Home() {
             <div style={{position:'fixed',bottom:'1rem',left:'50%',transform:'translateX(-50%)',zIndex:2,display:'flex',gap:'2.5rem',alignItems:'center'}}><a href='https://sorare.com' target='_blank' rel='noreferrer' style={{color:'rgba(255,255,255,0.2)',fontSize:'0.6rem',letterSpacing:'0.14em',textTransform:'uppercase',textDecoration:'none',fontFamily:'Courier New,monospace',transition:'color 0.2s',pointerEvents:'auto'}} onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.color='rgba(64,232,255,0.6)';}} onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.color='rgba(255,255,255,0.2)';}}>SORARE</a><span style={{color:'rgba(255,255,255,0.1)',fontSize:'0.5rem'}}>|</span><a href='/cgu' target='_blank' rel='noopener noreferrer' style={{color:'rgba(255,255,255,0.15)',fontSize:'0.6rem',letterSpacing:'0.14em',textTransform:'uppercase',textDecoration:'none',fontFamily:'Courier New,monospace',pointerEvents:'auto',transition:'color 0.2s'}} onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.color='rgba(64,232,255,0.6)';}} onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.color='rgba(255,255,255,0.15)';}}>{tr('CGU')}</a><span style={{color:'rgba(255,255,255,0.1)',fontSize:'0.5rem'}}>|</span><LangSwitch/></div>
           </div>
         )}
+        {emailNotice&&(
+          <div onClick={()=>setEmailNotice(null)} style={{position:'fixed',top:'1rem',left:'50%',transform:'translateX(-50%)',zIndex:400,maxWidth:'90vw',padding:'0.7rem 1.2rem',background:'rgba(4,10,22,0.94)',border:'1px solid '+(emailNotice.ok?'rgba(126,224,160,0.6)':'rgba(255,138,122,0.6)'),borderRadius:'0.4rem',color:emailNotice.ok?'#7ee0a0':'#ff8a7a',fontSize:'0.78rem',cursor:'pointer',boxShadow:'0 6px 24px rgba(0,0,0,0.5)'}}>{tr(emailNotice.text)}</div>
+        )}
         {needSlug&&!slugProblem&&cards.length===0&&!loading&&(
           <div style={{position:'fixed',inset:0,zIndex:150,display:'flex',alignItems:'center',justifyContent:'center',padding:'2rem 1.2rem',boxSizing:'border-box' as const,overflow:'auto'}}>
             <StarCanvas phase={0} burst={false}/>
             <div style={{position:'relative',zIndex:1,width:'100%',maxWidth:'440px',textAlign:'center' as const,padding:'2rem 1.6rem',background:'rgba(4,10,22,0.72)',backdropFilter:'blur(6px)',border:'1px solid rgba(64,232,255,0.35)',borderRadius:'0.5rem'}}>
               <p style={{margin:'0 0 0.8rem',fontSize:'0.85rem',fontWeight:800,letterSpacing:'0.14em',textTransform:'uppercase' as const,color:'#40e8ff'}}>{tr('Bienvenue sur myNFTlocker !')}</p>
-              <p style={{margin:'0 0 1.1rem',fontSize:'0.8rem',lineHeight:1.6,color:'#cfe4fb'}}>{tr('Dernière étape : indique ton slug Sorare (ton pseudo Sorare, en minuscules). Ta galerie s’ouvre aussitôt.')}</p>
+              <p style={{margin:'0 0 1.1rem',fontSize:'0.8rem',lineHeight:1.6,color:'#cfe4fb'}}>{tr('Dernière étape : choisis ton pseudo et indique ton slug Sorare (ton pseudo Sorare, en minuscules). Ta galerie s’ouvre aussitôt.')}</p>
+              <input value={setupPseudo} maxLength={30} onChange={e=>{setSetupPseudo(e.target.value);setSlugMsg(null);}} placeholder={tr('Ton pseudo sur myNFTlocker')} style={{width:'100%',boxSizing:'border-box' as const,background:'rgba(255,255,255,0.05)',border:'1px solid rgba(64,232,255,0.4)',color:'#eaf2ff',padding:'0.55rem 0.7rem',fontSize:'0.9rem',outline:'none',marginBottom:'0.6rem',textAlign:'center' as const}}/>
               <input value={slugDraft} autoFocus autoCapitalize='none' autoCorrect='off' spellCheck={false} onChange={e=>{setSlugDraft(toSlug(e.target.value));setSlugMsg(null);}} onKeyDown={e=>e.key==='Enter'&&saveSlug()} placeholder={tr('ton-slug-sorare')} style={{width:'100%',boxSizing:'border-box' as const,background:'rgba(255,255,255,0.05)',border:'1px solid rgba(64,232,255,0.4)',color:'#eaf2ff',padding:'0.55rem 0.7rem',fontSize:'0.9rem',outline:'none',marginBottom:'0.6rem',textAlign:'center' as const}}/>
               <SlugHint st={slugCheckDraft}/>
               {slugMsg&&<p style={{margin:'0 0 0.6rem',fontSize:'0.7rem',color:slugMsg.ok?'#7ee0a0':'#ff8a7a'}}>{slugMsg.text}</p>}
-              <button onClick={saveSlug} disabled={slugBusy||slugCheckDraft.s!=='ok'} style={{background:'rgba(64,232,255,0.12)',border:'1px solid rgba(64,232,255,0.5)',color:'#40e8ff',padding:'0.6rem 1.6rem',fontSize:'0.74rem',fontWeight:700,letterSpacing:'0.12em',textTransform:'uppercase' as const,cursor:slugCheckDraft.s==='ok'?'pointer':'not-allowed',opacity:slugCheckDraft.s==='ok'&&!slugBusy?1:0.45}}>{slugBusy?'...':tr('Valider et ouvrir')}</button>
+              <button onClick={saveSlug} disabled={slugBusy||slugCheckDraft.s!=='ok'||setupPseudo.trim().length<2} style={{background:'rgba(64,232,255,0.12)',border:'1px solid rgba(64,232,255,0.5)',color:'#40e8ff',padding:'0.6rem 1.6rem',fontSize:'0.74rem',fontWeight:700,letterSpacing:'0.12em',textTransform:'uppercase' as const,cursor:slugCheckDraft.s==='ok'&&setupPseudo.trim().length>=2?'pointer':'not-allowed',opacity:slugCheckDraft.s==='ok'&&setupPseudo.trim().length>=2&&!slugBusy?1:0.45}}>{slugBusy?'...':tr('Valider et ouvrir')}</button>
               <p style={{margin:'0.9rem 0 0',fontSize:'0.66rem',color:'rgba(207,228,251,0.6)'}}><a href='https://sorare.com/fr/settings/account' target='_blank' rel='noopener noreferrer' style={{color:'#40e8ff'}}>{tr('Retrouve-le sur Sorare')}</a> · <span onClick={()=>setNeedSlug(false)} style={{cursor:'pointer',textDecoration:'underline'}}>{tr('Plus tard')}</span></p>
             </div>
           </div>

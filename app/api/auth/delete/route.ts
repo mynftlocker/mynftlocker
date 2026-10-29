@@ -1,24 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { redis } from '../../../../lib/redis';
+import { sessionUser, removeUser } from '../../../../lib/users';
 
-// Suppression definitive du compte (utilisateur connecte, mot de passe requis)
+// Suppression definitive du compte (utilisateur connecte, mot de passe requis ; compte Google sans mot de passe : la session suffit)
 export async function POST(request: NextRequest) {
   try {
-    const token = request.cookies.get('mnfl_session')?.value;
-    if (!token) return NextResponse.json({ error: 'non_connecte' }, { status: 401 });
-    const emailKey = await redis.get('session:' + token);
-    if (!emailKey || typeof emailKey !== 'string') return NextResponse.json({ error: 'non_connecte' }, { status: 401 });
-    const raw = await redis.get(emailKey);
-    if (!raw) return NextResponse.json({ error: 'non_connecte' }, { status: 401 });
-    const user = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    const s = await sessionUser(request.cookies.get('mnfl_session')?.value);
+    if (!s) return NextResponse.json({ error: 'non_connecte' }, { status: 401 });
+    const { key, user, token } = s;
 
     const { password } = await request.json();
-    if (typeof password !== 'string' || !(await bcrypt.compare(password, user.passwordHash))) {
+    if (user.passwordHash && (typeof password !== 'string' || !(await bcrypt.compare(password, user.passwordHash)))) {
       return NextResponse.json({ error: 'mot_de_passe_invalide' }, { status: 403 });
     }
-    await redis.del(emailKey);
-    await redis.del('prefs:' + emailKey);
+    await removeUser(key, user);
     await redis.del('session:' + token);
     const res = NextResponse.json({ ok: true });
     res.cookies.set('mnfl_session', '', { path: '/', maxAge: 0 });

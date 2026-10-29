@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { redis } from '../../../../lib/redis';
-
-const SESSION_DAYS = 30;
+import { userKeyByEmail, readUser, SESSION_SECONDS } from '../../../../lib/users';
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,13 +12,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'identifiants_manquants' }, { status: 400 });
     }
 
-    const emailKey = 'user:' + email.toLowerCase().trim();
-    const raw = await redis.get(emailKey);
-    if (!raw) {
+    const userKey = await userKeyByEmail(email);
+    const user = userKey ? await readUser(userKey) : null;
+    if (!userKey || !user) {
       return NextResponse.json({ error: 'identifiants_invalides' }, { status: 401 });
     }
 
-    const user = typeof raw === 'string' ? JSON.parse(raw) : raw;
     // Compte cree via Google : pas de mot de passe, connexion par le bouton Google
     const match = user.passwordHash ? await bcrypt.compare(password, user.passwordHash) : false;
     if (!match) {
@@ -30,7 +28,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'email_non_verifie' }, { status: 403 });
     }
     const token = crypto.randomBytes(32).toString('hex');
-    await redis.set('session:' + token, emailKey, { ex: 60 * 60 * 24 * SESSION_DAYS });
+    await redis.set('session:' + token, userKey, { ex: SESSION_SECONDS });
 
     const res = NextResponse.json({
       ok: true,
@@ -42,7 +40,7 @@ export async function POST(request: NextRequest) {
       httpOnly: true,
       secure: true,
       sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * SESSION_DAYS,
+      maxAge: SESSION_SECONDS,
       path: '/',
     });
     return res;

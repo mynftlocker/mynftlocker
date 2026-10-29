@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { redis } from '../../../../../lib/redis';
+import { userKeyByEmail, userKeyByGoogle, readUser, saveUser, createUser, SESSION_SECONDS } from '../../../../../lib/users';
 
-const SESSION_DAYS = 30;
 const SITE_URL = 'https://mynftlocker.com';
 
 // Etape 2 : Google nous renvoie ici avec un code. On le verifie, on retrouve (ou on cree) le compte, on ouvre la session.
@@ -45,14 +45,21 @@ export async function GET(request: NextRequest) {
     const email = typeof info.email === 'string' ? info.email.toLowerCase().trim() : '';
     if (!email || info.email_verified !== true) return fail();
 
-    const emailKey = 'user:' + email;
-    const raw = await redis.get(emailKey);
-    let user: any;
-    if (raw) {
-      user = typeof raw === 'string' ? JSON.parse(raw) : raw;
-      // Google a verifie cette adresse : le compte existant (cree par e-mail) est donc bien le sien
-      if (!user.emailVerified) { user.emailVerified = true; await redis.set(emailKey, JSON.stringify(user)); }
-    } else {
+    const sub = typeof info.sub === 'string' ? info.sub : '';
+    // 1) deja connu par son identifiant Google ; 2) sinon par son e-mail (Google a verifie l'adresse : c'est donc bien lui) ; 3) sinon nouveau compte
+    let userKey = sub ? await userKeyByGoogle(sub) : null;
+    let user: any = userKey ? await readUser(userKey) : null;
+    if (!user) {
+      userKey = await userKeyByEmail(email);
+      user = userKey ? await readUser(userKey) : null;
+      if (user && userKey) {
+        let dirty = false;
+        if (!user.emailVerified) { user.emailVerified = true; dirty = true; }
+        if (sub && !user.googleSub) { user.googleSub = sub; await redis.set('google:' + sub, user.id); dirty = true; }
+        if (dirty) await saveUser(userKey, user);
+      }
+    }
+    if (!user || !userKey) {
       // Nouveau compte : meme regle que l'inscription classique (fermee tant que NEXT_PUBLIC_SIGNUP_OPEN n'est pas 'true')
       if (process.env.NEXT_PUBLIC_SIGNUP_OPEN !== 'true') return fail('closed');
       const nameRaw = String(info.name || info.given_name || email.split('@')[0]).trim().slice(0, 30);
@@ -65,14 +72,16 @@ export async function GET(request: NextRequest) {
         createdAt: Date.now(),
         emailVerified: true,
         authProviders: ['google'],
+        googleSub: sub || undefined,
       };
-      await redis.set(emailKey, JSON.stringify(user));
+      userKey = await createUser(user);
+      if (!userKey) return fail();
     }
 
     const token = crypto.randomBytes(32).toString('hex');
-    await redis.set('session:' + token, emailKey, { ex: 60 * 60 * 24 * SESSION_DAYS });
+    await redis.set('session:' + token, userKey, { ex: SESSION_SECONDS });
     const res = NextResponse.redirect(`${SITE_URL}/?google=${user.sorareSlug ? 'ok' : 'new'}`);
-    res.cookies.set('mnfl_session', token, { httpOnly: true, secure: true, sameSite: 'lax', maxAge: 60 * 60 * 24 * SESSION_DAYS, path: '/' });
+    res.cookies.set('mnfl_session', token, { httpOnly: true, secure: true, sameSite: 'lax', maxAge: SESSION_SECONDS, path: '/' });
     res.cookies.delete('mnfl_gstate');
     return res;
   } catch {

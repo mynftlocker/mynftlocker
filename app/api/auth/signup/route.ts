@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import { redis } from '../../../../lib/redis';
 import { sendVerificationEmail } from '../../../../lib/email';
 import { checkSorareSlug } from '../../../../lib/sorareUser';
+import { userKeyByEmail, createUser, removeUser, normEmail } from '../../../../lib/users';
 
 const VERIFY_HOURS = 24;
 const SITE_URL = 'https://mynftlocker.com';
@@ -33,8 +34,7 @@ export async function POST(request: NextRequest) {
     // Le slug Sorare doit exister (verifie chez Sorare) : evite un compte lie a une faute de frappe. Si Sorare est injoignable, on ne bloque pas.
     const slugCheck = await checkSorareSlug(sorareSlug.trim().toLowerCase());
     if (slugCheck.status === 'missing') return NextResponse.json({ error: 'slug_introuvable' }, { status: 400 });
-    const emailKey = 'user:' + email.toLowerCase().trim();
-    const existing = await redis.get(emailKey);
+    const existing = await userKeyByEmail(email);
     if (existing) {
       return NextResponse.json({ error: 'email_deja_utilise' }, { status: 409 });
     }
@@ -43,13 +43,14 @@ export async function POST(request: NextRequest) {
     const user = {
       id,
       pseudo: pseudo.trim(),
-      email: email.toLowerCase().trim(),
+      email: normEmail(email),
       passwordHash,
       sorareSlug: (typeof sorareSlug === 'string' && sorareSlug.trim()) ? sorareSlug.trim() : null,
       createdAt: Date.now(),
       emailVerified: false,
     };
-    await redis.set(emailKey, JSON.stringify(user));
+    const emailKey = await createUser(user); // cle stable : user:<id> (+ index e-mail)
+    if (!emailKey) return NextResponse.json({ error: 'email_deja_utilise' }, { status: 409 });
 
     const verifyToken = crypto.randomBytes(32).toString('hex');
     await redis.set('verify:' + verifyToken, emailKey, { ex: 60 * 60 * VERIFY_HOURS });
@@ -61,7 +62,7 @@ export async function POST(request: NextRequest) {
     } catch (emailErr) {
       // L'email n'est pas parti : on annule proprement la creation (compte + token de verif),
       // pour ne jamais laisser de compte fantome qui bloquerait l'adresse email.
-      await redis.del(emailKey);
+      await removeUser(emailKey, user);
       await redis.del('verify:' + verifyToken);
       return NextResponse.json({ error: 'email_non_envoye', detail: String(emailErr) }, { status: 502 });
     }

@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { redis } from '../../../../lib/redis';
+import { resolveKey, readUser, saveUser, SESSION_SECONDS } from '../../../../lib/users';
 
-const SESSION_DAYS = 30;
 const SITE_URL = 'https://mynftlocker.com';
 
 export async function GET(request: NextRequest) {
@@ -13,33 +13,33 @@ export async function GET(request: NextRequest) {
     }
 
     const verifyKey = 'verify:' + token;
-    const emailKey = await redis.get(verifyKey);
-    if (!emailKey || typeof emailKey !== 'string') {
+    const stored = await redis.get(verifyKey);
+    const userKey = await resolveKey(stored);
+    if (!userKey) {
       // Token inexistant ou déjà expiré (Redis l'a supprimé automatiquement après 24h)
       return NextResponse.redirect(`${SITE_URL}/?verify=expired`);
     }
 
-    const raw = await redis.get(emailKey);
-    if (!raw) {
+    const user = await readUser(userKey);
+    if (!user) {
       return NextResponse.redirect(`${SITE_URL}/?verify=user_not_found`);
     }
-    const user = typeof raw === 'string' ? JSON.parse(raw) : raw;
 
     user.emailVerified = true;
-    await redis.set(emailKey, JSON.stringify(user));
+    await saveUser(userKey, user);
 
     // Le lien ne doit pouvoir servir qu'une seule fois
     await redis.del(verifyKey);
 
     const sessionToken = crypto.randomBytes(32).toString('hex');
-    await redis.set('session:' + sessionToken, emailKey, { ex: 60 * 60 * 24 * SESSION_DAYS });
+    await redis.set('session:' + sessionToken, userKey, { ex: SESSION_SECONDS });
 
     const res = NextResponse.redirect(`${SITE_URL}/?verify=success`);
     res.cookies.set('mnfl_session', sessionToken, {
       httpOnly: true,
       secure: true,
       sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * SESSION_DAYS,
+      maxAge: SESSION_SECONDS,
       path: '/',
     });
     return res;
