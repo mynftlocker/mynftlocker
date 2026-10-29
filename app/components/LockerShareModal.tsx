@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import { t as tr, useLang } from '../i18n';
-import { getManager, galleryLink } from '../lib-share';
+import { getManager, getManagerSlug, galleryLink } from '../lib-share';
 import { exportLockerImage, type LockerShareOpts, type LockerFormat } from '../lib/lockerShare';
 
 type Res = { blob: Blob; file: File; fname: string; url: string };
@@ -27,6 +27,14 @@ export default function LockerShareModal({ opts, onClose }: { opts: LockerShareO
     window.addEventListener('keydown', esc);
     const urls = cache.current;
     return () => { window.removeEventListener('keydown', esc); Object.values(urls).forEach(r => r && URL.revokeObjectURL(r.url)); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Memorise ce vestiaire cote serveur : c'est lui qui illustre l'apercu du lien /u/<slug> (compte connecte uniquement, sinon ignore)
+  useEffect(() => {
+    const slug = getManagerSlug();
+    if (!slug) return;
+    fetch('/api/share-snapshot', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slug, manager: getManager(), title: opts.showTeamTitle ? (opts.title[0] + ' ' + opts.title[1]).trim() : opts.caption, cards: opts.cards.map((c: any) => ({ name: c.name, pictureUrl: c.pictureUrl })) }) }).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

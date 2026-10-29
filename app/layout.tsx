@@ -19,6 +19,16 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   title: "myNFTlocker",
   description: "Ta galerie et ton vestiaire Sorare : NBA, foot, filtres, stats et partage.",
+  metadataBase: new URL("https://mynftlocker.com"),
+  openGraph: {
+    title: "myNFTlocker",
+    description: "Ta galerie et ton vestiaire Sorare : NBA, foot, filtres, stats et partage.",
+    url: "https://mynftlocker.com",
+    siteName: "myNFTlocker",
+    type: "website",
+    images: [{ url: "/api/og", width: 1200, height: 630 }],
+  },
+  twitter: { card: "summary_large_image", title: "myNFTlocker", description: "Ta galerie et ton vestiaire Sorare : NBA, foot, filtres, stats et partage.", images: ["/api/og"] },
 };
 
 export default function RootLayout({
