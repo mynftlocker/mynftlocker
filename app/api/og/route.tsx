@@ -24,6 +24,7 @@ const loadFont = async () => {
 
 export async function GET(req: NextRequest) {
   const slug = (req.nextUrl.searchParams.get('slug') || '').trim().toLowerCase();
+  const small = req.nextUrl.searchParams.get('s') === 'sm'; // version legere (600x315, < 300 Ko) pour WhatsApp
   let snap: any = null;
   if (/^[a-z0-9_-]{1,80}$/.test(slug)) {
     try { const raw = await redis.get('share:' + slug); snap = raw ? (typeof raw === 'string' ? JSON.parse(raw) : raw) : null; } catch (e) { /* pas de vestiaire partage */ }
@@ -37,7 +38,7 @@ export async function GET(req: NextRequest) {
   const manager = String(snap?.m || slug || '').slice(0, 30);
   const title = String(snap?.t || '').toUpperCase().slice(0, 40);
 
-  const body = (
+  const full = (
     <div style={{ width: W, height: H, display: 'flex', flexDirection: 'column', padding: '40px 56px', background: 'radial-gradient(circle at 50% 35%, #16233f 0%, #080d18 60%, #04070d 100%)', color: '#fff', fontFamily: font ? 'Inter' : 'sans-serif' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -72,8 +73,11 @@ export async function GET(req: NextRequest) {
       )}
     </div>
   );
+  const body = small
+    ? (<div style={{ display: 'flex', width: W / 2, height: H / 2, overflow: 'hidden' }}><div style={{ display: 'flex', width: W, height: H, transform: 'scale(0.5)', transformOrigin: '0 0' }}>{full}</div></div>)
+    : full;
   return new ImageResponse(body, {
-    width: W, height: H,
+    width: small ? W / 2 : W, height: small ? H / 2 : H,
     ...(font ? { fonts: [{ name: 'Inter', data: font, weight: 700 as const, style: 'normal' as const }] } : {}),
     headers: { 'Cache-Control': 'public, max-age=300, s-maxage=3600, stale-while-revalidate=86400' },
   });

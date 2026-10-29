@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { headers } from 'next/headers';
 import { redis } from '../../../lib/redis';
 import Redirect from './Redirect';
 
@@ -15,10 +16,12 @@ export async function generateMetadata({ params }: P): Promise<Metadata> {
   const name = snap?.m || slug;
   const title = snap ? `${name} · ${snap.t || 'Vestiaire'} — myNFTlocker` : `Vestiaire de ${name} — myNFTlocker`;
   const description = `Le vestiaire Sorare de ${name} : cartes NBA et foot, stats et partage. Ouvre-le sur myNFTlocker.`;
-  const image = `${SITE}/api/og?slug=${encodeURIComponent(slug)}${snap?.ts ? '&v=' + snap.ts : ''}`; // v = date du dernier partage : une nouvelle version = une nouvelle URL (jamais d'ancienne image en cache)
+  const ua = String((await headers()).get('user-agent') || '');
+  const wa = /whatsapp/i.test(ua); // WhatsApp n'affiche pas les images > 300 Ko : version legere
+  const image = `${SITE}/api/og?slug=${encodeURIComponent(slug)}${snap?.ts ? '&v=' + snap.ts : ''}${wa ? '&s=sm' : ''}`; // v = date du dernier partage : une nouvelle version = une nouvelle URL (jamais d'ancienne image en cache)
   return {
     title, description,
-    openGraph: { title, description, url: `${SITE}/u/${slug}`, siteName: 'myNFTlocker', type: 'website', images: [{ url: image, width: 1200, height: 630 }] },
+    openGraph: { title, description, url: `${SITE}/u/${slug}`, siteName: 'myNFTlocker', type: 'website', images: [wa ? { url: image, width: 600, height: 315 } : { url: image, width: 1200, height: 630 }] },
     twitter: { card: 'summary_large_image', title, description, images: [image] },
   };
 }

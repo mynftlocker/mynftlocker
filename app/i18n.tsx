@@ -155,7 +155,7 @@ const EN: Record<string, string> = {
   'PARTAGER LA CARTE': 'SHARE THE CARD',
   'PARTAGER': 'SHARE',
   'TÉLÉCHARGER': 'DOWNLOAD',
-  'COPIER': 'COPY',
+  'COPIER': 'COPY', 'COPIER LE LIEN': 'COPY LINK', 'Lien copié': 'Link copied', 'Lien du vestiaire': 'Locker room link',
   'joueurs': 'players',
   'joueur': 'player',
   'Titulaire du 5 majeur': 'Starting five',

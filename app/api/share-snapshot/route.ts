@@ -24,6 +24,7 @@ export async function POST(request: NextRequest) {
     await redis.set('share:' + slug, JSON.stringify(snap), { ex: 60 * 60 * 24 * 60 });
     // prechauffe l'image d'apercu (le robot de X / Discord n'attend pas longtemps) : fire-and-forget
     fetch(request.nextUrl.origin + '/api/og?slug=' + encodeURIComponent(slug) + '&v=' + snap.ts).catch(() => {});
+    fetch(request.nextUrl.origin + '/api/og?slug=' + encodeURIComponent(slug) + '&v=' + snap.ts + '&s=sm').catch(() => {});
     return NextResponse.json({ ok: true });
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 });

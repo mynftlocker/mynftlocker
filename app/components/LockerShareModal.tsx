@@ -65,6 +65,12 @@ export default function LockerShareModal({ opts, onClose }: { opts: LockerShareO
   const doDownload = () => { if (!res) return; const a = document.createElement('a'); a.href = res.url; a.download = res.fname; document.body.appendChild(a); a.click(); a.remove(); flash(tr('Image téléchargée')); };
   const doCopy = async () => { if (!res) return; try { await (navigator as any).clipboard.write([new (window as any).ClipboardItem({ 'image/png': res.blob })]); flash(tr('Image copiée')); } catch (e) { flash(tr('Copie impossible')); } };
 
+  const link = galleryLink();
+  const doCopyLink = async () => {
+    if (!link) return;
+    try { await navigator.clipboard.writeText(link); flash(tr('Lien copié')); }
+    catch (e) { try { const t = document.createElement('textarea'); t.value = link; document.body.appendChild(t); t.select(); document.execCommand('copy'); t.remove(); flash(tr('Lien copié')); } catch (e2) { flash(tr('Copie impossible')); } }
+  };
   const ready = state === 'ready';
   const seg = (f: LockerFormat, label: string) => (
     <button type='button' onClick={() => setFormat(f)} style={{ flex: 1, padding: '0.55rem 0.4rem', fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.08em', cursor: 'pointer', fontFamily: 'inherit', border: '1px solid rgba(64,232,255,0.5)', background: format === f ? 'rgba(64,232,255,0.22)' : 'rgba(64,232,255,0.05)', color: format === f ? '#fff' : '#9fb4c8' }}>{label}</button>
@@ -91,6 +97,12 @@ export default function LockerShareModal({ opts, onClose }: { opts: LockerShareO
           <button type='button' disabled={!ready} onClick={doDownload} style={btn}>{ico(<><path d='M12 3v12' /><path d='M8 11l4 4 4-4' /><path d='M5 21h14' /></>)}{tr('TÉLÉCHARGER')}</button>
           {canCopy && <button type='button' disabled={!ready} onClick={doCopy} style={btn}>{ico(<><rect x='9' y='9' width='12' height='12' rx='2' /><path d='M5 15V5a2 2 0 012-2h10' /></>)}{tr('COPIER')}</button>}
         </div>
+        {link && (
+          <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'stretch' }}>
+            <input readOnly value={link.replace(/^https?:\/\//, '')} onFocus={e => e.currentTarget.select()} aria-label={tr('Lien du vestiaire')} style={{ flex: 1, minWidth: 0, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.15)', color: '#cfe4fb', padding: '0.55rem 0.6rem', fontSize: '0.78rem', fontFamily: 'inherit', outline: 'none' }} />
+            <button type='button' onClick={doCopyLink} style={{ ...btn, flex: '0 0 auto', padding: '0.55rem 0.9rem', cursor: 'pointer', opacity: 1 }}>{ico(<><path d='M10 13a5 5 0 007 0l3-3a5 5 0 00-7-7l-1 1' /><path d='M14 11a5 5 0 00-7 0l-3 3a5 5 0 007 7l1-1' /></>)}{tr('COPIER LE LIEN')}</button>
+          </div>
+        )}
       </div>
     </div>
   );
