@@ -14,6 +14,7 @@ export async function GET(request: NextRequest) {
       pseudoChangedAt: user.pseudoChangedAt || null,
       hasPassword: !!user.passwordHash,
       accounts: getAccounts(user),
+      profiles: user.profiles || {},
       connections: [...(user.googleSub ? ['google'] : []), ...((user.identities || []).map((i: any) => i.provider))],
     });
   } catch (e) {

@@ -558,7 +558,7 @@ export default function Home() {
   };
   const handleIntroClick=useCallback(()=>{if(!slug||loading||openPhase>0)return;fragStartedRef.current=false;setOpenPhase(1);fetchCards();},[slug,loading,openPhase]);
   // ===== AUTH : compte myNFTlocker (inscription/connexion) =====
-  const [currentUser,setCurrentUser]=useState<{pseudo:string;email:string;sorareSlug:string|null;pseudoChangedAt?:number|null;hasPassword?:boolean;accounts?:{platform:string;slug:string;verified:boolean}[];connections?:string[]}|null>(null);
+  const [currentUser,setCurrentUser]=useState<{pseudo:string;email:string;sorareSlug:string|null;pseudoChangedAt?:number|null;hasPassword?:boolean;accounts?:{platform:string;slug:string;verified:boolean}[];connections?:string[];profiles?:{x?:string}}|null>(null);
   const [authOpen,setAuthOpen]=useState(false);
   const [authClosing,setAuthClosing]=useState(false);
   const [authMode,setAuthMode]=useState<'signup'|'login'>('signup');
@@ -587,6 +587,9 @@ export default function Home() {
   const [emailNotice,setEmailNotice]=useState<{ok:boolean;text:string}|null>(null);
   const [providersOn,setProvidersOn]=useState<Record<string,boolean>>({}); // reseaux dont les cles sont presentes cote serveur
   const [unlinkMsg,setUnlinkMsg]=useState<string|null>(null);
+  const [xEditing,setXEditing]=useState(false);
+  const [xDraft,setXDraft]=useState('');
+  const [xMsg,setXMsg]=useState<string|null>(null);
   const [slugMsg,setSlugMsg]=useState<{ok:boolean;text:string}|null>(null);
   const currentUserRef=useRef<typeof currentUser>(null);
   currentUserRef.current=currentUser;
@@ -619,7 +622,7 @@ export default function Home() {
     try{ const sp=new URLSearchParams(window.location.search); const oa=sp.get('oauth'); const pv=({sorare:'Sorare',discord:'Discord',x:'X',facebook:'Facebook'} as Record<string,string>)[sp.get('p')||'']||''; if(oa&&oa!=='ok'){ const T:Record<string,{ok:boolean;text:string}>={linked:{ok:true,text:pv+' : compte lié à ton compte myNFTlocker.'},notlinked:{ok:false,text:'Ce compte '+pv+' n’est lié à aucun compte myNFTlocker. Connecte-toi, puis lie-le dans Informations personnelles.'},already:{ok:false,text:'Ce compte '+pv+' est déjà lié à un autre compte myNFTlocker.'},cancelled:{ok:false,text:'Liaison annulée.'},nolink:{ok:false,text:'Connecte-toi d’abord pour lier un compte.'}}; setEmailNotice(T[oa]||{ok:false,text:'Liaison impossible, réessaie dans un instant.'}); } if(oa){ sp.delete('oauth'); sp.delete('p'); const q=sp.toString(); window.history.replaceState({},'','/'+(q?'?'+q:'')); } }catch(e){}
     try{ const em=new URLSearchParams(window.location.search).get('email'); if(em){ setEmailNotice(em==='changed'?{ok:true,text:'Adresse e-mail modifiée. Utilise-la dès maintenant pour te connecter.'}:{ok:false,text:em==='expired'?'Ce lien a expiré. Refais la demande depuis Informations personnelles.':em==='taken'?'Cette adresse est déjà utilisée par un autre compte.':'Impossible de confirmer cette adresse, réessaie.'}); window.history.replaceState({},'','/'); } }catch(e){}
     try{ const g=new URLSearchParams(window.location.search).get('google'); if(g==='error'||g==='closed'){ setAuthMode('login'); setAuthError(g==='closed'?'Les inscriptions ne sont pas encore ouvertes.':'Connexion Google impossible, réessaie.'); setAuthOpen(true); } }catch(e){}
-    fetch('/api/auth/me').then(r=>r.json()).then(d=>{ if(d.loggedIn){ setCurrentUser({pseudo:d.pseudo,email:d.email,sorareSlug:d.sorareSlug,pseudoChangedAt:d.pseudoChangedAt,hasPassword:d.hasPassword,accounts:d.accounts,connections:d.connections}); if(new URLSearchParams(window.location.search).get('oauth')==='linked'){ setAcctMenuSection('infos'); } if(!d.sorareSlug){ setNeedSlug(true); setSlugDraft(''); setSetupPseudo(d.pseudo||''); } if(d.sorareSlug&&!urlSlugRef.current){ setSlug(d.sorareSlug); setJustLoggedIn(true); } } }).catch(()=>{});
+    fetch('/api/auth/me').then(r=>r.json()).then(d=>{ if(d.loggedIn){ setCurrentUser({pseudo:d.pseudo,email:d.email,sorareSlug:d.sorareSlug,pseudoChangedAt:d.pseudoChangedAt,hasPassword:d.hasPassword,accounts:d.accounts,connections:d.connections,profiles:d.profiles}); if(new URLSearchParams(window.location.search).get('oauth')==='linked'){ setAcctMenuSection('infos'); } if(!d.sorareSlug){ setNeedSlug(true); setSlugDraft(''); setSetupPseudo(d.pseudo||''); } if(d.sorareSlug&&!urlSlugRef.current){ setSlug(d.sorareSlug); setJustLoggedIn(true); } } }).catch(()=>{});
   },[]);
   // ===== PREFERENCES DU COMPTE : recuperees a la connexion (le compte l'emporte), puis recopiees dans le compte des qu'elles changent =====
   slugNowRef.current=slug;
@@ -1070,7 +1073,8 @@ export default function Home() {
                     const sorare=(currentUser.accounts||[]).find(a=>a.platform==='sorare');
                     const conns=currentUser.connections||[];
                     const lnk:React.CSSProperties={color:'#40e8ff',cursor:'pointer',fontSize:'0.72rem',textDecoration:'underline',background:'none',border:'none',padding:0};
-                    const nets:{id:string;label:string}[]=[{id:'discord',label:'Discord'},{id:'x',label:'X'},{id:'facebook',label:'Facebook'}].filter(n=>providersOn[n.id]||conns.includes(n.id));
+                    const nets:{id:string;label:string}[]=[{id:'discord',label:'Discord'},{id:'facebook',label:'Facebook'}].filter(n=>providersOn[n.id]||conns.includes(n.id));
+                    const saveX=async()=>{ setXMsg(null); const r=await fetch('/api/auth/profile-link',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({network:'x',handle:xDraft})}); const d=await r.json().catch(()=>({})); if(r.ok&&d.ok){ setCurrentUser(u=>u?{...u,profiles:{...(u.profiles||{}),x:d.handle||undefined}}:u); setXEditing(false); } else setXMsg(d.error==='handle_invalide'?tr('Pseudo X invalide (lettres, chiffres et _ , 15 max).'):tr('Impossible d’enregistrer, réessaie dans un instant.')); };
                     const unlink=async(id:string)=>{ setUnlinkMsg(null); const r=await fetch('/api/auth/oauth/unlink',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({provider:id})}); const d=await r.json().catch(()=>({})); if(r.ok){ setCurrentUser(u=>u?{...u,connections:(u.connections||[]).filter(c=>c!==id)}:u); } else setUnlinkMsg(d.error==='dernier_acces'?tr('Impossible : ce serait ton dernier moyen de te connecter.'):tr('Impossible de délier, réessaie.')); };
                     return (<div style={{marginTop:'1.4rem'}}>
                       <p style={{margin:'0 0 0.6rem',fontSize:'0.72rem',fontWeight:800,letterSpacing:'0.14em',textTransform:'uppercase' as const,color:'#eaf2ff'}}>{tr('Comptes liés')}</p>
@@ -1084,6 +1088,21 @@ export default function Home() {
                         {conns.includes(n.id)?<span style={{display:'flex',alignItems:'center',gap:'0.9rem'}}><span style={{color:'#7ee0a0',fontSize:'0.72rem'}}>✓ {tr('Lié')}</span><button onClick={()=>unlink(n.id)} style={{...lnk,color:'#7a8898'}}>{tr('Délier')}</button></span>
                         :<a href={'/api/auth/oauth/'+n.id+'/start?link=1'} style={lnk}>{tr('Lier')}</a>}
                       </div>))}
+                      <div style={rowStyle}><span style={labelStyle}>X</span>
+                        {xEditing?(
+                          <span style={{display:'flex',alignItems:'center',gap:'0.5rem',flexWrap:'wrap' as const,justifyContent:'flex-end'}}>
+                            <input value={xDraft} autoFocus autoCapitalize='none' autoCorrect='off' spellCheck={false} placeholder='@pseudo' onChange={e=>{setXDraft(e.target.value);setXMsg(null);}} onKeyDown={e=>e.key==='Enter'&&saveX()} style={{background:'rgba(255,255,255,0.05)',border:'1px solid rgba(64,232,255,0.4)',color:'#eaf2ff',padding:'0.35rem 0.5rem',fontSize:'0.85rem',outline:'none',width:'150px'}}/>
+                            <button onClick={saveX} style={{background:'rgba(64,232,255,0.12)',border:'1px solid rgba(64,232,255,0.5)',color:'#40e8ff',padding:'0.35rem 0.8rem',fontSize:'0.7rem',fontWeight:700,cursor:'pointer'}}>{tr('Enregistrer')}</button>
+                            <button onClick={()=>{setXEditing(false);setXMsg(null);}} style={{background:'transparent',border:'none',color:'#7a8898',fontSize:'0.7rem',cursor:'pointer',textDecoration:'underline'}}>{tr('Annuler')}</button>
+                          </span>
+                        ):(
+                          <span style={{display:'flex',alignItems:'center',gap:'0.9rem'}}>
+                            {currentUser.profiles?.x&&<a href={'https://x.com/'+currentUser.profiles.x} target='_blank' rel='noopener noreferrer' style={{...valStyle,textDecoration:'none'}}>@{currentUser.profiles.x}</a>}
+                            <button onClick={()=>{setXDraft(currentUser.profiles?.x?'@'+currentUser.profiles.x:'');setXMsg(null);setXEditing(true);}} style={lnk}>{currentUser.profiles?.x?tr('Modifier'):tr('Ajouter mon profil')}</button>
+                          </span>
+                        )}
+                      </div>
+                      {xMsg&&<p style={{margin:'0 0 0.4rem',fontSize:'0.72rem',color:'#ff8a7a'}}>{xMsg}</p>}
                       {unlinkMsg&&<p style={{margin:'0 0 0.4rem',fontSize:'0.72rem',color:'#ff8a7a'}}>{unlinkMsg}</p>}
                       <p style={{margin:'0.2rem 0 0',fontSize:'0.68rem',lineHeight:1.5,color:'#7a8898'}}>{tr('Un compte lié peut aussi servir à te connecter.')}</p>
                     </div>);

@@ -72,6 +72,7 @@ const EN: Record<string, string> = {
   'Slug Sorare introuvable': 'Sorare slug not found', 'Ton compte est lié au slug': 'Your account is linked to the slug', ', mais aucun manager Sorare ne porte ce nom.': ', but no Sorare manager has that name.',
   'Ton slug est ton pseudo Sorare, en minuscules et sans accents. Corrige-le ici : ta galerie s’ouvre aussitôt.': 'Your slug is your Sorare username, in lowercase and without accents. Fix it here and your gallery opens right away.',
   'Valider et ouvrir': 'Confirm and open', 'Modifier': 'Edit', 'Enregistrer': 'Save', 'Annuler': 'Cancel', 'Slug enregistré.': 'Slug saved.',
+  'Ajouter mon profil': 'Add my profile', 'Pseudo X invalide (lettres, chiffres et _ , 15 max).': 'Invalid X username (letters, digits and _, 15 max).',
   'Comptes liés': 'Linked accounts', 'Vérifié': 'Verified', 'Non vérifié': 'Not verified', 'Vérifier avec Sorare': 'Verify with Sorare', 'Lié': 'Linked', 'Non lié': 'Not linked', 'Lier': 'Link', 'Délier': 'Unlink',
   'Un compte lié peut aussi servir à te connecter.': 'A linked account can also be used to sign in.', 'Compte déjà lié :': 'Already linked account:',
   'Impossible : ce serait ton dernier moyen de te connecter.': 'Not possible: it would be your last way to sign in.', 'Impossible de délier, réessaie.': 'Unable to unlink, please try again.',
