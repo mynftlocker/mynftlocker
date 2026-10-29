@@ -516,13 +516,12 @@ export default function Home() {
     const all:any[]=[];let cur:string|null=null;let more=true;let pageNum=0;let mgr='';
     const sleep=(ms:number)=>new Promise(r=>setTimeout(r,ms));
     const SORARE_URL='https://api.sorare.com/federation/graphql';
-    let pageSize=100;
-    const fetchPage=async(cursor:string|null,size:number=50):Promise<{cards:any[],hasNextPage:boolean,cursor:string|null}|null>=>{
+    const fetchPage=async(cursor:string|null):Promise<{cards:any[],hasNextPage:boolean,cursor:string|null}|null>=>{
       const after=cursor?`, after: "${cursor}"` :'';
       const query=`query{user(slug:"${slug}"){cards(first:50${after}){nodes{__typename slug name rarityTyped pictureUrl anyPlayer{lastName shirtNumber gameplayTierStars}anyTeam{name ...on Club{country{slug}}}...on NBACard{seasonYear specialEdition power xp averageScore(type:LAST_TEN_PLAYED_SO5_AVERAGE_SCORE)}}pageInfo{hasNextPage endCursor}}}}`;
       // CORS SKIP : l'essai direct navigateur echoue systematiquement (CORS Sorare), tente 0 fois, va direct au fallback qui marche
       // 1. Route Vercel (seule voie fonctionnelle, confirmee sur des dizaines de tests)
-      const url='/api/cards?slug='+encodeURIComponent(slug)+(cursor?'&cursor='+encodeURIComponent(cursor):'')+(size!==50?'&size='+size:'');
+      const url='/api/cards?slug='+encodeURIComponent(slug)+(cursor?'&cursor='+encodeURIComponent(cursor):'');
       const r2=await fetch(url);
       if(!r2.ok)return null;
       const d=await r2.json();
@@ -530,15 +529,39 @@ export default function Home() {
       if(d.manager){setManager(d.manager,slug);mgr=d.manager;}
       return{cards:d.cards,hasNextPage:d.hasNextPage,cursor:d.cursor};
     };
+    // PERF : collection complete en flux depuis le serveur (cache partage 15 min : 2e visite / lien partage = quasi instantane).
+    // Si le flux echoue, on retombe sur le chargement page par page ci-dessous (inchange).
+    let notFound=false;
+    const fetchCollection=async():Promise<{cards:any[],manager:string}|'notFound'|null>=>{
+      try{
+        const r=await fetch('/api/collection?slug='+encodeURIComponent(slug));
+        if(!r.ok||!r.body)return null;
+        const rd=r.body.getReader();const dec=new TextDecoder();let buf='';const got:any[]=[];let m='';let fin=false;
+        for(;;){
+          const {value,done}=await rd.read();if(done)break;
+          buf+=dec.decode(value,{stream:true});
+          let nl:number;
+          while((nl=buf.indexOf('\n'))>=0){
+            const line=buf.slice(0,nl).trim();buf=buf.slice(nl+1);if(!line)continue;
+            const o=JSON.parse(line);
+            if(o.error)return o.error==='not_found'?'notFound':null;
+            if(o.cards){got.push(...o.cards);setLoadedCount(got.length);if(o.manager){m=o.manager;setManager(o.manager,slug);}}
+            if(o.done){fin=true;if(o.manager)m=o.manager;}
+          }
+        }
+        return fin&&got.length>0?{cards:got,manager:m}:null;
+      }catch(e){return null;}
+    };
     try{
+      const viaServer=await fetchCollection();
+      if(viaServer==='notFound'){notFound=true;}
+      else if(viaServer){all.push(...viaServer.cards);mgr=viaServer.manager||mgr;more=false;}
       while(more){
         pageNum++;
         let data:any=null;
-        // PERF : pages de 100 cartes (2x moins d'allers-retours). Si Sorare refuse 100, retour immediat a 50 (sans attente) pour le reste du chargement.
-        if(pageSize>50){data=await fetchPage(cur,pageSize);if(!data)pageSize=50;}
-        for(let attempt=0;attempt<6&&!data;attempt++){
+        for(let attempt=0;attempt<6&&!notFound;attempt++){
           if(attempt>0)await sleep(1200*attempt);
-          data=await fetchPage(cur,pageSize);
+          data=await fetchPage(cur);
           if(data)break;
           console.error('Page'+pageNum+' attempt'+(attempt+1)+' failed');
         }
