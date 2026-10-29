@@ -75,7 +75,7 @@ export async function claimEmail(email: string, id: string): Promise<boolean> {
 
 export async function createUser(user: any): Promise<string | null> {
   const key = 'user:' + user.id;
-  if (!(await claimEmail(user.email, user.id))) return null;
+  if (user.email && !(await claimEmail(user.email, user.id))) return null;
   await redis.set(key, JSON.stringify(user));
   if (user.googleSub) await redis.set('google:' + user.googleSub, user.id);
   return key;
@@ -86,4 +86,20 @@ export async function removeUser(key: string, user: any): Promise<void> {
   await redis.del('prefs:' + key);
   if (user?.email) await redis.del('email:' + normEmail(user.email));
   if (user?.googleSub) await redis.del('google:' + user.googleSub);
+  for (const i of user?.identities || []) await redis.del('oauth:' + i.provider + ':' + i.sub);
+  for (const a of user?.accounts || []) if (a.verified && a.platform) await redis.del('oauth:' + a.platform + ':' + a.slug);
+}
+
+// Comptes de sport lies (Sorare aujourd'hui, d'autres plus tard). Derive de l'ancien champ sorareSlug tant que "accounts" n'existe pas.
+export type SportAccount = { platform: string; slug: string; verified: boolean; linkedAt?: number };
+export function getAccounts(user: any): SportAccount[] {
+  if (Array.isArray(user?.accounts)) return user.accounts;
+  return user?.sorareSlug ? [{ platform: 'sorare', slug: user.sorareSlug, verified: false }] : [];
+}
+// Ajoute ou met a jour un compte de sport ; sorareSlug reste le miroir du compte Sorare principal (le reste du site le lit)
+export function upsertAccount(user: any, acc: SportAccount): void {
+  const list = getAccounts(user).filter(a => a.platform !== acc.platform);
+  list.push(acc);
+  user.accounts = list;
+  if (acc.platform === 'sorare') user.sorareSlug = acc.slug;
 }

@@ -13,13 +13,13 @@ export async function GET(request: NextRequest) {
     if (!data || !data.key || !data.newEmail) return NextResponse.redirect(`${SITE_URL}/?email=expired`);
 
     const user = await readUser(data.key);
-    if (!user || normEmail(user.email) !== data.oldEmail) return NextResponse.redirect(`${SITE_URL}/?email=error`);
+    if (!user || (user.email ? normEmail(user.email) : '') !== data.oldEmail) return NextResponse.redirect(`${SITE_URL}/?email=error`);
 
     const taken = await userKeyByEmail(data.newEmail);
     if (taken && taken !== data.key) return NextResponse.redirect(`${SITE_URL}/?email=taken`);
 
     await redis.set('email:' + data.newEmail, user.id);
-    await redis.del('email:' + data.oldEmail);
+    if (data.oldEmail) await redis.del('email:' + data.oldEmail);
     user.email = data.newEmail;
     user.emailVerified = true;
     await saveUser(data.key, user);

@@ -558,7 +558,7 @@ export default function Home() {
   };
   const handleIntroClick=useCallback(()=>{if(!slug||loading||openPhase>0)return;fragStartedRef.current=false;setOpenPhase(1);fetchCards();},[slug,loading,openPhase]);
   // ===== AUTH : compte myNFTlocker (inscription/connexion) =====
-  const [currentUser,setCurrentUser]=useState<{pseudo:string;email:string;sorareSlug:string|null;pseudoChangedAt?:number|null;hasPassword?:boolean}|null>(null);
+  const [currentUser,setCurrentUser]=useState<{pseudo:string;email:string;sorareSlug:string|null;pseudoChangedAt?:number|null;hasPassword?:boolean;accounts?:{platform:string;slug:string;verified:boolean}[];connections?:string[]}|null>(null);
   const [authOpen,setAuthOpen]=useState(false);
   const [authClosing,setAuthClosing]=useState(false);
   const [authMode,setAuthMode]=useState<'signup'|'login'>('signup');
@@ -585,6 +585,8 @@ export default function Home() {
   const [emailBusy,setEmailBusy]=useState(false);
   const [emailMsg,setEmailMsg]=useState<{ok:boolean;text:string}|null>(null);
   const [emailNotice,setEmailNotice]=useState<{ok:boolean;text:string}|null>(null);
+  const [providersOn,setProvidersOn]=useState<Record<string,boolean>>({}); // reseaux dont les cles sont presentes cote serveur
+  const [unlinkMsg,setUnlinkMsg]=useState<string|null>(null);
   const [slugMsg,setSlugMsg]=useState<{ok:boolean;text:string}|null>(null);
   const currentUserRef=useRef<typeof currentUser>(null);
   currentUserRef.current=currentUser;
@@ -613,9 +615,11 @@ export default function Home() {
     }catch(e){}
   },[]);
   useEffect(()=>{
+    fetch('/api/auth/providers').then(r=>r.json()).then(d=>setProvidersOn(d||{})).catch(()=>{});
+    try{ const sp=new URLSearchParams(window.location.search); const oa=sp.get('oauth'); const pv=({sorare:'Sorare',discord:'Discord',x:'X',facebook:'Facebook'} as Record<string,string>)[sp.get('p')||'']||''; if(oa&&oa!=='ok'){ const T:Record<string,{ok:boolean;text:string}>={linked:{ok:true,text:pv+' : compte lié à ton compte myNFTlocker.'},notlinked:{ok:false,text:'Ce compte '+pv+' n’est lié à aucun compte myNFTlocker. Connecte-toi, puis lie-le dans Informations personnelles.'},already:{ok:false,text:'Ce compte '+pv+' est déjà lié à un autre compte myNFTlocker.'},cancelled:{ok:false,text:'Liaison annulée.'},nolink:{ok:false,text:'Connecte-toi d’abord pour lier un compte.'}}; setEmailNotice(T[oa]||{ok:false,text:'Liaison impossible, réessaie dans un instant.'}); } if(oa){ sp.delete('oauth'); sp.delete('p'); const q=sp.toString(); window.history.replaceState({},'','/'+(q?'?'+q:'')); } }catch(e){}
     try{ const em=new URLSearchParams(window.location.search).get('email'); if(em){ setEmailNotice(em==='changed'?{ok:true,text:'Adresse e-mail modifiée. Utilise-la dès maintenant pour te connecter.'}:{ok:false,text:em==='expired'?'Ce lien a expiré. Refais la demande depuis Informations personnelles.':em==='taken'?'Cette adresse est déjà utilisée par un autre compte.':'Impossible de confirmer cette adresse, réessaie.'}); window.history.replaceState({},'','/'); } }catch(e){}
     try{ const g=new URLSearchParams(window.location.search).get('google'); if(g==='error'||g==='closed'){ setAuthMode('login'); setAuthError(g==='closed'?'Les inscriptions ne sont pas encore ouvertes.':'Connexion Google impossible, réessaie.'); setAuthOpen(true); } }catch(e){}
-    fetch('/api/auth/me').then(r=>r.json()).then(d=>{ if(d.loggedIn){ setCurrentUser({pseudo:d.pseudo,email:d.email,sorareSlug:d.sorareSlug,pseudoChangedAt:d.pseudoChangedAt,hasPassword:d.hasPassword}); if(!d.sorareSlug){ setNeedSlug(true); setSlugDraft(''); setSetupPseudo(d.pseudo||''); } if(d.sorareSlug&&!urlSlugRef.current){ setSlug(d.sorareSlug); setJustLoggedIn(true); } } }).catch(()=>{});
+    fetch('/api/auth/me').then(r=>r.json()).then(d=>{ if(d.loggedIn){ setCurrentUser({pseudo:d.pseudo,email:d.email,sorareSlug:d.sorareSlug,pseudoChangedAt:d.pseudoChangedAt,hasPassword:d.hasPassword,accounts:d.accounts,connections:d.connections}); if(new URLSearchParams(window.location.search).get('oauth')==='linked'){ setAcctMenuSection('infos'); } if(!d.sorareSlug){ setNeedSlug(true); setSlugDraft(''); setSetupPseudo(d.pseudo||''); } if(d.sorareSlug&&!urlSlugRef.current){ setSlug(d.sorareSlug); setJustLoggedIn(true); } } }).catch(()=>{});
   },[]);
   // ===== PREFERENCES DU COMPTE : recuperees a la connexion (le compte l'emporte), puis recopiees dans le compte des qu'elles changent =====
   slugNowRef.current=slug;
@@ -1044,7 +1048,7 @@ export default function Home() {
                         <button onClick={()=>{setEmailEditing(false);setEmailMsg(null);setEmailPwd('');}} style={{background:'transparent',border:'none',color:'#7a8898',fontSize:'0.7rem',cursor:'pointer',textDecoration:'underline'}}>{tr('Annuler')}</button>
                       </span>
                     ):(
-                      <span style={{display:'flex',alignItems:'center',gap:'0.9rem'}}><span style={valStyle}>{currentUser.email}</span><span onClick={()=>{setEmailDraft('');setEmailPwd('');setEmailMsg(null);setEmailEditing(true);}} style={{color:'#40e8ff',cursor:'pointer',fontSize:'0.72rem',textDecoration:'underline'}}>{tr('Modifier')}</span></span>
+                      <span style={{display:'flex',alignItems:'center',gap:'0.9rem'}}><span style={valStyle}>{currentUser.email||'—'}</span><span onClick={()=>{setEmailDraft('');setEmailPwd('');setEmailMsg(null);setEmailEditing(true);}} style={{color:'#40e8ff',cursor:'pointer',fontSize:'0.72rem',textDecoration:'underline'}}>{tr('Modifier')}</span></span>
                     )}
                   </div>
                   {emailMsg&&<p style={{margin:'0 0 0.6rem',fontSize:'0.72rem',lineHeight:1.5,color:emailMsg.ok?'#7ee0a0':'#ff8a7a'}}>{emailMsg.text}</p>}
@@ -1062,6 +1066,28 @@ export default function Home() {
                   </div>
                   {slugEditing&&<SlugHint st={slugCheckDraft}/>}
                   {slugMsg&&<p style={{margin:'0.4rem 0 0.2rem',fontSize:'0.72rem',color:slugMsg.ok?'#7ee0a0':'#ff8a7a'}}>{slugMsg.text}</p>}
+                  {(()=>{
+                    const sorare=(currentUser.accounts||[]).find(a=>a.platform==='sorare');
+                    const conns=currentUser.connections||[];
+                    const lnk:React.CSSProperties={color:'#40e8ff',cursor:'pointer',fontSize:'0.72rem',textDecoration:'underline',background:'none',border:'none',padding:0};
+                    const nets:{id:string;label:string}[]=[{id:'discord',label:'Discord'},{id:'x',label:'X'},{id:'facebook',label:'Facebook'}].filter(n=>providersOn[n.id]||conns.includes(n.id));
+                    const unlink=async(id:string)=>{ setUnlinkMsg(null); const r=await fetch('/api/auth/oauth/unlink',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({provider:id})}); const d=await r.json().catch(()=>({})); if(r.ok){ setCurrentUser(u=>u?{...u,connections:(u.connections||[]).filter(c=>c!==id)}:u); } else setUnlinkMsg(d.error==='dernier_acces'?tr('Impossible : ce serait ton dernier moyen de te connecter.'):tr('Impossible de délier, réessaie.')); };
+                    return (<div style={{marginTop:'1.4rem'}}>
+                      <p style={{margin:'0 0 0.6rem',fontSize:'0.72rem',fontWeight:800,letterSpacing:'0.14em',textTransform:'uppercase' as const,color:'#eaf2ff'}}>{tr('Comptes liés')}</p>
+                      <div style={rowStyle}><span style={labelStyle}>Sorare</span>
+                        <span style={{display:'flex',alignItems:'center',gap:'0.9rem'}}>
+                          {sorare&&<span style={valStyle}>{sorare.slug}</span>}
+                          {sorare?.verified?<span style={{color:'#7ee0a0',fontSize:'0.72rem'}}>✓ {tr('Vérifié')}</span>:(providersOn.sorare?<a href='/api/auth/oauth/sorare/start?link=1' style={lnk}>{tr('Vérifier avec Sorare')}</a>:<span style={{color:'#7a8898',fontSize:'0.7rem'}}>{tr('Non vérifié')}</span>)}
+                        </span></div>
+                      <div style={rowStyle}><span style={labelStyle}>Google</span><span style={{fontSize:'0.72rem',color:conns.includes('google')?'#7ee0a0':'#7a8898'}}>{conns.includes('google')?'✓ '+tr('Lié'):tr('Non lié')}</span></div>
+                      {nets.map(n=>(<div key={n.id} style={rowStyle}><span style={labelStyle}>{n.label}</span>
+                        {conns.includes(n.id)?<span style={{display:'flex',alignItems:'center',gap:'0.9rem'}}><span style={{color:'#7ee0a0',fontSize:'0.72rem'}}>✓ {tr('Lié')}</span><button onClick={()=>unlink(n.id)} style={{...lnk,color:'#7a8898'}}>{tr('Délier')}</button></span>
+                        :<a href={'/api/auth/oauth/'+n.id+'/start?link=1'} style={lnk}>{tr('Lier')}</a>}
+                      </div>))}
+                      {unlinkMsg&&<p style={{margin:'0 0 0.4rem',fontSize:'0.72rem',color:'#ff8a7a'}}>{unlinkMsg}</p>}
+                      <p style={{margin:'0.2rem 0 0',fontSize:'0.68rem',lineHeight:1.5,color:'#7a8898'}}>{tr('Un compte lié peut aussi servir à te connecter.')}</p>
+                    </div>);
+                  })()}
                   <div style={{marginTop:'1.2rem'}}><ChangePassword/></div>
                   <p style={{fontSize:'0.72rem',color:'#7a8898',marginTop:'1rem',lineHeight:1.6}}>{tr('Le pseudo peut être modifié une fois tous les 3 mois. Pour l’adresse e-mail, un lien de confirmation est envoyé à la nouvelle adresse.')}</p>
                 </div>
@@ -1249,6 +1275,9 @@ export default function Home() {
                 <svg width='16' height='16' viewBox='0 0 48 48'><path fill='#EA4335' d='M24 9.5c3.5 0 6.6 1.2 9.1 3.5l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.4 13.6 17.7 9.5 24 9.5z'/><path fill='#4285F4' d='M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.7 6c4.5-4.2 6.9-10.3 6.9-17.7z'/><path fill='#FBBC05' d='M10.5 28.7c-.5-1.4-.8-3-.8-4.7s.3-3.200.8-4.700l-7.900-6.100C.9 16.400 0 20.100 0 24s.9 7.600 2.600 10.800l7.900-6.100z'/><path fill='#34A853' d='M24 48c6.500 0 11.900-2.100 15.900-5.800l-7.700-6c-2.200 1.500-4.900 2.300-8.200 2.300-6.300 0-11.600-4.100-13.500-9.800l-7.900 6.100C6.500 42.600 14.600 48 24 48z'/></svg>
                 {tr('Continuer avec Google')}
               </a>
+              {authMode==='login'&&Object.keys(providersOn).some(k=>providersOn[k])&&(
+                <p style={{margin:'0.7rem 0 0',fontSize:'0.66rem',textAlign:'center' as const,color:'rgba(207,228,251,0.55)',lineHeight:1.9}}>{tr('Compte déjà lié :')} {[['sorare','Sorare'],['discord','Discord'],['x','X'],['facebook','Facebook']].filter(([k])=>providersOn[k]).map(([k,l],i)=>(<span key={k}>{i>0?' · ':' '}<a href={'/api/auth/oauth/'+k+'/start'} style={{color:'#40e8ff',textDecoration:'underline'}}>{l}</a></span>))}</p>
+              )}
             </>)}
             {(SIGNUP_OPEN||authMode==='signup')&&(
             <p style={{textAlign:'center',marginTop:'0.8rem',fontSize:'0.66rem',color:'rgba(207,228,251,0.6)'}}>

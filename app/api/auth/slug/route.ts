@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkSorareSlug } from '../../../../lib/sorareUser';
-import { sessionUser, saveUser } from '../../../../lib/users';
+import { sessionUser, saveUser, getAccounts, upsertAccount } from '../../../../lib/users';
 
 // Modification du slug Sorare lie au compte (utilisateur connecte).
 // Le slug est verifie chez Sorare avant d'etre enregistre : impossible de sauvegarder une faute de frappe.
@@ -26,7 +26,9 @@ export async function POST(request: NextRequest) {
     if (chk.status === 'missing') return NextResponse.json({ error: 'slug_introuvable' }, { status: 404 });
     if (chk.status === 'error') return NextResponse.json({ error: 'sorare_indisponible' }, { status: 502 });
 
-    user.sorareSlug = slug;
+    // Un slug saisi a la main n'est PAS verifie : il ne le devient qu'en passant par "Se connecter avec Sorare". Si on garde le meme slug, on garde son statut.
+    const prev = getAccounts(user).find(a => a.platform === 'sorare');
+    upsertAccount(user, { platform: 'sorare', slug, verified: !!(prev && prev.slug === slug && prev.verified), linkedAt: Date.now() });
     if (newPseudo) user.pseudo = newPseudo;
     await saveUser(key, user);
     return NextResponse.json({ ok: true, slug, pseudo: user.pseudo });

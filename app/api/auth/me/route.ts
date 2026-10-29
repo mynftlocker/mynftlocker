@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { sessionUser } from '../../../../lib/users';
+import { sessionUser, getAccounts } from '../../../../lib/users';
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,6 +13,8 @@ export async function GET(request: NextRequest) {
       sorareSlug: user.sorareSlug,
       pseudoChangedAt: user.pseudoChangedAt || null,
       hasPassword: !!user.passwordHash,
+      accounts: getAccounts(user),
+      connections: [...(user.googleSub ? ['google'] : []), ...((user.identities || []).map((i: any) => i.provider))],
     });
   } catch (e) {
     return NextResponse.json({ loggedIn: false, error: String(e) });
