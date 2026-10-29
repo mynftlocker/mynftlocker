@@ -372,6 +372,7 @@ export default function Home() {
   const [hofFoot, setHofFoot] = useState<string[]>([]);
   const [flippedSlug, setFlippedSlug] = useState<string|null>(null);
   const [loading, setLoading] = useState(false);
+  const [loadedCount,setLoadedCount]=useState(0); // progression du chargement (nb de cartes deja recues)
   const [error, setError] = useState('');
   const [mode, setMode] = useState<'locker'|'gallery'>('locker');
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -503,7 +504,7 @@ export default function Home() {
 
   const fetchCards=async()=>{
     if(!slug)return;
-    setLoading(true);setError('');setSlugProblem(null);setFlippedSlug(null);setLockerStart(0);sportAutoSetRef.current=false;
+    setLoading(true);setLoadedCount(0);setError('');setSlugProblem(null);setFlippedSlug(null);setLockerStart(0);sportAutoSetRef.current=false;
     setManager(slug,slug); // signature de partage : pseudo Sorare une fois connu, slug en attendant
     // Cache localStorage (TTL 1h)
     const CACHE_KEY='mnfl_v4_'+slug;// v4 : force le rechargement des cartes (nouveaux champs proj/gain)
@@ -515,12 +516,13 @@ export default function Home() {
     const all:any[]=[];let cur:string|null=null;let more=true;let pageNum=0;let mgr='';
     const sleep=(ms:number)=>new Promise(r=>setTimeout(r,ms));
     const SORARE_URL='https://api.sorare.com/federation/graphql';
-    const fetchPage=async(cursor:string|null):Promise<{cards:any[],hasNextPage:boolean,cursor:string|null}|null>=>{
+    let pageSize=100;
+    const fetchPage=async(cursor:string|null,size:number=50):Promise<{cards:any[],hasNextPage:boolean,cursor:string|null}|null>=>{
       const after=cursor?`, after: "${cursor}"` :'';
       const query=`query{user(slug:"${slug}"){cards(first:50${after}){nodes{__typename slug name rarityTyped pictureUrl anyPlayer{lastName shirtNumber gameplayTierStars}anyTeam{name ...on Club{country{slug}}}...on NBACard{seasonYear specialEdition power xp averageScore(type:LAST_TEN_PLAYED_SO5_AVERAGE_SCORE)}}pageInfo{hasNextPage endCursor}}}}`;
       // CORS SKIP : l'essai direct navigateur echoue systematiquement (CORS Sorare), tente 0 fois, va direct au fallback qui marche
       // 1. Route Vercel (seule voie fonctionnelle, confirmee sur des dizaines de tests)
-      const url='/api/cards?slug='+encodeURIComponent(slug)+(cursor?'&cursor='+encodeURIComponent(cursor):'');
+      const url='/api/cards?slug='+encodeURIComponent(slug)+(cursor?'&cursor='+encodeURIComponent(cursor):'')+(size!==50?'&size='+size:'');
       const r2=await fetch(url);
       if(!r2.ok)return null;
       const d=await r2.json();
@@ -532,9 +534,11 @@ export default function Home() {
       while(more){
         pageNum++;
         let data:any=null;
-        for(let attempt=0;attempt<6;attempt++){
+        // PERF : pages de 100 cartes (2x moins d'allers-retours). Si Sorare refuse 100, retour immediat a 50 (sans attente) pour le reste du chargement.
+        if(pageSize>50){data=await fetchPage(cur,pageSize);if(!data)pageSize=50;}
+        for(let attempt=0;attempt<6&&!data;attempt++){
           if(attempt>0)await sleep(1200*attempt);
-          data=await fetchPage(cur);
+          data=await fetchPage(cur,pageSize);
           if(data)break;
           console.error('Page'+pageNum+' attempt'+(attempt+1)+' failed');
         }
@@ -543,7 +547,7 @@ export default function Home() {
           if(u&&u.sorareSlug===slug){ setSlugProblem(slug); setSlugDraft(slug); setSlugMsg(null); setError(''); setOpenPhase(3); } // slug du COMPTE introuvable : le site se charge normalement, un message (avec correction sur place) remplace vestiaire/galerie
           else{ setError(tr('Joueur introuvable')); setOpenPhase(0); }
         }break;}
-        all.push(...data.cards);
+        all.push(...data.cards);setLoadedCount(all.length);
         // PERF : affichage progressif mais pas a chaque page (chaque setCards recalcule filtres/tris/equipes sur toute la collection)
         if(pageNum===1||pageNum%6===0)setCards([...all]);
         more=data.hasNextPage;
@@ -1201,8 +1205,8 @@ export default function Home() {
             )}
             {openPhase>=1&&(
               <div style={{position:'relative',zIndex:2,marginTop:'1rem',textAlign:'center'}}>
-                {openPhase===1&&<p style={{color:'rgba(0,255,255,0.65)',fontFamily:'Courier New,monospace',letterSpacing:'0.25em',fontSize:'0.68rem',animation:'cyanPulse 0.8s ease-in-out infinite'}}>{loading?tr('INITIALISATION...'):tr('SCAN EN COURS...')}</p>}
-                {openPhase===2&&<p style={{color:'rgba(0,225,255,0.65)',fontFamily:'Courier New,monospace',letterSpacing:'0.22em',fontSize:'0.68rem',animation:'cyanPulse 0.4s ease-in-out infinite'}}>{loading?'SCAN EN COURS...':tr('DONNÉES CHARGÉES')}</p>}
+                {openPhase===1&&<p style={{color:'rgba(0,255,255,0.65)',fontFamily:'Courier New,monospace',letterSpacing:'0.25em',fontSize:'0.68rem',animation:'cyanPulse 0.8s ease-in-out infinite'}}>{loading?(loadedCount>0?tr('CHARGEMENT')+' · '+loadedCount+' '+tr('CARTES'):tr('INITIALISATION...')):tr('SCAN EN COURS...')}</p>}
+                {openPhase===2&&<p style={{color:'rgba(0,225,255,0.65)',fontFamily:'Courier New,monospace',letterSpacing:'0.22em',fontSize:'0.68rem',animation:'cyanPulse 0.4s ease-in-out infinite'}}>{loading?(loadedCount>0?tr('CHARGEMENT')+' · '+loadedCount+' '+tr('CARTES'):tr('SCAN EN COURS...')):tr('DONNÉES CHARGÉES')}</p>}
               </div>
             )}
             <div style={{position:'fixed',bottom:'1rem',left:'50%',transform:'translateX(-50%)',zIndex:2,display:'flex',gap:'2.5rem',alignItems:'center'}}><a href='https://sorare.com' target='_blank' rel='noreferrer' style={{color:'rgba(255,255,255,0.2)',fontSize:'0.6rem',letterSpacing:'0.14em',textTransform:'uppercase',textDecoration:'none',fontFamily:'Courier New,monospace',transition:'color 0.2s',pointerEvents:'auto'}} onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.color='rgba(64,232,255,0.6)';}} onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.color='rgba(255,255,255,0.2)';}}>SORARE</a><span style={{color:'rgba(255,255,255,0.1)',fontSize:'0.5rem'}}>|</span><a href='/cgu' target='_blank' rel='noopener noreferrer' style={{color:'rgba(255,255,255,0.15)',fontSize:'0.6rem',letterSpacing:'0.14em',textTransform:'uppercase',textDecoration:'none',fontFamily:'Courier New,monospace',pointerEvents:'auto',transition:'color 0.2s'}} onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.color='rgba(64,232,255,0.6)';}} onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.color='rgba(255,255,255,0.15)';}}>{tr('CGU')}</a><span style={{color:'rgba(255,255,255,0.1)',fontSize:'0.5rem'}}>|</span><LangSwitch/></div>

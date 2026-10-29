@@ -99,7 +99,7 @@ const EN: Record<string, string> = {
   'Connexion au serveur impossible.': 'Cannot reach the server.', 'Joueur introuvable': 'Player not found', 'Erreur réseau': 'Network error',
   // --- Ecran d'accueil ---
   'ENTRE TON SLUG SORARE POUR COMMENCER': 'ENTER YOUR SORARE SLUG TO START', 'ton-slug-sorare': 'your-sorare-slug',
-  'CHARGEMENT...': 'LOADING...', 'DONNÉES CHARGÉES': 'DATA LOADED', 'SCAN EN COURS...': 'SCANNING...', 'INITIALISATION...': 'INITIALIZING...',
+  'CHARGEMENT': 'LOADING', 'CARTES': 'CARDS', 'CHARGEMENT...': 'LOADING...', 'DONNÉES CHARGÉES': 'DATA LOADED', 'SCAN EN COURS...': 'SCANNING...', 'INITIALISATION...': 'INITIALIZING...',
   // --- Pays (foot) ---
   'Sélection nationale': 'National team', 'Autres pays': 'Other countries', 'Belgique': 'Belgium', 'Allemagne': 'Germany',
   'Espagne': 'Spain', 'Angleterre': 'England', 'Ecosse': 'Scotland', 'Pays de Galles': 'Wales', 'Irlande du Nord': 'Northern Ireland',
