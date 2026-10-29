@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
     const snap = { m: clean(b?.manager, 30) || slug, t: clean(b?.title, 40), n: Math.max(0, Math.min(100000, Number(b?.total) || 0)), cards, ts: Date.now() };
     await redis.set('share:' + slug, JSON.stringify(snap), { ex: 60 * 60 * 24 * 60 });
     // prechauffe l'image d'apercu (le robot de X / Discord n'attend pas longtemps) : fire-and-forget
-    fetch(request.nextUrl.origin + '/api/og?slug=' + encodeURIComponent(slug)).catch(() => {});
+    fetch(request.nextUrl.origin + '/api/og?slug=' + encodeURIComponent(slug) + '&v=' + snap.ts).catch(() => {});
     return NextResponse.json({ ok: true });
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 });

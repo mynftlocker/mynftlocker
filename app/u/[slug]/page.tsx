@@ -15,7 +15,7 @@ export async function generateMetadata({ params }: P): Promise<Metadata> {
   const name = snap?.m || slug;
   const title = snap ? `${name} · ${snap.t || 'Vestiaire'} — myNFTlocker` : `Vestiaire de ${name} — myNFTlocker`;
   const description = `Le vestiaire Sorare de ${name} : cartes NBA et foot, stats et partage. Ouvre-le sur myNFTlocker.`;
-  const image = `${SITE}/api/og?slug=${encodeURIComponent(slug)}`;
+  const image = `${SITE}/api/og?slug=${encodeURIComponent(slug)}${snap?.ts ? '&v=' + snap.ts : ''}`; // v = date du dernier partage : une nouvelle version = une nouvelle URL (jamais d'ancienne image en cache)
   return {
     title, description,
     openGraph: { title, description, url: `${SITE}/u/${slug}`, siteName: 'myNFTlocker', type: 'website', images: [{ url: image, width: 1200, height: 630 }] },
