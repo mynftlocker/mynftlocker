@@ -926,7 +926,7 @@ export default function Home() {
           <div onClick={()=>setAcctOpen(o=>!o)} style={{display:'flex',alignItems:'center',gap:'0.5rem',padding:'0.35rem 0.4rem',borderRadius:'0.3rem',cursor:'pointer',background:'rgba(255,255,255,0.03)',border:'1px solid rgba(111,195,232,0.18)',transition:'all 0.15s'}} onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.background='rgba(111,195,232,0.08)';}} onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.background='rgba(255,255,255,0.03)';}}>
             <div style={{width:'28px',height:'28px',flexShrink:0,borderRadius:'50%',background:'radial-gradient(circle at 35% 30%,#1a1c24,#0a0b0f)',border:'1.5px solid #6fc3e8',boxShadow:'0 0 10px rgba(111,195,232,0.5)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'0.78rem',fontWeight:900,color:'#6fc3e8'}}>{(slug||'?').trim().charAt(0).toUpperCase()||'?'}</div>
             <div style={{flex:1,minWidth:0,textAlign:'left'}}>
-              <p style={{margin:0,fontSize:'0.74rem',fontWeight:700,color:'#eaf2ff',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{cards.length>0?'Collection':tr('Mon compte')}</p>
+              <p style={{margin:0,fontSize:'0.74rem',fontWeight:700,color:'#eaf2ff',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{cards.length>0&&slug?((currentUser?.sorareSlug&&currentUser.pseudo&&slug.toLowerCase()===currentUser.sorareSlug.toLowerCase())?currentUser.pseudo:slug):tr('Mon compte')}</p>
             </div>
             <span style={{fontSize:'0.6rem',color:'#6fc3e8',opacity:0.85,flexShrink:0}}>{acctOpen?'▲':'▼'}</span>
           </div>
@@ -979,7 +979,7 @@ export default function Home() {
             {arcadeOnly&&arcadeCount===0&&<p style={{fontSize:'0.62rem',color:'#f5d76e',margin:'0 0.5rem 0.3rem'}}>{tr('Aucune carte Arcade pour ce sport')}</p>}
             <div style={{padding:'0.2rem 0.5rem'}}>
               <p style={{fontSize:'0.64rem',fontWeight:800,letterSpacing:'0.14em',textTransform:'uppercase',color:'#eaf2ff',margin:'0 0 0.2rem'}}>{tr('Joueur')}</p>
-              <input style={{width:'100%',boxSizing:'border-box',background:'rgba(255,255,255,0.05)',color:'#e8eefc',padding:'0.3rem 0.5rem',borderRadius:'0.15rem',border:'1px solid rgba(255,255,255,0.12)',outline:'none',fontSize:'0.76rem'}} placeholder={tr('Rechercher...')} value={fPlayer} onChange={e=>setFPlayer(e.target.value)}/>
+              <input style={{width:'100%',boxSizing:'border-box',background:'rgba(255,255,255,0.05)',color:'#e8eefc',padding:'0.3rem 0.5rem',borderRadius:'0.15rem',border:'1px solid rgba(255,255,255,0.12)',outline:'none',fontSize:'0.76rem'}} name='player-filter' autoComplete='off' data-lpignore='true' data-1p-ignore='true' placeholder={tr('Rechercher...')} value={fPlayer} onChange={e=>setFPlayer(e.target.value)}/>
             </div>
             {gSport==='nba'?(
               <FilterMenu title={tr('Équipe')} options={(galleryTeamList as string[]).map((n:string)=>({value:n,label:n==='all'?'Hall of Fame':n}))} current={gTeamCustom} onSelect={(v:string)=>{setGTeamCustom(v);if(mode==='locker'){if(v==='all'){setTeamApi(HOF_KEY);teamChosenRef.current=false;}else{setTeamApi(v);teamChosenRef.current=true;}setLockerStart(0);setFlippedSlug(null);}}}/>
@@ -1338,7 +1338,7 @@ export default function Home() {
               <div onClick={()=>setAcctOpen(o=>!o)} style={{flex:1,minWidth:0,display:'flex',alignItems:'center',gap:'0.5rem',padding:'0.4rem 0.5rem',borderRadius:'0.3rem',cursor:'pointer',background:'rgba(255,255,255,0.03)',border:'1px solid rgba(111,195,232,0.18)'}}>
               <div style={{width:'44px',height:'44px',flexShrink:0,borderRadius:'50%',background:'radial-gradient(circle at 35% 30%,#1a1c24,#0a0b0f)',border:'1.5px solid #6fc3e8',boxShadow:'0 0 10px rgba(111,195,232,0.5)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'1.1rem',fontWeight:900,color:'#6fc3e8'}}>{(slug||'?').trim().charAt(0).toUpperCase()||'?'}</div>
               <div style={{flex:1,minWidth:0,textAlign:'left'}}>
-                <p style={{margin:0,fontSize:'0.8rem',fontWeight:700,color:'#eaf2ff',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{cards.length>0?'Collection':tr('Mon compte')}</p>
+                <p style={{margin:0,fontSize:'0.8rem',fontWeight:700,color:'#eaf2ff',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{cards.length>0&&slug?((currentUser?.sorareSlug&&currentUser.pseudo&&slug.toLowerCase()===currentUser.sorareSlug.toLowerCase())?currentUser.pseudo:slug):tr('Mon compte')}</p>
                 <p style={{margin:0,fontSize:'0.62rem',color:'#7a8898'}}>{cards.length>0?(cards.length+' '+tr('cartes')):'Identifiant Sorare'}</p>
               </div>
               {/* BADGE REPOSITIONNE : plus grand, sans cercle, juste avant le chevron */}
@@ -1380,7 +1380,7 @@ export default function Home() {
             {arcadeOnly&&arcadeCount===0&&<p style={{fontSize:'0.62rem',color:'#f5d76e',margin:'0 0.5rem 0.3rem'}}>{tr('Aucune carte Arcade pour ce sport')}</p>}
             <div style={{padding:'0.2rem 0.5rem'}}>
               <p style={{fontSize:'0.64rem',fontWeight:800,letterSpacing:'0.14em',textTransform:'uppercase',color:'#eaf2ff',margin:'0 0 0.2rem'}}>{tr('Joueur')}</p>
-              <input style={{width:'100%',boxSizing:'border-box',background:'rgba(255,255,255,0.05)',color:'#e8eefc',padding:'0.3rem 0.5rem',borderRadius:'0.15rem',border:'1px solid rgba(255,255,255,0.12)',outline:'none',fontSize:'0.76rem'}} placeholder={tr('Rechercher...')} value={fPlayer} onChange={e=>setFPlayer(e.target.value)}/>
+              <input style={{width:'100%',boxSizing:'border-box',background:'rgba(255,255,255,0.05)',color:'#e8eefc',padding:'0.3rem 0.5rem',borderRadius:'0.15rem',border:'1px solid rgba(255,255,255,0.12)',outline:'none',fontSize:'0.76rem'}} name='player-filter' autoComplete='off' data-lpignore='true' data-1p-ignore='true' placeholder={tr('Rechercher...')} value={fPlayer} onChange={e=>setFPlayer(e.target.value)}/>
             </div>
             {gSport==='nba'?(
               <FilterMenu title={tr('Équipe')} options={(galleryTeamList as string[]).map((n:string)=>({value:n,label:n==='all'?'Hall of Fame':n}))} current={gTeamCustom} onSelect={(v:string)=>{setGTeamCustom(v);if(mode==='locker'){if(v==='all'){setTeamApi(HOF_KEY);teamChosenRef.current=false;}else{setTeamApi(v);teamChosenRef.current=true;}setLockerStart(0);setFlippedSlug(null);}}}/>
