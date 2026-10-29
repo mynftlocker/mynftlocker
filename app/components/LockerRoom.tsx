@@ -185,7 +185,7 @@ export default function LockerRoomScene({cards=[],startIndex,hof=[],flippedSlug,
     const mob=typeof window!=='undefined'&&window.innerWidth<768;
     const st=mob?Math.max(0,Math.min(mobileIdx,cards.length-5)):startIndex;
     const cs=cards.slice(st,st+5);
-    setShareData({cards:cs,names:cs.map((c:any)=>c.anyPlayer?.lastName||parseCard(c.name).lastName),bg:'/'+img,title:[nameLines[0]||'',nameLines[1]||''],showTeamTitle:!isFoot,caption:isHofView?'HALL OF FAME':displayName,layout:{slots:SL,cardTop:CT,plateX:PLX,plateTop:PT,teamX:TEAM_X,teamY:TEAM_Y}});
+    setShareData({cards:cs,names:cs.map((c:any)=>c.anyPlayer?.lastName||parseCard(c.name).lastName),bg:'/'+img,title:[nameLines[0]||'',nameLines[1]||''],showTeamTitle:!isFoot,caption:isHofView?'HALL OF FAME':displayName,layout:{slots:SL,cardTop:CT,plateX:PLX,plateTop:PT,teamX:TEAM_X,teamY:TEAM_Y,plateDy:isFoot?0.3:0.45}});
   };
   const shareBtn=(pos:React.CSSProperties)=>(
     <button type='button' title={tr('Partager le vestiaire')} aria-label={tr('Partager le vestiaire')} onClick={openShare} style={{position:'absolute',width:'38px',height:'38px',borderRadius:'50%',background:'rgba(8,11,16,0.78)',border:'1.5px solid rgba(64,232,255,0.6)',boxShadow:'0 0 12px rgba(64,232,255,0.35)',color:'#40e8ff',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',padding:0,zIndex:20,...pos}}>

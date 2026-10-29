@@ -2,7 +2,7 @@
 // Deux formats : 'wide' (paysage, X / Discord / web) et 'ig' (Instagram 4:5, 1080x1350).
 import { getManager, galleryLink } from '../lib-share';
 
-export type LockerLayout = { slots: { left: number; w: number }[]; cardTop: number; plateX: number[]; plateTop: number; teamX: number; teamY: number };
+export type LockerLayout = { slots: { left: number; w: number }[]; cardTop: number; plateX: number[]; plateTop: number; teamX: number; teamY: number; plateDy?: number };
 export type LockerShareOpts = {
   cards: any[];            // les cartes a montrer (max 5)
   names: string[];         // nom de famille affiche sur chaque plaque
@@ -82,7 +82,7 @@ function drawScene(ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
   // Plaques de noms
   o.cards.slice(0, 5).forEach((c, i) => {
     const name = String(o.names[i] || '').toUpperCase(); if (!name) return;
-    const px = x + w * L.plateX[i] / 100, py = y + h * L.plateTop / 100, maxW = w * 0.07 - 2;
+    const px = x + w * L.plateX[i] / 100, py = y + h * (L.plateTop + (L.plateDy || 0)) / 100, maxW = w * 0.07 - 2;
     ctx.save(); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; setSpacing(ctx, '0.03em');
     const fam = 'Georgia, serif';
     fitText(ctx, name, 900, w * plateFsPct(name.length) / 100, 6, maxW, fam);
@@ -148,32 +148,37 @@ export async function exportLockerImage(o: LockerShareOpts, format: LockerFormat
     drawManager(ctx, mgr, xr, mid - 6, 54, 28, 520);
     if (hasQr) await drawQr(ctx, link, W - pad - qrS, qy, qrS);
   } else {
-    const W = 1080, H = 1350, headH = 250, sw = 1350, sh = Math.round(sw * SCENE_RATIO);
+    // INSTAGRAM 4:5 : decor en ambiance plein cadre, scene au centre, signature discrete (petits textes + petit QR dans les coins)
+    const W = 1080, H = 1350, sw = 1500, sh = Math.round(sw * SCENE_RATIO), sy = Math.round((H - sh) / 2);
     cv = document.createElement('canvas'); cv.width = W; cv.height = H; ctx = cv.getContext('2d'); if (!ctx) throw new Error('canvas');
     paintBackground(ctx, W, H);
-    // En-tete : marque a gauche, manager a droite
-    drawBrand(ctx, 56, headH / 2 - 8, 56, 30, 'left');
-    drawManager(ctx, mgr, W - 56, headH / 2 - 8, 56, 28, 460);
-    // Scene recadree sur le centre (les 5 cartes restent entieres, en plus grand)
-    ctx.save(); ctx.beginPath(); ctx.rect(0, headH, W, sh); ctx.clip();
-    drawScene(ctx, (W - sw) / 2, headH, sw, o, bg, cardImgs);
+    if (bg) { // ambiance : le meme decor agrandi et assombri remplit le haut et le bas (plus de grands vides noirs)
+      const bw = H / SCENE_RATIO; ctx.drawImage(bg, (W - bw) / 2, 0, bw, H);
+      const ov = ctx.createLinearGradient(0, 0, 0, H); ov.addColorStop(0, 'rgba(4,7,13,0.9)'); ov.addColorStop(0.5, 'rgba(4,7,13,0.72)'); ov.addColorStop(1, 'rgba(4,7,13,0.92)');
+      ctx.fillStyle = ov; ctx.fillRect(0, 0, W, H);
+    }
+    // Scene recadree sur le centre (les 5 cartes restent entieres)
+    ctx.save(); ctx.beginPath(); ctx.rect(0, sy, W, sh); ctx.clip();
+    drawScene(ctx, (W - sw) / 2, sy, sw, o, bg, cardImgs);
     ctx.restore();
-    const ln = ctx.createLinearGradient(0, 0, W, 0); ln.addColorStop(0, 'rgba(245,215,110,0)'); ln.addColorStop(0.5, 'rgba(245,215,110,0.7)'); ln.addColorStop(1, 'rgba(245,215,110,0)');
-    ctx.fillStyle = ln; ctx.fillRect(0, headH, W, 2); ctx.fillRect(0, headH + sh - 2, W, 2);
-    // Pied : titre (decor sans zone titre) + QR + lien
-    const footTop = headH + sh;
+    const ln = ctx.createLinearGradient(0, 0, W, 0); ln.addColorStop(0, 'rgba(245,215,110,0)'); ln.addColorStop(0.5, 'rgba(245,215,110,0.6)'); ln.addColorStop(1, 'rgba(245,215,110,0)');
+    ctx.fillStyle = ln; ctx.fillRect(0, sy, W, 2); ctx.fillRect(0, sy + sh - 2, W, 2);
+    // Haut : marque (gauche) + manager (droite), petits
+    ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
+    ctx.fillStyle = 'rgba(245,215,110,0.95)'; ctx.font = '800 40px system-ui, sans-serif'; ctx.fillText('myNFTlocker', 44, sy / 2 + 14);
+    if (mgr) {
+      ctx.textAlign = 'right'; ctx.fillStyle = 'rgba(64,232,255,0.8)'; ctx.font = '700 20px ui-monospace, Menlo, Consolas, monospace'; ctx.fillText('MANAGER', W - 44, sy / 2 - 8);
+      fitText(ctx, mgr, 800, 40, 24, 440, 'system-ui, sans-serif'); ctx.fillStyle = 'rgba(245,247,255,0.95)'; ctx.fillText(mgr, W - 44, sy / 2 + 34);
+    }
+    // Bas : titre (decor sans zone titre), lien discret a gauche, petit QR a droite
+    const botMid = sy + sh + (H - sy - sh) / 2;
     if (!o.showTeamTitle && o.caption) {
       ctx.save(); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; setSpacing(ctx, '0.12em');
-      const fs = fitText(ctx, o.caption, 900, 52, 28, W - 160, 'Georgia, serif');
-      ctx.fillStyle = '#ffd060'; ctx.shadowColor = 'rgba(255,160,0,0.7)'; ctx.shadowBlur = fs * 0.6; ctx.fillText(o.caption, W / 2, footTop + 52); ctx.restore();
+      const fs = fitText(ctx, o.caption, 900, 44, 26, W - 420, 'Georgia, serif');
+      ctx.fillStyle = '#ffd060'; ctx.shadowColor = 'rgba(255,160,0,0.7)'; ctx.shadowBlur = fs * 0.6; ctx.fillText(o.caption, W / 2, botMid); ctx.restore();
     }
-    if (link) {
-      const qrS = 190, qy = footTop + (H - footTop - qrS) / 2 + (o.showTeamTitle ? -8 : 20);
-      await drawQr(ctx, link, (W - qrS) / 2, qy, qrS);
-      ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic'; ctx.fillStyle = 'rgba(207,216,230,0.75)'; ctx.font = '600 28px system-ui, sans-serif'; ctx.fillText('mynftlocker.com', W / 2, H - 28);
-    } else {
-      ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = 'rgba(245,215,110,0.95)'; ctx.font = '800 56px system-ui, sans-serif'; ctx.fillText('mynftlocker.com', W / 2, footTop + (H - footTop) / 2);
-    }
+    ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillStyle = 'rgba(207,216,230,0.6)'; ctx.font = '600 24px system-ui, sans-serif'; ctx.fillText('mynftlocker.com', 44, botMid);
+    if (link) { const qrS = 128; await drawQr(ctx, link, W - 44 - qrS, botMid - qrS / 2, qrS); }
   }
   const blob: Blob | null = await new Promise(r => cv.toBlob(r, 'image/png'));
   if (!blob) throw new Error('blob');
