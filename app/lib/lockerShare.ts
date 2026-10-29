@@ -146,6 +146,12 @@ export async function exportLockerImage(o: LockerShareOpts, format: LockerFormat
     drawBrand(ctx, pad, mid - 6, 54, 30, 'left');
     const hasQr = !!link, xr = hasQr ? W - pad - qrS - 40 : W - pad;
     drawManager(ctx, mgr, xr, mid - 6, 54, 28, 520);
+    // Decor sans zone titre (foot) : le titre (ex. HALL OF FAME / nom d'equipe) est centre dans le pied
+    if (!o.showTeamTitle && o.caption) {
+      ctx.save(); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; setSpacing(ctx, '0.12em');
+      const fs = fitText(ctx, o.caption, 900, 46, 26, 640, 'Georgia, serif');
+      ctx.fillStyle = '#ffd060'; ctx.shadowColor = 'rgba(255,160,0,0.7)'; ctx.shadowBlur = fs * 0.6; ctx.fillText(o.caption, W / 2 - 60, mid); ctx.restore();
+    }
     if (hasQr) await drawQr(ctx, link, W - pad - qrS, qy, qrS);
   } else {
     // INSTAGRAM 4:5 : decor en ambiance plein cadre, scene au centre, signature discrete (petits textes + petit QR dans les coins)
