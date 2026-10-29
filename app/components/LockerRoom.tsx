@@ -3,6 +3,8 @@ import { memo, useState, useRef, useEffect } from 'react';
 import { TEAM_BY_API, FALLBACK_IMG } from '../lib-teams';
 import { t as tr, useLang } from '../i18n';
 import { StatPanel, CardBack, RARITY_GLOW, RARITY_COLOR, RARITY_FILL, parseCard } from './StatPanel';
+import LockerShareModal from './LockerShareModal';
+import type { LockerShareOpts } from '../lib/lockerShare';
 const CITY_CLUB: Record<string,[string,string]> = {
   'Atlanta Hawks':['ATLANTA','HAWKS'],
   'Boston Celtics':['BOSTON','CELTICS'],
@@ -177,9 +179,23 @@ export default function LockerRoomScene({cards=[],startIndex,hof=[],flippedSlug,
 
   const teamLbl=(t:any)=>{const d=TEAM_BY_API[t.api];const n=d?d.display:(t.api==='__HOF__'?'\uD83C\uDFC6 HALL OF FAME':t.api);return n+' ('+t.count+')';};
   const curTeam=teamList.find(t=>t.api===teamApi);
+  // ===== PARTAGE DU VESTIAIRE : photo figee des 5 cartes visibles (sur mobile : a partir de la carte affichee) =====
+  const [shareData,setShareData]=useState<LockerShareOpts|null>(null);
+  const openShare=()=>{
+    const mob=typeof window!=='undefined'&&window.innerWidth<768;
+    const st=mob?Math.max(0,Math.min(mobileIdx,cards.length-5)):startIndex;
+    const cs=cards.slice(st,st+5);
+    setShareData({cards:cs,names:cs.map((c:any)=>c.anyPlayer?.lastName||parseCard(c.name).lastName),bg:'/'+img,title:[nameLines[0]||'',nameLines[1]||''],showTeamTitle:!isFoot,caption:isHofView?'HALL OF FAME':displayName,layout:{slots:SL,cardTop:CT,plateX:PLX,plateTop:PT,teamX:TEAM_X,teamY:TEAM_Y}});
+  };
+  const shareBtn=(pos:React.CSSProperties)=>(
+    <button type='button' title={tr('Partager le vestiaire')} aria-label={tr('Partager le vestiaire')} onClick={openShare} style={{position:'absolute',width:'38px',height:'38px',borderRadius:'50%',background:'rgba(8,11,16,0.78)',border:'1.5px solid rgba(64,232,255,0.6)',boxShadow:'0 0 12px rgba(64,232,255,0.35)',color:'#40e8ff',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',padding:0,zIndex:20,...pos}}>
+      <svg viewBox='0 0 24 24' style={{width:'18px',height:'18px'}} fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round'><circle cx='18' cy='5' r='3'/><circle cx='6' cy='12' r='3'/><circle cx='18' cy='19' r='3'/><path d='M8.6 13.5l6.8 4M15.4 6.5l-6.8 4'/></svg>
+    </button>
+  );
 
   return(
     <div>
+      {shareData&&<LockerShareModal opts={shareData} onClose={()=>setShareData(null)}/>}
       {/* ===== BANDEAU TITRE (unifie NBA + Foot, navigation via sidebar) ===== */}
       <div className='mnfl-title-banner' style={{display:'flex',alignItems:'center',justifyContent:'center',width:'520px',maxWidth:'92%',overflow:'hidden',margin:'0 auto 0.5rem',position:'relative',padding:'0.4rem 1.5rem 0.5rem',borderRadius:'0.4rem',background:'linear-gradient(180deg,rgba(12,16,22,0.85),rgba(8,10,14,0.6))',border:'1px solid rgba(245,215,110,0.22)',borderBottom:'1px solid rgba(245,215,110,0.4)',boxShadow:'0 8px 22px -10px rgba(0,0,0,0.7),0 0 18px -6px rgba(245,200,90,0.18)'}}>
         <div style={{textAlign:'center',fontSize:'1.15rem',fontWeight:900,letterSpacing:'0.12em',color:'#f5d76e',fontFamily:'Georgia,serif',textShadow:'0 0 16px rgba(245,200,90,0.5),0 2px 5px rgba(0,0,0,0.8)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',textTransform:'uppercase'}}>
@@ -240,6 +256,8 @@ export default function LockerRoomScene({cards=[],startIndex,hof=[],flippedSlug,
         {hasPrev&&<button onClick={()=>{setSlideDir('right');setSlideKey(k=>k+1);onPrev();}} style={{position:'absolute',left:'0.6%',top:'43%',transform:'translateY(-50%)',background:'transparent',border:'none',color:'rgba(232,196,86,0.55)',fontSize:'2.4rem',lineHeight:1,cursor:'pointer',padding:'0.5rem',zIndex:20,transition:'all 0.15s',textShadow:'0 0 8px rgba(0,0,0,0.8)',...ARF}} onMouseEnter={e=>{const t=e.currentTarget as HTMLElement;t.style.color='#ffd75e';t.style.textShadow='0 0 16px rgba(245,200,90,0.9)';}} onMouseLeave={e=>{const t=e.currentTarget as HTMLElement;t.style.color=isFoot?'#ffd75e':'rgba(232,196,86,0.55)';t.style.textShadow='0 0 8px rgba(0,0,0,0.8)';}}>‹</button>}
         {hasNext&&<button onClick={()=>{setSlideDir('left');setSlideKey(k=>k+1);onNext();}} style={{position:'absolute',right:'0.6%',top:'43%',transform:'translateY(-50%)',background:'transparent',border:'none',color:'rgba(232,196,86,0.55)',fontSize:'2.4rem',lineHeight:1,cursor:'pointer',padding:'0.5rem',zIndex:20,transition:'all 0.15s',textShadow:'0 0 8px rgba(0,0,0,0.8)',...ARF}} onMouseEnter={e=>{const t=e.currentTarget as HTMLElement;t.style.color='#ffd75e';t.style.textShadow='0 0 16px rgba(245,200,90,0.9)';}} onMouseLeave={e=>{const t=e.currentTarget as HTMLElement;t.style.color=isFoot?'#ffd75e':'rgba(232,196,86,0.55)';t.style.textShadow='0 0 8px rgba(0,0,0,0.8)';}}>›</button>}
 
+        {total>0&&shareBtn({top:'2.5%',right:'1.2%'})}
+
         {/* COMPTEUR */}
         <div style={{position:'absolute',bottom:'1.5%',left:'50%',transform:'translateX(-50%)',color:'rgba(255,220,100,0.85)',fontSize:'0.75rem',letterSpacing:'0.15em',zIndex:10,textShadow:'0 1px 4px rgba(0,0,0,0.9)'}}>
           {from}-{to} / {total}
@@ -269,6 +287,7 @@ export default function LockerRoomScene({cards=[],startIndex,hof=[],flippedSlug,
             );
           })}
         </div>
+        {cards.length>0&&shareBtn({top:'2%',right:'4%'})}
         {mobileIdx>0&&<button onClick={()=>mobileGoto(-1)} style={{position:'absolute',left:'2%',top:'46%',transform:'translateY(-50%)',background:'transparent',border:'none',color:'rgba(232,196,86,0.65)',fontSize:'2.2rem',lineHeight:1,cursor:'pointer',padding:'0.5rem',zIndex:20,textShadow:'0 0 8px rgba(0,0,0,0.8)'}}>‹</button>}
         {mobileIdx<cards.length-1&&<button onClick={()=>mobileGoto(1)} style={{position:'absolute',right:'2%',top:'46%',transform:'translateY(-50%)',background:'transparent',border:'none',color:'rgba(232,196,86,0.65)',fontSize:'2.2rem',lineHeight:1,cursor:'pointer',padding:'0.5rem',zIndex:20,textShadow:'0 0 8px rgba(0,0,0,0.8)'}}>›</button>}
         <div style={{position:'absolute',bottom:'1%',left:'50%',transform:'translateX(-50%)',color:'rgba(255,220,100,0.85)',fontSize:'0.7rem',letterSpacing:'0.15em',zIndex:20}}>{mobileIdx+1} / {cards.length}</div>
