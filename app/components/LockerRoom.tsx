@@ -38,16 +38,18 @@ const CITY_CLUB: Record<string,[string,string]> = {
   'Washington Wizards':['WASHINGTON','WIZARDS'],
 };
 
-const plateFs=(l:number)=>l<=7?'0.8vw':l<=9?'0.72vw':l<=11?'0.64vw':l<=13?'0.5vw':'0.44vw';
+// cqw (largeur de la scene) et non vw : la taille suit la scene meme quand la fenetre est large mais basse (tablette)
+const plateFs=(l:number)=>l<=7?'1.1cqw':l<=9?'1cqw':l<=11?'0.89cqw':l<=13?'0.7cqw':'0.61cqw';
 // Nom sur la plaque : reduit automatiquement si le nom depasse la largeur de la plaque (ex. CUNNINGHAM)
 const PlateName=({text,fs}:{text:string;fs:string})=>{
   const ref=useRef<HTMLSpanElement>(null);
   const [k,setK]=useState(1);
   useEffect(()=>{
     const el=ref.current,p=el?.parentElement; if(!el||!p)return;
-    const fit=()=>{const w=el.offsetWidth,pw=p.clientWidth; setK(w>0&&w>pw?Math.max(0.45,(pw-2)/w):1);};
+    const fit=()=>{const w=el.offsetWidth,pw=p.clientWidth; setK(w>0&&w>pw?Math.max(0.3,(pw-2)/w):1);};
     fit(); window.addEventListener('resize',fit);
-    return()=>window.removeEventListener('resize',fit);
+    const ro=typeof ResizeObserver!=='undefined'?new ResizeObserver(fit):null; ro?.observe(p);
+    return()=>{window.removeEventListener('resize',fit);ro?.disconnect();};
   },[text,fs]);
   return <span ref={ref} style={{display:'inline-block',fontSize:fs,fontWeight:900,color:'#1a0d00',letterSpacing:'0.03em',textTransform:'uppercase',fontFamily:'Georgia,serif',textShadow:'0 1px 1px rgba(255,230,150,0.55),0 -1px 0 rgba(0,0,0,0.25)',whiteSpace:'nowrap',transform:'scale('+k+')',transformOrigin:'center'}}>{text}</span>;
 };
@@ -204,7 +206,7 @@ export default function LockerRoomScene({cards=[],startIndex,hof=[],flippedSlug,
       </div>
 
       {/* ===== SCENE VESTIAIRE DESKTOP (masquee <768px) ===== */}
-      <div className='mnfl-desktop-scene' style={{position:'relative',width:'100%',maxWidth:'min(calc((100vh - 110px) * 1.792), 100vw - 16px)',aspectRatio:'1376 / 768',margin:'0 auto',overflow:'hidden',background:'#0a0503',borderRadius:'18px',border:'1px solid rgba(255,255,255,0.05)',boxShadow:'0 30px 90px rgba(0,0,0,0.85), 0 0 0 1px rgba(0,0,0,0.6), inset 0 0 130px rgba(0,0,0,0.5)'}}>
+      <div className='mnfl-desktop-scene' style={{position:'relative',width:'100%',maxWidth:'min(calc((100vh - 110px) * 1.792), 100vw - 16px)',aspectRatio:'1376 / 768',containerType:'inline-size',margin:'0 auto',overflow:'hidden',background:'#0a0503',borderRadius:'18px',border:'1px solid rgba(255,255,255,0.05)',boxShadow:'0 30px 90px rgba(0,0,0,0.85), 0 0 0 1px rgba(0,0,0,0.6), inset 0 0 130px rgba(0,0,0,0.5)'}}>
         <img src={'/'+img} alt='vestiaire' onError={(e)=>{(e.target as HTMLImageElement).src='/'+FALLBACK_IMG;}}
           style={{position:'absolute',top:0,left:0,width:'100%',height:'100%',objectFit:'fill'}}
         />
@@ -238,7 +240,7 @@ export default function LockerRoomScene({cards=[],startIndex,hof=[],flippedSlug,
 
         {/* NOMS PLAQUES */}
         {visible.map((card,i)=>(
-          <div key={'p'+card.slug} style={{position:'absolute',left:PLX[i]+'%',top:PT+'%',width:'7%',transform:'translate(-50%,-50%)',zIndex:15,textAlign:'center',overflow:'hidden',transition:'left 0.45s cubic-bezier(0.2,0.8,0.3,1)'}}>
+          <div key={'p'+card.slug} style={{position:'absolute',left:PLX[i]+'%',top:PT+'%',width:'7%',transform:'translate(-50%,-50%)',zIndex:15,textAlign:'center',display:'flex',justifyContent:'center',overflow:'hidden',transition:'left 0.45s cubic-bezier(0.2,0.8,0.3,1)'}}>
             <PlateName text={(card.anyPlayer?.lastName||parseCard(card.name).lastName).toUpperCase()} fs={plateFs((card.anyPlayer?.lastName||parseCard(card.name).lastName).length)}/>
           </div>
         ))}

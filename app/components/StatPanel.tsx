@@ -280,7 +280,7 @@ export const StatPanel=memo(({card,onClose,isClosing=false,placement='scene'}:an
       c.style.fontSize=base+'px';
       const ch=c.clientHeight, sh=c.scrollHeight;
       let px=base;
-      if(sh>ch && ch>0) px=Math.max(8,Math.min(base,base*(ch/sh)*0.985));
+      if(sh>ch && ch>0) px=Math.max(5,Math.min(base,base*(ch/sh)*0.985));
       c.style.fontSize=px+'px';
     };
     fit();
@@ -308,7 +308,7 @@ export const StatPanel=memo(({card,onClose,isClosing=false,placement='scene'}:an
     ? {position:'relative',width:'100%',zIndex:1}
     : isGalleryMobile
     ? {position:'fixed',left:'4%',right:'4%',top:'8%',maxHeight:'84%',zIndex:200}
-    : {position:'absolute',right:'1%',top:'5%',width:'42%',maxHeight:'90%',zIndex:50};
+    : {position:'absolute',right:'1%',top:'5%',width:'min(98%,max(42%,330px))',maxHeight:'90%',zIndex:50};
   const deployDelay=isOverlay?'0.1s':'0.45s';
   const big=isOverlay||placement==='scene';
   const colStyle:React.CSSProperties={flex:big?'1 1 0':'0 0 auto',minWidth:0,display:'flex',flexDirection:'column' as const};

@@ -27,7 +27,7 @@ body {
 
 
 /* Anti-debordement horizontal global (mobile) */
-html, body { max-width: 100%; overflow-x: hidden; }
+html, body { max-width: 100%; overflow-x: hidden; overflow-x: clip; } /* clip : coupe le debordement horizontal SANS creer de conteneur de scroll (sinon position:sticky ne fonctionne plus) */
 
 
 /* Vestiaire : pas de barre de defilement visible (fleches clavier / boutons) */
