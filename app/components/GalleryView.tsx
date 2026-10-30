@@ -164,8 +164,17 @@ export const GalleryCard=memo(({card,isFlipped,onFlip,glowScale,badgeText,badgeT
   const _lastName=(card.anyPlayer?.lastName||_parts[_parts.length-1]||'').toUpperCase();
   const _firstInit=((_parts.length>1?_parts[0]:'')[0]||'').toUpperCase();
   const disp=_firstInit?(_firstInit+'. '+_lastName):_lastName;
+  // Nom compose trop long (ex. S. GILGEOUS-ALEXANDER) : coupe sur deux lignes au tiret/espace pour rester lisible
+  const _sep=_lastName.search(/[- ]/);
+  const _l1=_sep>0?(_firstInit?_firstInit+'. ':'')+_lastName.slice(0,_sep+(_lastName[_sep]==='-'?1:0)):'';
+  const _l2=_sep>0?_lastName.slice(_sep+1).trim():'';
   const [natW,setNatW]=useState(()=>Math.max(1,disp.length*0.56)*100);
-  useEffect(()=>{setNatW(nameNatW(disp)*100);},[disp]);
+  const [twoLines,setTwoLines]=useState(false);
+  useEffect(()=>{
+    const w=nameNatW(disp);
+    if(w>9&&_l1&&_l2){setTwoLines(true);setNatW(Math.max(nameNatW(_l1),nameNatW(_l2))*100);}
+    else{setTwoLines(false);setNatW(w*100);}
+  },[disp]);
   const team=String(card.anyTeam?.name||'');
   // Equipe : meme principe que le nom du joueur -> dessinee en SVG, police reduite automatiquement si le nom est long (jamais coupe)
   const [teamW,setTeamW]=useState(()=>Math.max(1,team.length*0.56)*100);
@@ -189,9 +198,14 @@ export const GalleryCard=memo(({card,isFlipped,onFlip,glowScale,badgeText,badgeT
             <div style={{display:'flex',alignItems:'stretch',justifyContent:'space-between',gap:'2.5cqw'}}>
               <div style={{flex:1,minWidth:0,display:'flex',flexDirection:'column' as const,justifyContent:'center',gap:'1.4cqw'}}>
                 {/* case NOM : le nom est dessine en SVG qui remplit la case -> jamais tronque, taille auto selon la longueur, mini marge */}
-                <div style={{width:'100%',height:'11cqw',padding:'0 0.5cqw'}}>
-                  <svg viewBox={'0 0 '+natW+' 100'} preserveAspectRatio='xMinYMid meet' style={{width:'100%',height:'100%',display:'block',overflow:'visible'}}>
-                    <text x='1' y='80' fontSize='100' fontWeight='800' fontFamily='system-ui, sans-serif' fill='#eef4ff' style={{filter:'drop-shadow(0 0 4px rgba(53,230,255,0.25))'}}>{disp}</text>
+                <div style={{width:'100%',height:twoLines?'15cqw':'11cqw',padding:'0 0.5cqw'}}>
+                  <svg viewBox={'0 0 '+natW+(twoLines?' 190':' 100')} preserveAspectRatio='xMinYMid meet' style={{width:'100%',height:'100%',display:'block',overflow:'visible'}}>
+                    {twoLines?(<>
+                      <text x='1' y='80' fontSize='100' fontWeight='800' fontFamily='system-ui, sans-serif' fill='#eef4ff' style={{filter:'drop-shadow(0 0 4px rgba(53,230,255,0.25))'}}>{_l1}</text>
+                      <text x='1' y='175' fontSize='100' fontWeight='800' fontFamily='system-ui, sans-serif' fill='#eef4ff' style={{filter:'drop-shadow(0 0 4px rgba(53,230,255,0.25))'}}>{_l2}</text>
+                    </>):(
+                      <text x='1' y='80' fontSize='100' fontWeight='800' fontFamily='system-ui, sans-serif' fill='#eef4ff' style={{filter:'drop-shadow(0 0 4px rgba(53,230,255,0.25))'}}>{disp}</text>
+                    )}
                   </svg>
                 </div>
                 <div style={{display:'flex',flexDirection:'column' as const,gap:'0.5cqw'}}>
@@ -342,7 +356,7 @@ export default function GalleryView({cards,badgeSort,gameplay}:{cards:any[];badg
         </div>
       ):(
         <>
-        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'0.5rem',marginBottom:'0.8rem'}}>
+        <div style={{position:'sticky',top:0,zIndex:30,display:'flex',alignItems:'center',justifyContent:'space-between',gap:'0.5rem',marginBottom:'0.8rem',padding:'0.45rem 0',background:'rgba(8,11,16,0.88)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)'}}>
           <span style={{fontSize:'0.7rem',color:'rgba(207,216,230,0.6)',letterSpacing:'0.05em',textTransform:'uppercase' as const}}>{cards.length} {cards.length>1?tr('joueurs'):tr('joueur')}</span>
           <div style={{display:'flex',alignItems:'center',gap:'0.5rem'}}>
           <span style={{fontSize:'0.7rem',color:'rgba(207,216,230,0.6)',letterSpacing:'0.05em',textTransform:'uppercase' as const}}>{tr('Taille')}</span>
