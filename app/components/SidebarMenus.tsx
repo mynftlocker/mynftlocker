@@ -90,7 +90,7 @@ export const FootTeamMenu=({countries,teamsByCountry,country,team,onPickCountry,
   const mergedCountries=countries.filter((c:string)=>c!=='mc');
   if(mergedByCountry['fr']&&!mergedCountries.includes('fr'))mergedCountries.push('fr');
   const effectiveTeams=(c:string)=>mergedByCountry[c]||[];
-  const label=team!=='all'?team:(country!=='all'?countryFR(country):tr('Tous les championnats'));
+  const label=team==='__HOF__'?'Hall of Fame':team!=='all'?team:(country!=='all'?countryFR(country):tr('Tous les championnats'));
   const sortedCountries=[...new Set<string>(mergedCountries)].sort((a:string,b:string)=>{if(a==='__NATIONAL__')return 1;if(b==='__NATIONAL__')return -1;return countryFR(a).localeCompare(countryFR(b),'fr');});
   const enter=()=>{
     const el=ref.current;

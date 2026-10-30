@@ -150,7 +150,7 @@ async function buildSlabImage(el:HTMLElement,card:any,fill:string,rc:string):Pro
   const fname='mynftlocker-'+String(card.slug||'carte').slice(0,60)+'.png';
   return {blob,file:new File([blob],fname,{type:'image/png'}),fname};
 }
-export const GalleryCard=memo(({card,isFlipped,onFlip,glowScale,badgeText,badgeTone,badgePill,badgeStar}:any)=>{
+export const GalleryCard=memo(({card,isFlipped,onFlip,glowScale,badgeText,badgeTone,badgePill,badgeStar,isHof,onStar}:any)=>{
   const [hover,setHover]=useState(false);
   const glowRaw=RARITY_GLOW[card.rarityTyped]||RARITY_GLOW.common;
   const glow=scaleGlow(glowRaw,glowScale??1);
@@ -189,7 +189,10 @@ export const GalleryCard=memo(({card,isFlipped,onFlip,glowScale,badgeText,badgeT
           {/* bandeau label */}
           <div style={{position:'relative',zIndex:2,borderRadius:'4.8cqw',overflow:'hidden',background:'linear-gradient(165deg,#10151f,#0a0e16)',border:'1px solid rgba(120,150,190,0.14)',boxShadow:'0 2px 10px -4px rgba(0,0,0,0.6)',padding:'3.6cqw 4.4cqw 4cqw'}}>
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'3cqw',marginBottom:'2cqw'}}>
-              <span style={{fontFamily:'ui-monospace,Menlo,monospace',fontSize:'3.9cqw',letterSpacing:'0.12em',color:'#35e6ff',opacity:0.9,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{serial||''}</span>
+              <span style={{display:'flex',alignItems:'center',gap:'2cqw',minWidth:0}}>
+                {onStar&&(<button type='button' aria-label={tr(isHof?'Retirer du Hall of Fame':'Ajouter au Hall of Fame')} title={tr(isHof?'Retirer du Hall of Fame':'Ajouter au Hall of Fame')} onClick={(e)=>{e.stopPropagation();onStar(card.slug);}} style={{background:'none',border:'none',padding:'0 1cqw',margin:0,cursor:'pointer',fontSize:'6.4cqw',lineHeight:1,color:isHof?'#f5d76e':'#6b7a90',textShadow:isHof?'0 0 8px rgba(245,215,110,0.7)':'none'}}>{isHof?'★':'☆'}</button>)}
+                <span style={{fontFamily:'ui-monospace,Menlo,monospace',fontSize:'3.9cqw',letterSpacing:'0.12em',color:'#35e6ff',opacity:0.9,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{serial||''}</span>
+              </span>
               <span style={{display:'flex',alignItems:'center',gap:'2cqw',flexShrink:0}}>
                 <LogoMark w={'6.4cqw'}/>
                 <span style={{fontWeight:800,fontSize:'5.3cqw',letterSpacing:'0.02em',lineHeight:1,whiteSpace:'nowrap',background:'linear-gradient(180deg,#fff3c4,#f5d76e 55%,#b8801a)',WebkitBackgroundClip:'text',backgroundClip:'text',color:'transparent'}}>myNFTlocker</span>
@@ -299,7 +302,7 @@ export async function exportCardImage(card:any):Promise<{blob:Blob,file:File,fna
     return await buildSlabImage(slab,card,fill,rc);
   } finally { root.unmount(); holder.remove(); }
 }
-export default function GalleryView({cards,badgeSort,gameplay}:{cards:any[];badgeSort?:string;gameplay?:boolean}){
+export default function GalleryView({cards,badgeSort,gameplay,hof,onStar}:{cards:any[];badgeSort?:string;gameplay?:boolean;hof?:string[];onStar?:(s:string)=>void}){
   useLang();
   const [activeSlug,setActiveSlug]=useState<string|null>(null);
   const [galleryCols,setGalleryCols]=useState(4);
@@ -366,7 +369,7 @@ export default function GalleryView({cards,badgeSort,gameplay}:{cards:any[];badg
           </div>
         </div>
         <div ref={gridRef} style={{display:'grid',gridTemplateColumns:'repeat('+galleryCols+',1fr)',gap:gapFor(galleryCols),touchAction:'pan-y'}}>
-          {cards.slice(0,shown).map(c=>{const b=gameplayBadge(c,badgeSort,gameplay);return(<GalleryCard key={c.slug} card={c} isFlipped={activeSlug===c.slug} onFlip={handleFlip} glowScale={glowScaleFor(galleryCols)} badgeText={b?.text||undefined} badgeTone={b?.tone} badgePill={(b as any)?.pill} badgeStar={(b as any)?.star}/>);})}
+          {cards.slice(0,shown).map(c=>{const b=gameplayBadge(c,badgeSort,gameplay);return(<GalleryCard key={c.slug} card={c} isFlipped={activeSlug===c.slug} onFlip={handleFlip} glowScale={glowScaleFor(galleryCols)} badgeText={b?.text||undefined} badgeTone={b?.tone} badgePill={(b as any)?.pill} badgeStar={(b as any)?.star} isHof={!!hof&&hof.includes(c.slug)} onStar={onStar}/>);})}
         </div>
         {shown<cards.length&&(<div ref={sentinelRef} style={{height:'1px'}}/>)}
         </>
