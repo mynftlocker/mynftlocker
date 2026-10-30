@@ -1221,7 +1221,7 @@ export default function Home() {
                     <div style={{display:'flex',alignItems:'center',gap:'0.8rem',marginTop:'0.9rem',fontFamily:'Courier New,monospace',fontSize:'0.6rem',letterSpacing:'0.14em'}}>
                       <span onClick={()=>{setAuthMode('login');setAuthOpen(true);}} style={{color:'#40e8ff',cursor:'pointer',textTransform:'uppercase',borderBottom:'1px solid rgba(64,232,255,0.45)',paddingBottom:'1px'}}>{tr('Connexion')}</span>
                       <span style={{color:'rgba(207,228,251,0.25)'}}>|</span>
-                      {SIGNUP_OPEN?(<span onClick={()=>{setAuthMode('signup');setAuthSlugField(slug||'');setAuthOpen(true);}} style={{color:'rgba(207,228,251,0.55)',cursor:'pointer',textDecoration:'underline'}}>{tr('Creer un compte')}</span>):(<span style={{color:'rgba(207,228,251,0.4)'}}>{tr('Inscriptions bientôt ouvertes')}</span>)}
+                      {SIGNUP_OPEN?(<span onClick={()=>{setAuthMode('signup');setAuthSlugField(slug||'');setAuthOpen(true);}} style={{color:'rgba(64,232,255,0.7)',cursor:'pointer',textTransform:'uppercase',borderBottom:'1px solid rgba(64,232,255,0.3)',paddingBottom:'1px'}}>{tr('Créer un compte')}</span>):(<span style={{color:'rgba(207,228,251,0.4)'}}>{tr('Inscriptions bientôt ouvertes')}</span>)}
                     </div>
                   </>
                 )}

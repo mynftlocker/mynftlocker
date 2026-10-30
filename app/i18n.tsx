@@ -17,6 +17,7 @@ export function initLang() {
     if (s === 'fr' || s === 'en') next = s;
     else if (navigator.language && !navigator.language.toLowerCase().startsWith('fr')) next = 'en';
     if (next !== _lang) { _lang = next; notify(); }
+    document.documentElement.lang = next;
   } catch (e) {}
 }
 export function getLang(): Lang { return _lang; }
@@ -56,7 +57,7 @@ const EN: Record<string, string> = {
   'Gestion de tes données et suppression de compte à venir.': 'Data management and account deletion coming soon.',
   'Un espace d’aide et de contact arrive prochainement.': 'A help and contact space is coming soon.',
   // --- Connexion / inscription ---
-  'Connexion': 'Log in', 'Creer un compte': 'Create account', 'CREER UN COMPTE': 'CREATE ACCOUNT', 'SE CONNECTER': 'LOG IN',
+  'Connexion': 'Log in', 'Creer un compte': 'Create account', 'Créer un compte': 'Create account', 'CREER UN COMPTE': 'CREATE ACCOUNT', 'SE CONNECTER': 'LOG IN',
   'Se connecter': 'Log in', "S'inscrire": 'Sign up', 'Inscriptions bientôt ouvertes': 'Sign-ups open soon',
   'Slug Sorare (ex: pseudo-email-com)': 'Sorare slug (e.g. username-email-com)', 'Confirmer le mot de passe': 'Confirm password',
   'Compte créé ! Vérifie ta boîte mail (et les spams) pour confirmer ton adresse avant de te connecter.': 'Account created! Check your inbox (and spam) to confirm your address before logging in.',
