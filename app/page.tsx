@@ -1005,8 +1005,6 @@ export default function Home() {
         {cards.length>0&&(
           <div style={{textAlign:'left',flex:1,minHeight:0,display:'flex',flexDirection:'column' as const,gap:0,borderTop:'1px solid rgba(255,255,255,0.06)',paddingTop:'0.3rem'}}>
             <FilterMenu title='Sport' options={[{value:'nba',label:'NBA'},{value:'foot',label:'Football'}]} current={gSport} onSelect={(v:string)=>{setGSport(v as any);setGLeague('all');setGTeamCustom('all');setFSpecial('all');setTeamApi(HOF_KEY);setLockerStart(0);setFlippedSlug(null);teamChosenRef.current=false;}}/>
-            <ToggleRow title='Arcade' hint={tr('Set Arcade uniquement')} on={arcadeOnly} onToggle={toggleArcade}/>
-            {arcadeOnly&&arcadeCount===0&&<p style={{fontSize:'0.62rem',color:'#f5d76e',margin:'0 0.5rem 0.3rem'}}>{tr('Aucune carte Arcade pour ce sport')}</p>}
             <div style={{padding:'0.2rem 0.5rem'}}>
               <p style={{fontSize:'0.64rem',fontWeight:800,letterSpacing:'0.14em',textTransform:'uppercase',color:'#eaf2ff',margin:'0 0 0.2rem'}}>{tr('Joueur')}</p>
               <input style={{width:'100%',boxSizing:'border-box',background:'rgba(255,255,255,0.05)',color:'#e8eefc',padding:'0.3rem 0.5rem',borderRadius:'0.15rem',border:'1px solid rgba(255,255,255,0.12)',outline:'none',fontSize:'0.76rem'}} name='player-filter' autoComplete='off' data-lpignore='true' data-1p-ignore='true' placeholder={tr('Rechercher...')} value={fPlayer} onChange={e=>setFPlayer(e.target.value)}/>
@@ -1019,6 +1017,8 @@ export default function Home() {
             <FilterMenu title={tr('Saison')} options={seasonOpts} current={fSeason} onSelect={setFSeason}/>
             <FilterMenu title={tr('Rareté')} options={rarityOpts} current={fRarity} onSelect={setFRarity}/>
             <FilterMenu title={tr('Édition de la carte')} options={specialOpts} current={fSpecial} onSelect={setFSpecial}/>
+            <ToggleRow title='Arcade' hint={tr('Set Arcade uniquement')} on={arcadeOnly} onToggle={toggleArcade}/>
+            {arcadeOnly&&arcadeCount===0&&<p style={{fontSize:'0.62rem',color:'#f5d76e',margin:'0 0.5rem 0.3rem'}}>{tr('Aucune carte Arcade pour ce sport')}</p>}
             <ToggleRow title='Gameplay' hint={tr('Outils de composition')} on={gameplay} onToggle={toggleGameplay}/>
             {gameplay&&(<>
               <FilterMenu title={tr('Compétition')} options={compOpts} current={fComp} onSelect={setFComp}/>
@@ -1407,8 +1407,6 @@ export default function Home() {
           <div style={{flex:1,overflowY:'auto'}}>
           <div style={{textAlign:'left',flex:1,minHeight:0,display:'flex',flexDirection:'column' as const,gap:0,borderTop:'1px solid rgba(255,255,255,0.06)',paddingTop:'0.3rem'}}>
             <FilterMenu title='Sport' options={[{value:'nba',label:'NBA'},{value:'foot',label:'Football'}]} current={gSport} onSelect={(v:string)=>{setGSport(v as any);setGLeague('all');setGTeamCustom('all');setFSpecial('all');setTeamApi(HOF_KEY);setLockerStart(0);setFlippedSlug(null);teamChosenRef.current=false;}}/>
-            <ToggleRow title='Arcade' hint={tr('Set Arcade uniquement')} on={arcadeOnly} onToggle={toggleArcade}/>
-            {arcadeOnly&&arcadeCount===0&&<p style={{fontSize:'0.62rem',color:'#f5d76e',margin:'0 0.5rem 0.3rem'}}>{tr('Aucune carte Arcade pour ce sport')}</p>}
             <div style={{padding:'0.2rem 0.5rem'}}>
               <p style={{fontSize:'0.64rem',fontWeight:800,letterSpacing:'0.14em',textTransform:'uppercase',color:'#eaf2ff',margin:'0 0 0.2rem'}}>{tr('Joueur')}</p>
               <input style={{width:'100%',boxSizing:'border-box',background:'rgba(255,255,255,0.05)',color:'#e8eefc',padding:'0.3rem 0.5rem',borderRadius:'0.15rem',border:'1px solid rgba(255,255,255,0.12)',outline:'none',fontSize:'0.76rem'}} name='player-filter' autoComplete='off' data-lpignore='true' data-1p-ignore='true' placeholder={tr('Rechercher...')} value={fPlayer} onChange={e=>setFPlayer(e.target.value)}/>
@@ -1421,6 +1419,8 @@ export default function Home() {
             <FilterMenu title={tr('Saison')} options={seasonOpts} current={fSeason} onSelect={setFSeason}/>
             <FilterMenu title={tr('Rareté')} options={rarityOpts} current={fRarity} onSelect={setFRarity}/>
             <FilterMenu title={tr('Édition de la carte')} options={specialOpts} current={fSpecial} onSelect={setFSpecial}/>
+            <ToggleRow title='Arcade' hint={tr('Set Arcade uniquement')} on={arcadeOnly} onToggle={toggleArcade}/>
+            {arcadeOnly&&arcadeCount===0&&<p style={{fontSize:'0.62rem',color:'#f5d76e',margin:'0 0.5rem 0.3rem'}}>{tr('Aucune carte Arcade pour ce sport')}</p>}
             <ToggleRow title='Gameplay' hint={tr('Outils de composition')} on={gameplay} onToggle={toggleGameplay}/>
             {gameplay&&(<>
               <FilterMenu title={tr('Compétition')} options={compOpts} current={fComp} onSelect={setFComp}/>
