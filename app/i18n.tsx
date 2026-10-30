@@ -186,7 +186,7 @@ export function LangSwitch({ style }: { style?: React.CSSProperties }) {
   const b = (l: Lang): React.CSSProperties => ({
     cursor: 'pointer', background: 'transparent', border: 'none', padding: '0 0.25rem',
     fontFamily: 'Courier New,monospace', fontSize: '0.6rem', letterSpacing: '0.14em',
-    color: lang === l ? '#40e8ff' : 'rgba(207,228,251,0.4)', fontWeight: lang === l ? 700 : 400,
+    color: lang === l ? '#40e8ff' : 'rgba(207,228,251,0.6)', fontWeight: lang === l ? 700 : 400,
     borderBottom: lang === l ? '1px solid rgba(64,232,255,0.6)' : '1px solid transparent',
   });
   return (
