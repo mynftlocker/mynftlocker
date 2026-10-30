@@ -24,8 +24,8 @@ export async function generateMetadata({ params, searchParams }: P): Promise<Met
     const rar = m[3].replace(/[-_]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
     one = { name: nm + ' · ' + rar + ' #' + m[4] };
   }
-  const title = one ? `${one.name} — carte de ${name} · myNFTlocker` : snap ? `${name} · ${snap.t || 'Vestiaire'} — myNFTlocker` : `Vestiaire de ${name} — myNFTlocker`;
-  const description = one ? `Carte Sorare dans le vestiaire de ${name}. Ouvre sa galerie sur myNFTlocker.` : `Le vestiaire Sorare de ${name} : cartes NBA et foot, stats et partage. Ouvre-le sur myNFTlocker.`;
+  const title = one ? `${one.name} — ${name}'s card · myNFTlocker` : snap ? `${name} · ${snap.t || 'Locker room'} — myNFTlocker` : `${name}'s locker room — myNFTlocker`;
+  const description = one ? `A Sorare card from ${name}'s locker room. Open their gallery on myNFTlocker.` : `${name}'s Sorare locker room: NBA and football cards, stats and sharing. Open it on myNFTlocker.`;
   const ua = String((await headers()).get('user-agent') || '');
   const wa = /whatsapp/i.test(ua); // WhatsApp n'affiche pas les images > 300 Ko : version legere
   const image = `${SITE}/api/og?slug=${encodeURIComponent(slug)}${one ? '&card=' + encodeURIComponent(cp) + '&v=c1' : snap?.ts ? '&v=' + snap.ts : ''}${wa ? '&s=sm' : ''}`; // v = date du dernier partage : une nouvelle version = une nouvelle URL (jamais d'ancienne image en cache)
