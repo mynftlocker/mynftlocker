@@ -38,6 +38,8 @@ export default function Home() {
   const [flippedSlug, setFlippedSlug] = useState<string|null>(null);
   const [loading, setLoading] = useState(false);
   const [loadedCount,setLoadedCount]=useState(0); // progression du chargement (nb de cartes deja recues)
+  const [priorityReady,setPriorityReady]=useState(false); // cartes prioritaires (Hall of Fame / equipe par defaut) deja affichees pendant que le reste charge
+  const [openSport,setOpenSport]=useState('auto'); // sport d'ouverture : 'nba' | 'foot' | 'auto' (dernier sport utilise)
   const [error, setError] = useState('');
   const [mode, setMode] = useState<'locker'|'gallery'>('locker');
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -66,8 +68,9 @@ export default function Home() {
   const [fAvail,setFAvail]=useState('all');
   const [favs,setFavs]=useState<string[]>([]); // managers favoris (slugs), synchronises avec le compte
   const slugNowRef=useRef('');
-  useEffect(()=>{try{const a=localStorage.getItem('mnfl_arcade');if(a!=null)setArcadeOnly(a==='1');const g=localStorage.getItem('mnfl_gameplay');if(g!=null)setGameplay(g==='1');const f=localStorage.getItem('mnfl_favs');if(f)setFavs(JSON.parse(f));}catch{}},[]);
+  useEffect(()=>{try{const a=localStorage.getItem('mnfl_arcade');if(a!=null)setArcadeOnly(a==='1');const g=localStorage.getItem('mnfl_gameplay');if(g!=null)setGameplay(g==='1');const f=localStorage.getItem('mnfl_favs');if(f)setFavs(JSON.parse(f));const os=localStorage.getItem('mnfl_open_sport');if(os)setOpenSport(os);}catch{}},[]);
   const toggleArcade=()=>{const n=!arcadeOnly;setArcadeOnly(n);try{localStorage.setItem('mnfl_arcade',n?'1':'0');}catch{}setLockerStart(0);setFlippedSlug(null);};
+  const chooseOpenSport=(v:string)=>{setOpenSport(v);try{localStorage.setItem('mnfl_open_sport',v);}catch{}}; // 'auto' est stocke explicitement (sinon le compte restaurerait l'ancien choix)
   const toggleGameplay=()=>{const n=!gameplay;setGameplay(n);try{localStorage.setItem('mnfl_gameplay',n?'1':'0');}catch{}};
   const [openPhase,setOpenPhase]=useState(0);
   const canvasRef=useRef<HTMLCanvasElement|null>(null);
@@ -171,12 +174,43 @@ export default function Home() {
     if(!slug)return;
     setLoading(true);setLoadedCount(0);setError('');setSlugProblem(null);setFlippedSlug(null);setLockerStart(0);sportAutoSetRef.current=false;
     setManager(slug,slug); // signature de partage : pseudo Sorare une fois connu, slug en attendant
+    // SPORT D'OUVERTURE : reglage du manager, sinon dernier sport utilise, sinon NBA
+    const oSport=(()=>{try{const o=localStorage.getItem('mnfl_open_sport')||'auto';if(o==='nba'||o==='foot')return o;return localStorage.getItem('mnfl_last_sport')==='foot'?'foot':'nba';}catch{return 'nba';}})();
+    setGSport(oSport);setPriorityReady(false);
     // Cache localStorage (TTL 1h)
     const CACHE_KEY='mnfl_v4_'+slug;// v4 : force le rechargement des cartes (nouveaux champs proj/gain)
     try{
       const cached=localStorage.getItem(CACHE_KEY);
       if(cached){const{c:cc,ts,m}=JSON.parse(cached);if(Date.now()-ts<3600000&&cc?.length>0){if(m)setManager(m,slug);setCards(cc);setLoading(false);return;}}
     }catch(e){}
+    // AFFICHAGE PRIORITAIRE : Hall of Fame (et equipe par defaut) du sport d'ouverture, charges en parallele pendant que la collection complete arrive.
+    // Sans cartes prioritaires connues (1re visite...), on garde l'ancien comportement : ouverture quand tout est charge.
+    let prioCards:any[]=[];let prioOk=false;let finished=false;const streamed:any[]=[];
+    const mergeP=(list:any[])=>{ if(!prioCards.length)return list; const pm=new Map<string,any>(prioCards.map((c:any)=>[c.slug,c])); const seen=new Set<string>(); const out=list.map((c:any)=>{seen.add(c.slug);return pm.get(c.slug)||c;}); for(const c of prioCards)if(!seen.has(c.slug))out.push(c); return out; }; // garde les objets prioritaires : le vestiaire ne se redessine pas inutilement
+    (async()=>{
+      try{
+        const rdj=(k:string)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):null;}catch{return null;}};
+        const hofL:string[]=(oSport==='foot'?rdj('mynftlocker_hof_foot_'+slug):(rdj('mynftlocker_hof_'+slug)||rdj('myNFTlocker_hof_'+slug)))||[];
+        const dt=localStorage.getItem('mynftlocker_default_team_'+slug)||'';
+        const memo=rdj('mnfl_prio_'+slug);
+        let team='';let teamSlugs:string[]=[];
+        if(dt&&dt!==HOF_KEY){
+          if(!memo||memo.team!==dt)return; // equipe par defaut inconnue ici : on ne risque pas d'ouvrir sur le mauvais ecran
+          if(memo.sport===oSport){team=dt;teamSlugs=memo.slugs||[];}
+        }
+        const wanted=[...new Set([...hofL,...teamSlugs])].filter((x:any)=>typeof x==='string'&&/^[a-z0-9_-]{3,200}$/.test(x)).slice(0,72);
+        if(!wanted.length)return;
+        const chunks:string[][]=[];for(let i=0;i<wanted.length;i+=25)chunks.push(wanted.slice(i,i+25));
+        const res=await Promise.all(chunks.map(ch=>fetch('/api/cards?slug='+encodeURIComponent(slug)+'&cards='+ch.join(',')).then(r=>r.ok?r.json():null).catch(()=>null)));
+        const got=res.flatMap((d:any)=>d&&d.cards?d.cards:[]).filter((c:any)=>c.owner===slug.toLowerCase()); // seulement les cartes que ce manager possede encore
+        if(finished||!got.length)return;
+        if(team&&!got.some((c:any)=>c.anyTeam?.name===team))return;
+        prioCards=got;prioOk=true;
+        setTeamApi(team||HOF_KEY);
+        setCards(mergeP(streamed));
+        setPriorityReady(true);
+      }catch(e){}
+    })();
     // Appel direct navigateur → Sorare (IP residentielle, bypass datacenter block)
     const all:any[]=[];let cur:string|null=null;let more=true;let pageNum=0;let mgr='';
     const sleep=(ms:number)=>new Promise(r=>setTimeout(r,ms));
@@ -201,7 +235,7 @@ export default function Home() {
       try{
         const r=await fetch('/api/collection?slug='+encodeURIComponent(slug));
         if(!r.ok||!r.body)return null;
-        const rd=r.body.getReader();const dec=new TextDecoder();let buf='';const got:any[]=[];let m='';let fin=false;
+        const rd=r.body.getReader();const dec=new TextDecoder();let buf='';let lastPush=0;const got:any[]=[];let m='';let fin=false;
         for(;;){
           const {value,done}=await rd.read();if(done)break;
           buf+=dec.decode(value,{stream:true});
@@ -210,7 +244,7 @@ export default function Home() {
             const line=buf.slice(0,nl).trim();buf=buf.slice(nl+1);if(!line)continue;
             const o=JSON.parse(line);
             if(o.error)return o.error==='not_found'?'notFound':null;
-            if(o.cards){got.push(...o.cards);setLoadedCount(got.length);if(o.manager){m=o.manager;setManager(o.manager,slug);}}
+            if(o.cards){got.push(...o.cards);streamed.push(...o.cards);setLoadedCount(got.length);if(o.manager){m=o.manager;setManager(o.manager,slug);}if(prioOk&&got.length-lastPush>=300){lastPush=got.length;setCards(mergeP([...got]));}}
             if(o.done){fin=true;if(o.manager)m=o.manager;}
           }
         }
@@ -220,7 +254,7 @@ export default function Home() {
     try{
       const viaServer=await fetchCollection();
       if(viaServer==='notFound'){notFound=true;}
-      else if(viaServer){all.push(...viaServer.cards);mgr=viaServer.manager||mgr;more=false;}
+      else if(viaServer){finished=true;all.push(...viaServer.cards);mgr=viaServer.manager||mgr;more=false;}
       while(more){
         pageNum++;
         let data:any=null;
@@ -230,22 +264,23 @@ export default function Home() {
           if(data)break;
           console.error('Page'+pageNum+' attempt'+(attempt+1)+' failed');
         }
-        if(!data){if(all.length===0){
+        if(!data){if(all.length===0&&!prioOk){
           const u=currentUserRef.current;
           if(u&&u.sorareSlug===slug){ setSlugProblem(slug); setSlugDraft(slug); setSlugMsg(null); setError(''); setOpenPhase(3); } // slug du COMPTE introuvable : le site se charge normalement, un message (avec correction sur place) remplace vestiaire/galerie
           else{ setError(tr('Joueur introuvable')); setOpenPhase(0); }
         }break;}
         all.push(...data.cards);setLoadedCount(all.length);
         // PERF : affichage progressif mais pas a chaque page (chaque setCards recalcule filtres/tris/equipes sur toute la collection)
-        if(pageNum===1||pageNum%6===0)setCards([...all]);
+        if(pageNum===1||pageNum%6===0)setCards(mergeP([...all]));
         more=data.hasNextPage;
         cur=data.cursor;
         // PERF : plus de pause entre les pages (les 6 tentatives avec attente en cas d'erreur 429 restent en place)
       }
       console.log('=== LOAD DONE === cartes:'+all.length+' pages:'+pageNum);
       if(all.length>0){try{localStorage.setItem(CACHE_KEY,JSON.stringify({c:all,ts:Date.now(),m:mgr}));}catch(e){}}
-    }catch(e){if(all.length===0){setError(tr('Erreur réseau'));setOpenPhase(0);}}
-    if(all.length>0)setCards([...all]); // PERF : etat final complet (les pages intermediaires ne sont plus toutes poussees)
+    }catch(e){if(all.length===0&&!prioOk){setError(tr('Erreur réseau'));setOpenPhase(0);}}
+    finished=true;
+    if(all.length>0)setCards(mergeP([...all])); // PERF : etat final complet (les pages intermediaires ne sont plus toutes poussees)
     setLoading(false);
   };
   const handleIntroClick=useCallback(()=>{if(!slug||loading||openPhase>0)return;fragStartedRef.current=false;setOpenPhase(1);fetchCards();},[slug,loading,openPhase]);
@@ -328,6 +363,7 @@ export default function Home() {
       const a=localStorage.getItem('mnfl_arcade');if(a!=null)setArcadeOnly(a==='1');
       const g=localStorage.getItem('mnfl_gameplay');if(g!=null)setGameplay(g==='1');
       const f=rd('mnfl_favs');if(f)setFavs(f);
+      const os=localStorage.getItem('mnfl_open_sport');if(os)setOpenSport(os);
     }catch{}
   };
   useEffect(()=>{
@@ -380,10 +416,10 @@ export default function Home() {
   useEffect(()=>{if(!acctMenuSection)return;const h=(e:KeyboardEvent)=>{if(e.key==='Escape')setAcctMenuSection(null);};window.addEventListener('keydown',h);return()=>window.removeEventListener('keydown',h);},[acctMenuSection]); // Echap : retour a la galerie / au vestiaire
   useEffect(()=>{if(showFlash&&error){setShowFlash(false);setOpenPhase(0);}},[showFlash,error]);
   useEffect(()=>{if(!showFlash)return;const t=setTimeout(()=>setShowFlash(false),650);return()=>clearTimeout(t);},[showFlash]);
-  useEffect(()=>{if(openPhase===1&&!loading&&cards.length>0&&!fragStartedRef.current){
+  useEffect(()=>{if(openPhase===1&&(!loading||priorityReady)&&cards.length>0&&!fragStartedRef.current){
     fragStartedRef.current=true;
     setOpenPhase(3);setShowFlash(true);
-  }},[openPhase,loading,cards.length]);
+  }},[openPhase,loading,cards.length,priorityReady]);
 
   // Options dynamiques
   const seasonOptions=useMemo(()=>{
@@ -449,10 +485,11 @@ export default function Home() {
     const hasNba=cards.some((c:any)=>isNBA(c));
     const hasFoot=cards.some((c:any)=>!isNBA(c));
     if(!hasNba&&hasFoot){setGSport('foot');setTeamApi(HOF_KEY);teamChosenRef.current=false;}
+    else if(!hasFoot&&hasNba&&gSport==='foot'){setGSport('nba');setTeamApi(HOF_KEY);teamChosenRef.current=false;} // sport d'ouverture sans aucune carte : on bascule sur l'autre
   },[loading,cards]);
 
   // Vestiaire : epingles prioritaires, puis remplissage, puis TOUTES les cartes
-  const lockerCards=useMemo(()=>{
+  const lockerCardsRaw=useMemo(()=>{
     const isFoot=gSport==='foot';
     const activeHof=isFoot?hofFoot:hof;
     const pool = teamApi===HOF_KEY
@@ -476,6 +513,19 @@ export default function Home() {
     const tail=pool.filter(c=>!headSlugs.has(c.slug)).sort(byL10);
     return [...head,...tail];
   },[cards,teamApi,applyFilters,lockerSort,hof,hofFoot,gSport,lineup,gDir]);
+  // Meme liste de cartes => meme reference : le vestiaire ne se redessine pas quand le reste de la collection arrive en arriere-plan
+  const lockerPrevRef=useRef<any[]>([]);
+  const lockerCards=useMemo(()=>{const p=lockerPrevRef.current;if(p.length===lockerCardsRaw.length&&p.every((c:any,i:number)=>c===lockerCardsRaw[i]))return p;lockerPrevRef.current=lockerCardsRaw;return lockerCardsRaw;},[lockerCardsRaw]);
+  // Memoire de l'equipe par defaut (cartes les mieux classees) : permet de l'afficher en premier a la prochaine ouverture
+  useEffect(()=>{
+    if(loading||cards.length===0||!slug)return;
+    try{
+      if(defaultTeam&&defaultTeam!==HOF_KEY){
+        const tc=cards.filter((c:any)=>c.anyTeam?.name===defaultTeam).sort((a:any,b:any)=>(b.averageScore??-1)-(a.averageScore??-1));
+        if(tc.length>0)localStorage.setItem('mnfl_prio_'+slug,JSON.stringify({team:defaultTeam,sport:isNBA(tc[0])?'nba':'foot',slugs:tc.slice(0,64).map((c:any)=>c.slug)}));
+      } else localStorage.removeItem('mnfl_prio_'+slug);
+    }catch{}
+  },[loading,cards,defaultTeam,slug]);
 
   // Galerie = sport + filtres + tri
   const footCountries=useMemo(()=>{const s=new Set<string>();let hasNational=false;cards.filter((c:any)=>!isNBA(c)).forEach((c:any)=>{const co=c.anyTeam?.country?.slug;if(co)s.add(co);else if(c.anyTeam?.name)hasNational=true;});const arr=Array.from(s).sort();if(hasNational)arr.push('__NATIONAL__');return arr;},[cards]);
@@ -637,7 +687,7 @@ export default function Home() {
           {cards.length>0&&(
             <div style={{display:'flex',alignItems:'center',gap:'0.4rem',padding:'0.1rem 0.4rem'}}>
               {(()=>{const b=collectionBadge(cards.length);return(<img title={cards.length+' '+tr('cartes')} src={'/'+b.img} alt='' style={{width:'34px',height:'34px',flexShrink:0,objectFit:'contain'}} onError={(e)=>{(e.target as HTMLImageElement).style.display='none';}}/>);})()}
-              <span style={{flex:1,minWidth:0,fontSize:'0.63rem',color:'#7a8898',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{cards.length+' '+tr('cartes')}</span>
+              <span style={{flex:1,minWidth:0,fontSize:'0.63rem',color:'#7a8898',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{loading?tr('Chargement…')+' '+loadedCount:cards.length+' '+tr('cartes')}</span>
               <span onClick={e=>{e.stopPropagation();setSlugPanelOpen(o=>!o);}} title={tr('Changer de galerie consultée')} style={{fontSize:'0.85rem',color:slugPanelOpen?'#f5d76e':'#6fc3e8',opacity:0.85,padding:'0.1rem 0.3rem',cursor:'pointer',flexShrink:0}}>⇄</span>
             </div>
           )}
@@ -678,7 +728,8 @@ export default function Home() {
         {/* FILTRES — ordre: Sport, Joueur, Equipe, Saison, Rarete, Edition, Tri */}
         {cards.length>0&&(
           <div style={{textAlign:'left',flex:1,minHeight:0,display:'flex',flexDirection:'column' as const,gap:0,borderTop:'1px solid rgba(255,255,255,0.06)',paddingTop:'0.3rem'}}>
-            <FilterMenu title='Sport' options={[{value:'nba',label:'NBA'},{value:'foot',label:'Football'}]} current={gSport} onSelect={(v:string)=>{setGSport(v as any);setGLeague('all');setGTeamCustom('all');setFSpecial('all');setTeamApi(HOF_KEY);setLockerStart(0);setFlippedSlug(null);teamChosenRef.current=false;}}/>
+            <FilterMenu title='Sport' options={[{value:'nba',label:'NBA'},{value:'foot',label:'Football'}]} current={gSport} onSelect={(v:string)=>{try{localStorage.setItem('mnfl_last_sport',v);}catch{}setGSport(v as any);setGLeague('all');setGTeamCustom('all');setFSpecial('all');setTeamApi(HOF_KEY);setLockerStart(0);setFlippedSlug(null);teamChosenRef.current=false;}}/>
+            <button onClick={()=>chooseOpenSport(openSport===gSport?'auto':gSport)} style={{width:'100%',boxSizing:'border-box' as const,padding:'0.3rem',background:'rgba(212,175,55,0.12)',border:'1px solid rgba(212,175,55,0.35)',borderRadius:'0.18rem',color:'#e8c84a',fontSize:'0.64rem',cursor:'pointer',letterSpacing:'0.08em',margin:'0.15rem 0 0.2rem'}}>{openSport===gSport?tr('⭐ Ouverture sur : ')+(gSport==='nba'?'NBA':'Football'):tr('⭐ Ouvrir le site sur ce sport')}</button>
             <div style={{padding:'0.2rem 0.5rem'}}>
               <p style={{fontSize:'0.64rem',fontWeight:800,letterSpacing:'0.14em',textTransform:'uppercase',color:'#eaf2ff',margin:'0 0 0.2rem'}}>{tr('Joueur')}</p>
               <input style={{width:'100%',boxSizing:'border-box',background:'rgba(255,255,255,0.05)',color:'#e8eefc',padding:'0.3rem 0.5rem',borderRadius:'0.15rem',border:'1px solid rgba(255,255,255,0.12)',outline:'none',fontSize:'0.76rem'}} name='player-filter' autoComplete='off' data-lpignore='true' data-1p-ignore='true' placeholder={tr('Rechercher...')} value={fPlayer} onChange={e=>setFPlayer(e.target.value)}/>
@@ -1044,7 +1095,7 @@ export default function Home() {
               <div style={{width:'44px',height:'44px',flexShrink:0,borderRadius:'50%',background:'radial-gradient(circle at 35% 30%,#1a1c24,#0a0b0f)',border:'1.5px solid #6fc3e8',boxShadow:'0 0 10px rgba(111,195,232,0.5)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'1.1rem',fontWeight:900,color:'#6fc3e8'}}>{(slug||'?').trim().charAt(0).toUpperCase()||'?'}</div>
               <div style={{flex:1,minWidth:0,textAlign:'left'}}>
                 <p style={{margin:0,fontSize:'0.8rem',fontWeight:700,color:'#eaf2ff',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{cards.length>0&&slug?((currentUser?.sorareSlug&&currentUser.pseudo&&slug.toLowerCase()===currentUser.sorareSlug.toLowerCase())?currentUser.pseudo:slug):tr('Mon compte')}</p>
-                <p style={{margin:0,fontSize:'0.62rem',color:'#7a8898'}}>{cards.length>0?(cards.length+' '+tr('cartes')):'Identifiant Sorare'}</p>
+                <p style={{margin:0,fontSize:'0.62rem',color:'#7a8898'}}>{loading&&cards.length>0?tr('Chargement…')+' '+loadedCount:cards.length>0?(cards.length+' '+tr('cartes')):'Identifiant Sorare'}</p>
               </div>
               {/* BADGE REPOSITIONNE : plus grand, sans cercle, juste avant le chevron */}
               {cards.length>0&&(()=>{const b=collectionBadge(cards.length);return(<img title={cards.length+' '+tr('cartes')} src={'/'+b.img} alt='' style={{width:'46px',height:'46px',flexShrink:0,objectFit:'contain'}} onError={(e)=>{(e.target as HTMLImageElement).style.display='none';}}/>);})()}
@@ -1081,7 +1132,8 @@ export default function Home() {
           </div>
           <div style={{flex:1,overflowY:'auto'}}>
           <div style={{textAlign:'left',flex:1,minHeight:0,display:'flex',flexDirection:'column' as const,gap:0,borderTop:'1px solid rgba(255,255,255,0.06)',paddingTop:'0.3rem'}}>
-            <FilterMenu title='Sport' options={[{value:'nba',label:'NBA'},{value:'foot',label:'Football'}]} current={gSport} onSelect={(v:string)=>{setGSport(v as any);setGLeague('all');setGTeamCustom('all');setFSpecial('all');setTeamApi(HOF_KEY);setLockerStart(0);setFlippedSlug(null);teamChosenRef.current=false;}}/>
+            <FilterMenu title='Sport' options={[{value:'nba',label:'NBA'},{value:'foot',label:'Football'}]} current={gSport} onSelect={(v:string)=>{try{localStorage.setItem('mnfl_last_sport',v);}catch{}setGSport(v as any);setGLeague('all');setGTeamCustom('all');setFSpecial('all');setTeamApi(HOF_KEY);setLockerStart(0);setFlippedSlug(null);teamChosenRef.current=false;}}/>
+            <button onClick={()=>chooseOpenSport(openSport===gSport?'auto':gSport)} style={{width:'100%',boxSizing:'border-box' as const,padding:'0.3rem',background:'rgba(212,175,55,0.12)',border:'1px solid rgba(212,175,55,0.35)',borderRadius:'0.18rem',color:'#e8c84a',fontSize:'0.64rem',cursor:'pointer',letterSpacing:'0.08em',margin:'0.15rem 0 0.2rem'}}>{openSport===gSport?tr('⭐ Ouverture sur : ')+(gSport==='nba'?'NBA':'Football'):tr('⭐ Ouvrir le site sur ce sport')}</button>
             <div style={{padding:'0.2rem 0.5rem'}}>
               <p style={{fontSize:'0.64rem',fontWeight:800,letterSpacing:'0.14em',textTransform:'uppercase',color:'#eaf2ff',margin:'0 0 0.2rem'}}>{tr('Joueur')}</p>
               <input style={{width:'100%',boxSizing:'border-box',background:'rgba(255,255,255,0.05)',color:'#e8eefc',padding:'0.3rem 0.5rem',borderRadius:'0.15rem',border:'1px solid rgba(255,255,255,0.12)',outline:'none',fontSize:'0.76rem'}} name='player-filter' autoComplete='off' data-lpignore='true' data-1p-ignore='true' placeholder={tr('Rechercher...')} value={fPlayer} onChange={e=>setFPlayer(e.target.value)}/>

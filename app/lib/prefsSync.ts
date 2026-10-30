@@ -1,6 +1,6 @@
 // Synchronisation des preferences du compte (HoF, 5 majeur, equipe par defaut, managers favoris, modes).
 // Source = localStorage (rapide, hors connexion). Quand un utilisateur est connecte, on les recopie dans son compte (Redis) pour les retrouver partout.
-const KEY_RE=/^(mynftlocker_hof|mynftlocker_default_team_|mynftlocker_lineup|mnfl_arcade|mnfl_gameplay|mnfl_favs)/;
+const KEY_RE=/^(mynftlocker_hof|mynftlocker_default_team_|mynftlocker_lineup|mnfl_arcade|mnfl_gameplay|mnfl_favs|mnfl_open_sport)/;
 export const isPrefKey=(k:string)=>KEY_RE.test(k);
 
 export const collectPrefs=():Record<string,string>=>{
