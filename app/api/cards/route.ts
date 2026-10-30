@@ -57,6 +57,18 @@ export async function GET(request:NextRequest){
   const cursor=sp.get('cursor')||'';
   const cardSlug=(sp.get('card')||'').trim().toLowerCase();
   const {headers,auth}=sorareHeaders();
+  // LOT DE CARTES : /api/cards?cards=a,b,c (5 max) -> ces cartes (avec leur proprietaire actuel), pour afficher en premier le Hall of Fame / l'equipe par defaut
+  const list=(sp.get('cards')||'').split(',').map(x=>x.trim().toLowerCase()).filter(Boolean);
+  if(list.length){
+    if(list.length>6||list.some(x=>!/^[a-z0-9_-]{3,200}$/.test(x)))return NextResponse.json({error:'bad_request'},{status:400});
+    try{
+      const {j}=await sorareQuery(headers,(d)=>`query{${list.map((x,i)=>`c${i}:anyCard(slug:"${x}"){ownerRef:user{slug} ${cardFields(d)}}`).join(' ')}}`);
+      if(!j)return NextResponse.json({error:'sorare_error'},{status:502});
+      if(!j.data)return NextResponse.json({error:String(j.errors?.[0]?.message||'no_data')},{status:400});
+      const cards=Object.values(j.data).filter(Boolean).map((c:any)=>{const {ownerRef,...rest}=c;return {...enrich(rest),owner:ownerRef?.slug?String(ownerRef.slug).toLowerCase():null};});
+      return NextResponse.json({cards});
+    }catch(e){return NextResponse.json({error:String(e)},{status:500});}
+  }
   // LIEN DIRECT VERS UNE CARTE : /api/cards?card=<slug-de-la-carte> -> une seule carte, reponse quasi immediate
   if(cardSlug){
     if(!/^[a-z0-9_-]{3,200}$/.test(cardSlug))return NextResponse.json({error:'bad_request'},{status:400});
