@@ -90,9 +90,9 @@ export async function GET(req: NextRequest) {
         <div style={{ display: 'flex', flex: 1, alignItems: 'center', justifyContent: 'center' }}>
           {pack && <img src={pack} height={n(380)} style={{ objectFit: 'contain', marginRight: n(56) }} />}
           <div style={{ display: 'flex', flexDirection: 'column', maxWidth: n(620) }}>
-            {slug && <div style={{ display: 'flex', fontSize: n(30), color: '#40e8ff', letterSpacing: n(4) }}>VESTIAIRE DE</div>}
-            <div style={{ display: 'flex', fontSize: n(slug ? 64 : 58), fontWeight: 700, color: '#ffffff', lineHeight: 1.1 }}>{slug || 'Ta galerie et ton vestiaire Sorare'}</div>
-            <div style={{ display: 'flex', fontSize: n(28), color: '#9fb0c4', marginTop: n(18) }}>NBA · Foot · Filtres · Stats · Partage</div>
+            {slug && <div style={{ display: 'flex', fontSize: n(30), color: '#40e8ff', letterSpacing: n(4) }}>LOCKER ROOM OF</div>}
+            <div style={{ display: 'flex', fontSize: n(slug ? 64 : 58), fontWeight: 700, color: '#ffffff', lineHeight: 1.1 }}>{slug || 'Your Sorare gallery and locker room'}</div>
+            <div style={{ display: 'flex', fontSize: n(28), color: '#9fb0c4', marginTop: n(18) }}>NBA · Football · Filters · Stats · Sharing</div>
           </div>
         </div>
       )}
@@ -114,7 +114,7 @@ export async function GET(req: NextRequest) {
           {rLabel && <div style={{ display: 'flex', fontSize: n(58), fontWeight: 700, color: rColor, letterSpacing: n(6) }}>{rLabel}</div>}
           <div style={{ display: 'flex', fontSize: n(26), color: '#40e8ff', letterSpacing: n(4), marginTop: n(22) }}>MANAGER</div>
           <div style={{ display: 'flex', fontSize: n(54), fontWeight: 700, color: '#ffffff', lineHeight: 1.1 }}>{manager || slug}</div>
-          <div style={{ display: 'flex', fontSize: n(26), color: '#9fb0c4', marginTop: n(18) }}>Carte Sorare · vestiaire myNFTlocker</div>
+          <div style={{ display: 'flex', fontSize: n(26), color: '#9fb0c4', marginTop: n(18) }}>Sorare card · myNFTlocker locker room</div>
         </div>
       </div>
     </div>
