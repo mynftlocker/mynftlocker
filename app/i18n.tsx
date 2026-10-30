@@ -41,7 +41,7 @@ const EN: Record<string, string> = {
   '⭐ Définir comme équipe par défaut': '⭐ Set as default team', 'Filtres': 'Filters', 'FILTRES': 'FILTERS',
   'Voir les résultats': 'See results', 'VOIR LA GALERIE COMPLÈTE': 'VIEW FULL GALLERY', 'Fermer': 'Close', 'FERMER': 'CLOSE',
   'Rechercher...': 'Search...',
-  'Toutes les saisons': 'All seasons', 'Toutes les raretés': 'All scarcities', 'Toutes les cartes': 'All cards',
+  'Toutes les saisons': 'All seasons', 'Toutes les raretés': 'All scarcities', 'Toutes les cartes': 'All cards', 'Retirer du Hall of Fame': 'Remove from Hall of Fame', 'Ajouter au Hall of Fame': 'Add to Hall of Fame',
   'Standard uniquement': 'Standard only', 'Spéciales uniquement': 'Special only',
   'Tous les championnats': 'All leagues', 'Toutes les ligues': 'All leagues',
   'cartes': 'cards', 'Aucune carte': 'No cards', 'Taille': 'Size',
