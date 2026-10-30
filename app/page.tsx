@@ -1048,7 +1048,7 @@ export default function Home() {
           const labelStyle:React.CSSProperties={fontSize:'0.72rem',color:'#7a8898',letterSpacing:'0.04em',textTransform:'uppercase'};
           const valStyle:React.CSSProperties={fontSize:'0.9rem',color:'#eaf2ff',fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'};
           return(
-          <div className='mnfl-offset' style={{position:'fixed',inset:0,left:'220px',zIndex:120,background:'radial-gradient(ellipse 120% 90% at 50% -10%,#0d111a 0%,#080b10 55%,#040507 100%)',overflow:'auto',padding:'2.5rem 2rem'}} className='thin-sb mnfl-account-panel'>
+          <div style={{position:'fixed',inset:0,left:'220px',zIndex:120,background:'radial-gradient(ellipse 120% 90% at 50% -10%,#0d111a 0%,#080b10 55%,#040507 100%)',overflow:'auto',padding:'2.5rem 2rem'}} className='thin-sb mnfl-account-panel mnfl-offset'>
             <div style={{maxWidth:'620px',margin:'0 auto'}}>
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'1.6rem',borderBottom:'1px solid rgba(111,195,232,0.25)',paddingBottom:'1rem'}}>
                 <div style={{display:'flex',flexDirection:'column' as const,gap:'0.35rem',minWidth:0}}>
