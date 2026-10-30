@@ -5,6 +5,8 @@ import dynamic from 'next/dynamic';
 import GalleryView, { GalleryCard } from './components/GalleryView';
 import AccountSection, { ChangePassword } from './components/AccountSections';
 import { StatPanel } from './components/StatPanel';
+import { ComposeModal, useUnread } from './components/Messages';
+import { MessagingCtx } from './lib/messagingContext';
 // INSCRIPTIONS : fermees tant que NEXT_PUBLIC_SIGNUP_OPEN n'est pas 'true' (Vercel > Settings > Environment Variables). Les comptes existants peuvent toujours se connecter.
 const SIGNUP_OPEN=process.env.NEXT_PUBLIC_SIGNUP_OPEN==='true';
 import { setManager } from './lib-share';
@@ -248,7 +250,7 @@ export default function Home() {
   };
   const handleIntroClick=useCallback(()=>{if(!slug||loading||openPhase>0)return;fragStartedRef.current=false;setOpenPhase(1);fetchCards();},[slug,loading,openPhase]);
   // ===== AUTH : compte myNFTlocker (inscription/connexion) =====
-  const [currentUser,setCurrentUser]=useState<{pseudo:string;email:string;sorareSlug:string|null;pseudoChangedAt?:number|null;hasPassword?:boolean;accounts?:{platform:string;slug:string;verified:boolean}[];connections?:string[];profiles?:{x?:string}}|null>(null);
+  const [currentUser,setCurrentUser]=useState<{pseudo:string;email:string;sorareSlug:string|null;msgSlug?:string|null;pseudoChangedAt?:number|null;hasPassword?:boolean;accounts?:{platform:string;slug:string;verified:boolean}[];connections?:string[];profiles?:{x?:string}}|null>(null);
   const [authOpen,setAuthOpen]=useState(false);
   const [authClosing,setAuthClosing]=useState(false);
   const [authMode,setAuthMode]=useState<'signup'|'login'>('signup');
@@ -313,7 +315,7 @@ export default function Home() {
     try{ const sp=new URLSearchParams(window.location.search); const oa=sp.get('oauth'); const pv=({sorare:'Sorare',discord:'Discord',x:'X',facebook:'Facebook'} as Record<string,string>)[sp.get('p')||'']||''; if(oa&&oa!=='ok'){ const T:Record<string,{ok:boolean;text:string}>={linked:{ok:true,text:pv+' : compte lié à ton compte myNFTlocker.'},notlinked:{ok:false,text:'Ce compte '+pv+' n’est lié à aucun compte myNFTlocker. Connecte-toi, puis lie-le dans Informations personnelles.'},already:{ok:false,text:'Ce compte '+pv+' est déjà lié à un autre compte myNFTlocker.'},cancelled:{ok:false,text:'Liaison annulée.'},nolink:{ok:false,text:'Connecte-toi d’abord pour lier un compte.'}}; setEmailNotice(T[oa]||{ok:false,text:'Liaison impossible, réessaie dans un instant.'}); } if(oa){ sp.delete('oauth'); sp.delete('p'); const q=sp.toString(); window.history.replaceState({},'','/'+(q?'?'+q:'')); } }catch(e){}
     try{ const em=new URLSearchParams(window.location.search).get('email'); if(em){ setEmailNotice(em==='changed'?{ok:true,text:'Adresse e-mail modifiée. Utilise-la dès maintenant pour te connecter.'}:{ok:false,text:em==='expired'?'Ce lien a expiré. Refais la demande depuis Informations personnelles.':em==='taken'?'Cette adresse est déjà utilisée par un autre compte.':'Impossible de confirmer cette adresse, réessaie.'}); window.history.replaceState({},'','/'); } }catch(e){}
     try{ const g=new URLSearchParams(window.location.search).get('google'); if(g==='error'||g==='closed'){ setAuthMode('login'); setAuthError(g==='closed'?'Les inscriptions ne sont pas encore ouvertes.':'Connexion Google impossible, réessaie.'); setAuthOpen(true); } }catch(e){}
-    fetch('/api/auth/me').then(r=>r.json()).then(d=>{ if(d.loggedIn){ setCurrentUser({pseudo:d.pseudo,email:d.email,sorareSlug:d.sorareSlug,pseudoChangedAt:d.pseudoChangedAt,hasPassword:d.hasPassword,accounts:d.accounts,connections:d.connections,profiles:d.profiles}); if(new URLSearchParams(window.location.search).get('oauth')==='linked'){ setAcctMenuSection('infos'); } if(!d.sorareSlug){ setNeedSlug(true); setSlugDraft(''); setSetupPseudo(d.pseudo||''); } if(d.sorareSlug&&!urlSlugRef.current){ setSlug(d.sorareSlug); setJustLoggedIn(true); } } }).catch(()=>{});
+    fetch('/api/auth/me').then(r=>r.json()).then(d=>{ if(d.loggedIn){ setCurrentUser({pseudo:d.pseudo,email:d.email,sorareSlug:d.sorareSlug,msgSlug:d.msgSlug||null,pseudoChangedAt:d.pseudoChangedAt,hasPassword:d.hasPassword,accounts:d.accounts,connections:d.connections,profiles:d.profiles}); if(new URLSearchParams(window.location.search).get('oauth')==='linked'){ setAcctMenuSection('infos'); } if(!d.sorareSlug){ setNeedSlug(true); setSlugDraft(''); setSetupPseudo(d.pseudo||''); } if(d.sorareSlug&&!urlSlugRef.current){ setSlug(d.sorareSlug); setJustLoggedIn(true); } } }).catch(()=>{});
   },[]);
   // ===== PREFERENCES DU COMPTE : recuperees a la connexion (le compte l'emporte), puis recopiees dans le compte des qu'elles changent =====
   slugNowRef.current=slug;
@@ -597,7 +599,14 @@ export default function Home() {
   const favOptions=[...(canAddFav?[{value:'__add__',label:'+ '+tr('Ajouter')+' '+slug}]:[]),...(slug&&favs.includes(slug)?[{value:'__rm__',label:'✕ '+tr('Retirer')+' '+slug}]:[]),...favs.map(f=>({value:f,label:f}))];
   const favMenu=currentUser?(<FilterMenu title={tr('Managers favoris')} options={favOptions.length?favOptions:[{value:'__none__',label:tr('Aucun favori pour l’instant')}]} current={slug} onSelect={(v:string)=>{if(v==='__add__')saveFavs([...favs,slug]);else if(v==='__rm__')saveFavs(favs.filter(x=>x!==slug));else if(v!=='__none__')openManager(v);}}/>):null;
 
+  // ===== MESSAGERIE : fenetre "Contacter", compteur de non lus, contexte pour le panneau de carte =====
+  const [composeCard,setComposeCard]=useState<any|null>(null);
+  const unreadMsgs=useUnread(!!currentUser?.msgSlug);
+  const viewedSlug=(slug||'').toLowerCase();
+  const msgCtx=useMemo(()=>({canContact:!!viewedSlug&&viewedSlug!==(currentUser?.msgSlug||'')&&viewedSlug!==(currentUser?.sorareSlug||'').toLowerCase(),contact:(c:any)=>setComposeCard(c)}),[viewedSlug,currentUser?.msgSlug,currentUser?.sorareSlug]);
+
   return(
+    <MessagingCtx.Provider value={msgCtx}>
     <main style={{minHeight:'100vh',background:contentBg,backgroundAttachment:'fixed',color:'white',fontFamily:'system-ui,sans-serif',display:'flex'}}>
       <style>{`.noscroll::-webkit-scrollbar{width:0;height:0;display:none} .noscroll{scrollbar-width:none} .thin-sb::-webkit-scrollbar{width:6px} .thin-sb::-webkit-scrollbar-thumb{background:rgba(111,195,232,0.45);border-radius:3px} .thin-sb::-webkit-scrollbar-track{background:transparent} .thin-sb{scrollbar-width:thin;scrollbar-color:rgba(111,195,232,0.45) transparent} @keyframes mnflBuild{0%{opacity:0;transform:translateX(-50%) translateY(12px);filter:blur(3.5px) brightness(1.6) saturate(0.4);box-shadow:0 0 28px 7px rgba(111,195,232,0.5)}50%{opacity:0.65;filter:blur(1.5px) brightness(1.2) saturate(0.75)}100%{opacity:1;transform:translateX(-50%) translateY(0);filter:blur(0) brightness(1) saturate(1);box-shadow:0 0 0 0 rgba(111,195,232,0)}} @keyframes mnflSlideLeft{from{opacity:0;transform:translateX(70px);filter:blur(2px)}to{opacity:1;transform:translateX(0);filter:blur(0)}} @keyframes mnflSlideRight{from{opacity:0;transform:translateX(-70px);filter:blur(2px)}to{opacity:1;transform:translateX(0);filter:blur(0)}} @keyframes mnflLaser{0%{height:0;opacity:0.95}50%{height:29%;opacity:1}75%{height:29%;opacity:0.85}100%{height:29%;opacity:0}} @keyframes mnflDeploy{0%{opacity:0;clip-path:inset(0 100% 0 0);transform:perspective(900px) rotateY(-4deg) translateX(-6px)}35%{opacity:0.6}100%{opacity:1;clip-path:inset(0 0% 0 0);transform:perspective(900px) rotateY(0deg) translateX(0)}} @keyframes mnflClose{0%{opacity:1;transform:scaleY(1);filter:brightness(1)}30%{transform:scaleY(0.84);filter:brightness(1.2)}55%{transform:scaleY(0.42);filter:brightness(1.7)}72%{transform:scaleY(0.12);filter:brightness(2.5)}80%{transform:scaleY(0.025);filter:brightness(4) blur(0.5px)}88%{transform:scaleY(0.008);filter:brightness(6);opacity:1}95%{transform:scaleY(0.003);filter:brightness(9)}100%{transform:scaleY(0);opacity:0;filter:brightness(0)}} @keyframes mnflIcebreaker{0%{opacity:0;transform:translate(-50%,-50%) scaleX(0.05) scaleY(1)}18%{opacity:1;transform:translate(-50%,-50%) scaleX(1) scaleY(1);filter:brightness(2)}52%{opacity:1;transform:translate(-50%,-50%) scaleX(1) scaleY(1)}70%{opacity:1;transform:translate(-50%,-50%) scaleX(0.14) scaleY(2.5);filter:brightness(5)}82%{opacity:1;transform:translate(-50%,-50%) scaleX(0.04) scaleY(7);filter:brightness(10)}90%{opacity:1;transform:translate(-50%,-50%) scaleX(0.01) scaleY(2);filter:brightness(4)}100%{opacity:0;transform:translate(-50%,-50%) scaleX(0) scaleY(0)}} @keyframes mnflFloat{0%{transform:translateY(8px);opacity:0}25%{opacity:0.55}75%{opacity:0.45}100%{transform:translateY(-26px);opacity:0}} @keyframes mnflPulse{0%,100%{box-shadow:0 0 9px 1px var(--rc)}50%{box-shadow:0 0 24px 6px var(--rc)}}@keyframes mnflCyanPulse{0%,100%{box-shadow:0 0 12px 3px rgba(64,232,255,0.45),0 0 22px 5px rgba(64,232,255,0.18)}50%{box-shadow:0 0 22px 6px rgba(64,232,255,0.75),0 0 40px 10px rgba(64,232,255,0.32)}}@keyframes mnflCardTrace{0%{stroke-dashoffset:1000}100%{stroke-dashoffset:0}} @keyframes mnflTwinkle{0%,100%{transform:scale(0) rotate(0deg);opacity:0}45%{transform:scale(1) rotate(15deg);opacity:1}70%{transform:scale(0.4) rotate(0deg);opacity:0.3}} @keyframes mnflIdleFloat{0%,100%{transform:rotateY(-6deg) translateY(0px)}50%{transform:rotateY(6deg) translateY(-5px)}} @media(max-width:768px){.mnfl-sidebar{display:none!important} .mnfl-content{margin-left:0!important;padding-bottom:70px!important;max-width:100vw!important;overflow-x:hidden!important} .mnfl-bottombar{display:flex!important} .mnfl-filters-sheet{display:flex!important} .mnfl-account-panel{left:0!important}}`}</style>
       {/* ===== BARRE LATERALE (glass sombre) ===== */}
@@ -621,6 +630,7 @@ export default function Home() {
             <div style={{flex:1,minWidth:0,textAlign:'left'}}>
               <p style={{margin:0,fontSize:'0.74rem',fontWeight:700,color:'#eaf2ff',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{cards.length>0&&slug?((currentUser?.sorareSlug&&currentUser.pseudo&&slug.toLowerCase()===currentUser.sorareSlug.toLowerCase())?currentUser.pseudo:slug):tr('Mon compte')}</p>
             </div>
+            {unreadMsgs>0&&<span title={tr('Messages')} style={{minWidth:'16px',height:'16px',padding:'0 4px',boxSizing:'border-box',borderRadius:'999px',background:'#40e8ff',color:'#041018',fontSize:'0.6rem',fontWeight:900,display:'inline-flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{unreadMsgs}</span>}
             <span style={{fontSize:'0.6rem',color:'#6fc3e8',opacity:0.85,flexShrink:0}}>{acctOpen?'▲':'▼'}</span>
           </div>
           {/* LIGNE 2 : bandeau-collection (badge + compteur + changement de galerie) */}
@@ -642,6 +652,7 @@ export default function Home() {
             <div className='thin-sb' style={{position:'absolute',top:'100%',left:0,right:0,marginTop:'0.3rem',background:'#0a0d12',border:'1px solid rgba(111,195,232,0.35)',borderRadius:'0.35rem',boxShadow:'0 10px 28px rgba(0,0,0,0.6)',zIndex:200,overflow:'hidden'}}>
               {[
               {key:'infos',label:tr('Informations personnelles')},
+                  {key:'messages',label:tr('Messages')+(unreadMsgs>0?' ('+unreadMsgs+')':'')},
               {key:'auth',label:tr('Authentification')},
               {key:'abo',label:tr('Abonnement')},
               {key:'confidentialite',label:tr('Confidentialité & données')},
@@ -705,7 +716,7 @@ export default function Home() {
       {/* ===== CONTENU ===== */}
       <div className='mnfl-content' style={{flex:1,marginLeft:'220px',minHeight:'100vh'}}>
         {acctMenuSection&&(()=>{
-          const SECTIONS:Record<string,string>={infos:tr('Informations personnelles'),auth:tr('Authentification'),abo:tr('Abonnement'),confidentialite:tr('Confidentialité & données'),aide:tr('Aide / Contact')};
+          const SECTIONS:Record<string,string>={infos:tr('Informations personnelles'),messages:tr('Messages'),auth:tr('Authentification'),abo:tr('Abonnement'),confidentialite:tr('Confidentialité & données'),aide:tr('Aide / Contact')};
           const title=SECTIONS[acctMenuSection]||tr('Mon compte');
           const rowStyle:React.CSSProperties={display:'flex',justifyContent:'space-between',alignItems:'center',gap:'1rem',padding:'0.85rem 1rem',background:'rgba(255,255,255,0.03)',border:'1px solid rgba(111,195,232,0.18)',borderRadius:'0.4rem',marginBottom:'0.6rem'};
           const labelStyle:React.CSSProperties={fontSize:'0.72rem',color:'#7a8898',letterSpacing:'0.04em',textTransform:'uppercase'};
@@ -809,7 +820,7 @@ export default function Home() {
                   <button onClick={()=>{setAcctMenuSection(null);setAuthMode('login');setAuthOpen(true);}} style={{background:'rgba(64,232,255,0.12)',border:'1px solid rgba(64,232,255,0.5)',color:'#40e8ff',padding:'0.6rem 2rem',fontSize:'0.78rem',fontWeight:700,letterSpacing:'0.12em',textTransform:'uppercase',cursor:'pointer',borderRadius:'3px'}}>{tr('Se connecter')}</button>
                 </div>
               ))}
-              {acctMenuSection!=='infos'&&(<AccountSection section={acctMenuSection} user={currentUser} onLogin={()=>{setAcctMenuSection(null);setAuthMode('login');setAuthOpen(true);}} onDeleted={()=>{setCurrentUser(null);setAcctOpen(false);setAcctMenuSection(null);}}/>)}
+              {acctMenuSection!=='infos'&&(<AccountSection section={acctMenuSection} onVerify={()=>setAcctMenuSection('auth')} user={currentUser} onLogin={()=>{setAcctMenuSection(null);setAuthMode('login');setAuthOpen(true);}} onDeleted={()=>{setCurrentUser(null);setAcctOpen(false);setAcctMenuSection(null);}}/>)}
             </div>
           </div>
           );
@@ -1046,6 +1057,7 @@ export default function Home() {
               <div style={{background:'#0a0d12',border:'1px solid rgba(111,195,232,0.35)',borderRadius:'0.35rem',overflow:'hidden',marginTop:'0.1rem'}}>
                 {[
                   {key:'infos',label:tr('Informations personnelles')},
+                  {key:'messages',label:tr('Messages')+(unreadMsgs>0?' ('+unreadMsgs+')':'')},
                   {key:'auth',label:tr('Authentification')},
                   {key:'abo',label:tr('Abonnement')},
                   {key:'confidentialite',label:tr('Confidentialité & données')},
@@ -1116,6 +1128,8 @@ export default function Home() {
         </div>
       )}
 
+      {composeCard&&(<ComposeModal card={composeCard} to={viewedSlug} user={currentUser} onClose={()=>setComposeCard(null)} onLogin={()=>{setComposeCard(null);setAuthMode('login');setAuthOpen(true);}} onVerify={()=>{setComposeCard(null);setAcctMenuSection('auth');}} onInbox={()=>{setComposeCard(null);setAcctMenuSection('messages');}}/>)}
     </main>
+    </MessagingCtx.Provider>
   );
 }
