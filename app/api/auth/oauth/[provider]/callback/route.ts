@@ -37,6 +37,7 @@ export async function GET(request: NextRequest, ctx: { params: Promise<{ provide
       if (provider === 'sorare') {
         // Slug prouve par Sorare lui-meme : compte "verifie"
         upsertAccount(s.user, { platform: 'sorare', slug: prof.slug || prof.sub, verified: true, linkedAt: Date.now() });
+        try { await redis.set('msgslug:' + String(prof.slug || prof.sub).toLowerCase(), s.user.id); } catch {} // messagerie : index du slug verifie
       } else {
         const list = (s.user.identities || []).filter((i: any) => i.provider !== provider);
         list.push({ provider, sub: prof.sub, name: prof.name || '', linkedAt: Date.now() });
