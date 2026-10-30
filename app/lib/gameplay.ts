@@ -1,7 +1,10 @@
 // ===== MODE ARCADE =====
-// Une carte est "Arcade" si son edition speciale l'indique (ex. football : glitch_standard_base, glitch_holo_base...).
-// Le 30/10 : lire les vraies cartes NBA Arcade dans l'API et completer ce test si leur edition a un autre nom.
-export const isArcadeCard=(c:any):boolean=>/arcade|glitch/i.test(String(c?.specialEdition||''));
+// Arcade = les cartes COMMON de la serie (Set) EN COURS. Verifie a la source le 30/10/2026 :
+// les cartes Divination (foot et NBA) ont l'edition divination_standard_base / divination_shiny_base, rarete common.
+// RESET A CHAQUE NOUVEAU SET : changer ARCADE_SET (ex. 'divination' -> prefixe de la nouvelle edition).
+// Les cartes de l'ancien Set (ex. glitch_*) redeviennent des communes normales, hors du filtre Arcade.
+export const ARCADE_SET='divination';
+export const isArcadeCard=(c:any):boolean=>String(c?.rarityTyped||'').toLowerCase()==='common'&&String(c?.specialEdition||'').toLowerCase().startsWith(ARCADE_SET+'_');
 // Au lancement public : passer a true -> le visiteur arrive sur Arcade, le site complet reste accessible via l'interrupteur.
 export const ARCADE_DEFAULT=false;
 
