@@ -88,7 +88,7 @@ export function ComposeModal({ card, to, user, onClose, onLogin, onVerify, onInb
   };
   const box: React.CSSProperties = { width: 'min(460px,92vw)', background: '#0a0d12', border: '1px solid rgba(111,195,232,0.4)', borderRadius: '0.6rem', padding: '1.2rem 1.2rem 1rem', boxShadow: '0 20px 60px rgba(0,0,0,0.7)' };
   return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 400, background: 'rgba(2,4,8,0.72)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 10000, background: 'rgba(2,4,8,0.72)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
       <div onClick={e => e.stopPropagation()} style={box}>
         {!user ? (<>
           <p style={{ color: '#cfe4fb', fontSize: '0.9rem', margin: '0 0 1rem' }}>{tr('Connecte-toi pour écrire à un manager.')}</p>
