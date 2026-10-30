@@ -1217,7 +1217,8 @@ export default function Home() {
                 {error&&<p style={{color:'#fca5a5',fontSize:'0.7rem',marginTop:'1rem',fontFamily:'Courier New,monospace'}}>{error}</p>}
                 {!currentUser&&(
                   <>
-                    <div style={{display:'flex',alignItems:'center',gap:'0.8rem',marginTop:'1.1rem',fontFamily:'Courier New,monospace',fontSize:'0.6rem',letterSpacing:'0.14em'}}>
+                    <span onClick={()=>{if(loading)return;setSlug('memejacquet1998');setJustLoggedIn(true);}} style={{marginTop:'1.1rem',color:'#f5d76e',cursor:loading?'default':'pointer',fontFamily:'Courier New,monospace',fontSize:'0.62rem',letterSpacing:'0.16em',textTransform:'uppercase',textShadow:'0 0 10px rgba(245,215,110,0.35)'}}>{'▶ '+tr('Voir une démo')}</span>
+                    <div style={{display:'flex',alignItems:'center',gap:'0.8rem',marginTop:'0.9rem',fontFamily:'Courier New,monospace',fontSize:'0.6rem',letterSpacing:'0.14em'}}>
                       <span onClick={()=>{setAuthMode('login');setAuthOpen(true);}} style={{color:'#40e8ff',cursor:'pointer',textTransform:'uppercase',borderBottom:'1px solid rgba(64,232,255,0.45)',paddingBottom:'1px'}}>{tr('Connexion')}</span>
                       <span style={{color:'rgba(207,228,251,0.25)'}}>|</span>
                       {SIGNUP_OPEN?(<span onClick={()=>{setAuthMode('signup');setAuthSlugField(slug||'');setAuthOpen(true);}} style={{color:'rgba(207,228,251,0.55)',cursor:'pointer',textDecoration:'underline'}}>{tr('Creer un compte')}</span>):(<span style={{color:'rgba(207,228,251,0.4)'}}>{tr('Inscriptions bientôt ouvertes')}</span>)}
