@@ -222,6 +222,8 @@ function ShareBlock({card,box,lab}:{card:any;box:React.CSSProperties;lab:React.C
   const doShare=async()=>{if(!img)return;try{const lk=cardLink(card.slug);await (navigator as any).share({files:[img.file],title:card.name,text:(getManager()?getManager()+' · ':'')+card.name+(lk?tr(' — voir la carte : ')+lk:'')});}catch(e:any){if(!e||e.name!=='AbortError')flash(tr('Partage impossible'));}};
   const doDownload=()=>{if(!img)return;const a=document.createElement('a');a.href=URL.createObjectURL(img.blob);a.download=img.fname;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);flash(tr('Image téléchargée'));};
   const doCopy=async()=>{if(!img)return;try{await (navigator as any).clipboard.write([new (window as any).ClipboardItem({'image/png':img.blob})]);flash(tr('Image copiée'));}catch(e){flash(tr('Copie impossible'));}};
+  const clink=cardLink(card.slug);
+  const doCopyLink=async()=>{if(!clink)return;try{await navigator.clipboard.writeText(clink);flash(tr('Lien copié'));}catch(e){try{const t=document.createElement('textarea');t.value=clink;document.body.appendChild(t);t.select();document.execCommand('copy');t.remove();flash(tr('Lien copié'));}catch(e2){flash(tr('Copie impossible'));}}};
   const ready=state==='ready';
   const btn:React.CSSProperties={flex:1,display:'flex',alignItems:'center',justifyContent:'center',gap:'0.3em',padding:'0.5em 0.2em',borderRadius:'0.3em',border:'1px solid rgba(64,232,255,0.5)',background:'rgba(64,232,255,0.06)',color:'#ffffff',fontSize:'0.58em',fontWeight:800,letterSpacing:'0.08em',cursor:ready?'pointer':'wait',opacity:ready?1:0.45,fontFamily:'inherit',whiteSpace:'nowrap'};
   const ico=(d:React.ReactNode)=>(<svg viewBox='0 0 24 24' style={{width:'1.2em',height:'1.2em',flexShrink:0}} fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round'>{d}</svg>);
@@ -233,6 +235,7 @@ function ShareBlock({card,box,lab}:{card:any;box:React.CSSProperties;lab:React.C
         <button type='button' className='stat-link-btn' disabled={!ready} onClick={doDownload} style={btn}>{ico(<><path d='M12 3v12'/><path d='M8 11l4 4 4-4'/><path d='M5 21h14'/></>)}{tr('TÉLÉCHARGER')}</button>
         {canCopy&&<button type='button' className='stat-link-btn' disabled={!ready} onClick={doCopy} style={btn}>{ico(<><rect x='9' y='9' width='12' height='12' rx='2'/><path d='M5 15V5a2 2 0 012-2h10'/></>)}{tr('COPIER')}</button>}
       </div>
+      {clink&&<button type='button' className='stat-link-btn' onClick={doCopyLink} style={{...btn,flex:'none',width:'100%',marginTop:'0.4em',cursor:'pointer',opacity:1}}>{ico(<><path d='M10 13a5 5 0 007 0l3-3a5 5 0 00-7-7l-1 1'/><path d='M14 11a5 5 0 00-7 0l-3 3a5 5 0 007 7l1-1'/></>)}{tr('COPIER LE LIEN DE LA CARTE')}</button>}
     </div>
   );
 }
