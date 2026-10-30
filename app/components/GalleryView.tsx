@@ -356,7 +356,7 @@ export default function GalleryView({cards,badgeSort,gameplay}:{cards:any[];badg
         </div>
       ):(
         <>
-        <div style={{position:'sticky',top:0,zIndex:30,display:'flex',alignItems:'center',justifyContent:'space-between',gap:'0.5rem',marginBottom:'0.8rem',padding:'0.45rem 0',background:'rgba(8,11,16,0.88)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)'}}>
+        <div className='mnfl-gallery-bar' style={{position:'sticky',top:0,zIndex:30,display:'flex',alignItems:'center',justifyContent:'space-between',gap:'0.5rem',marginBottom:'0.8rem',padding:'0.45rem 0',background:'rgba(8,11,16,0.88)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)'}}>
           <span style={{fontSize:'0.7rem',color:'rgba(207,216,230,0.6)',letterSpacing:'0.05em',textTransform:'uppercase' as const}}>{cards.length} {cards.length>1?tr('joueurs'):tr('joueur')}</span>
           <div style={{display:'flex',alignItems:'center',gap:'0.5rem'}}>
           <span style={{fontSize:'0.7rem',color:'rgba(207,216,230,0.6)',letterSpacing:'0.05em',textTransform:'uppercase' as const}}>{tr('Taille')}</span>
