@@ -306,7 +306,7 @@ export default function GalleryView({cards,badgeSort,gameplay}:{cards:any[];badg
   useEffect(()=>{
     const saved=localStorage.getItem('mnfl_gallery_cols');
     if(saved){setGalleryCols(Math.min(8,Math.max(1,parseInt(saved,10)||4)));return;}
-    setGalleryCols(window.innerWidth>=1024?8:4); // par defaut : 8 cartes par ligne sur ordinateur, 4 sur mobile/tablette
+    setGalleryCols(window.innerWidth>=1024?8:window.innerWidth>=600?4:3); // par defaut : 8 cartes par ligne sur ordinateur, 4 sur tablette, 3 sur telephone (noms et notes lisibles)
   },[]);
   const changeCols=(delta:number)=>{setGalleryCols(c=>{const next=Math.min(8,Math.max(1,c+delta));localStorage.setItem('mnfl_gallery_cols',String(next));return next;});};
   const gridRef=useRef<HTMLDivElement>(null);
