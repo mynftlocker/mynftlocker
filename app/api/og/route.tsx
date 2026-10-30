@@ -12,6 +12,7 @@ const toDataUrl = async (u: string) => {
     const r = await fetch(u, { signal: AbortSignal.timeout(5000) });
     if (!r.ok) return null;
     const ct = r.headers.get('content-type') || 'image/png';
+    if (!/^image\//i.test(ct)) return null; // ex. page de connexion Vercel (Preview protegee) : jamais une image
     return 'data:' + ct + ';base64,' + Buffer.from(await r.arrayBuffer()).toString('base64');
   } catch (e) { return null; }
 };
