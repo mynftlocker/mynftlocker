@@ -1331,8 +1331,8 @@ export default function Home() {
             </>)}
             {(SIGNUP_OPEN||authMode==='signup')&&(
             <p style={{textAlign:'center',marginTop:'0.8rem',fontSize:'0.66rem',color:'rgba(207,228,251,0.6)'}}>
-              {authMode==='signup'?'Deja un compte ? ':tr('Pas encore de compte ? ')}
-              <span onClick={()=>{setAuthMode(authMode==='signup'?'login':'signup');setAuthError('');}} style={{color:'#40e8ff',cursor:'pointer',textDecoration:'underline'}}>{authMode==='signup'?'Se connecter':tr("S'inscrire")}</span>
+              {authMode==='signup'?tr('Déjà un compte ? '):tr('Pas encore de compte ? ')}
+              <span onClick={()=>{setAuthMode(authMode==='signup'?'login':'signup');setAuthError('');}} style={{color:'#40e8ff',cursor:'pointer',textDecoration:'underline'}}>{authMode==='signup'?tr('Se connecter'):tr("S'inscrire")}</span>
             </p>
             )}
           </div>
