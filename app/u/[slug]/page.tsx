@@ -16,9 +16,13 @@ export async function generateMetadata({ params, searchParams }: P): Promise<Met
   const name = snap?.m || slug;
   // Lien d'une carte (?c=<slug carte>) : apercu de CETTE carte
   const cp = String((await searchParams)?.c || '').toLowerCase();
+  // Titre deduit du slug (instantane : WhatsApp abandonne l'apercu si la page tarde) ex. nikola-jokic-19950219-2025-limited-537
   let one: any = null;
-  if (/^[a-z0-9_-]{3,200}$/.test(cp)) {
-    try { const r = await fetch(`${SITE}/api/cards?card=${encodeURIComponent(cp)}`, { signal: AbortSignal.timeout(6000) }); if (r.ok) one = (await r.json())?.card || null; } catch (e) { /* apercu du vestiaire */ }
+  const m = /^(.+?)-\d{8}-(\d{4})-([a-z_-]+?)-(\d+)$/.exec(cp);
+  if (m && /^[a-z0-9_-]{3,200}$/.test(cp)) {
+    const nm = m[1].split('-').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    const rar = m[3].replace(/[-_]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+    one = { name: nm + ' · ' + rar + ' #' + m[4] };
   }
   const title = one ? `${one.name} — carte de ${name} · myNFTlocker` : snap ? `${name} · ${snap.t || 'Vestiaire'} — myNFTlocker` : `Vestiaire de ${name} — myNFTlocker`;
   const description = one ? `Carte Sorare dans le vestiaire de ${name}. Ouvre sa galerie sur myNFTlocker.` : `Le vestiaire Sorare de ${name} : cartes NBA et foot, stats et partage. Ouvre-le sur myNFTlocker.`;

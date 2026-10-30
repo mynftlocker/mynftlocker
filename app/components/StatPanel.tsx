@@ -1,6 +1,6 @@
 'use client';
 import { memo, useState, useEffect, useLayoutEffect, useRef, useId } from 'react';
-import { getManager, cardLink } from '../lib-share';
+import { getManager, getManagerSlug, cardLink } from '../lib-share';
 import { t as tr, useLang, getLang } from '../i18n';
 
 export const RARITY_GLOW: Record<string,string> = {
@@ -223,7 +223,7 @@ function ShareBlock({card,box,lab}:{card:any;box:React.CSSProperties;lab:React.C
   const doDownload=()=>{if(!img)return;const a=document.createElement('a');a.href=URL.createObjectURL(img.blob);a.download=img.fname;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);flash(tr('Image téléchargée'));};
   const doCopy=async()=>{if(!img)return;try{await (navigator as any).clipboard.write([new (window as any).ClipboardItem({'image/png':img.blob})]);flash(tr('Image copiée'));}catch(e){flash(tr('Copie impossible'));}};
   const clink=cardLink(card.slug);
-  const doCopyLink=async()=>{if(!clink)return;try{await navigator.clipboard.writeText(clink);flash(tr('Lien copié'));}catch(e){try{const t=document.createElement('textarea');t.value=clink;document.body.appendChild(t);t.select();document.execCommand('copy');t.remove();flash(tr('Lien copié'));}catch(e2){flash(tr('Copie impossible'));}}};
+  const doCopyLink=async()=>{if(!clink)return;try{const sl=getManagerSlug();if(sl){const q='/api/og?slug='+encodeURIComponent(sl)+'&card='+encodeURIComponent(card.slug)+'&v=c1';fetch(q).catch(()=>{});fetch(q+'&s=sm').catch(()=>{});}}catch(e){}try{await navigator.clipboard.writeText(clink);flash(tr('Lien copié'));}catch(e){try{const t=document.createElement('textarea');t.value=clink;document.body.appendChild(t);t.select();document.execCommand('copy');t.remove();flash(tr('Lien copié'));}catch(e2){flash(tr('Copie impossible'));}}};
   const ready=state==='ready';
   const btn:React.CSSProperties={flex:1,display:'flex',alignItems:'center',justifyContent:'center',gap:'0.3em',padding:'0.5em 0.2em',borderRadius:'0.3em',border:'1px solid rgba(64,232,255,0.5)',background:'rgba(64,232,255,0.06)',color:'#ffffff',fontSize:'0.58em',fontWeight:800,letterSpacing:'0.08em',cursor:ready?'pointer':'wait',opacity:ready?1:0.45,fontFamily:'inherit',whiteSpace:'nowrap'};
   const ico=(d:React.ReactNode)=>(<svg viewBox='0 0 24 24' style={{width:'1.2em',height:'1.2em',flexShrink:0}} fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round'>{d}</svg>);
