@@ -1,6 +1,5 @@
 import { NextRequest } from 'next/server';
 import { redis } from '../../../lib/redis';
-import { GET as cardsGET } from '../cards/route';
 
 // Collection complete d'un manager, en flux (une ligne JSON par paquet de cartes) :
 //  - si elle est en cache serveur (15 min) : tout part immediatement ;
@@ -44,8 +43,7 @@ export async function GET(request: NextRequest) {
           for (let attempt = 0; attempt < 4 && !d; attempt++) {
             if (attempt > 0) await new Promise(r => setTimeout(r, 1000 * attempt));
             try {
-              // PERF : appel direct de la route /api/cards (meme code, sans aller-retour HTTP interne ni demarrage a froid supplementaire par page)
-              const r = await cardsGET(new NextRequest(origin + '/api/cards?slug=' + encodeURIComponent(slug) + (cursor ? '&cursor=' + encodeURIComponent(cursor) : '')));
+              const r = await fetch(origin + '/api/cards?slug=' + encodeURIComponent(slug) + (cursor ? '&cursor=' + encodeURIComponent(cursor) : ''), { signal: AbortSignal.timeout(20000) });
               status = r.status;
               if (r.ok) { const j = await r.json(); if (j && j.cards) d = j; }
               else if (r.status === 400 || r.status === 404) break; // manager introuvable : inutile de reessayer
