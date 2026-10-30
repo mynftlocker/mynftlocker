@@ -240,7 +240,7 @@ export default function LockerRoomScene({cards=[],startIndex,hof=[],flippedSlug,
 
         {/* NOMS PLAQUES */}
         {visible.map((card,i)=>(
-          <div key={'p'+card.slug} style={{position:'absolute',left:PLX[i]+'%',top:PT+'%',width:'7%',transform:'translate(-50%,-50%)',zIndex:15,textAlign:'center',overflow:'hidden',transition:'left 0.45s cubic-bezier(0.2,0.8,0.3,1)'}}>
+          <div key={'p'+card.slug} style={{position:'absolute',left:PLX[i]+'%',top:PT+'%',width:'7%',transform:'translate(-50%,-50%)',zIndex:15,textAlign:'center',display:'flex',justifyContent:'center',overflow:'hidden',transition:'left 0.45s cubic-bezier(0.2,0.8,0.3,1)'}}>
             <PlateName text={(card.anyPlayer?.lastName||parseCard(card.name).lastName).toUpperCase()} fs={plateFs((card.anyPlayer?.lastName||parseCard(card.name).lastName).length)}/>
           </div>
         ))}
