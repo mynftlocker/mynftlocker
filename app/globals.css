@@ -70,6 +70,7 @@ html, body { max-width: 100%; overflow-x: hidden; overflow-x: clip; } /* clip : 
   .mnfl-sidebar.open{transform:none}
   .mnfl-content{margin-left:0!important}
   .mnfl-offset{left:0!important}
+  .mnfl-gallery-bar{padding-left:48px!important} /* laisse la place au bouton ☰ */
   .mnfl-side-toggle{display:flex}
   .mnfl-side-backdrop{display:block;position:fixed;inset:0;z-index:49;background:rgba(2,6,14,0.55)}
 }
