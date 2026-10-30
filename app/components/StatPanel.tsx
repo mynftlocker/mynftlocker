@@ -1,7 +1,8 @@
 'use client';
-import { memo, useState, useEffect, useLayoutEffect, useRef, useId } from 'react';
+import { memo, useState, useEffect, useLayoutEffect, useRef, useId, useContext } from 'react';
 import { getManager, getManagerSlug, cardLink } from '../lib-share';
 import { t as tr, useLang, getLang } from '../i18n';
+import { MessagingCtx } from '../lib/messagingContext';
 
 export const RARITY_GLOW: Record<string,string> = {
   common:'0 0 18px 3px rgba(225,228,255,0.75), 0 0 36px 8px rgba(190,200,255,0.35)',
@@ -223,11 +224,12 @@ function ShareBlock({card,box,lab}:{card:any;box:React.CSSProperties;lab:React.C
   const doDownload=()=>{if(!img)return;const a=document.createElement('a');a.href=URL.createObjectURL(img.blob);a.download=img.fname;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);flash(tr('Image téléchargée'));};
   const doCopy=async()=>{if(!img)return;try{await (navigator as any).clipboard.write([new (window as any).ClipboardItem({'image/png':img.blob})]);flash(tr('Image copiée'));}catch(e){flash(tr('Copie impossible'));}};
   const clink=cardLink(card.slug);
+  const msgCtx=useContext(MessagingCtx);
   const doCopyLink=async()=>{if(!clink)return;try{const sl=getManagerSlug();if(sl){const q='/api/og?slug='+encodeURIComponent(sl)+'&card='+encodeURIComponent(card.slug)+'&v=c1';fetch(q).catch(()=>{});fetch(q+'&s=sm').catch(()=>{});}}catch(e){}try{await navigator.clipboard.writeText(clink);flash(tr('Lien copié'));}catch(e){try{const t=document.createElement('textarea');t.value=clink;document.body.appendChild(t);t.select();document.execCommand('copy');t.remove();flash(tr('Lien copié'));}catch(e2){flash(tr('Copie impossible'));}}};
   const ready=state==='ready';
   const btn:React.CSSProperties={flex:1,display:'flex',alignItems:'center',justifyContent:'center',gap:'0.3em',padding:'0.5em 0.2em',borderRadius:'0.3em',border:'1px solid rgba(64,232,255,0.5)',background:'rgba(64,232,255,0.06)',color:'#ffffff',fontSize:'0.58em',fontWeight:800,letterSpacing:'0.08em',cursor:ready?'pointer':'wait',opacity:ready?1:0.45,fontFamily:'inherit',whiteSpace:'nowrap'};
   const ico=(d:React.ReactNode)=>(<svg viewBox='0 0 24 24' style={{width:'1.2em',height:'1.2em',flexShrink:0}} fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round'>{d}</svg>);
-  return(
+  return(<>
     <div style={{...box,flexShrink:0,borderColor:'rgba(64,232,255,0.4)',background:'rgba(64,232,255,0.06)',opacity:state==='prep'?0:1,transition:'opacity 0.35s ease',pointerEvents:state==='prep'?'none':'auto'}}>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:'0.5em'}}><p style={lab}>{tr('PARTAGER LA CARTE')}</p><span style={{fontSize:'0.5em',letterSpacing:'0.08em',color:state==='error'?'#fca5a5':'rgba(64,232,255,0.7)',whiteSpace:'nowrap'}}>{msg||(state==='prep'?tr('Préparation de l’image…'):state==='error'?tr('Image indisponible'):'')}</span></div>
       <div style={{display:'flex',gap:'0.4em'}}>
@@ -237,7 +239,8 @@ function ShareBlock({card,box,lab}:{card:any;box:React.CSSProperties;lab:React.C
       </div>
       {clink&&<button type='button' className='stat-link-btn' onClick={doCopyLink} style={{...btn,flex:'none',width:'100%',marginTop:'0.4em',cursor:'pointer',opacity:1}}>{ico(<><path d='M10 13a5 5 0 007 0l3-3a5 5 0 00-7-7l-1 1'/><path d='M14 11a5 5 0 00-7 0l-3 3a5 5 0 007 7l1-1'/></>)}{tr('COPIER LE LIEN DE LA CARTE')}</button>}
     </div>
-  );
+    {msgCtx.canContact&&(<button type='button' className='stat-link-btn' onClick={()=>msgCtx.contact(card)} style={{...btn,flex:'none',width:'100%',cursor:'pointer',opacity:1,flexShrink:0,borderColor:'rgba(245,215,110,0.6)',background:'rgba(245,215,110,0.08)',color:'#f5d76e',padding:'0.7em 0.4em'}}>{ico(<><path d='M21 12a8 8 0 01-11.6 7.1L4 20l1-4.6A8 8 0 1121 12z'/></>)}{tr('CONTACTER LE MANAGER')}</button>)}
+  </>);
 }
 
 export const StatPanel=memo(({card,onClose,isClosing=false,placement='scene'}:any)=>{

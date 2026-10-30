@@ -1,6 +1,7 @@
 "use client";
 import { useState } from 'react';
 import { t as tr, useLang, addEn } from '../i18n';
+import { MessagesSection } from './Messages';
 
 // Sections du menu "Mon compte" : Authentification, Abonnement, Confidentialite & donnees, Aide / Contact.
 addEn({
@@ -104,8 +105,9 @@ function Privacy({user,onDeleted}:{user:any;onDeleted:()=>void}){
   </div>);
 }
 
-export default function AccountSection({section,user,onLogin,onDeleted}:{section:string;user:any;onLogin:()=>void;onDeleted:()=>void}){
+export default function AccountSection({section,user,onLogin,onDeleted,onVerify}:{section:string;user:any;onLogin:()=>void;onDeleted:()=>void;onVerify?:()=>void}){
   useLang();
+  if(section==='messages')return(<MessagesSection user={user} onLogin={onLogin} onVerify={onVerify||(()=>{})}/>);
   if(section==='auth'){
     if(!user)return(<div style={{textAlign:'center',padding:'2.5rem 1rem'}}><p style={{color:'#cfe4fb',fontSize:'0.95rem',marginBottom:'1.4rem'}}>{tr('Connecte-toi pour gérer ton compte.')}</p><button onClick={onLogin} style={btn()}>{tr('Se connecter')}</button></div>);
     return(<div>

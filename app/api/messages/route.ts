@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
       await redis.sadd('msg:block:' + me, target); // le signalement bloque aussi le manager signale, pour la personne qui signale
       await redis.sadd('msg:reportedby:' + target, me);
       const distinct = (await redis.scard('msg:reportedby:' + target)) as number;
-      if (distinct >= SUSPEND_AFTER) await redis.set('msg:suspended:' + target, '1');
+      if (distinct >= SUSPEND_AFTER) await redis.set('msg:suspended:' + target, 'yes');
       await mailAdmin(
         `Signalement messagerie : ${target}`,
         `<p><b>${esc(me)}</b> signale <b>${esc(target)}</b> (${distinct} signalement(s) de managers differents${distinct >= SUSPEND_AFTER ? ' — envoi SUSPENDU' : ''}).</p><p>Motif : ${esc(reason) || '—'}</p><p>Carte : ${esc(m.card?.name || '')}</p><pre style="white-space:pre-wrap">${esc(last.map((x: Msg) => `[${new Date(x.at).toISOString()}] ${x.f}: ${x.t}`).join('\n'))}</pre>`,
@@ -115,7 +115,7 @@ export async function POST(request: NextRequest) {
 
     const f = checkMessage(String(body?.text || ''));
     if (!f.ok) return NextResponse.json({ error: 'filtered', code: f.code }, { status: 422 });
-    if ((await redis.get('msg:suspended:' + me)) === '1') return err('suspended', 403);
+    if (String(await redis.get('msg:suspended:' + me)) === 'yes') return err('suspended', 403);
 
     let meta: Meta | null = null;
     if (action === 'reply') {
@@ -134,10 +134,10 @@ export async function POST(request: NextRequest) {
       const cid = makeCid(me, to, card);
       meta = await readMeta(cid);
       if (!meta) {
-        if (!(await hitLimit('new', me, LIMIT_NEW_PER_DAY))) return err('limit_new', 429);
         const sc = await sorareCard(card);
         if (!sc) return err('card_unavailable', 404);
         if (sc.owner && sc.owner !== to) return err('card_not_owned', 400);
+        if (!(await hitLimit('new', me, LIMIT_NEW_PER_DAY))) return err('limit_new', 429); // compte seulement les vraies nouvelles conversations
         const [x, y] = [me, to].sort();
         meta = { cid, a: x, b: y, p: { [me]: s.user.pseudo || me, [to]: rcp.user.pseudo || to }, card: { slug: card, name: sc.name, pictureUrl: sc.pictureUrl }, n: 0, r: {}, at: Date.now(), last: '', lastFrom: me };
       }
