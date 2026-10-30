@@ -33,12 +33,14 @@ const enrich=(n:any)=>{
   return {...n,beatL10,beatGw,beatPct,gwRecord,proj,gain};
 };
 // Requete avec le detail du score (recalcul du record GW). Si Sorare refuse (profondeur/complexite), on retente sans le detail : la galerie ne doit jamais casser.
-const sorareQuery=async(headers:Record<string,string>,build:(detail:boolean)=>string)=>{
-  for(const detail of [true,false]){
-    const r=await fetch('https://api.sorare.com/graphql',{method:'POST',headers,body:JSON.stringify({query:build(detail)}),signal:AbortSignal.timeout(8000)});
+const sorareQuery=async(headers:Record<string,string>,build:(detail:boolean,size:number)=>string,sizes:number[]=[50])=>{
+  // PERF : on essaie d'abord la plus grande page AVEC detail (moins d'allers-retours vers Sorare), puis des pages plus petites, et en dernier recours sans le detail du score (jamais de galerie cassee)
+  const combos:[number,boolean][]=[...sizes.map((n):[number,boolean]=>[n,true]),[sizes[sizes.length-1],false]];
+  for(const [size,detail] of combos){
+    const r=await fetch('https://api.sorare.com/graphql',{method:'POST',headers,body:JSON.stringify({query:build(detail,size)}),signal:AbortSignal.timeout(15000)});
     if(!r.ok)return {status:r.status,j:null as any};
     const j=await r.json();
-    if(detail&&j.errors?.length&&/depth|complexity/i.test(String(j.errors[0]?.message||'')))continue;
+    if(j.errors?.length&&/depth|complexity/i.test(String(j.errors[0]?.message||''))&&(size!==combos[combos.length-1][0]||detail))continue;
     return {status:200,j};
   }
   return {status:502,j:null as any};
@@ -51,6 +53,7 @@ const sorareHeaders=()=>{
   if(process.env.SORARE_API_KEY){headers['APIKEY']=process.env.SORARE_API_KEY;}
   return {headers,auth:!!(jwt&&aud)};
 };
+export const maxDuration=30;
 export async function GET(request:NextRequest){
   const sp=request.nextUrl.searchParams;
   const slug=(sp.get('slug')||'').trim().toLowerCase();
@@ -72,7 +75,7 @@ export async function GET(request:NextRequest){
   if(!/^[a-z0-9_-]{1,80}$/.test(slug)||!/^[A-Za-z0-9_=-]{0,400}$/.test(cursor))return NextResponse.json({error:'bad_request'},{status:400}); // evite l'injection dans la requete GraphQL
   const after=cursor?`,after:"${cursor}"`:'';
   try{
-    const {j}=await sorareQuery(headers,(d)=>`query{user(slug:"${slug}"){nickname cards(first:50${after}){nodes{${cardFields(d)}}pageInfo{hasNextPage endCursor}}}}`);
+    const {j}=await sorareQuery(headers,(d,n)=>`query{user(slug:"${slug}"){nickname cards(first:${n}${after}){nodes{${cardFields(d)}}pageInfo{hasNextPage endCursor}}}}`,[100,50]);
     if(!j)return NextResponse.json({error:'sorare_error'},{status:502});
     if(j.errors?.length)return NextResponse.json({error:j.errors[0].message},{status:400});
     const data=j?.data?.user?.cards;

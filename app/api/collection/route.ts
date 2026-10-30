@@ -6,7 +6,7 @@ import { redis } from '../../../lib/redis';
 //  - sinon on la construit page par page (via /api/cards) en renvoyant chaque paquet des qu'il arrive, puis on la met en cache.
 // Les cartes publiques d'un manager sont les memes pour tous les visiteurs : le cache est donc partage.
 export const maxDuration = 60;
-const TTL = 900;   // secondes
+const TTL = 1800;  // secondes (30 min : avec peu de trafic, un cache plus long = plus de visites instantanees)
 const CHUNK = 300; // cartes par cle Redis (reste largement sous la limite de taille d'une requete)
 const enc = new TextEncoder();
 
