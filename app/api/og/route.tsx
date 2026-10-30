@@ -29,6 +29,17 @@ export async function GET(req: NextRequest) {
   if (/^[a-z0-9_-]{1,80}$/.test(slug)) {
     try { const raw = await redis.get('share:' + slug); snap = raw ? (typeof raw === 'string' ? JSON.parse(raw) : raw) : null; } catch (e) { /* pas de vestiaire partage */ }
   }
+  // Manager sans vestiaire partage : apercu automatique avec 5 de ses cartes (requete Sorare legere, 4 s max)
+  if (!snap && /^[a-z0-9_-]{1,80}$/.test(slug) && !req.nextUrl.searchParams.get('card')) {
+    try {
+      const h: Record<string, string> = { 'Content-Type': 'application/json', Accept: 'application/json' };
+      if (process.env.SORARE_API_KEY) h['APIKEY'] = process.env.SORARE_API_KEY;
+      const r = await fetch('https://api.sorare.com/graphql', { method: 'POST', headers: h, body: JSON.stringify({ query: `query{user(slug:"${slug}"){nickname cards(first:5){nodes{name pictureUrl}}}}` }), signal: AbortSignal.timeout(4000) });
+      const u = r.ok ? (await r.json())?.data?.user : null;
+      const cs = (u?.cards?.nodes || []).filter((c: any) => /^https:\/\/assets\.sorare\.com\//.test(String(c?.pictureUrl || ''))).map((c: any) => ({ n: String(c.name || ''), u: String(c.pictureUrl) }));
+      if (cs.length) snap = { m: String(u?.nickname || slug).slice(0, 30), t: '', cards: cs };
+    } catch (e) { /* apercu generique */ }
+  }
   // ?card=<slug de carte> : apercu d'UNE carte (lien de partage d'une carte)
   const cardParam = (req.nextUrl.searchParams.get('card') || '').trim().toLowerCase();
   let one: any = null;
