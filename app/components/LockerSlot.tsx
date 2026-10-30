@@ -1,7 +1,7 @@
 'use client';
 import { useState, memo } from 'react';
 import { t as tr, useLang } from '../i18n';
-import { RARITY_GLOW, RARITY_COLOR, RARITY_FILL, parseCard, nameFontSize } from '../lib/cardUtils';
+import { RARITY_GLOW, RARITY_COLOR, RARITY_FILL, parseCard, nameFontSize, isNBA, isSpecialCard, specialLabel } from '../lib/cardUtils';
 // Dos de carte + emplacement du vestiaire (extrait de page.tsx)
 export const CardBack=memo(({ card }: { card: any }) => {
   const { season, serial } = parseCard(card.name);
