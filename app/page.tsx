@@ -200,8 +200,8 @@ export default function Home() {
         }
         const wanted=[...new Set([...hofL,...teamSlugs])].filter((x:any)=>typeof x==='string'&&/^[a-z0-9_-]{3,200}$/.test(x)).slice(0,72);
         if(!wanted.length)return;
-        const chunks:string[][]=[];for(let i=0;i<wanted.length;i+=5)chunks.push(wanted.slice(i,i+5));
-        const res=await Promise.all(chunks.map(ch=>fetch('/api/cards?cards='+ch.join(',')).then(r=>r.ok?r.json():null).catch(()=>null)));
+        const chunks:string[][]=[];for(let i=0;i<wanted.length;i+=25)chunks.push(wanted.slice(i,i+25));
+        const res=await Promise.all(chunks.map(ch=>fetch('/api/cards?slug='+encodeURIComponent(slug)+'&cards='+ch.join(',')).then(r=>r.ok?r.json():null).catch(()=>null)));
         const got=res.flatMap((d:any)=>d&&d.cards?d.cards:[]).filter((c:any)=>c.owner===slug.toLowerCase()); // seulement les cartes que ce manager possede encore
         if(finished||!got.length)return;
         if(team&&!got.some((c:any)=>c.anyTeam?.name===team))return;
