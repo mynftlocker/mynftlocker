@@ -271,8 +271,11 @@ const gameplayBadge=(c:any,k:string|undefined,on?:boolean):{text:string;tone:str
   if(c?.gain!=null&&isFinite(Number(c.gain))){
     const g=Number(c.gain);
     const fmt=(n:number)=>Number.isInteger(n)?String(n):n.toFixed(1);
-    if(g<0)star='▼ −'+fmt(Math.ceil(-g/5)*0.5)+'★';
-    else if(g>=5)star='▲ +'+fmt(Math.floor(g/5)*0.5)+'★';
+    // L'echelle va de 1 a 5 etoiles : jamais de gain au-dessus de 5, jamais de perte sous 1.
+    const cur=Number(c?.anyPlayer?.gameplayTierStars);
+    const hasScale=isFinite(cur)&&cur>0;
+    if(g<0){const loss=Math.ceil(-g/5)*0.5;const l=hasScale?Math.min(loss,Math.max(0,cur-1)):loss;if(l>0)star='▼ −'+fmt(l)+'★';}
+    else if(g>=5){const gain=Math.floor(g/5)*0.5;const u=hasScale?Math.min(gain,Math.max(0,5-cur)):gain;if(u>0)star='▲ +'+fmt(u)+'★';}
   }
   return (base||pill||star)?{text:base?.text||'',tone:base?.tone||'gold',pill,star}:undefined;
 };

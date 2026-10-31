@@ -21,4 +21,4 @@ export const activeInjury=(c:any):{status:string|null;end:string}|null=>{
   return best?{status:best.status||null,end:best.expectedEndDate}:null;
 };
 // "Va perdre une etoile" : la projection Sorare est sous le minimum du palier actuel (ecart negatif). NBA uniquement.
-export const losesStar=(c:any):boolean=>c?.gain!=null&&Number(c.gain)<0;
+export const losesStar=(c:any):boolean=>c?.gain!=null&&Number(c.gain)<0&&!(Number(c?.anyPlayer?.gameplayTierStars)<=1);
