@@ -1,0 +1,18 @@
+# Surveillance gratuite : toutes les 30 minutes, verifie que le site repond et qu'il arrive a lire Sorare (test fait depuis le site lui-meme : l'acces direct a Sorare depuis GitHub est bloque).
+# En cas d'echec, GitHub t'envoie automatiquement un e-mail (etape en rouge = ce qui est en panne).
+name: Surveillance du site
+on:
+  schedule:
+    - cron: '7,37 * * * *'
+  workflow_dispatch:
+jobs:
+  verifier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: "1/2 Le site repond (mynftlocker.com)"
+        run: |
+          curl -fsS --max-time 25 --retry 3 --retry-delay 10 --retry-all-errors https://mynftlocker.com/ | grep -q "myNFTlocker"
+      - name: "2/2 Le site lit bien les cartes Sorare (si Sorare tombe, cette etape passe au rouge)"
+        run: |
+          curl -fsS --max-time 25 --retry 3 --retry-delay 10 --retry-all-errors "https://mynftlocker.com/api/cards?card=jonathan-kuminga-20021006-2026-limited-183" | grep -q '"card"'
