@@ -19,6 +19,9 @@ addEn({
   'Meilleur score TTFL de la nuit': 'Best TTFL score of the night',
   'Le top de la nuit': 'Top of the night',
   'Partager sur X': 'Share on X',
+  'Partager': 'Share', 'Télécharger': 'Download', 'Copier l’image': 'Copy image', 'Copier le lien': 'Copy link',
+  'Image téléchargée': 'Image downloaded', 'Image copiée': 'Image copied', 'Lien copié': 'Link copied', 'Partage impossible': 'Sharing failed', 'Copie impossible': 'Copy failed',
+  'Préparation de l’image…': 'Preparing the image…',
   'Découvrir myNFTlocker': 'Discover myNFTlocker',
   'Fermer': 'Close',
   'Ta galerie Sorare, ton vestiaire, tes stats : gratuit sur myNFTlocker.': 'Your Sorare gallery, your locker room, your stats: free on myNFTlocker.',
@@ -155,14 +158,29 @@ function Door({ n, openDay, d, flipped, loading, shaking, burst, isNew, onClick 
   );
 }
 
-function Stage({ n, d, onClose, onPrev, onNext, hasPrev, hasNext, demo, preview }: { n: number; d: DayData; onClose: () => void; onPrev: () => void; onNext: () => void; hasPrev: boolean; hasNext: boolean; demo: boolean; preview?: boolean }) {
+function Stage({ n, d, onClose, onPrev, onNext, hasPrev, hasNext, demo, preview, ogQ }: { n: number; d: DayData; onClose: () => void; onPrev: () => void; onNext: () => void; hasPrev: boolean; hasNext: boolean; demo: boolean; preview?: boolean; ogQ: string }) {
   const w = d.top![0]; const col = rowCol(w);
   const score = useCountUp(w.score, true, 1400);
   const sScore = useCountUp(w.sorare ?? 0, w.sorare != null, 1400);
-  const share = () => {
-    const txt = `🎁 ${t('Jour')} ${n} — ${t('CALENDRIER DE L’AVENT')} TTFL × @Sorare Arcade\n🏀 ${w.name} : ${w.score} TTFL${w.sorare != null ? ' · ' + w.sorare + ' Sorare' : ''}`;
-    window.open('https://x.com/intent/tweet?text=' + encodeURIComponent(txt) + '&url=' + encodeURIComponent('https://mynftlocker.com/calendrier?day=' + n), '_blank', 'noopener');
-  };
+  const link = 'https://mynftlocker.com/calendrier?day=' + n;
+  const txt = `🎁 ${t('Jour')} ${n} — ${t('CALENDRIER DE L’AVENT')} TTFL × @Sorare Arcade\n🏀 ${w.name} : ${w.score} TTFL${w.sorare != null ? ' · ' + w.sorare + ' Sorare' : ''}`;
+  const share = () => { window.open('https://x.com/intent/tweet?text=' + encodeURIComponent(txt) + '&url=' + encodeURIComponent(link), '_blank', 'noopener'); };
+  // Image de partage (meme visuel que l'apercu sur X), preparee a l'avance pour partager / telecharger / copier
+  const [img, setImg] = useState<{ blob: Blob; file: File } | null>(null);
+  const [msg, setMsg] = useState('');
+  const flash = (m: string) => { setMsg(m); setTimeout(() => setMsg(''), 2500); };
+  useEffect(() => {
+    let dead = false; setImg(null);
+    fetch('/api/calendrier/og?day=' + n + ogQ).then(r => r.ok ? r.blob() : Promise.reject()).then(b => { if (!dead) setImg({ blob: b, file: new File([b], 'calendrier-avent-jour-' + n + '.png', { type: 'image/png' }) }); }).catch(() => {});
+    return () => { dead = true; };
+  }, [n, ogQ]);
+  const canShare = !!img && typeof navigator !== 'undefined' && !!(navigator as any).canShare && (navigator as any).canShare({ files: [img.file] });
+  const canCopy = typeof window !== 'undefined' && !!(window as any).ClipboardItem && !!navigator.clipboard?.write;
+  const doShare = async () => { if (!img) return; try { await (navigator as any).share({ files: [img.file], title: w.name, text: txt + '\n' + link }); } catch (e: any) { if (!e || e.name !== 'AbortError') flash(t('Partage impossible')); } };
+  const doDownload = () => { if (!img) return; const a = document.createElement('a'); a.href = URL.createObjectURL(img.blob); a.download = img.file.name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); flash(t('Image téléchargée')); };
+  const doCopy = async () => { if (!img) return; try { await (navigator.clipboard as any).write([new (window as any).ClipboardItem({ 'image/png': img.blob })]); flash(t('Image copiée')); } catch { flash(t('Copie impossible')); } };
+  const doCopyLink = async () => { try { await navigator.clipboard.writeText(link); flash(t('Lien copié')); } catch { flash(t('Copie impossible')); } };
+  const ico = (d: React.ReactNode) => (<svg viewBox='0 0 24 24' width='14' height='14' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round'>{d}</svg>);
   useEffect(() => { const k = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); if (e.key === 'ArrowLeft' && hasPrev) onPrev(); if (e.key === 'ArrowRight' && hasNext) onNext(); }; window.addEventListener('keydown', k); return () => window.removeEventListener('keydown', k); }, [onClose, onPrev, onNext, hasPrev, hasNext]);
   const stat = (l: string, v: number) => (<div className='adv-stat'><b>{v}</b><span>{t(l)}</span></div>);
   return (
@@ -194,15 +212,21 @@ function Stage({ n, d, onClose, onPrev, onNext, hasPrev, hasNext, demo, preview 
               </div>
             ))}
           </div>
-          <div className='adv-cta'>
-            <button className='adv-btn' onClick={share}>{t('Partager sur X')}</button>
+          <div className='adv-sharerow'>
+            {canShare && <button className='adv-btn' onClick={doShare}>{ico(<><circle cx='18' cy='5' r='3' /><circle cx='6' cy='12' r='3' /><circle cx='18' cy='19' r='3' /><path d='M8.6 13.5l6.8 4M15.4 6.5l-6.8 4' /></>)}{t('Partager')}</button>}
+            <button className='adv-btn' onClick={share}>{ico(<path d='M4 4l16 16M20 4L4 20' />)}{t('Partager sur X')}</button>
+            <button className='adv-btn' disabled={!img} onClick={doDownload}>{ico(<><path d='M12 3v12' /><path d='M8 11l4 4 4-4' /><path d='M5 21h14' /></>)}{t('Télécharger')}</button>
+            {canCopy && <button className='adv-btn' disabled={!img} onClick={doCopy}>{ico(<><rect x='9' y='9' width='12' height='12' rx='2' /><path d='M5 15V5a2 2 0 012-2h10' /></>)}{t('Copier l’image')}</button>}
+          </div>
+          <div className='adv-cta' style={{ marginTop: '.5rem' }}>
+            <button className='adv-btn' onClick={doCopyLink}>{ico(<><path d='M10 13a5 5 0 007 0l3-3a5 5 0 00-7-7l-1 1' /><path d='M14 11a5 5 0 00-7 0l-3 3a5 5 0 007 7l1-1' /></>)}{t('Copier le lien')}</button>
             <a className='adv-btn' href='/'>{t('Découvrir myNFTlocker')}</a>
           </div>
           <div className='adv-cta' style={{ marginTop: '.6rem' }}>
             <a className='adv-btn' href={'/api/go?to=sorare&day=' + n} target='_blank' rel='noopener nofollow sponsored'>{t('Rejoindre Sorare (gratuit)')}</a>
             <a className='adv-btn' href={'/api/go?to=ttfl&day=' + n} target='_blank' rel='noopener nofollow'>{t('Jouer à la TTFL')}</a>
           </div>
-          <div className='adv-ref'>{t('Le lien Sorare est un lien de parrainage.')}</div>
+          <div className='adv-ref'>{msg || (!img ? t('Préparation de l’image…') : t('Le lien Sorare est un lien de parrainage.'))}</div>
           <div className='adv-nav'>
             <button disabled={!hasPrev} onClick={onPrev}>←</button>
             <button disabled={!hasNext} onClick={onNext}>→</button>
@@ -356,12 +380,12 @@ export default function Calendar() {
         <footer className='adv-foot'>{t('Les scores TTFL sont calculés à partir des box scores NBA (points + rebonds + passes + interceptions + contres + tirs, 3 points et lancers francs réussis − tirs, 3 points et lancers francs ratés − balles perdues). Projet indépendant, non affilié à Sorare, à la NBA ni à la TTFL. Le lien Sorare est un lien de parrainage.')}</footer>
       </div>
       {stage > 0 && stageData?.open && stageData.top && (
-        <Stage n={stage} d={stageData} demo={demo > 0} onClose={closeStage}
+        <Stage n={stage} d={stageData} demo={demo > 0} ogQ={demo > 0 ? '&demo=' + demo : ''} onClose={closeStage}
           hasPrev={idx > 0} hasNext={idx >= 0 && idx < openedList.length - 1}
           onPrev={() => setStage(openedList[idx - 1])} onNext={() => setStage(openedList[idx + 1])} />
       )}
       {preview && preview.top && (
-        <Stage n={1} d={preview} demo preview onClose={() => setPreview(null)} hasPrev={false} hasNext={false} onPrev={() => {}} onNext={() => {}} />
+        <Stage n={1} d={preview} demo preview ogQ='&demo=1' onClose={() => setPreview(null)} hasPrev={false} hasNext={false} onPrev={() => {}} onNext={() => {}} />
       )}
       {ctaOpen && (
         <div className='adv-toast'>
@@ -422,6 +446,10 @@ const css = `
 .adv-scores{display:flex;align-items:center;gap:1rem;flex-wrap:wrap}
 .adv-sbadge{padding:.4rem .9rem;border:2px solid;border-radius:14px;background:rgba(0,0,0,.35);text-align:center}.adv-sbadge b{display:block;font-size:1.9rem;line-height:1.1;font-weight:900}.adv-sbadge small{font:600 .55rem 'Courier New',monospace;letter-spacing:.14em;color:#9fb3cc;text-transform:uppercase}
 .adv-toprow u{min-width:1.7rem;padding:.05rem .4rem;border-radius:999px;color:#04101a;font:800 .72rem system-ui;text-align:center;text-decoration:none}
+.adv-sharerow{display:flex;gap:.4rem;flex-wrap:wrap;margin-top:1rem}
+.adv-sharerow .adv-btn{flex:1 1 auto;display:inline-flex;align-items:center;justify-content:center;gap:.35rem;padding:.5rem .5rem;font-size:.6rem;white-space:nowrap}
+.adv-cta .adv-btn{display:inline-flex;align-items:center;justify-content:center;gap:.35rem}
+.adv-btn:disabled{opacity:.45;cursor:wait}
 .adv-ref{margin-top:.5rem;font-size:.62rem;color:#6f8099}
 .adv-headr{display:flex;align-items:center;gap:.9rem}.adv-mute{background:none;border:1px solid rgba(255,255,255,.18);border-radius:999px;width:2rem;height:2rem;cursor:pointer;font-size:.95rem;line-height:1}
 .adv-clock{display:flex;gap:.7rem;justify-content:center;margin:.4rem 0 .2rem}
@@ -489,6 +517,7 @@ const css = `
 @keyframes advFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
 .adv-top{gap:min(.35rem,.6vh)}
 @media(min-width:641px){.adv-stagebox{overflow:hidden;max-height:96vh}.adv-name{font-size:min(2.1rem,4.4vh)}.adv-bigscore{font-size:min(5rem,10vh);margin:min(.5rem,.8vh) 0}.adv-sbadge b{font-size:min(1.9rem,3.6vh)}.adv-stagecard{width:min(40%,calc(66vh * .625))}}
+@media(min-width:641px) and (max-height:700px){.adv-sharerow{margin-top:.5rem}.adv-sharerow .adv-btn,.adv-cta .adv-btn{padding:.32rem .4rem}.adv-top{gap:0}.adv-toprow{padding:.04rem .5rem}.adv-toprow img,.adv-toprow i{width:16px;height:21px}.adv-stats{margin-top:.3rem}.adv-ref{display:none}.adv-nav{margin-top:.3rem}}
 @media(min-width:641px) and (max-height:800px){.adv-stagebox{padding:.9rem 1.4rem;gap:1.4rem}.adv-stat{padding:.2rem .5rem}.adv-stat b{font-size:.95rem}.adv-toprow{padding:.12rem .5rem}.adv-toprow img,.adv-toprow i{width:20px;height:26px}.adv-cta{margin-top:.55rem}.adv-btn{padding:.45rem .6rem;font-size:.66rem}.adv-nav{margin-top:.5rem}.adv-nav button{width:1.9rem;height:1.9rem}.adv-ref{margin-top:.3rem}.adv-sub{margin-top:.2rem}.adv-team{font-size:.78rem}}
 @media(max-width:900px){.adv-grid{grid-template-columns:repeat(4,1fr);gap:14px}}
 @media(max-width:640px){.adv-grid{grid-template-columns:repeat(3,1fr);gap:20px 10px}.adv-stagebox{flex-direction:column;padding:1.1rem}.adv-stagecard{width:min(46%,calc(38vh * .625))}.adv-wrap{padding:.9rem .8rem 2.5rem}}
