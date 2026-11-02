@@ -990,29 +990,49 @@ export default function Home() {
         {homeOpen&&cards.length>0&&(()=>{
           const own=(currentUser?.sorareSlug||'').toLowerCase();
           const here=(slug||'').toLowerCase();
-          const chip=(sl:string)=>(<span key={sl} onClick={()=>{setHomeOpen(false);openManager(sl);}} style={{cursor:'pointer',padding:'0.28rem 0.8rem',border:'1px solid rgba(64,232,255,0.35)',borderRadius:'999px',color:'#cfe4fb',fontFamily:'Courier New,monospace',fontSize:'0.66rem',letterSpacing:'0.08em',background:'rgba(64,232,255,0.06)'}}>{sl}</span>);
-          const quick=[...favs,...recents].map(x=>String(x).toLowerCase()).filter((x,i,a)=>a.indexOf(x)===i&&x!==here&&x!==own).slice(0,10);
-          const lbl:any={fontFamily:'Courier New,monospace',letterSpacing:'0.16em',textTransform:'uppercase' as const};
+          const mono:any={fontFamily:'Courier New,monospace',textTransform:'uppercase' as const};
+          const chip=(sl:string)=>(<span key={sl} onClick={()=>{setHomeOpen(false);openManager(sl);}} style={{cursor:'pointer',padding:'0.2rem 0.65rem',border:'1px solid rgba(64,232,255,0.3)',borderRadius:'999px',color:'#cfe4fb',fontFamily:'Courier New,monospace',fontSize:'0.62rem',letterSpacing:'0.06em',background:'rgba(64,232,255,0.06)'}}>{sl}</span>);
+          const quick=[...favs,...recents].map(x=>String(x).toLowerCase()).filter((x,i,a)=>a.indexOf(x)===i&&x!==here&&x!==own).slice(0,6);
+          const glow='drop-shadow(0 0 18px rgba(0,200,235,0.28))';
+          const link:any={...mono,cursor:'pointer',fontSize:'0.58rem',letterSpacing:'0.14em'};
           return(
-          <div style={{position:'fixed',inset:0,zIndex:300,background:'#030510',display:'flex',flexDirection:'column' as const,alignItems:'center',justifyContent:'safe center',overflow:'auto',padding:'1.5rem 1rem',boxSizing:'border-box' as const}} className='thin-sb'>
-            <style>{`@keyframes homeFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}.home-btn:hover{background:rgba(64,232,255,0.18)!important;color:#fff!important}`}</style>
+          <div style={{position:'fixed',inset:0,zIndex:300,background:'#030510',display:'flex',flexDirection:'column' as const,alignItems:'center',justifyContent:'safe center',overflow:'auto',padding:'1rem 1rem 3.2rem',boxSizing:'border-box' as const}} className='thin-sb'>
+            <style>{`
+              @keyframes packFloat{0%,100%{transform:translateY(0px)rotate(-0.4deg)}50%{transform:translateY(-18px)rotate(0.4deg)}}
+              @keyframes packGlint{0%,62%{transform:translateX(-200%);opacity:0}72%{opacity:1}88%{transform:translateX(250%);opacity:0}100%{opacity:0}}
+              @keyframes packHover{0%,100%{transform:translateY(-3px)scale(1.05)rotate(-0.2deg)}50%{transform:translateY(-20px)scale(1.05)rotate(0.2deg)}}
+              .home-btn:hover{background:rgba(64,232,255,0.2)!important;color:#fff!important}
+            `}</style>
             <StarCanvas phase={0} burst={false}/>
-            <div style={{position:'relative',zIndex:2,display:'flex',flexDirection:'column' as const,alignItems:'center',width:'100%',maxWidth:'420px',textAlign:'center' as const}}>
-              <img src='/logo-pack.png' alt='myNFTlocker' style={{width:'min(34vw,150px)',height:'auto',filter:'drop-shadow(0 0 18px rgba(0,200,235,0.35))',animation:'homeFloat 3.8s ease-in-out infinite',marginBottom:'1.2rem'}}/>
-              {currentUser&&<span style={{...lbl,color:'rgba(207,228,251,0.55)',fontSize:'0.6rem',marginBottom:'0.9rem'}}>{tr('Connecté en tant que')+' '+currentUser.pseudo}</span>}
-              <button autoFocus className='home-btn' onClick={()=>setHomeOpen(false)} style={{...lbl,background:'rgba(64,232,255,0.12)',border:'1px solid rgba(64,232,255,0.8)',color:'#40e8ff',padding:'0.7rem 2rem',fontSize:'0.76rem',fontWeight:700,cursor:'pointer',boxShadow:'0 0 22px rgba(64,232,255,0.25)',width:'100%'}}>{'▶ '+(here===own?tr('Retour à ma galerie'):tr('Retour à la galerie de')+' '+slug)}</button>
-              {own&&here!==own&&(<button className='home-btn' onClick={()=>{setHomeOpen(false);openManager(own);}} style={{...lbl,marginTop:'0.7rem',background:'transparent',border:'1px solid rgba(64,232,255,0.4)',color:'#40e8ff',padding:'0.55rem 2rem',fontSize:'0.68rem',cursor:'pointer',width:'100%'}}>{tr('Ma galerie')}</button>)}
-              {quick.length>0&&(<div style={{marginTop:'1.4rem',width:'100%'}}>
-                <div style={{...lbl,color:'rgba(207,228,251,0.4)',fontSize:'0.56rem',marginBottom:'0.5rem'}}>{tr('Accès rapide')}</div>
-                <div style={{display:'flex',flexWrap:'wrap' as const,gap:'0.45rem',justifyContent:'center'}}>{quick.map(chip)}</div>
-              </div>)}
-              <div style={{marginTop:'1.4rem',width:'100%'}}>
-                <div style={{...lbl,color:'rgba(207,228,251,0.4)',fontSize:'0.56rem',marginBottom:'0.4rem'}}>{tr('ou ouvre une autre galerie')}</div>
-                <input value={homeSlug} autoCapitalize='none' autoCorrect='off' spellCheck={false} onChange={e=>setHomeSlug(toSlug(e.target.value))} onKeyDown={e=>{if(e.key==='Enter'&&homeSlug){setHomeOpen(false);openManager(homeSlug);setHomeSlug('');}}} placeholder={tr('ton-slug-sorare')} style={{background:'transparent',border:'none',borderBottom:'1px solid rgba(64,232,255,0.42)',color:'#40e8ff',fontSize:'0.9rem',padding:'0.3rem',width:'230px',textAlign:'center' as const,fontFamily:'Courier New,monospace',outline:'none'}}/>
+            <div style={{position:'relative',zIndex:2,display:'flex',flexDirection:'column' as const,alignItems:'center',width:'100%',maxWidth:'340px',textAlign:'center' as const}}>
+              {/* Paquet : meme taille et meme flip que sur l'accueil d'ouverture */}
+              <div style={{marginBottom:'1.1rem'}}
+                onMouseEnter={e=>{const img=e.currentTarget.querySelector('img');if(img)(img as HTMLElement).style.animation='packHover 2s ease-in-out infinite';}}
+                onMouseLeave={e=>{const img=e.currentTarget.querySelector('img');if(img)(img as HTMLElement).style.animation='packFloat 3.8s ease-in-out infinite';}}>
+                <div onClick={()=>setLogoFlipped(f=>!f)} style={{width:'min(320px,38.4vh)',height:'min(428px,51.4vh)',position:'relative',animation:'packFloat 3.8s ease-in-out infinite',cursor:'pointer',perspective:'1400px'}}>
+                  <div style={{position:'relative',width:'100%',height:'100%',transformStyle:'preserve-3d',transition:'transform 0.7s cubic-bezier(0.4,0.15,0.2,1)',transform:logoFlipped?'rotateY(180deg)':'rotateY(0deg)'}}>
+                    <div style={{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden'}}>
+                      <img src='/logo-pack.png' alt='myNFTlocker' style={{width:'100%',height:'100%',display:'block',objectFit:'contain',background:'transparent',filter:glow}} onError={(e)=>{(e.target as HTMLImageElement).style.display='none';}}/>
+                      <div style={{position:'absolute',inset:0,overflow:'hidden',borderRadius:'6px',pointerEvents:'none',zIndex:2}}>
+                        <div style={{position:'absolute',top:'-50%',left:'-40%',width:'180%',height:'200%',background:'linear-gradient(108deg,transparent 38%,rgba(255,255,255,0.48) 50%,rgba(255,215,100,0.22) 55%,transparent 62%)',animation:'packGlint 4s ease-in-out 0.6s infinite'}}/>
+                      </div>
+                    </div>
+                    <div style={{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'rotateY(180deg)'}}>
+                      <img src='/logo-back.png' alt='myNFTlocker dos' style={{width:'100%',height:'100%',display:'block',objectFit:'contain',background:'transparent',filter:glow}} onError={(e)=>{(e.target as HTMLImageElement).style.display='none';}}/>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div style={{display:'flex',gap:'1.6rem',marginTop:'1.6rem',alignItems:'center',justifyContent:'center',flexWrap:'wrap' as const}}>
-                <span onClick={()=>{setHomeOpen(false);openManager('memejacquet1998');}} style={{...lbl,color:'#f5d76e',cursor:'pointer',fontSize:'0.62rem',textShadow:'0 0 10px rgba(245,215,110,0.35)'}}>{'▶ '+tr('Voir une démo')}</span>
-                {currentUser?(<span onClick={async()=>{await handleLogout();fullReset();}} style={{...lbl,color:'#40e8ff',cursor:'pointer',fontSize:'0.6rem',borderBottom:'1px solid rgba(64,232,255,0.45)',paddingBottom:'1px'}}>{tr('Se déconnecter')}</span>):(<span onClick={()=>{setAuthMode('login');setAuthOpen(true);}} style={{...lbl,color:'#40e8ff',cursor:'pointer',fontSize:'0.6rem',borderBottom:'1px solid rgba(64,232,255,0.45)',paddingBottom:'1px'}}>{tr('Connexion')}</span>)}
+              {/* Action principale */}
+              <button autoFocus className='home-btn' onClick={()=>setHomeOpen(false)} style={{...mono,width:'100%',maxWidth:'280px',background:'rgba(64,232,255,0.12)',border:'1px solid rgba(64,232,255,0.75)',color:'#40e8ff',padding:'0.55rem 1rem',fontSize:'0.7rem',fontWeight:700,letterSpacing:'0.18em',cursor:'pointer',boxShadow:'0 0 18px rgba(64,232,255,0.22)'}}>{'▶ '+(here===own?tr('Retour à ma galerie'):tr('Retour à la galerie de')+' '+slug)}</button>
+              {own&&here!==own&&(<span onClick={()=>{setHomeOpen(false);openManager(own);}} style={{...link,marginTop:'0.55rem',color:'#cfe4fb'}}>{tr('Ma galerie')}</span>)}
+              {/* Ouvrir une autre galerie + acces rapides, sur une seule zone compacte */}
+              <input value={homeSlug} autoCapitalize='none' autoCorrect='off' spellCheck={false} onChange={e=>setHomeSlug(toSlug(e.target.value))} onKeyDown={e=>{if(e.key==='Enter'&&homeSlug){setHomeOpen(false);openManager(homeSlug);setHomeSlug('');}}} placeholder={tr('ouvre une autre galerie')} style={{marginTop:'0.9rem',background:'transparent',border:'none',borderBottom:'1px solid rgba(64,232,255,0.35)',color:'#40e8ff',fontSize:'0.78rem',padding:'0.25rem',width:'210px',textAlign:'center' as const,fontFamily:'Courier New,monospace',outline:'none'}}/>
+              {quick.length>0&&(<div style={{display:'flex',flexWrap:'wrap' as const,gap:'0.4rem',justifyContent:'center',marginTop:'0.7rem'}}>{quick.map(chip)}</div>)}
+              {/* Liens discrets */}
+              <div style={{display:'flex',gap:'1.4rem',marginTop:'0.9rem',alignItems:'center',justifyContent:'center'}}>
+                <span onClick={()=>{setHomeOpen(false);openManager('memejacquet1998');}} style={{...link,color:'#f5d76e'}}>{'▶ '+tr('Voir une démo')}</span>
+                {currentUser?(<span onClick={async()=>{await handleLogout();fullReset();}} style={{...link,color:'rgba(64,232,255,0.8)'}}>{tr('Se déconnecter')}</span>):(<span onClick={()=>{setAuthMode('login');setAuthOpen(true);}} style={{...link,color:'rgba(64,232,255,0.8)'}}>{tr('Connexion')}</span>)}
               </div>
             </div>
             <div style={{position:'fixed',bottom:'1rem',left:'50%',transform:'translateX(-50%)',zIndex:2,display:'flex',gap:'2rem',alignItems:'center'}}>
