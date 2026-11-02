@@ -31,9 +31,17 @@ const slugName = (n: string, keepSuffix: boolean) => {
 };
 const dayStr = (iso: string, shift: number) => { const d = new Date(iso); d.setUTCDate(d.getUTCDate() + shift); return d.toISOString().slice(0, 10).replace(/-/g, ''); };
 
-export async function arcadeCardFor(espnId: string, name: string): Promise<ArcadeCard | null> {
-  const key = 'arcade2:' + espnId + ':' + ARCADE_SET;
-  const hit = await redis.get<ArcadeCard | 'none'>(key).catch(() => null);
+// Editions d'une carte Arcade (4 versions) : on en montre une par jour, en rotation tous les 4 jours ; le jour 24 = la carte limited.
+export const EDITIONS = ['standard', 'shiny', 'shiny_variant_1', 'holo'];
+export const editionForDay = (day: number) => (day >= 24 ? 'limited' : EDITIONS[(day - 1) % EDITIONS.length]);
+const edKey = (se: string) => se.toLowerCase().slice(ARCADE_SET.length + 1).replace(/_base$/, '');
+
+type Resolved = { playerSlug: string; name: string; eds: Record<string, { slug: string; pictureUrl: string }> };
+
+// Retrouve le joueur Sorare + ses cartes Arcade (toutes editions) ; mis en cache.
+async function resolvePlayer(espnId: string, name: string): Promise<Resolved | null> {
+  const key = 'arcade3:' + espnId + ':' + ARCADE_SET;
+  const hit = await redis.get<Resolved | 'none'>(key).catch(() => null);
   if (hit === 'none') return null;
   if (hit) return hit;
   try {
@@ -45,23 +53,49 @@ export async function arcadeCardFor(espnId: string, name: string): Promise<Arcad
     const d1 = await gql(`{players(slugs:${JSON.stringify(cands)}){slug displayName}}`);
     const player = d1?.players?.[0];
     if (!player) { await redis.set(key, 'none', { ex: 3600 }).catch(() => {}); await redis.sadd('arcade:misses', `${espnId} ${name}`).catch(() => {}); return null; }
-    const d2 = await gql(`{anyPlayer(slug:${JSON.stringify(player.slug)}){anyCards(first:40,rarities:[common],seasonStartYears:[${SEASON}]){nodes{slug pictureUrl ...on NBACard{specialEdition}}}}}`);
+    const d2 = await gql(`{anyPlayer(slug:${JSON.stringify(player.slug)}){anyCards(first:100,rarities:[common],seasonStartYears:[${SEASON}]){nodes{slug pictureUrl ...on NBACard{specialEdition}}}}}`);
     const nodes: any[] = d2?.anyPlayer?.anyCards?.nodes || [];
-    const arc = nodes.filter(n => String(n.specialEdition || '').toLowerCase().startsWith(ARCADE_SET + '_'));
-    const pick = arc.find(n => /standard/i.test(n.specialEdition)) || arc[0];
-    let out: ArcadeCard | null = null;
-    if (pick?.pictureUrl) out = { slug: pick.slug, playerSlug: player.slug, name: player.displayName, pictureUrl: pick.pictureUrl, kind: 'arcade' };
-    else {
-      const d3 = await gql(`{anyPlayer(slug:${JSON.stringify(player.slug)}){anyCards(first:1,rarities:[limited]){nodes{slug pictureUrl}}}}`);
-      const c = d3?.anyPlayer?.anyCards?.nodes?.[0];
-      if (c?.pictureUrl) out = { slug: c.slug, playerSlug: player.slug, name: player.displayName, pictureUrl: c.pictureUrl, kind: 'classic' };
+    const eds: Resolved['eds'] = {};
+    for (const n of nodes) {
+      const se = String(n.specialEdition || '').toLowerCase();
+      if (!se.startsWith(ARCADE_SET + '_') || !n.pictureUrl) continue;
+      const k = edKey(se); if (!eds[k]) eds[k] = { slug: n.slug, pictureUrl: n.pictureUrl };
     }
-    await redis.set(key, out || 'none', { ex: out?.kind === 'arcade' ? 60 * 60 * 24 * 30 : 3600 }).catch(() => {});
-    if (out?.kind !== 'arcade') await redis.sadd('arcade:misses', `${espnId} ${name} (${out ? 'carte classique' : 'aucune carte'})`).catch(() => {});
+    const out: Resolved = { playerSlug: player.slug, name: player.displayName, eds };
+    await redis.set(key, out, { ex: Object.keys(eds).length ? 60 * 60 * 24 * 30 : 3600 }).catch(() => {});
+    if (!Object.keys(eds).length) await redis.sadd('arcade:misses', `${espnId} ${name} (aucune carte Arcade)`).catch(() => {});
     return out;
   } catch {
     return null;
   }
+}
+
+async function limitedCard(playerSlug: string, name: string): Promise<ArcadeCard | null> {
+  const key = 'arcadeL:' + playerSlug;
+  const hit = await redis.get<ArcadeCard | 'none'>(key).catch(() => null);
+  if (hit === 'none') return null;
+  if (hit) return hit;
+  try {
+    const d3 = await gql(`{anyPlayer(slug:${JSON.stringify(playerSlug)}){anyCards(first:1,rarities:[limited]){nodes{slug pictureUrl}}}}`);
+    const c = d3?.anyPlayer?.anyCards?.nodes?.[0];
+    const out: ArcadeCard | null = c?.pictureUrl ? { slug: c.slug, playerSlug, name, pictureUrl: c.pictureUrl, kind: 'classic' } : null;
+    await redis.set(key, out || 'none', { ex: out ? 60 * 60 * 24 * 30 : 3600 }).catch(() => {});
+    return out;
+  } catch {
+    return null;
+  }
+}
+
+// Carte du joueur pour une edition donnee (par defaut standard ; 'limited' = la carte limited). Repli : standard, puis une autre edition Arcade, puis la limited.
+export async function arcadeCardFor(espnId: string, name: string, edition = 'standard'): Promise<ArcadeCard | null> {
+  const r = await resolvePlayer(espnId, name);
+  if (!r) return null;
+  if (edition === 'limited') { const l = await limitedCard(r.playerSlug, r.name); if (l) return l; edition = 'standard'; }
+  const pick = r.eds[edition] || r.eds.standard || Object.values(r.eds)[0];
+  if (pick) return { slug: pick.slug, playerSlug: r.playerSlug, name: r.name, pictureUrl: pick.pictureUrl, kind: 'arcade' };
+  const l = await limitedCard(r.playerSlug, r.name);
+  if (l) await redis.sadd('arcade:misses', `${espnId} ${name} (carte classique)`).catch(() => {});
+  return l;
 }
 
 // Score Sorare du joueur pour la nuit NBA `usDate` (jour americain AAAA-MM-JJ). La date des matchs Sorare est en UTC :
