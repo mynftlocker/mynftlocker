@@ -30,6 +30,7 @@ addEn({
   'PTS': 'PTS', 'REB': 'REB', 'PD': 'AST', 'INT': 'STL', 'CT': 'BLK',
   'Les scores TTFL sont calculés à partir des box scores NBA (points + rebonds + passes + interceptions + contres + tirs, 3 points et lancers francs réussis − tirs, 3 points et lancers francs ratés − balles perdues). Projet indépendant, non affilié à Sorare, à la NBA ni à la TTFL. Le lien Sorare est un lien de parrainage.': 'TTFL scores are computed from NBA box scores (points + rebounds + assists + steals + blocks + made field goals, threes and free throws − missed field goals, threes and free throws − turnovers). Independent project, not affiliated with Sorare, the NBA or TTFL. The Sorare link is a referral link.',
   'Retour au site': 'Back to the site',
+  'Présenté par': 'Presented by',
   'jours': 'days', 'h': 'h', 'min': 'min',
   'Clique sur une carte retournée pour voir le détail du joueur': 'Tap a flipped card to see the player details',
   'Score Sorare': 'Sorare score',
@@ -196,7 +197,7 @@ function Stage({ n, d, onClose, onPrev, onNext, hasPrev, hasNext, demo, preview,
         </div>
         <div className='adv-stageinfo'>
           <div className='adv-kicker'>{preview ? t('Aperçu · dernière nuit NBA') + ' · ' + d.date : <>{t('Jour')} {n} · {d.date} {demo ? '· DEMO' : ''}</>}{d.edition && <span className='adv-ed'>{EDN[d.edition] || d.edition}</span>}</div>
-          <div className='adv-sub'>{t('Meilleur score TTFL de la nuit')}</div>
+          <div className='adv-sub adv-subttfl'><img src='/logo-ttfl.png' alt='TTFL' />{t('Meilleur score TTFL de la nuit')}</div>
           <h2 className='adv-name'>{w.name}</h2>
           <div className='adv-team'>{w.team}</div>
           <div className='adv-scores'>
@@ -338,6 +339,7 @@ export default function Calendar() {
             <img src='/logo-ttfl.png' alt='TTFL' className='adv-ttfl' /><i>×</i>
             <span className='adv-sorare'><img src='/sorare-logo.png' alt='' />SORARE <em>ARCADE</em></span>
           </div>
+          <a href='/' className='adv-by'><span>{t('Présenté par')}</span><img src='/logo-rond.png' alt='' />myNFTlocker</a>
           <h1>{t('CALENDRIER DE L’AVENT')}</h1>
           <p>{t('Chaque matin de décembre, le meilleur score TTFL de la nuit NBA, sur sa carte Arcade gratuite de Sorare.')}</p>
           {ready && openDay === 0 && (
@@ -428,6 +430,7 @@ const css = `
 .adv-promo .adv-btn{display:inline-block}
 @media(max-width:640px){.adv-ttfl{height:36px}.adv-sorare img{width:32px;height:32px}.adv-sorare{font-size:.9rem}}
 .adv-logos{display:flex;align-items:center;justify-content:center;gap:.8rem;flex-wrap:wrap}
+.adv-by{display:inline-flex;align-items:center;gap:.45rem;margin-top:.7rem;color:#cfe4fb;font:700 .72rem 'Courier New',monospace;letter-spacing:.1em;text-decoration:none;opacity:.9}.adv-by span{color:#8fa3bd;font-weight:400;text-transform:uppercase}.adv-by img{width:20px;height:20px;border-radius:50%}.adv-by:hover{color:#00ffff}.adv-subttfl{display:flex;align-items:center;gap:.5rem}.adv-subttfl img{height:22px;width:auto}
 .adv-logos i{font-style:normal;color:#8fa3bd;font-size:1.1rem}
 .adv-sorare{display:inline-flex;align-items:center;gap:.5rem;font:800 1.05rem system-ui;letter-spacing:.16em;color:#fff}.adv-sorare img{width:34px;height:34px;object-fit:contain}.adv-sorare em{font-style:normal;color:${CYAN};letter-spacing:.2em;font-size:.8rem}
 .adv-door{aspect-ratio:5/8;cursor:pointer;position:relative;-webkit-tap-highlight-color:transparent}
