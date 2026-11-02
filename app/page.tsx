@@ -597,7 +597,7 @@ export default function Home() {
   const rarityOpts=[{value:'all',label:tr('Toutes les raretés')},{value:'common',label:'Set'},{value:'limited',label:'Limited'},{value:'rare',label:'Rare'},{value:'super_rare',label:'Super Rare'},{value:'unique',label:'Unique'}];
   const seasonOpts=[{value:'all',label:tr('Toutes les saisons')},...seasonOptions.map(y=>({value:String(y),label:y+'-'+String((y+1)%100).padStart(2,'0')}))];
   const arcadeCount=cards.filter((c:any)=>(gSport==='nba'?isNBA(c):!isNBA(c))&&isArcadeCard(c)).length;
-  const compOpts=[{value:'all',label:tr('Toutes')},{value:'inseason',label:'In-Season'},{value:'classic',label:'Classic'}];
+  const compOpts=[{value:'all',label:tr('Toutes')},{value:'inseason',label:'In Season'},{value:'classic',label:'Classic'}];
   const starOpts=[{value:'all',label:tr('Toutes')},...[...new Set(cards.filter((c:any)=>(gSport==='nba'?isNBA(c):!isNBA(c))&&Number(c.anyPlayer?.gameplayTierStars)>0).map((c:any)=>Number(c.anyPlayer.gameplayTierStars)))].sort((a:number,b:number)=>b-a).map((v:number)=>({value:String(v),label:v+' ★'}))];
   const availOpts=[{value:'all',label:tr('Tous')},{value:'ok',label:tr('Sans blessure')},{value:'injured',label:tr('Blessés')}];
   const specialOpts=[{value:'all',label:tr('Toutes les cartes')},{value:'standard',label:tr('Standard uniquement')},{value:'special',label:tr('Spéciales uniquement')},...specialOptions.map(s=>({value:s,label:s.charAt(0)+s.slice(1).toLowerCase()}))]; // labels en "Majuscule initiale" (valeurs techniques inchangées)
