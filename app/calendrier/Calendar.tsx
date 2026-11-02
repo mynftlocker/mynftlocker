@@ -214,7 +214,7 @@ function Stage({ n, d, onClose, onPrev, onNext, hasPrev, hasNext, demo, preview,
           </div>
           <div className='adv-sharerow'>
             {canShare && <button className='adv-btn' onClick={doShare}>{ico(<><circle cx='18' cy='5' r='3' /><circle cx='6' cy='12' r='3' /><circle cx='18' cy='19' r='3' /><path d='M8.6 13.5l6.8 4M15.4 6.5l-6.8 4' /></>)}{t('Partager')}</button>}
-            <button className='adv-btn' onClick={share}>{ico(<path d='M4 4l16 16M20 4L4 20' />)}{t('Partager sur X')}</button>
+            <button className='adv-btn' onClick={share} title={t('Partager sur X')} aria-label={t('Partager sur X')} style={canShare ? { flex: '0 0 auto' } : undefined}>{ico(<path d='M4 4l16 16M20 4L4 20' />)}{canShare ? 'X' : t('Partager sur X')}</button>
             <button className='adv-btn' disabled={!img} onClick={doDownload}>{ico(<><path d='M12 3v12' /><path d='M8 11l4 4 4-4' /><path d='M5 21h14' /></>)}{t('Télécharger')}</button>
             {canCopy && <button className='adv-btn' disabled={!img} onClick={doCopy}>{ico(<><rect x='9' y='9' width='12' height='12' rx='2' /><path d='M5 15V5a2 2 0 012-2h10' /></>)}{t('Copier l’image')}</button>}
           </div>
