@@ -41,7 +41,8 @@ const loadFont = async () => {
 export async function GET(req: NextRequest) {
   const day = Math.floor(Number(req.nextUrl.searchParams.get('day')));
   let d: any = null;
-  const demo = Math.floor(Number(req.nextUrl.searchParams.get('demo') || 0)); // apercu avant lancement : ?day=2&demo=3
+  const en = req.nextUrl.searchParams.get('lang') === 'en'; // francais par defaut (communaute TTFL), anglais avec ?lang=en
+  const demo = Math.min(24, Math.floor(Number(req.nextUrl.searchParams.get('demo') || 0))); // apercu avant lancement : ?day=2&demo=3
   if (day >= 1 && day <= 24 && (demo > 0 ? day <= demo : day <= openDayNow())) { try { d = await buildDay(day, demo); } catch (e) { d = null; } }
   const w = d?.open ? d.top?.[0] : null;
   const [font, cardImg, pack, ttfl, sorareLogo, qr, rond] = await Promise.all([
@@ -63,7 +64,7 @@ export async function GET(req: NextRequest) {
           <div style={{ display: 'flex', fontSize: 30, color: '#9fb0c4', margin: '0 16px' }}>×</div>
           <div style={{ display: 'flex', alignItems: 'center', fontSize: 34, fontWeight: 700, letterSpacing: 4 }}>{sorareLogo && <img src={sorareLogo} width={44} height={44} style={{ objectFit: 'contain', marginRight: 12 }} />}SORARE <span style={{ color: '#40e8ff', marginLeft: 12 }}>ARCADE</span></div>
         </div>
-        <div style={{ display: 'flex', fontSize: 26, color: '#f5d76e', letterSpacing: 6 }}>ADVENT CALENDAR</div>
+        <div style={{ display: 'flex', fontSize: en ? 26 : 22, color: '#f5d76e', letterSpacing: en ? 6 : 4 }}>{en ? 'ADVENT CALENDAR' : 'CALENDRIER DE L’AVENT'}</div>
       </div>
       <div style={{ display: 'flex', flex: 1, alignItems: 'center', justifyContent: 'center', minHeight: 0, paddingTop: 14 }}>
         {w ? (
@@ -72,7 +73,7 @@ export async function GET(req: NextRequest) {
               ? <img src={cardImg} width={262} height={420} style={{ objectFit: 'contain', borderRadius: 14, boxShadow: `0 0 40px ${col}aa` }} />
               : <div style={{ display: 'flex', width: 262, height: 420, borderRadius: 14, border: `2px solid ${col}` }} />}
             <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', height: 420, marginLeft: 60, maxWidth: 720 }}>
-              <div style={{ display: 'flex', fontSize: 25, color: '#40e8ff', letterSpacing: 4, whiteSpace: 'nowrap' }}>DAY {day} · BEST TTFL OF THE NIGHT</div>
+              <div style={{ display: 'flex', fontSize: 23, color: '#40e8ff', letterSpacing: 3, whiteSpace: 'nowrap' }}>{en ? `DAY ${day} · BEST TTFL OF THE NIGHT` : `JOUR ${day} · MEILLEUR SCORE TTFL DE LA NUIT`}</div>
               <div style={{ display: 'flex', fontSize: 62, fontWeight: 700, lineHeight: 1.05, marginTop: 12 }}>{String(w.name).slice(0, 30)}</div>
               <div style={{ display: 'flex', fontSize: 28, color: '#9fb0c4', marginTop: 8 }}>{w.team}</div>
               <div style={{ display: 'flex', alignItems: 'center', marginTop: 22 }}>
@@ -83,12 +84,12 @@ export async function GET(req: NextRequest) {
                 {s != null && (
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginLeft: 40, padding: '10px 26px', borderRadius: 18, border: `3px solid ${col}`, background: 'rgba(0,0,0,.35)' }}>
                     <span style={{ fontSize: 60, fontWeight: 700, color: col, lineHeight: 1.05 }}>{s}</span>
-                    <span style={{ fontSize: 18, color: '#9fb0c4', letterSpacing: 3 }}>SORARE SCORE</span>
+                    <span style={{ fontSize: 18, color: '#9fb0c4', letterSpacing: 3 }}>{en ? 'SORARE SCORE' : 'SCORE SORARE'}</span>
                   </div>
                 )}
               </div>
               <div style={{ display: 'flex', marginTop: 20 }}>
-                {[['PTS', w.pts], ['REB', w.reb], ['AST', w.ast], ['STL', w.stl], ['BLK', w.blk]].map(([l, v]) => (
+                {[['PTS', w.pts], ['REB', w.reb], [en ? 'AST' : 'PD', w.ast], [en ? 'STL' : 'INT', w.stl], [en ? 'BLK' : 'CT', w.blk]].map(([l, v]) => (
                   <div key={String(l)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginRight: 14, padding: '6px 18px', borderRadius: 12, background: 'rgba(255,255,255,.07)' }}>
                     <span style={{ fontSize: 34, fontWeight: 700, lineHeight: 1.1 }}>{String(v ?? 0)}</span>
                     <span style={{ fontSize: 15, color: '#9fb0c4', letterSpacing: 3 }}>{l}</span>
@@ -101,8 +102,8 @@ export async function GET(req: NextRequest) {
           <>
             {pack && <img src={pack} height={400} style={{ objectFit: 'contain', marginRight: 64 }} />}
             <div style={{ display: 'flex', flexDirection: 'column', maxWidth: 640 }}>
-              <div style={{ display: 'flex', fontSize: 72, fontWeight: 700, lineHeight: 1.05, color: '#f5d76e' }}>24 packs. 24 cards. Every morning in December.</div>
-              <div style={{ display: 'flex', fontSize: 30, color: '#9fb0c4', marginTop: 22 }}>The best TTFL score of the NBA night, on its free Sorare Arcade card.</div>
+              <div style={{ display: 'flex', fontSize: en ? 72 : 60, fontWeight: 700, lineHeight: 1.08, color: '#f5d76e' }}>{en ? '24 packs. 24 cards. Every morning in December.' : '24 packs. 24 cartes. Chaque matin de décembre.'}</div>
+              <div style={{ display: 'flex', fontSize: 30, color: '#9fb0c4', marginTop: 22 }}>{en ? 'The best TTFL score of the NBA night, on its free Sorare Arcade card.' : 'Le meilleur score TTFL de la nuit NBA, sur sa carte Sorare Arcade gratuite.'}</div>
             </div>
           </>
         )}

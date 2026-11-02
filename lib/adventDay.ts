@@ -32,6 +32,7 @@ async function computeDemoDates(demo: number): Promise<string[]> {
 }
 
 export async function buildDay(day: number, demo = 0) {
+  demo = Math.max(0, Math.min(24, Math.floor(demo) || 0)); // plafonne : evite de multiplier les calculs/caches avec des valeurs fantaisistes
   let date: string;
   if (demo > 0) {
     if (day > demo) return { ok: true, open: false, day };
