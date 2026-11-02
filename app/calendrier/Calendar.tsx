@@ -49,9 +49,12 @@ const unlockedDays = (demo: number) => {
   return Math.min(24, p.getDate());
 };
 // Code couleur des scores, dans l'esprit de Sorare
-// (seuils de score Sorare : <5 / 5-14 / 15-24 / 25-34 / 35-44 / 45+)
-const tier = (s: number) => (s >= 45 ? '#00f3eb' : s >= 35 ? '#25ed36' : s >= 25 ? '#b6ff1a' : s >= 15 ? '#f0ce1d' : s >= 5 ? '#ff7e34' : '#ff5a5a');
-const rowCol = (r: { score: number; sorare?: number | null }) => tier(r.sorare ?? r.score); // couleur = score Sorare (sinon TTFL)
+// Code couleur des scores Sorare NBA (releve sur les cartes du jeu) : <5 rouge, 5-14 orange, 15-24 jaune, 25-34 vert-jaune, 35-49 vert, 50-74 cyan, 75+ nacre holographique
+const tier = (s: number) => (s >= 75 ? '#dfe6ff' : s >= 50 ? '#00f3eb' : s >= 35 ? '#25ed36' : s >= 25 ? '#b6ff1a' : s >= 15 ? '#f0ce1d' : s >= 5 ? '#ff7e34' : '#ff5a5a');
+const PEARL = 'linear-gradient(135deg,#ffffff,#bfd4ff 30%,#ffd1f0 55%,#c6fff0 80%,#ffffff)';
+const tierBg = (s: number) => (s >= 75 ? PEARL : tier(s));
+const rowCol = (r: { sorare?: number | null }) => (r.sorare != null ? tier(r.sorare) : GOLD); // couleur = score Sorare
+const rowBg = (r: { sorare?: number | null }) => (r.sorare != null ? tierBg(r.sorare) : GOLD);
 
 function useCountUp(target: number, active: boolean, ms = 1100) {
   const [v, setV] = useState(0);
@@ -108,7 +111,7 @@ function Door({ n, openDay, d, flipped, loading, shaking, burst, onClick }: { n:
         <div className='adv-face adv-back'>
           {w?.card && <img src={w.card.pictureUrl} alt={w.name} className='adv-img' draggable={false} style={{ filter: 'drop-shadow(0 0 2px ' + col + ') drop-shadow(0 0 12px ' + col + '99)' }} />}
           <div className='adv-shine' />
-          <div className='adv-score' style={{ background: col }}>{score}</div>
+          <div className='adv-score' style={{ background: w ? rowBg(w) : col }}>{score}</div>
           <div className='adv-daybadge'>{n}</div>
           <div className='adv-detail' aria-hidden='true'>⌕</div>
           {burst && <Burst color={col} />}
@@ -153,7 +156,7 @@ function Stage({ n, d, onClose, onPrev, onNext, hasPrev, hasNext, demo }: { n: n
                 <span>{i + 2}</span>
                 {r.card ? <img src={r.card.pictureUrl} alt='' /> : <i />}
                 <em>{r.name}<small>{r.team}</small></em>
-                <b>{r.score}</b>{r.sorare != null && <u style={{ background: rowCol(r) }}>{r.sorare}</u>}
+                <b>{r.score}</b>{r.sorare != null && <u style={{ background: rowBg(r) }}>{r.sorare}</u>}
               </div>
             ))}
           </div>
