@@ -261,7 +261,8 @@ export default function Calendar() {
     initLang();
     const dm = Math.floor(Number(new URLSearchParams(window.location.search).get('demo') || 0)) || 0;
     setDemo(dm); setOpenDay(unlockedDays(dm));
-    try { const f = JSON.parse(localStorage.getItem('mnfl_adv_flipped_' + (dm ? 'demo' : 'real')) || '{}'); setFlipped(f); } catch {}
+    // En demo, rien n'est memorise : chaque visite repart avec toutes les cases fermees (les anciennes ouvertures de test ne reviennent pas)
+    if (!dm) { try { const f = JSON.parse(localStorage.getItem('mnfl_adv_flipped_real') || '{}'); setFlipped(f); } catch {} }
     try { setHintSeen(localStorage.getItem('mnfl_adv_hint') === '1'); } catch {}
     setMutedS(isMuted());
     setReady(true);
@@ -293,7 +294,7 @@ export default function Calendar() {
     return () => { cancel = true; };
   }, [ready, openDay, load]);
 
-  const saveFlipped = (f: Record<number, boolean>) => { try { localStorage.setItem('mnfl_adv_flipped_' + (demo ? 'demo' : 'real'), JSON.stringify(f)); } catch {} };
+  const saveFlipped = (f: Record<number, boolean>) => { if (demo) return; try { localStorage.setItem('mnfl_adv_flipped_real', JSON.stringify(f)); } catch {} };
   const click = async (n: number) => {
     setMsg('');
     if (n > openDay) { setMsg(t('Cette case n’est pas encore ouverte.')); return; }
