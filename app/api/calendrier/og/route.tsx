@@ -39,28 +39,28 @@ export async function GET(req: NextRequest) {
   const s = w?.sorare as number | null | undefined;
   const col = s != null ? tier(s) : '#f0c96e';
   const body = (
-    <div style={{ width: W, height: H, display: 'flex', flexDirection: 'column', padding: '40px 56px', background: 'radial-gradient(circle at 30% 45%, #16233f 0%, #080d18 60%, #04070d 100%)', color: '#fff', fontFamily: font ? 'Inter' : 'sans-serif' }}>
+    <div style={{ width: W, height: H, display: 'flex', flexDirection: 'column', padding: '30px 52px 26px', background: 'radial-gradient(circle at 30% 45%, #16233f 0%, #080d18 60%, #04070d 100%)', color: '#fff', fontFamily: font ? 'Inter' : 'sans-serif' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'center' }}>
-          {ttfl && <img src={ttfl} height={52} style={{ objectFit: 'contain' }} />}
+          {ttfl ? <img src={ttfl} height={48} style={{ objectFit: 'contain' }} /> : <div style={{ display: 'flex', fontSize: 34, fontWeight: 700, letterSpacing: 4, border: '3px solid #fff', borderRadius: 8, padding: '0 12px' }}>TTFL</div>}
           <div style={{ display: 'flex', fontSize: 30, color: '#9fb0c4', margin: '0 16px' }}>×</div>
           <div style={{ display: 'flex', fontSize: 34, fontWeight: 700, letterSpacing: 4 }}>SORARE <span style={{ color: '#40e8ff', marginLeft: 12 }}>ARCADE</span></div>
         </div>
         <div style={{ display: 'flex', fontSize: 26, color: '#f5d76e', letterSpacing: 6 }}>ADVENT CALENDAR</div>
       </div>
-      <div style={{ display: 'flex', flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ display: 'flex', flex: 1, alignItems: 'center', justifyContent: 'center', minHeight: 0, paddingTop: 14 }}>
         {w ? (
           <>
             {cardImg
-              ? <img src={cardImg} width={300} height={480} style={{ objectFit: 'contain', borderRadius: 14, boxShadow: `0 0 40px ${col}aa` }} />
-              : <div style={{ display: 'flex', width: 300, height: 480, borderRadius: 14, border: `2px solid ${col}` }} />}
-            <div style={{ display: 'flex', flexDirection: 'column', marginLeft: 64, maxWidth: 640 }}>
-              <div style={{ display: 'flex', fontSize: 30, color: '#40e8ff', letterSpacing: 6 }}>DAY {day} · BEST TTFL OF THE NIGHT</div>
-              <div style={{ display: 'flex', fontSize: 68, fontWeight: 700, lineHeight: 1.05, marginTop: 14 }}>{String(w.name).slice(0, 30)}</div>
+              ? <img src={cardImg} width={262} height={420} style={{ objectFit: 'contain', borderRadius: 14, boxShadow: `0 0 40px ${col}aa` }} />
+              : <div style={{ display: 'flex', width: 262, height: 420, borderRadius: 14, border: `2px solid ${col}` }} />}
+            <div style={{ display: 'flex', flexDirection: 'column', marginLeft: 60, maxWidth: 720 }}>
+              <div style={{ display: 'flex', fontSize: 25, color: '#40e8ff', letterSpacing: 4, whiteSpace: 'nowrap' }}>DAY {day} · BEST TTFL OF THE NIGHT</div>
+              <div style={{ display: 'flex', fontSize: 62, fontWeight: 700, lineHeight: 1.05, marginTop: 12 }}>{String(w.name).slice(0, 30)}</div>
               <div style={{ display: 'flex', fontSize: 28, color: '#9fb0c4', marginTop: 8 }}>{w.team}</div>
               <div style={{ display: 'flex', alignItems: 'center', marginTop: 30 }}>
                 <div style={{ display: 'flex', alignItems: 'baseline' }}>
-                  <span style={{ fontSize: 110, fontWeight: 700, lineHeight: 1 }}>{w.score}</span>
+                  <span style={{ fontSize: 100, fontWeight: 700, lineHeight: 1 }}>{w.score}</span>
                   <span style={{ fontSize: 30, color: '#9fb0c4', marginLeft: 12, letterSpacing: 4 }}>TTFL</span>
                 </div>
                 {s != null && (
