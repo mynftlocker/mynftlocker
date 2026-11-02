@@ -13,6 +13,7 @@ import { setManager } from './lib-share';
 import { isArcadeCard, ARCADE_DEFAULT, activeInjury } from './lib/gameplay';
 import { collectPrefs, pullPrefs, pushPrefs } from './lib/prefsSync';
 import StarCanvas from './components/StarCanvas';
+import AdventBanner from './components/AdventBanner';
 import { t as tr, useLang, initLang, LangSwitch, getLang } from './i18n';
 import { toSlug, type SlugState, useSlugCheck, SlugHint } from './lib/slugCheck';
 import { RARITY_GLOW, RARITY_COLOR, RARITY_FILL, RARITY_ORDER, HOF_KEY, autoHofTop5, editionGroup, specialLabel, STANDARD_EDITIONS, isSpecialCard, playerKey, dedupeByPlayer, isNBA, parseCard, nameFontSize, NBA_CONF } from './lib/cardUtils';
@@ -901,7 +902,7 @@ export default function Home() {
               @keyframes introInputGlow{0%,100%{box-shadow:0 1px 0 rgba(64,232,255,0.3)}50%{box-shadow:0 2px 18px rgba(64,232,255,0.55)}}
               .intro-input::placeholder{color:rgba(64,232,255,0.28)}.intro-input:focus{outline:none;border-bottom-color:#40e8ff!important;box-shadow:0 2px 18px rgba(64,232,255,0.6)!important}.intro-btn:hover{background:rgba(64,232,255,0.08)!important;border-color:rgba(64,232,255,0.95)!important;color:#fff!important}
             `}</style>
-            <div style={{position:'relative',zIndex:1,marginBottom:openPhase===0?'1.6rem':'1.5rem'}}
+            <div style={{position:'relative',zIndex:1,marginBottom:openPhase===0?'1.1rem':'1.5rem'}}
               onMouseEnter={e=>{if(openPhase!==0)return;const img=e.currentTarget.querySelector('img');if(img)(img as HTMLElement).style.animation='packHover 2s ease-in-out infinite';}}
               onMouseLeave={e=>{if(openPhase!==0)return;const img=e.currentTarget.querySelector('img');if(img)(img as HTMLElement).style.animation='packFloat 3.8s ease-in-out infinite';}}>
               <div
@@ -978,6 +979,7 @@ export default function Home() {
                     </div>
                   </>
                 )}
+                <AdventBanner inline/>
               </div>
             )}
             {openPhase>=1&&(
@@ -1037,7 +1039,7 @@ export default function Home() {
                 {currentUser?(<span onClick={async()=>{await handleLogout();fullReset();}} style={{...link,color:'rgba(64,232,255,0.8)'}}>{tr('Se déconnecter')}</span>):(<span onClick={()=>{setAuthMode('login');setAuthOpen(true);}} style={{...link,color:'rgba(64,232,255,0.8)'}}>{tr('Connexion')}</span>)}
               </div>
             </div>
-            <div style={{position:'fixed',bottom:'1rem',left:'50%',transform:'translateX(-50%)',zIndex:2,display:'flex',gap:'2rem',alignItems:'center'}}>
+            <AdventBanner/><div style={{position:'fixed',bottom:'1rem',left:'50%',transform:'translateX(-50%)',zIndex:2,display:'flex',gap:'2rem',alignItems:'center'}}>
               <a href='https://sorare.com' target='_blank' rel='noreferrer' style={{color:'rgba(255,255,255,0.5)',fontSize:'0.6rem',letterSpacing:'0.14em',textTransform:'uppercase',textDecoration:'none',fontFamily:'Courier New,monospace'}}>SORARE</a>
               <a href='/cgu' target='_blank' rel='noopener noreferrer' style={{color:'rgba(255,255,255,0.5)',fontSize:'0.6rem',letterSpacing:'0.14em',textTransform:'uppercase',textDecoration:'none',fontFamily:'Courier New,monospace'}}>{tr('CGU')}</a>
               <a href='https://x.com/myNFTlocker' target='_blank' rel='noopener noreferrer' aria-label='myNFTlocker on X' style={{color:'rgba(255,255,255,0.5)',fontSize:'0.6rem',letterSpacing:'0.14em',textTransform:'uppercase',textDecoration:'none',fontFamily:'Courier New,monospace'}}>X</a>

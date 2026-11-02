@@ -2,21 +2,26 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import StarCanvas from '../components/StarCanvas';
 import { useLang, initLang, LangSwitch, t, addEn } from '../i18n';
+import { openDayNow, launchMoment, parisNow, tier, tierBg } from '../../lib/advent';
+import { sfxShake, sfxReveal, sfxOpen, isMuted, setMuted, SHAKE_MS } from '../../lib/advSound';
 
 addEn({
   'CALENDRIER DE L’AVENT': 'ADVENT CALENDAR',
   'Chaque matin de décembre, le meilleur score TTFL de la nuit NBA, sur sa carte Arcade gratuite de Sorare.': 'Every morning in December, the best TTFL score of the NBA night, on its free Sorare Arcade card.',
-  'Ouverture le 1er décembre': 'Opens on December 1st',
-  'Reviens chaque matin : une nouvelle case s’ouvre avec la nuit NBA de la veille.': 'Come back every morning: a new door opens with last night’s NBA action.',
+  'Ouverture le 1er décembre à 9 h': 'Opens on December 1st at 9 AM',
+  'Reviens chaque matin à 9 h : une nouvelle case s’ouvre avec la nuit NBA de la veille.': 'Come back every morning at 9 AM: a new door opens with last night’s NBA action.',
   'Aperçu avec les vraies dernières nuits NBA': 'Preview with the real latest NBA nights',
   'Jour': 'Day',
   'OUVRIR': 'OPEN',
-  'Résultats disponibles vers 8 h (heure de Paris).': 'Results available around 8 AM (Paris time).',
+  'Résultats disponibles à 9 h (heure de Paris).': 'Results available at 9 AM (Paris time).',
   'Cette case n’est pas encore ouverte.': 'This door isn’t open yet.',
   'Impossible de charger cette case, réessaie dans un instant.': 'Could not load this door, please try again in a moment.',
   'Meilleur score TTFL de la nuit': 'Best TTFL score of the night',
   'Le top de la nuit': 'Top of the night',
   'Partager sur X': 'Share on X',
+  'Partager': 'Share', 'Télécharger': 'Download', 'Copier l’image': 'Copy image', 'Copier le lien': 'Copy link',
+  'Image téléchargée': 'Image downloaded', 'Image copiée': 'Image copied', 'Lien copié': 'Link copied', 'Partage impossible': 'Sharing failed', 'Copie impossible': 'Copy failed',
+  'Préparation de l’image…': 'Preparing the image…',
   'Découvrir myNFTlocker': 'Discover myNFTlocker',
   'Fermer': 'Close',
   'Ta galerie Sorare, ton vestiaire, tes stats : gratuit sur myNFTlocker.': 'Your Sorare gallery, your locker room, your stats: free on myNFTlocker.',
@@ -31,31 +36,43 @@ addEn({
   'Rejoindre Sorare (gratuit)': 'Join Sorare (free)',
   'Jouer à la TTFL': 'Play TTFL',
   'Le lien Sorare est un lien de parrainage.': 'The Sorare link is a referral link.',
+  'heures': 'hours', 'minutes': 'minutes', 'secondes': 'seconds',
+  'Voir un aperçu': 'See a preview',
+  'Aperçu · dernière nuit NBA': 'Preview · last NBA night',
+  'Série': 'Streak', 'jour d’affilée': 'day in a row', 'jours d’affilée': 'days in a row',
+  'cases ouvertes': 'doors opened',
+  'NOUVEAU': 'NEW',
+  'Comment ça marche': 'How it works',
+  'Chaque matin à 9 h': 'Every morning at 9 AM',
+  'Une nouvelle case s’ouvre avec la nuit NBA de la veille : le joueur au meilleur score TTFL.': 'A new door opens with last night’s NBA action: the player with the best TTFL score.',
+  'Ouvre le pack': 'Open the pack',
+  'Clique sur la case : le pack s’ouvre et révèle la carte Arcade du joueur, avec son score TTFL et son score Sorare.': 'Click the door: the pack opens and reveals the player’s Arcade card, with their TTFL score and their Sorare score.',
+  'Joue gratuitement': 'Play for free',
+  'Les cartes Arcade sont gratuites : crée ton équipe sur Sorare et défie la TTFL avec les mêmes joueurs.': 'Arcade cards are free: build your team on Sorare and take on TTFL with the same players.',
+  'Questions fréquentes': 'FAQ',
+  'C’est quoi le score TTFL ?': 'What is the TTFL score?',
+  'Un score de fantasy NBA : points + rebonds + passes + interceptions + contres + tirs réussis, moins les tirs ratés et les balles perdues. Chaque nuit, les meilleurs scores font la une.': 'An NBA fantasy score: points + rebounds + assists + steals + blocks + made shots, minus missed shots and turnovers. Every night, the top scores make the headlines.',
+  'C’est quoi Sorare Arcade ?': 'What is Sorare Arcade?',
+  'Le mode gratuit de Sorare : des cartes communes, un pack offert chaque jour, pour jouer sans rien payer.': 'The free mode of Sorare: common cards, a free pack every day, to play without paying anything.',
+  'Pourquoi 9 h ?': 'Why 9 AM?',
+  'Pour que tous les matchs de la nuit NBA soient terminés et leurs statistiques publiées. Chaque case s’ouvre ensuite à 9 h, heure de Paris.': 'So that every game of the NBA night is over and its stats are published. Each door then opens at 9 AM Paris time.',
+  'Pourquoi des éditions différentes ?': 'Why different editions?',
+  'Les cartes Arcade existent en 3 versions. On les fait tourner tous les 3 jours, et le jour 24 s’ouvre une carte Limited.': 'Arcade cards come in 3 versions. We rotate them every 3 days, and on day 24 a Limited card opens.',
+  'Tu aimes ? Crée ta galerie gratuite.': 'Enjoying it? Create your free gallery.',
+  'Son': 'Sound',
 });
 
 type Card = { slug: string; playerSlug: string; name: string; pictureUrl: string; kind: 'arcade' | 'classic' };
 type Row = { id: string; name: string; team: string; score: number; pts: number; reb: number; ast: number; stl: number; blk: number; to: number; card: Card | null; sorare?: number | null };
-type DayData = { open: boolean; pending?: boolean; day: number; date?: string; games?: number; top?: Row[] };
+type DayData = { edition?: string; open: boolean; pending?: boolean; day: number; date?: string; games?: number; top?: Row[] };
 
-const YEAR = 2026;
 const GOLD = '#f0c96e';
 const CYAN = '#40e8ff';
-const parisNow = () => new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Paris' }));
-const unlockedDays = (demo: number) => {
-  if (demo > 0) return Math.min(24, demo);
-  const p = parisNow();
-  if (p.getFullYear() > YEAR) return 24;
-  if (p.getFullYear() < YEAR || p.getMonth() < 11) return 0;
-  return Math.min(24, p.getDate());
-};
-// Code couleur des scores, dans l'esprit de Sorare
-// Code couleur des scores Sorare NBA (releve sur les cartes du jeu) : <5 rouge, 5-14 orange, 15-24 jaune, 25-34 vert-jaune, 35-49 vert, 50-74 cyan, 75+ nacre holographique
-const tier = (s: number) => (s >= 75 ? '#dfe6ff' : s >= 50 ? '#00f3eb' : s >= 35 ? '#25ed36' : s >= 25 ? '#b6ff1a' : s >= 15 ? '#f0ce1d' : s >= 5 ? '#ff7e34' : '#ff5a5a');
-const PEARL = 'linear-gradient(135deg,#ffffff,#bfd4ff 30%,#ffd1f0 55%,#c6fff0 80%,#ffffff)';
-const tierBg = (s: number) => (s >= 75 ? PEARL : tier(s));
+const unlockedDays = (demo: number) => (demo > 0 ? Math.min(24, demo) : openDayNow());
 const rowCol = (r: { sorare?: number | null }) => (r.sorare != null ? tier(r.sorare) : GOLD); // couleur = score Sorare
 const rowBg = (r: { sorare?: number | null }) => (r.sorare != null ? tierBg(r.sorare) : GOLD);
 
+const EDN: Record<string, string> = { standard: 'Standard', shiny: 'Shiny', shiny_variant_1: 'Shiny', holo: 'Holo', limited: 'Limited' };
 function useCountUp(target: number, active: boolean, ms = 1100) {
   const [v, setV] = useState(0);
   useEffect(() => {
@@ -87,13 +104,32 @@ function Burst({ color }: { color: string }) {
   );
 }
 
-function Door({ n, openDay, d, flipped, loading, shaking, burst, onClick }: { n: number; openDay: number; d?: DayData; flipped: boolean; loading: boolean; shaking: boolean; burst: boolean; onClick: () => void }) {
+// Compte a rebours "flip clock" jusqu'a l'ouverture de la premiere case
+function Countdown({ onDone }: { onDone: () => void }) {
+  const [ms, setMs] = useState<number | null>(null);
+  useEffect(() => {
+    const tick = () => { const diff = launchMoment().getTime() - parisNow().getTime(); if (diff <= 0) { onDone(); return; } setMs(diff); };
+    tick(); const i = setInterval(tick, 1000); return () => clearInterval(i);
+  }, [onDone]);
+  if (ms == null) return null;
+  const v = [Math.floor(ms / 864e5), Math.floor(ms / 36e5) % 24, Math.floor(ms / 6e4) % 60, Math.floor(ms / 1e3) % 60];
+  const lab = ['jours', 'heures', 'minutes', 'secondes'];
+  return (
+    <div className='adv-clock'>
+      {v.map((x, i) => (
+        <div key={i} className='adv-unit'><div className='adv-digits'>{String(x).padStart(2, '0')}</div><span>{t(lab[i])}</span></div>
+      ))}
+    </div>
+  );
+}
+
+function Door({ n, openDay, d, flipped, loading, shaking, burst, isNew, onClick }: { n: number; openDay: number; d?: DayData; flipped: boolean; loading: boolean; shaking: boolean; burst: boolean; isNew: boolean; onClick: () => void }) {
   const avail = n <= openDay;
   const w = d?.top?.[0];
   const col = w ? rowCol(w) : GOLD;
   const score = useCountUp(w?.sorare ?? w?.score ?? 0, flipped && !!w);
   return (
-    <div className={'adv-door' + (flipped ? ' opened' : '')} style={{ perspective: '900px', ['--fd' as any]: (n % 7) * 0.35 + 's' }} onClick={onClick} role='button' aria-label={t('Jour') + ' ' + n}>
+    <div className={'adv-door' + (flipped ? ' opened' : '') + (n === 24 ? ' finale' : '')} style={{ perspective: '900px', ['--fd' as any]: (n % 7) * 0.35 + 's' }} onClick={onClick} role='button' aria-label={t('Jour') + ' ' + n}>
       <div className={'adv-inner' + (flipped ? ' flipped' : '')}>
         {/* Face avant : le pack, avec le numero du jour a la place du bouclier */}
         <div className={'adv-face adv-front' + (avail ? ' avail' : ' locked') + (shaking ? ' shaking' : '')}>
@@ -101,6 +137,7 @@ function Door({ n, openDay, d, flipped, loading, shaking, burst, onClick }: { n:
             <img src='/logo-pack-blank.png' alt='' className='adv-pack' draggable={false} />
             <span className='adv-medal'><b>{n}</b></span>
           </div>
+          {isNew && <span className='adv-new'>{t('NOUVEAU')}</span>}
           {avail && <span className='adv-open'>{loading ? '…' : t('OUVRIR')}</span>}
           {!avail && (
             <svg className='adv-lock' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='rgba(240,201,110,0.8)' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round'><rect x='4' y='11' width='16' height='10' rx='2' /><path d='M8 11V7a4 4 0 0 1 8 0v4' /></svg>
@@ -121,14 +158,29 @@ function Door({ n, openDay, d, flipped, loading, shaking, burst, onClick }: { n:
   );
 }
 
-function Stage({ n, d, onClose, onPrev, onNext, hasPrev, hasNext, demo }: { n: number; d: DayData; onClose: () => void; onPrev: () => void; onNext: () => void; hasPrev: boolean; hasNext: boolean; demo: boolean }) {
+function Stage({ n, d, onClose, onPrev, onNext, hasPrev, hasNext, demo, preview, ogQ }: { n: number; d: DayData; onClose: () => void; onPrev: () => void; onNext: () => void; hasPrev: boolean; hasNext: boolean; demo: boolean; preview?: boolean; ogQ: string }) {
   const w = d.top![0]; const col = rowCol(w);
   const score = useCountUp(w.score, true, 1400);
   const sScore = useCountUp(w.sorare ?? 0, w.sorare != null, 1400);
-  const share = () => {
-    const txt = `🏀 TTFL × @Sorare Arcade — ${t('CALENDRIER DE L’AVENT')} · ${t('Jour')} ${n}: ${w.name} (${w.score} TTFL)`;
-    window.open('https://x.com/intent/tweet?text=' + encodeURIComponent(txt) + '&url=' + encodeURIComponent('https://mynftlocker.com/calendrier'), '_blank', 'noopener');
-  };
+  const link = 'https://mynftlocker.com/calendrier?day=' + n;
+  const txt = `🎁 ${t('Jour')} ${n} — ${t('CALENDRIER DE L’AVENT')} TTFL × @Sorare Arcade\n🏀 ${w.name} : ${w.score} TTFL${w.sorare != null ? ' · ' + w.sorare + ' Sorare' : ''}`;
+  const share = () => { window.open('https://x.com/intent/tweet?text=' + encodeURIComponent(txt) + '&url=' + encodeURIComponent(link), '_blank', 'noopener'); };
+  // Image de partage (meme visuel que l'apercu sur X), preparee a l'avance pour partager / telecharger / copier
+  const [img, setImg] = useState<{ blob: Blob; file: File } | null>(null);
+  const [msg, setMsg] = useState('');
+  const flash = (m: string) => { setMsg(m); setTimeout(() => setMsg(''), 2500); };
+  useEffect(() => {
+    let dead = false; setImg(null);
+    fetch('/api/calendrier/og?day=' + n + ogQ).then(r => r.ok ? r.blob() : Promise.reject()).then(b => { if (!dead) setImg({ blob: b, file: new File([b], 'calendrier-avent-jour-' + n + '.png', { type: 'image/png' }) }); }).catch(() => {});
+    return () => { dead = true; };
+  }, [n, ogQ]);
+  const canShare = !!img && typeof navigator !== 'undefined' && !!(navigator as any).canShare && (navigator as any).canShare({ files: [img.file] });
+  const canCopy = typeof window !== 'undefined' && !!(window as any).ClipboardItem && !!navigator.clipboard?.write;
+  const doShare = async () => { if (!img) return; try { await (navigator as any).share({ files: [img.file], title: w.name, text: txt + '\n' + link }); } catch (e: any) { if (!e || e.name !== 'AbortError') flash(t('Partage impossible')); } };
+  const doDownload = () => { if (!img) return; const a = document.createElement('a'); a.href = URL.createObjectURL(img.blob); a.download = img.file.name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); flash(t('Image téléchargée')); };
+  const doCopy = async () => { if (!img) return; try { await (navigator.clipboard as any).write([new (window as any).ClipboardItem({ 'image/png': img.blob })]); flash(t('Image copiée')); } catch { flash(t('Copie impossible')); } };
+  const doCopyLink = async () => { try { await navigator.clipboard.writeText(link); flash(t('Lien copié')); } catch { flash(t('Copie impossible')); } };
+  const ico = (d: React.ReactNode) => (<svg viewBox='0 0 24 24' width='14' height='14' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round'>{d}</svg>);
   useEffect(() => { const k = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); if (e.key === 'ArrowLeft' && hasPrev) onPrev(); if (e.key === 'ArrowRight' && hasNext) onNext(); }; window.addEventListener('keydown', k); return () => window.removeEventListener('keydown', k); }, [onClose, onPrev, onNext, hasPrev, hasNext]);
   const stat = (l: string, v: number) => (<div className='adv-stat'><b>{v}</b><span>{t(l)}</span></div>);
   return (
@@ -140,7 +192,7 @@ function Stage({ n, d, onClose, onPrev, onNext, hasPrev, hasNext, demo }: { n: n
           <div className='adv-shine' />
         </div>
         <div className='adv-stageinfo'>
-          <div className='adv-kicker'>{t('Jour')} {n} · {d.date} {demo ? '· DEMO' : ''}</div>
+          <div className='adv-kicker'>{preview ? t('Aperçu · dernière nuit NBA') + ' · ' + d.date : <>{t('Jour')} {n} · {d.date} {demo ? '· DEMO' : ''}</>}{d.edition && <span className='adv-ed'>{EDN[d.edition] || d.edition}</span>}</div>
           <div className='adv-sub'>{t('Meilleur score TTFL de la nuit')}</div>
           <h2 className='adv-name'>{w.name}</h2>
           <div className='adv-team'>{w.team}</div>
@@ -160,15 +212,21 @@ function Stage({ n, d, onClose, onPrev, onNext, hasPrev, hasNext, demo }: { n: n
               </div>
             ))}
           </div>
-          <div className='adv-cta'>
-            <button className='adv-btn' onClick={share}>{t('Partager sur X')}</button>
+          <div className='adv-sharerow'>
+            {canShare && <button className='adv-btn' onClick={doShare}>{ico(<><circle cx='18' cy='5' r='3' /><circle cx='6' cy='12' r='3' /><circle cx='18' cy='19' r='3' /><path d='M8.6 13.5l6.8 4M15.4 6.5l-6.8 4' /></>)}{t('Partager')}</button>}
+            <button className='adv-btn' onClick={share}>{ico(<path d='M4 4l16 16M20 4L4 20' />)}{t('Partager sur X')}</button>
+            <button className='adv-btn' disabled={!img} onClick={doDownload}>{ico(<><path d='M12 3v12' /><path d='M8 11l4 4 4-4' /><path d='M5 21h14' /></>)}{t('Télécharger')}</button>
+            {canCopy && <button className='adv-btn' disabled={!img} onClick={doCopy}>{ico(<><rect x='9' y='9' width='12' height='12' rx='2' /><path d='M5 15V5a2 2 0 012-2h10' /></>)}{t('Copier l’image')}</button>}
+          </div>
+          <div className='adv-cta' style={{ marginTop: '.5rem' }}>
+            <button className='adv-btn' onClick={doCopyLink}>{ico(<><path d='M10 13a5 5 0 007 0l3-3a5 5 0 00-7-7l-1 1' /><path d='M14 11a5 5 0 00-7 0l-3 3a5 5 0 007 7l1-1' /></>)}{t('Copier le lien')}</button>
             <a className='adv-btn' href='/'>{t('Découvrir myNFTlocker')}</a>
           </div>
           <div className='adv-cta' style={{ marginTop: '.6rem' }}>
             <a className='adv-btn' href={'/api/go?to=sorare&day=' + n} target='_blank' rel='noopener nofollow sponsored'>{t('Rejoindre Sorare (gratuit)')}</a>
             <a className='adv-btn' href={'/api/go?to=ttfl&day=' + n} target='_blank' rel='noopener nofollow'>{t('Jouer à la TTFL')}</a>
           </div>
-          <div className='adv-ref'>{t('Le lien Sorare est un lien de parrainage.')}</div>
+          <div className='adv-ref'>{msg || (!img ? t('Préparation de l’image…') : t('Le lien Sorare est un lien de parrainage.'))}</div>
           <div className='adv-nav'>
             <button disabled={!hasPrev} onClick={onPrev}>←</button>
             <button disabled={!hasNext} onClick={onNext}>→</button>
@@ -192,7 +250,11 @@ export default function Calendar() {
   const [shaking, setShaking] = useState(0);
   const [hintSeen, setHintSeen] = useState(true);
   const [msg, setMsg] = useState('');
-  const [left, setLeft] = useState('');
+  const [muted, setMutedS] = useState(false);
+  const [streak, setStreak] = useState(0);
+  const [preview, setPreview] = useState<DayData | null>(null);
+  const [ctaOpen, setCtaOpen] = useState(false);
+  const stageSeen = useRef(false);
   const fetching = useRef<Record<number, Promise<DayData | null>>>({});
 
   useEffect(() => {
@@ -201,13 +263,19 @@ export default function Calendar() {
     setDemo(dm); setOpenDay(unlockedDays(dm));
     try { const f = JSON.parse(localStorage.getItem('mnfl_adv_flipped_' + (dm ? 'demo' : 'real')) || '{}'); setFlipped(f); } catch {}
     try { setHintSeen(localStorage.getItem('mnfl_adv_hint') === '1'); } catch {}
+    setMutedS(isMuted());
     setReady(true);
   }, []);
-  useEffect(() => { // compte a rebours avant le 1er decembre
-    if (!ready || openDay > 0) return;
-    const tick = () => { const diff = new Date(YEAR, 11, 1).getTime() - parisNow().getTime(); if (diff <= 0) { setOpenDay(unlockedDays(0)); return; } const d = Math.floor(diff / 864e5), h = Math.floor(diff / 36e5) % 24, m = Math.floor(diff / 6e4) % 60; setLeft(`${d} ${t('jours')} ${h} ${t('h')} ${m} ${t('min')}`); };
-    tick(); const i = setInterval(tick, 30000); return () => clearInterval(i);
-  }, [ready, openDay, lang]);
+  useEffect(() => { // serie de jours consecutifs (mode reel uniquement, stockee dans le navigateur)
+    if (!ready || demo || openDay === 0) return;
+    try {
+      const v: number[] = JSON.parse(localStorage.getItem('mnfl_adv_visits') || '[]');
+      if (!v.includes(openDay)) v.push(openDay);
+      localStorage.setItem('mnfl_adv_visits', JSON.stringify(v));
+      let k = 0; for (let d = openDay; v.includes(d); d--) k++;
+      setStreak(k);
+    } catch {}
+  }, [ready, demo, openDay]);
 
   const load = useCallback((n: number): Promise<DayData | null> => {
     if (n in fetching.current) return fetching.current[n];
@@ -229,16 +297,21 @@ export default function Calendar() {
   const click = async (n: number) => {
     setMsg('');
     if (n > openDay) { setMsg(t('Cette case n’est pas encore ouverte.')); return; }
-    if (flipped[n] && data[n]?.open) { setStage(n); if (!hintSeen) { setHintSeen(true); try { localStorage.setItem('mnfl_adv_hint', '1'); } catch {} } return; }
+    if (flipped[n] && data[n]?.open) { stageSeen.current = true; sfxOpen(); setStage(n); if (!hintSeen) { setHintSeen(true); try { localStorage.setItem('mnfl_adv_hint', '1'); } catch {} } return; }
     setLoading(s => ({ ...s, [n]: true }));
     const d = data[n] || await load(n);
     setLoading(s => ({ ...s, [n]: false }));
     if (!d) { setMsg(t('Impossible de charger cette case, réessaie dans un instant.')); return; }
-    if (!d.open) { setMsg(t('Résultats disponibles vers 8 h (heure de Paris).')); return; }
+    if (!d.open) { setMsg(t('Résultats disponibles à 9 h (heure de Paris).')); return; }
     // ouverture du pack : il tremble et s'illumine, puis la carte se retourne
-    setShaking(n); await new Promise(r => setTimeout(r, 650)); setShaking(0);
+    setShaking(n); sfxShake(); await new Promise(r => setTimeout(r, SHAKE_MS)); setShaking(0);
+    sfxReveal((d.top?.[0]?.sorare ?? 0) >= 75);
     const f = { ...flipped, [n]: true }; setFlipped(f); saveFlipped(f); setBurst(n); setTimeout(() => setBurst(0), 1600);
   };
+  const closeStage = () => { setStage(0); let seen = false; try { seen = localStorage.getItem('mnfl_adv_cta') === '1'; } catch {} if (!seen && stageSeen.current && !demo) setCtaOpen(true); };
+  const closeCta = () => { setCtaOpen(false); try { localStorage.setItem('mnfl_adv_cta', '1'); } catch {} };
+  const showPreview = async () => { const r = await fetch('/api/calendrier?day=1&demo=1').then(x => x.json()).catch(() => null); if (r?.ok && r.open) { r.top?.forEach((x: Row) => { if (x.card) { const im = new Image(); im.src = x.card.pictureUrl; } }); sfxOpen(); setPreview(r); } };
+  const toggleMute = () => { const m = !muted; setMuted(m); setMutedS(m); };
   const days = Array.from({ length: 24 }, (_, i) => i + 1);
   const stageData = stage ? data[stage] : undefined;
   const openedList = days.filter(n => flipped[n] && data[n]?.open);
@@ -251,7 +324,10 @@ export default function Calendar() {
       <div className='adv-wrap'>
         <header className='adv-head'>
           <a href='/' className='adv-home'>← {t('Retour au site')}</a>
-          <LangSwitch />
+          <div className='adv-headr'>
+            <button className='adv-mute' onClick={toggleMute} aria-label={t('Son')} title={t('Son')}>{muted ? '🔇' : '🔊'}</button>
+            <LangSwitch />
+          </div>
         </header>
         <section className='adv-hero'>
           <div className='adv-logos'>
@@ -260,15 +336,42 @@ export default function Calendar() {
           </div>
           <h1>{t('CALENDRIER DE L’AVENT')}</h1>
           <p>{t('Chaque matin de décembre, le meilleur score TTFL de la nuit NBA, sur sa carte Arcade gratuite de Sorare.')}</p>
-          {ready && openDay === 0 && (<div className='adv-launch'><b>{t('Ouverture le 1er décembre')}</b>{left && <span>{left}</span>}<small>{t('Reviens chaque matin : une nouvelle case s’ouvre avec la nuit NBA de la veille.')}</small></div>)}
+          {ready && openDay === 0 && (
+            <div className='adv-launch'>
+              <b>{t('Ouverture le 1er décembre à 9 h')}</b>
+              <Countdown onDone={() => setOpenDay(unlockedDays(0))} />
+              <small>{t('Reviens chaque matin à 9 h : une nouvelle case s’ouvre avec la nuit NBA de la veille.')}</small>
+              <button className='adv-btn' onClick={showPreview}>{t('Voir un aperçu')}</button>
+            </div>
+          )}
+          {ready && openDay > 0 && (
+            <div className='adv-ritual'>
+              {streak > 0 && <span className='adv-streak'>🔥 {t('Série')} : {streak} {t(streak > 1 ? 'jours d’affilée' : 'jour d’affilée')}</span>}
+              <span className='adv-prog'><i style={{ width: (openedList.length / openDay * 100) + '%' }} /><b>{openedList.length}/{openDay} {t('cases ouvertes')}</b></span>
+            </div>
+          )}
           {demo > 0 && <div className='adv-demo'>{t('Aperçu avec les vraies dernières nuits NBA')}</div>}
         </section>
         {msg && <div className='adv-msg'>{msg}</div>}
         {!msg && !hintSeen && openedList.length > 0 && <div className='adv-hint'>{t('Clique sur une carte retournée pour voir le détail du joueur')}</div>}
         <section className='adv-grid'>
           {days.map(n => (
-            <Door key={n} n={n} openDay={openDay} d={data[n]} flipped={!!flipped[n] && !!data[n]?.open} loading={!!loading[n]} shaking={shaking === n} burst={burst === n} onClick={() => click(n)} />
+            <Door key={n} n={n} openDay={openDay} d={data[n]} flipped={!!flipped[n] && !!data[n]?.open} loading={!!loading[n]} shaking={shaking === n} burst={burst === n} isNew={n === openDay && !flipped[n]} onClick={() => click(n)} />
           ))}
+        </section>
+        <section className='adv-how'>
+          <h2>{t('Comment ça marche')}</h2>
+          <div className='adv-steps'>
+            {[['1', 'Chaque matin à 9 h', 'Une nouvelle case s’ouvre avec la nuit NBA de la veille : le joueur au meilleur score TTFL.'], ['2', 'Ouvre le pack', 'Clique sur la case : le pack s’ouvre et révèle la carte Arcade du joueur, avec son score TTFL et son score Sorare.'], ['3', 'Joue gratuitement', 'Les cartes Arcade sont gratuites : crée ton équipe sur Sorare et défie la TTFL avec les mêmes joueurs.']].map(([k, a, b]) => (
+              <div key={k} className='adv-step'><span>{k}</span><b>{t(a)}</b><p>{t(b)}</p></div>
+            ))}
+          </div>
+          <h2 style={{ marginTop: '2rem' }}>{t('Questions fréquentes')}</h2>
+          <div className='adv-faq'>
+            {[['C’est quoi le score TTFL ?', 'Un score de fantasy NBA : points + rebonds + passes + interceptions + contres + tirs réussis, moins les tirs ratés et les balles perdues. Chaque nuit, les meilleurs scores font la une.'], ['C’est quoi Sorare Arcade ?', 'Le mode gratuit de Sorare : des cartes communes, un pack offert chaque jour, pour jouer sans rien payer.'], ['Pourquoi 9 h ?', 'Pour que tous les matchs de la nuit NBA soient terminés et leurs statistiques publiées. Chaque case s’ouvre ensuite à 9 h, heure de Paris.'], ['Pourquoi des éditions différentes ?', 'Les cartes Arcade existent en 3 versions. On les fait tourner tous les 3 jours, et le jour 24 s’ouvre une carte Limited.']].map(([q, a]) => (
+              <details key={q}><summary>{t(q)}</summary><p>{t(a)}</p></details>
+            ))}
+          </div>
         </section>
         <section className='adv-promo'>
           <p>{t('Ta galerie Sorare, ton vestiaire, tes stats : gratuit sur myNFTlocker.')}</p>
@@ -277,15 +380,26 @@ export default function Calendar() {
         <footer className='adv-foot'>{t('Les scores TTFL sont calculés à partir des box scores NBA (points + rebonds + passes + interceptions + contres + tirs, 3 points et lancers francs réussis − tirs, 3 points et lancers francs ratés − balles perdues). Projet indépendant, non affilié à Sorare, à la NBA ni à la TTFL. Le lien Sorare est un lien de parrainage.')}</footer>
       </div>
       {stage > 0 && stageData?.open && stageData.top && (
-        <Stage n={stage} d={stageData} demo={demo > 0} onClose={() => setStage(0)}
+        <Stage n={stage} d={stageData} demo={demo > 0} ogQ={demo > 0 ? '&demo=' + demo : ''} onClose={closeStage}
           hasPrev={idx > 0} hasNext={idx >= 0 && idx < openedList.length - 1}
           onPrev={() => setStage(openedList[idx - 1])} onNext={() => setStage(openedList[idx + 1])} />
+      )}
+      {preview && preview.top && (
+        <Stage n={1} d={preview} demo preview ogQ='&demo=1' onClose={() => setPreview(null)} hasPrev={false} hasNext={false} onPrev={() => {}} onNext={() => {}} />
+      )}
+      {ctaOpen && (
+        <div className='adv-toast'>
+          <p>{t('Tu aimes ? Crée ta galerie gratuite.')}</p>
+          <a className='adv-btn' href='/'>{t('Découvrir myNFTlocker')}</a>
+          <button onClick={closeCta} aria-label={t('Fermer')}>✕</button>
+        </div>
       )}
     </main>
   );
 }
 
 const css = `
+@font-face{font-family:'AdvGraduate';src:url('/fonts/graduate.woff2') format('woff2');font-display:swap}
 .adv-root{min-height:100vh;background:radial-gradient(ellipse 120% 80% at 50% -10%,#0b1426 0%,#050912 55%,#030510 100%);color:#cfe4fb;position:relative;overflow-x:hidden}
 .adv-wrap{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:1.1rem 1.1rem 3rem}
 .adv-head{display:flex;justify-content:space-between;align-items:center}
@@ -304,7 +418,7 @@ const css = `
 .adv-ttfl{height:46px;width:auto;display:block}
 .adv-sorare img{width:40px;height:40px}
 .adv-medal{position:absolute;left:50%;top:27.2%;transform:translate(-50%,-50%);line-height:1}
-.adv-medal b{display:block;font-weight:900;font-family:'Arial Black','Impact','Helvetica Neue',Arial,sans-serif;font-size:clamp(2rem,6.4vw,3.7rem);line-height:1;letter-spacing:-.02em;background:linear-gradient(180deg,#fff7cf 0%,#f6d77f 26%,#d9a23a 50%,#8d5c12 52%,#e8bd55 76%,#fff0b0 100%);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 1px 0 #3d2604) drop-shadow(0 -1px 0 #3d2604) drop-shadow(1px 0 0 #3d2604) drop-shadow(-1px 0 0 #3d2604) drop-shadow(0 4px 5px rgba(0,0,0,.65))}
+.adv-medal b{display:block;font-weight:400;font-family:'AdvGraduate','Arial Black',Impact,sans-serif;font-size:clamp(1.9rem,6vw,3.5rem);line-height:1;letter-spacing:.01em;background:linear-gradient(180deg,#fff7cf 0%,#f6d77f 26%,#d9a23a 50%,#8d5c12 52%,#e8bd55 76%,#fff0b0 100%);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 1px 0 #3d2604) drop-shadow(0 -1px 0 #3d2604) drop-shadow(1px 0 0 #3d2604) drop-shadow(-1px 0 0 #3d2604) drop-shadow(0 4px 5px rgba(0,0,0,.65))}
 .adv-cta{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-top:1rem}.adv-cta .adv-btn{text-align:center;padding:.7rem .6rem}
 .adv-promo .adv-btn{display:inline-block}
 @media(max-width:640px){.adv-ttfl{height:36px}.adv-sorare img{width:32px;height:32px}.adv-sorare{font-size:.9rem}}
@@ -318,7 +432,7 @@ const css = `
 .adv-front.avail{filter:drop-shadow(0 0 14px rgba(64,232,255,.45));animation:advPack 3s ease-in-out infinite;animation-delay:var(--fd)}
 .adv-front.avail:hover{transform:translateY(-4px) scale(1.04);filter:drop-shadow(0 0 24px rgba(64,232,255,.8))}
 .adv-front.locked{filter:grayscale(.75) brightness(.55)}
-.adv-front.shaking{animation:advShake .65s linear both;filter:drop-shadow(0 0 30px #fff)}
+.adv-front.shaking{animation:advShake 1.1s linear both;filter:drop-shadow(0 0 30px #fff)}
 .adv-packbox{position:absolute;left:50%;top:50%;height:119%;aspect-ratio:896/1200;transform:translate(-50%,-50%);pointer-events:none}
 .adv-pack{width:100%;height:100%;display:block}
 .adv-open{position:absolute;left:50%;bottom:3%;transform:translateX(-50%);padding:.15rem .6rem;border-radius:999px;background:rgba(3,10,22,.82);border:1px solid ${CYAN};font:700 .52rem 'Courier New',monospace;letter-spacing:.2em;color:${CYAN};white-space:nowrap}
@@ -332,7 +446,37 @@ const css = `
 .adv-scores{display:flex;align-items:center;gap:1rem;flex-wrap:wrap}
 .adv-sbadge{padding:.4rem .9rem;border:2px solid;border-radius:14px;background:rgba(0,0,0,.35);text-align:center}.adv-sbadge b{display:block;font-size:1.9rem;line-height:1.1;font-weight:900}.adv-sbadge small{font:600 .55rem 'Courier New',monospace;letter-spacing:.14em;color:#9fb3cc;text-transform:uppercase}
 .adv-toprow u{min-width:1.7rem;padding:.05rem .4rem;border-radius:999px;color:#04101a;font:800 .72rem system-ui;text-align:center;text-decoration:none}
+.adv-sharerow{display:flex;gap:.4rem;flex-wrap:wrap;margin-top:1rem}
+.adv-sharerow .adv-btn{flex:1 1 auto;display:inline-flex;align-items:center;justify-content:center;gap:.35rem;padding:.5rem .5rem;font-size:.6rem;white-space:nowrap}
+.adv-cta .adv-btn{display:inline-flex;align-items:center;justify-content:center;gap:.35rem}
+.adv-btn:disabled{opacity:.45;cursor:wait}
 .adv-ref{margin-top:.5rem;font-size:.62rem;color:#6f8099}
+.adv-headr{display:flex;align-items:center;gap:.9rem}.adv-mute{background:none;border:1px solid rgba(255,255,255,.18);border-radius:999px;width:2rem;height:2rem;cursor:pointer;font-size:.95rem;line-height:1}
+.adv-clock{display:flex;gap:.7rem;justify-content:center;margin:.4rem 0 .2rem}
+.adv-unit{display:flex;flex-direction:column;align-items:center;gap:.3rem}
+.adv-digits{position:relative;min-width:3.4rem;padding:.55rem .5rem;border-radius:10px;background:linear-gradient(180deg,#141f33 0%,#141f33 49%,#0a111e 50%,#0e1626 100%);border:1px solid rgba(240,201,110,.45);box-shadow:0 0 18px rgba(240,201,110,.15),inset 0 0 12px rgba(0,0,0,.5);font:400 clamp(1.7rem,6vw,2.6rem)/1 'AdvGraduate','Arial Black',sans-serif;color:${GOLD};text-align:center;letter-spacing:.04em}
+.adv-unit span{font:600 .55rem 'Courier New',monospace;letter-spacing:.16em;color:#8fa3bd;text-transform:uppercase}
+.adv-launch .adv-btn{margin-top:.6rem;align-self:center}
+.adv-new{position:absolute;top:2%;left:50%;transform:translateX(-50%);padding:.1rem .5rem;border-radius:999px;background:linear-gradient(180deg,#fff2c4,${GOLD});color:#2a1c04;font:900 .5rem system-ui;letter-spacing:.14em;white-space:nowrap;animation:advTap 1.6s ease-in-out infinite;z-index:3}
+.adv-ritual{margin-top:1.1rem;display:flex;gap:.8rem;justify-content:center;align-items:center;flex-wrap:wrap}
+.adv-streak{padding:.3rem .8rem;border-radius:999px;border:1px solid rgba(255,126,52,.6);background:rgba(255,126,52,.1);color:#ffb37a;font:700 .7rem 'Courier New',monospace;letter-spacing:.08em}
+.adv-prog{position:relative;display:inline-block;min-width:200px;height:1.5rem;border-radius:999px;border:1px solid rgba(64,232,255,.5);background:rgba(64,232,255,.06);overflow:hidden}
+.adv-prog i{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,rgba(64,232,255,.35),rgba(240,201,110,.45));transition:width .6s}
+.adv-prog b{position:relative;display:block;text-align:center;line-height:1.5rem;font:700 .64rem 'Courier New',monospace;letter-spacing:.12em;color:#e6efff}
+.adv-how{margin:3rem auto 0;max-width:900px}.adv-how h2{text-align:center;font-size:1.15rem;letter-spacing:.2em;text-transform:uppercase;color:${GOLD};margin:0 0 1.1rem}
+.adv-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.adv-step{position:relative;padding:1.2rem 1rem 1rem;border-radius:16px;border:1px solid rgba(240,201,110,.3);background:linear-gradient(160deg,rgba(15,27,46,.8),rgba(6,10,21,.8));text-align:center}
+.adv-step span{display:inline-flex;width:2.2rem;height:2.2rem;border-radius:50%;align-items:center;justify-content:center;background:radial-gradient(circle at 35% 30%,#fff2c4,${GOLD} 50%,#8a6418);color:#2a1c04;font:400 1.1rem 'AdvGraduate','Arial Black',sans-serif}
+.adv-step b{display:block;margin:.6rem 0 .3rem;color:#fff;font-size:.95rem}.adv-step p{margin:0;color:#9fb3cc;font-size:.8rem;line-height:1.5}
+.adv-faq{display:flex;flex-direction:column;gap:.5rem}
+.adv-faq details{border:1px solid rgba(255,255,255,.1);border-radius:12px;background:rgba(255,255,255,.03);padding:.7rem 1rem}
+.adv-faq summary{cursor:pointer;color:#e6efff;font-size:.88rem}.adv-faq p{margin:.6rem 0 0;color:#9fb3cc;font-size:.8rem;line-height:1.55}
+.adv-toast{position:fixed;left:50%;bottom:1.2rem;transform:translateX(-50%);z-index:40;display:flex;align-items:center;gap:1rem;flex-wrap:wrap;justify-content:center;padding:.8rem 1.2rem;border-radius:16px;border:1px solid ${GOLD};background:rgba(6,10,21,.94);backdrop-filter:blur(8px);box-shadow:0 0 30px rgba(240,201,110,.25);max-width:92vw;animation:advFade .4s}
+.adv-toast p{margin:0;color:#e6efff;font-size:.85rem}.adv-toast .adv-btn{padding:.5rem 1rem;font-size:.66rem}.adv-toast button:not(.adv-btn){background:none;border:none;color:#9fb3cc;cursor:pointer;font-size:1rem}
+@media(max-width:640px){.adv-steps{grid-template-columns:1fr}.adv-digits{min-width:2.8rem}}
+.adv-ed{margin-left:.6rem;padding:.1rem .5rem;border-radius:999px;border:1px solid ${GOLD};color:${GOLD};font-size:.58rem;letter-spacing:.14em}
+.adv-door.finale .adv-front.avail{filter:drop-shadow(0 0 20px ${GOLD}) drop-shadow(0 0 8px rgba(255,214,120,.8))}
+.adv-door.finale .adv-open{border-color:${GOLD};color:${GOLD}}
 .adv-shinewrap{position:absolute;inset:0;overflow:hidden;border-radius:7%/4.5%;pointer-events:none}
 .adv-shine{position:absolute;inset:0;background:linear-gradient(115deg,transparent 35%,rgba(255,255,255,.22) 50%,transparent 65%);transform:translateX(-120%);animation:advShine 3.4s ease-in-out infinite;pointer-events:none}
 .adv-score{position:absolute;top:7px;right:7px;min-width:2.1rem;padding:.12rem .45rem;border-radius:999px;color:#04101a;font:900 clamp(.78rem,2.2vw,1.05rem) system-ui;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,.5)}
@@ -373,6 +517,7 @@ const css = `
 @keyframes advFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
 .adv-top{gap:min(.35rem,.6vh)}
 @media(min-width:641px){.adv-stagebox{overflow:hidden;max-height:96vh}.adv-name{font-size:min(2.1rem,4.4vh)}.adv-bigscore{font-size:min(5rem,10vh);margin:min(.5rem,.8vh) 0}.adv-sbadge b{font-size:min(1.9rem,3.6vh)}.adv-stagecard{width:min(40%,calc(66vh * .625))}}
+@media(min-width:641px) and (max-height:700px){.adv-sharerow{margin-top:.5rem}.adv-sharerow .adv-btn,.adv-cta .adv-btn{padding:.32rem .4rem}.adv-top{gap:0}.adv-toprow{padding:.04rem .5rem}.adv-toprow img,.adv-toprow i{width:16px;height:21px}.adv-stats{margin-top:.3rem}.adv-ref{display:none}.adv-nav{margin-top:.3rem}}
 @media(min-width:641px) and (max-height:800px){.adv-stagebox{padding:.9rem 1.4rem;gap:1.4rem}.adv-stat{padding:.2rem .5rem}.adv-stat b{font-size:.95rem}.adv-toprow{padding:.12rem .5rem}.adv-toprow img,.adv-toprow i{width:20px;height:26px}.adv-cta{margin-top:.55rem}.adv-btn{padding:.45rem .6rem;font-size:.66rem}.adv-nav{margin-top:.5rem}.adv-nav button{width:1.9rem;height:1.9rem}.adv-ref{margin-top:.3rem}.adv-sub{margin-top:.2rem}.adv-team{font-size:.78rem}}
 @media(max-width:900px){.adv-grid{grid-template-columns:repeat(4,1fr);gap:14px}}
 @media(max-width:640px){.adv-grid{grid-template-columns:repeat(3,1fr);gap:20px 10px}.adv-stagebox{flex-direction:column;padding:1.1rem}.adv-stagecard{width:min(46%,calc(38vh * .625))}.adv-wrap{padding:.9rem .8rem 2.5rem}}
