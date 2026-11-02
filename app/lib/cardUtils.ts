@@ -53,6 +53,17 @@ export const dedupeByPlayer=(list:any[])=>{
   for(const c of list){ const k=playerKey(c); byPlayer[k]=byPlayer[k]?better(byPlayer[k],c):c; }
   return Object.values(byPlayer);
 };
+// HOF automatique : les 5 meilleurs L10, un seul exemplaire par joueur.
+// Si le manager a moins de 5 joueurs differents, on complete avec ses autres exemplaires (meilleur L10 d'abord).
+export const autoHofTop5=(list:any[]):string[]=>{
+  const byL10=(a:any,b:any)=>(b.averageScore??-1)-(a.averageScore??-1);
+  const top=dedupeByPlayer(list).sort(byL10).slice(0,5);
+  if(top.length<5){
+    const used=new Set(top.map((c:any)=>c.slug));
+    top.push(...list.filter((c:any)=>!used.has(c.slug)).sort(byL10).slice(0,5-top.length));
+  }
+  return top.map((c:any)=>c.slug);
+};
 
 export const isNBA=(c:any)=>c?.__typename==='NBACard';
 export const parseCard=(name:string)=>{
