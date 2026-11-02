@@ -40,14 +40,26 @@ export function sfxShake() {
   while (at < 0.8) { noise(c, t + at, 0.05, 0.05 + k * 0.004, 3200 + k * 260, 6500, 9); at += gap; gap = Math.max(0.04, gap * 0.84); k++; }
   noise(c, t, 0.85, 0.035, 500, 7000, 1.2);
 }
-// Revelation : choc sec, "shing" metallique aiguise, cloche cristalline (plus riche si le score est tres haut)
+// Revelation : "shing" metallique tres aigu + longue resonance (plus riche si le score est tres haut).
+// ?snd=I (test) : variante "impact flash" (choc sec + eclat blanc court).
 export function sfxReveal(high = false) {
   const c = get(); if (!c) return; const t = c.currentTime;
-  tone(c, 95, t, 0.35, 0.1, 'sine', 40);
-  noise(c, t, 0.4, 0.09, 2500, 14000, 1.5, 'highpass');
-  bell(c, 1480, t + 0.02, 0.07, 1.4);
-  bell(c, 2217, t + 0.13, 0.05, 1.2);
-  if (high) { bell(c, 2960, t + 0.26, 0.045, 1.5); bell(c, 4435, t + 0.38, 0.03, 1.4); }
+  let alt = false; try { alt = new URLSearchParams(location.search).get('snd') === 'I'; } catch {}
+  if (alt) {
+    tone(c, 160, t, 0.22, 0.2, 'sine', 38);
+    noise(c, t, 0.12, 0.22, 9000, 1800, 0.8, 'highpass');
+    noise(c, t + 0.01, 0.5, 0.07, 6000, 12000, 2, 'highpass');
+    bell(c, 2400, t + 0.02, 0.05, 0.9);
+    if (high) bell(c, 3600, t + 0.14, 0.04, 1.1);
+    return;
+  }
+  // choc tres bref + eclat de metal aigu qui se prolonge
+  tone(c, 120, t, 0.18, 0.08, 'sine', 50);
+  noise(c, t, 0.08, 0.16, 8000, 14000, 1, 'highpass');
+  [3136, 4186, 5274].forEach((f, i) => tone(c, f, t + i * 0.012, 1.6, 0.045 / (1 + i * 0.5), 'sine'));
+  bell(c, 2093, t, 0.06, 1.8);
+  bell(c, 3136, t + 0.09, 0.04, 1.6);
+  if (high) { bell(c, 4186, t + 0.2, 0.035, 1.8); bell(c, 6272, t + 0.3, 0.02, 1.6); }
 }
 // Ouverture du panneau
 export function sfxOpen() {
