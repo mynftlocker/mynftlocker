@@ -158,7 +158,7 @@ const EN: Record<string, string> = {
   'PARTAGER LA CARTE': 'SHARE THE CARD',
   'PARTAGER': 'SHARE',
   'TÉLÉCHARGER': 'DOWNLOAD',
-  'COPIER': 'COPY', 'COPIER LE LIEN': 'COPY LINK', 'COPIER LE LIEN DE LA CARTE': 'COPY CARD LINK', 'Voir une démo': 'See a demo', 'Lien copié': 'Link copied', 'Lien du vestiaire': 'Locker room link',
+  'COPIER': 'COPY', 'Calendrier de l’Avent': 'Advent Calendar', 'COPIER LE LIEN': 'COPY LINK', 'COPIER LE LIEN DE LA CARTE': 'COPY CARD LINK', 'Voir une démo': 'See a demo', 'Lien copié': 'Link copied', 'Lien du vestiaire': 'Locker room link',
   'joueurs': 'players',
   'joueur': 'player',
   'Titulaire du 5 majeur': 'Starting five',
