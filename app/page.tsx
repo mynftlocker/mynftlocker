@@ -15,7 +15,7 @@ import { collectPrefs, pullPrefs, pushPrefs } from './lib/prefsSync';
 import StarCanvas from './components/StarCanvas';
 import { t as tr, useLang, initLang, LangSwitch, getLang } from './i18n';
 import { toSlug, type SlugState, useSlugCheck, SlugHint } from './lib/slugCheck';
-import { RARITY_GLOW, RARITY_COLOR, RARITY_FILL, RARITY_ORDER, HOF_KEY, editionGroup, specialLabel, STANDARD_EDITIONS, isSpecialCard, playerKey, dedupeByPlayer, isNBA, parseCard, nameFontSize, NBA_CONF } from './lib/cardUtils';
+import { RARITY_GLOW, RARITY_COLOR, RARITY_FILL, RARITY_ORDER, HOF_KEY, autoHofTop5, editionGroup, specialLabel, STANDARD_EDITIONS, isSpecialCard, playerKey, dedupeByPlayer, isNBA, parseCard, nameFontSize, NBA_CONF } from './lib/cardUtils';
 import { CardBack, LockerSlot } from './components/LockerSlot';
 import { FilterMenu, ToggleRow, COUNTRY_FR, countryFR, FootTeamMenu } from './components/SidebarMenus';
 // Slug Sorare : minuscules, sans accents, caracteres speciaux remplaces par '-' (comme Sorare le fait a partir du pseudo)
@@ -104,7 +104,7 @@ export default function Home() {
     const savedHof=localStorage.getItem('mynftlocker_hof_'+slug);
     if(savedHof && JSON.parse(savedHof).length>0){ localStorage.setItem('mynftlocker_hof_init_'+slug,'done'); return; }
     const nba=cards.filter(c=>isNBA(c));
-    const top5=dedupeByPlayer(nba).sort((a:any,b:any)=>(b.averageScore??-1)-(a.averageScore??-1)).slice(0,5).map((c:any)=>c.slug);
+    const top5=autoHofTop5(nba);
     if(top5.length===0) return;
     setHof(top5);
     localStorage.setItem('mynftlocker_hof_'+slug,JSON.stringify(top5));
@@ -120,7 +120,7 @@ export default function Home() {
     const savedF=localStorage.getItem('mynftlocker_hof_foot_'+slug);
     if(savedF && JSON.parse(savedF).length>0){ localStorage.setItem('mynftlocker_hoffoot_init_'+slug,'done'); return; }
     const foot=cards.filter(c=>!isNBA(c));
-    const top5=dedupeByPlayer(foot).sort((a:any,b:any)=>(b.averageScore??-1)-(a.averageScore??-1)).slice(0,5).map((c:any)=>c.slug);
+    const top5=autoHofTop5(foot);
     if(top5.length===0) return;
     setHofFoot(top5);
     localStorage.setItem('mynftlocker_hof_foot_'+slug,JSON.stringify(top5));
@@ -518,7 +518,9 @@ export default function Home() {
     // 5 Majeur : 5 premieres = epingles + meilleurs L10 (joueurs uniques), puis TOUT le reste trie par L10
     const pinnedPlayers=new Set(pinned.map(playerKey));
     const fill=[...dedupeByPlayer(remaining)].sort(byL10).filter((c:any)=>!pinnedPlayers.has(playerKey(c)));
-    const head=[...pinned,...fill].slice(0,5);
+    let head=[...pinned,...fill].slice(0,5);
+    // Moins de 5 joueurs differents : on complete avec d'autres exemplaires (meilleur L10 d'abord)
+    if(head.length<5){const hs=new Set(head.map((c:any)=>c.slug));head=[...head,...pool.filter(c=>!hs.has(c.slug)).sort(byL10).slice(0,5-head.length)];}
     const headSlugs=new Set(head.map((c:any)=>c.slug));
     const tail=pool.filter(c=>!headSlugs.has(c.slug)).sort(byL10);
     return [...head,...tail];
