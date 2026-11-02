@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getNight, lastFinishedDate } from '../../../lib/ttfl';
-import { arcadeCardFor } from '../../../lib/arcadeCard';
+import { arcadeCardFor, sorareScoreFor } from '../../../lib/arcadeCard';
 
 // Calendrier de l'Avent TTFL x Sorare Arcade : la case N (N decembre) revele le meilleur score TTFL de la nuit NBA precedente
 // (matchs du jour americain N-1, soit la nuit du N-1 au N en France), illustre par sa carte Arcade.
@@ -33,7 +33,9 @@ export async function GET(req: NextRequest) {
     const night = await getNight(date, 10);
     if (!night || !night.finished) return NextResponse.json({ ok: true, open: false, day, pending: true });
     const cards = await Promise.all(night.top.map(r => arcadeCardFor(r.id, r.name)));
-    const top = night.top.map((r, i) => ({ ...r, card: cards[i] }));
+    // Score Sorare (celui de la carte) pour les 5 premiers, afin de faire le lien avec le score TTFL
+    const sc = await Promise.all(night.top.map((r, i) => (i < 5 && cards[i]) ? sorareScoreFor(cards[i]!.playerSlug, night.date) : Promise.resolve(null)));
+    const top = night.top.map((r, i) => ({ ...r, card: cards[i], sorare: sc[i] }));
     return NextResponse.json({ ok: true, open: true, day, date: night.date, games: night.games, top }, { headers: { 'Cache-Control': 'public, s-maxage=600, stale-while-revalidate=3600' } });
   } catch (e) {
     return NextResponse.json({ ok: false, error: String(e) }, { status: 502 });
