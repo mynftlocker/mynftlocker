@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import StarCanvas from '../components/StarCanvas';
 import { useLang, initLang, LangSwitch, t, addEn } from '../i18n';
-import { openDayNow, launchMoment, parisNow } from '../../lib/advent';
+import { openDayNow, launchMoment, parisNow, tier, tierBg } from '../../lib/advent';
 
 addEn({
   'CALENDRIER DE L’AVENT': 'ADVENT CALENDAR',
@@ -41,10 +41,6 @@ type DayData = { edition?: string; open: boolean; pending?: boolean; day: number
 const GOLD = '#f0c96e';
 const CYAN = '#40e8ff';
 const unlockedDays = (demo: number) => (demo > 0 ? Math.min(24, demo) : openDayNow());
-// Code couleur des scores Sorare NBA (releve sur les cartes du jeu) : <5 rouge, 5-14 orange, 15-24 jaune, 25-34 vert-jaune, 35-49 vert, 50-74 cyan, 75+ nacre holographique
-const tier = (s: number) => (s >= 75 ? '#dfe6ff' : s >= 50 ? '#00f3eb' : s >= 35 ? '#25ed36' : s >= 25 ? '#b6ff1a' : s >= 15 ? '#f0ce1d' : s >= 5 ? '#ff7e34' : '#ff5a5a');
-const PEARL = 'linear-gradient(135deg,#ffffff,#bfd4ff 30%,#ffd1f0 55%,#c6fff0 80%,#ffffff)';
-const tierBg = (s: number) => (s >= 75 ? PEARL : tier(s));
 const rowCol = (r: { sorare?: number | null }) => (r.sorare != null ? tier(r.sorare) : GOLD); // couleur = score Sorare
 const rowBg = (r: { sorare?: number | null }) => (r.sorare != null ? tierBg(r.sorare) : GOLD);
 
@@ -119,8 +115,8 @@ function Stage({ n, d, onClose, onPrev, onNext, hasPrev, hasNext, demo }: { n: n
   const score = useCountUp(w.score, true, 1400);
   const sScore = useCountUp(w.sorare ?? 0, w.sorare != null, 1400);
   const share = () => {
-    const txt = `🏀 TTFL × @Sorare Arcade — ${t('CALENDRIER DE L’AVENT')} · ${t('Jour')} ${n}: ${w.name} (${w.score} TTFL)`;
-    window.open('https://x.com/intent/tweet?text=' + encodeURIComponent(txt) + '&url=' + encodeURIComponent('https://mynftlocker.com/calendrier'), '_blank', 'noopener');
+    const txt = `🎁 ${t('Jour')} ${n} — ${t('CALENDRIER DE L’AVENT')} TTFL × @Sorare Arcade\n🏀 ${w.name} : ${w.score} TTFL${w.sorare != null ? ' · ' + w.sorare + ' Sorare' : ''}`;
+    window.open('https://x.com/intent/tweet?text=' + encodeURIComponent(txt) + '&url=' + encodeURIComponent('https://mynftlocker.com/calendrier?day=' + n), '_blank', 'noopener');
   };
   useEffect(() => { const k = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); if (e.key === 'ArrowLeft' && hasPrev) onPrev(); if (e.key === 'ArrowRight' && hasNext) onNext(); }; window.addEventListener('keydown', k); return () => window.removeEventListener('keydown', k); }, [onClose, onPrev, onNext, hasPrev, hasNext]);
   const stat = (l: string, v: number) => (<div className='adv-stat'><b>{v}</b><span>{t(l)}</span></div>);

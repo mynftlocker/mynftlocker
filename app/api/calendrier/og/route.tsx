@@ -1,0 +1,95 @@
+import { ImageResponse } from 'next/og';
+import { NextRequest } from 'next/server';
+import { openDayNow, tier, tierBg } from '../../../../lib/advent';
+import { buildDay } from '../../../../lib/adventDay';
+
+// Image de partage (1200x630) d'une case du calendrier : ?day=N -> carte du jour, noms et scores ; sans jour valide ou case fermee -> visuel generique.
+export const runtime = 'nodejs';
+export const maxDuration = 60;
+const W = 1200, H = 630;
+
+const toDataUrl = async (u: string) => {
+  try {
+    const r = await fetch(u, { signal: AbortSignal.timeout(6000) });
+    if (!r.ok) return null;
+    const ct = r.headers.get('content-type') || 'image/png';
+    if (!/^image\//i.test(ct)) return null;
+    return 'data:' + ct + ';base64,' + Buffer.from(await r.arrayBuffer()).toString('base64');
+  } catch (e) { return null; }
+};
+const loadFont = async () => {
+  try {
+    const r = await fetch('https://cdn.jsdelivr.net/npm/@fontsource/inter@5.0.8/files/inter-latin-700-normal.woff', { signal: AbortSignal.timeout(4000) });
+    return r.ok ? await r.arrayBuffer() : null;
+  } catch (e) { return null; }
+};
+
+export async function GET(req: NextRequest) {
+  const day = Math.floor(Number(req.nextUrl.searchParams.get('day')));
+  let d: any = null;
+  if (day >= 1 && day <= 24 && day <= openDayNow()) { try { d = await buildDay(day); } catch (e) { d = null; } }
+  const w = d?.open ? d.top?.[0] : null;
+  const [font, cardImg, pack, ttfl] = await Promise.all([
+    loadFont(),
+    w?.card?.pictureUrl && /^https:\/\/assets\.sorare\.com\//.test(w.card.pictureUrl) ? toDataUrl(w.card.pictureUrl) : Promise.resolve(null),
+    w ? Promise.resolve(null) : toDataUrl(req.nextUrl.origin + '/logo-pack-blank.png'),
+    toDataUrl(req.nextUrl.origin + '/logo-ttfl.png'),
+  ]);
+  const s = w?.sorare as number | null | undefined;
+  const col = s != null ? tier(s) : '#f0c96e';
+  const body = (
+    <div style={{ width: W, height: H, display: 'flex', flexDirection: 'column', padding: '40px 56px', background: 'radial-gradient(circle at 30% 45%, #16233f 0%, #080d18 60%, #04070d 100%)', color: '#fff', fontFamily: font ? 'Inter' : 'sans-serif' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          {ttfl && <img src={ttfl} height={52} style={{ objectFit: 'contain' }} />}
+          <div style={{ display: 'flex', fontSize: 30, color: '#9fb0c4', margin: '0 16px' }}>×</div>
+          <div style={{ display: 'flex', fontSize: 34, fontWeight: 700, letterSpacing: 4 }}>SORARE <span style={{ color: '#40e8ff', marginLeft: 12 }}>ARCADE</span></div>
+        </div>
+        <div style={{ display: 'flex', fontSize: 26, color: '#f5d76e', letterSpacing: 6 }}>ADVENT CALENDAR</div>
+      </div>
+      <div style={{ display: 'flex', flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+        {w ? (
+          <>
+            {cardImg
+              ? <img src={cardImg} width={300} height={480} style={{ objectFit: 'contain', borderRadius: 14, boxShadow: `0 0 40px ${col}aa` }} />
+              : <div style={{ display: 'flex', width: 300, height: 480, borderRadius: 14, border: `2px solid ${col}` }} />}
+            <div style={{ display: 'flex', flexDirection: 'column', marginLeft: 64, maxWidth: 640 }}>
+              <div style={{ display: 'flex', fontSize: 30, color: '#40e8ff', letterSpacing: 6 }}>DAY {day} · BEST TTFL OF THE NIGHT</div>
+              <div style={{ display: 'flex', fontSize: 68, fontWeight: 700, lineHeight: 1.05, marginTop: 14 }}>{String(w.name).slice(0, 30)}</div>
+              <div style={{ display: 'flex', fontSize: 28, color: '#9fb0c4', marginTop: 8 }}>{w.team}</div>
+              <div style={{ display: 'flex', alignItems: 'center', marginTop: 30 }}>
+                <div style={{ display: 'flex', alignItems: 'baseline' }}>
+                  <span style={{ fontSize: 110, fontWeight: 700, lineHeight: 1 }}>{w.score}</span>
+                  <span style={{ fontSize: 30, color: '#9fb0c4', marginLeft: 12, letterSpacing: 4 }}>TTFL</span>
+                </div>
+                {s != null && (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginLeft: 40, padding: '10px 26px', borderRadius: 18, border: `3px solid ${col}`, background: 'rgba(0,0,0,.35)' }}>
+                    <span style={{ fontSize: 60, fontWeight: 700, color: col, lineHeight: 1.05 }}>{s}</span>
+                    <span style={{ fontSize: 18, color: '#9fb0c4', letterSpacing: 3 }}>SORARE SCORE</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            {pack && <img src={pack} height={400} style={{ objectFit: 'contain', marginRight: 64 }} />}
+            <div style={{ display: 'flex', flexDirection: 'column', maxWidth: 640 }}>
+              <div style={{ display: 'flex', fontSize: 72, fontWeight: 700, lineHeight: 1.05, color: '#f5d76e' }}>24 packs. 24 cards. Every morning in December.</div>
+              <div style={{ display: 'flex', fontSize: 30, color: '#9fb0c4', marginTop: 22 }}>The best TTFL score of the NBA night, on its free Sorare Arcade card.</div>
+            </div>
+          </>
+        )}
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 24, color: '#9fb0c4' }}>
+        <div style={{ display: 'flex' }}>mynftlocker.com/calendrier</div>
+        <div style={{ display: 'flex' }}>Opens every day at 9 AM (Paris)</div>
+      </div>
+    </div>
+  );
+  return new ImageResponse(body, {
+    width: W, height: H,
+    ...(font ? { fonts: [{ name: 'Inter', data: font, weight: 700 as const, style: 'normal' as const }] } : {}),
+    headers: { 'Cache-Control': 'public, max-age=300, s-maxage=3600, stale-while-revalidate=86400' },
+  });
+}

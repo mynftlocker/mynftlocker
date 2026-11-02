@@ -12,3 +12,8 @@ export function openDayNow(): number {
 }
 // Moment d'ouverture de la premiere case (heure de Paris exprimee en "heure locale Paris" comme parisNow)
 export const launchMoment = () => new Date(ADVENT_YEAR, 11, 1, OPEN_HOUR, 0, 0);
+
+// Code couleur des scores Sorare NBA (releve sur les cartes du jeu) : <5 rouge, 5-14 orange, 15-24 jaune, 25-34 vert-jaune, 35-49 vert, 50-74 cyan, 75+ nacre holographique
+export const tier = (s: number) => (s >= 75 ? '#dfe6ff' : s >= 50 ? '#00f3eb' : s >= 35 ? '#25ed36' : s >= 25 ? '#b6ff1a' : s >= 15 ? '#f0ce1d' : s >= 5 ? '#ff7e34' : '#ff5a5a');
+export const PEARL = 'linear-gradient(135deg,#ffffff,#bfd4ff 30%,#ffd1f0 55%,#c6fff0 80%,#ffffff)';
+export const tierBg = (s: number) => (s >= 75 ? PEARL : tier(s));
