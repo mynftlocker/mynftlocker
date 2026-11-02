@@ -31,8 +31,8 @@ export async function arcadeCardFor(espnId: string, name: string): Promise<Arcad
   if (hit === 'none') return null;
   if (hit) return hit;
   try {
-    const a = await getJson(`https://site.web.api.espn.com/apis/common/v3/sports/basketball/nba/athletes/${espnId}`, 86400);
-    const dob: string = a?.athlete?.dateOfBirth;
+    const a = await getJson(`https://sports.core.api.espn.com/v2/sports/basketball/leagues/nba/athletes/${espnId}`, 86400);
+    const dob: string = a?.dateOfBirth; // ISO (le champ displayDOB de l'autre point d'acces change de format selon le pays du serveur)
     if (!dob) return null;
     const names = Array.from(new Set([slugName(name, true), slugName(name, false)]));
     const cands = names.flatMap(n => [0, -1, 1].map(s => `${n}-${dayStr(dob, s)}`));
