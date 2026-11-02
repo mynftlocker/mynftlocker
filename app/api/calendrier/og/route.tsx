@@ -19,6 +19,18 @@ const toDataUrl = async (u: string) => {
 };
 // Logos du site : on essaie l'adresse courante (Preview protegee = refus), puis la production
 const logo = async (origin: string, path: string) => (await toDataUrl(origin + path)) || (await toDataUrl('https://mynftlocker.com' + path));
+// QR code aux couleurs du site (meme style que le partage de vestiaire : plaque claire, modules sombres arrondis), rendu en SVG
+const qrSvg = async (link: string) => {
+  try {
+    const QR: any = await import('qrcode');
+    const q = (QR.create || QR.default?.create)(link, { errorCorrectionLevel: 'M' });
+    const n: number = q.modules.size, m = 100 / (n + 5), off = m * 2.5;
+    let r = '';
+    for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) if (q.modules.get(y, x)) r += `<rect x="${(off + x * m).toFixed(2)}" y="${(off + y * m).toFixed(2)}" width="${(m * 1.04).toFixed(2)}" height="${(m * 1.04).toFixed(2)}" rx="${(m * 0.12).toFixed(2)}"/>`;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="9" fill="#f4f6ff"/><g fill="#0a0e16">${r}</g></svg>`;
+    return 'data:image/svg+xml;base64,' + Buffer.from(svg).toString('base64');
+  } catch (e) { return null; }
+};
 const loadFont = async () => {
   try {
     const r = await fetch('https://cdn.jsdelivr.net/npm/@fontsource/inter@5.0.8/files/inter-latin-700-normal.woff', { signal: AbortSignal.timeout(4000) });
@@ -32,17 +44,19 @@ export async function GET(req: NextRequest) {
   const demo = Math.floor(Number(req.nextUrl.searchParams.get('demo') || 0)); // apercu avant lancement : ?day=2&demo=3
   if (day >= 1 && day <= 24 && (demo > 0 ? day <= demo : day <= openDayNow())) { try { d = await buildDay(day, demo); } catch (e) { d = null; } }
   const w = d?.open ? d.top?.[0] : null;
-  const [font, cardImg, pack, ttfl, sorareLogo] = await Promise.all([
+  const [font, cardImg, pack, ttfl, sorareLogo, qr, rond] = await Promise.all([
     loadFont(),
     w?.card?.pictureUrl && /^https:\/\/assets\.sorare\.com\//.test(w.card.pictureUrl) ? toDataUrl(w.card.pictureUrl) : Promise.resolve(null),
     w ? Promise.resolve(null) : toDataUrl(req.nextUrl.origin + '/logo-pack-blank.png'),
     logo(req.nextUrl.origin, '/logo-ttfl.png'),
     logo(req.nextUrl.origin, '/sorare-logo.png'),
+    qrSvg('https://mynftlocker.com/calendrier' + (d?.open ? '?day=' + day : '')),
+    logo(req.nextUrl.origin, '/logo-rond.png'),
   ]);
   const s = w?.sorare as number | null | undefined;
   const col = s != null ? tier(s) : '#f0c96e';
   const body = (
-    <div style={{ width: W, height: H, display: 'flex', flexDirection: 'column', padding: '30px 52px 26px', background: 'radial-gradient(circle at 30% 45%, #16233f 0%, #080d18 60%, #04070d 100%)', color: '#fff', fontFamily: font ? 'Inter' : 'sans-serif' }}>
+    <div style={{ width: W, height: H, display: 'flex', flexDirection: 'column', position: 'relative', padding: '30px 52px 26px', background: 'radial-gradient(circle at 30% 45%, #16233f 0%, #080d18 60%, #04070d 100%)', color: '#fff', fontFamily: font ? 'Inter' : 'sans-serif' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'center' }}>
           {ttfl ? <img src={ttfl} height={48} style={{ objectFit: 'contain' }} /> : <div style={{ display: 'flex', fontSize: 34, fontWeight: 700, letterSpacing: 4, border: '3px solid #fff', borderRadius: 8, padding: '0 12px' }}>TTFL</div>}
@@ -87,8 +101,13 @@ export async function GET(req: NextRequest) {
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 24, color: '#9fb0c4' }}>
         <div style={{ display: 'flex' }}>mynftlocker.com/calendrier</div>
-        <div style={{ display: 'flex' }}>Opens every day at 9 AM (Paris)</div>
       </div>
+      {qr && (
+        <div style={{ position: 'absolute', right: 52, bottom: 24, display: 'flex', width: 112, height: 112 }}>
+          <img src={qr} width={112} height={112} />
+          {rond && <img src={rond} width={26} height={26} style={{ position: 'absolute', left: 43, top: 43, borderRadius: 13 }} />}
+        </div>
+      )}
     </div>
   );
   return new ImageResponse(body, {

@@ -2,9 +2,9 @@
 import { t } from '../i18n';
 
 // Bandeau d'acces au calendrier de l'Avent (accueil) : logos TTFL x Sorare Arcade + le meme titre que la page du calendrier.
-export default function AdventBanner() {
+export default function AdventBanner({ inline = false }: { inline?: boolean }) {
   return (
-    <a href='/calendrier' className='adv-banner' aria-label={t('Calendrier de l’Avent')}>
+    <a href='/calendrier' className={'adv-banner' + (inline ? ' inline' : '')} aria-label={t('Calendrier de l’Avent')}>
       <style>{`
 .adv-banner{position:fixed;top:.9rem;left:50%;transform:translateX(-50%);z-index:3;display:flex;flex-direction:column;align-items:center;gap:.3rem;padding:.5rem 1.1rem .55rem;border-radius:14px;border:1px solid rgba(240,201,110,.55);background:rgba(6,10,21,.78);backdrop-filter:blur(8px);text-decoration:none;box-shadow:0 0 22px rgba(240,201,110,.22);animation:advBannerGlow 3.2s ease-in-out infinite;white-space:nowrap;width:max-content;max-width:94vw}
 .adv-banner:hover{border-color:#f0c96e;box-shadow:0 0 30px rgba(240,201,110,.45)}
@@ -19,6 +19,8 @@ export default function AdventBanner() {
 .adv-banner .ab-sep{display:none}
 @media(min-width:901px){.adv-banner{flex-direction:row;align-items:center;gap:.9rem;top:.7rem;padding:.3rem 1rem}.adv-banner .ab-sep{display:block;width:1px;height:22px;background:rgba(240,201,110,.45)}.adv-banner .ab-ttfl{height:22px}.adv-banner .ab-sorare img{width:20px;height:20px}.adv-banner .ab-title{font-size:.86rem}}
 @media(max-width:640px){.adv-banner{top:.6rem;padding:.4rem .8rem .45rem}.adv-banner .ab-ttfl{height:22px}.adv-banner .ab-title{font-size:.82rem}}
+@media(min-width:0px){.adv-banner.inline{position:relative;top:auto;left:auto;transform:none;margin:.9rem auto 0;z-index:2}}
+@media(max-height:700px) and (max-width:900px){.adv-banner.inline{margin-top:.45rem;padding:.25rem .7rem .3rem;gap:.15rem}.adv-banner.inline .ab-ttfl{height:18px}.adv-banner.inline .ab-sorare img{width:18px;height:18px}.adv-banner.inline .ab-sorare{font-size:.64rem}.adv-banner.inline .ab-title{font-size:.72rem}}
 @media(prefers-reduced-motion:reduce){.adv-banner{animation:none}}
 `}</style>
       <span className='ab-logos'>
