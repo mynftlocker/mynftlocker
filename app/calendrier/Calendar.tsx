@@ -34,7 +34,7 @@ addEn({
   'jours': 'days', 'h': 'h', 'min': 'min',
   'Clique sur une carte retournée pour voir le détail du joueur': 'Tap a flipped card to see the player details',
   'Score Sorare': 'Sorare score',
-  'Rejoindre Sorare (gratuit)': 'Join Sorare (free)',
+  'Rejoindre Sorare': 'Join Sorare',
   'Jouer à la TTFL': 'Play TTFL',
   'Le lien Sorare est un lien de parrainage.': 'The Sorare link is a referral link.',
   'heures': 'hours', 'minutes': 'minutes', 'secondes': 'seconds',
@@ -167,7 +167,6 @@ function Stage({ n, d, onClose, onPrev, onNext, hasPrev, hasNext, demo, preview,
   const LQ = getLang() === 'en' ? '&lang=en' : ''; // la langue suit le lien partage (apercu et page)
   const link = 'https://mynftlocker.com/calendrier?day=' + n + LQ;
   const txt = `🎁 ${t('Jour')} ${n} — ${t('CALENDRIER DE L’AVENT')} TTFL × @Sorare Arcade\n🏀 ${w.name} : ${w.score} TTFL${w.sorare != null ? ' · ' + w.sorare + ' Sorare' : ''}`;
-  const share = () => { window.open('https://x.com/intent/tweet?text=' + encodeURIComponent(txt) + '&url=' + encodeURIComponent(link), '_blank', 'noopener'); };
   // Image de partage (meme visuel que l'apercu sur X), preparee a l'avance pour partager / telecharger / copier
   const [img, setImg] = useState<{ blob: Blob; file: File } | null>(null);
   const [imgFail, setImgFail] = useState(false);
@@ -218,7 +217,6 @@ function Stage({ n, d, onClose, onPrev, onNext, hasPrev, hasNext, demo, preview,
           </div>
           <div className='adv-sharerow'>
             {canShare && <button className='adv-btn' onClick={doShare}>{ico(<><circle cx='18' cy='5' r='3' /><circle cx='6' cy='12' r='3' /><circle cx='18' cy='19' r='3' /><path d='M8.6 13.5l6.8 4M15.4 6.5l-6.8 4' /></>)}{t('Partager')}</button>}
-            <button className='adv-btn' onClick={share} title={t('Partager sur X')} aria-label={t('Partager sur X')} style={canShare ? { flex: '0 0 auto' } : undefined}>{ico(<path d='M4 4l16 16M20 4L4 20' />)}{canShare ? 'X' : t('Partager sur X')}</button>
             {!imgFail && <button className='adv-btn' disabled={!img} onClick={doDownload}>{ico(<><path d='M12 3v12' /><path d='M8 11l4 4 4-4' /><path d='M5 21h14' /></>)}{t('Télécharger')}</button>}
             {canCopy && !imgFail && <button className='adv-btn' disabled={!img} onClick={doCopy}>{ico(<><rect x='9' y='9' width='12' height='12' rx='2' /><path d='M5 15V5a2 2 0 012-2h10' /></>)}{t('Copier l’image')}</button>}
           </div>
@@ -227,7 +225,7 @@ function Stage({ n, d, onClose, onPrev, onNext, hasPrev, hasNext, demo, preview,
             <a className='adv-btn' href='/'>{t('Découvrir myNFTlocker')}</a>
           </div>
           <div className='adv-cta' style={{ marginTop: '.6rem' }}>
-            <a className='adv-btn' href={'/api/go?to=sorare&day=' + n} target='_blank' rel='noopener nofollow sponsored'>{t('Rejoindre Sorare (gratuit)')}</a>
+            <a className='adv-btn' href={'/api/go?to=sorare&day=' + n} target='_blank' rel='noopener nofollow sponsored'>{t('Rejoindre Sorare')}</a>
             <a className='adv-btn' href={'/api/go?to=ttfl&day=' + n} target='_blank' rel='noopener nofollow'>{t('Jouer à la TTFL')}</a>
           </div>
           <div className='adv-ref'>{msg || (!img && !imgFail ? t('Préparation de l’image…') : t('Le lien Sorare est un lien de parrainage.'))}</div>

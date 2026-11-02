@@ -45,7 +45,7 @@ export async function GET(req: NextRequest) {
   const demo = Math.min(24, Math.floor(Number(req.nextUrl.searchParams.get('demo') || 0))); // apercu avant lancement : ?day=2&demo=3
   if (day >= 1 && day <= 24 && (demo > 0 ? day <= demo : day <= openDayNow())) { try { d = await buildDay(day, demo); } catch (e) { d = null; } }
   const w = d?.open ? d.top?.[0] : null;
-  const [font, cardImg, pack, ttfl, sorareLogo, qr, rond] = await Promise.all([
+  const [font, cardImg, pack, ttfl, sorareLogo, qr, rond, ttflText] = await Promise.all([
     loadFont(),
     w?.card?.pictureUrl && /^https:\/\/assets\.sorare\.com\//.test(w.card.pictureUrl) ? toDataUrl(w.card.pictureUrl) : Promise.resolve(null),
     w ? Promise.resolve(null) : toDataUrl(req.nextUrl.origin + '/logo-pack-blank.png'),
@@ -53,6 +53,7 @@ export async function GET(req: NextRequest) {
     logo(req.nextUrl.origin, '/sorare-logo.png'),
     qrSvg('https://mynftlocker.com/calendrier' + (d?.open ? '?day=' + day : '')),
     logo(req.nextUrl.origin, '/logo-rond.png'),
+    logo(req.nextUrl.origin, '/logo-ttfl-text.png'),
   ]);
   const s = w?.sorare as number | null | undefined;
   const col = s != null ? tier(s) : '#f0c96e';
@@ -76,25 +77,27 @@ export async function GET(req: NextRequest) {
               <div style={{ display: 'flex', fontSize: 23, color: '#40e8ff', letterSpacing: 3, whiteSpace: 'nowrap' }}>{en ? `DAY ${day} · BEST TTFL OF THE NIGHT` : `JOUR ${day} · MEILLEUR SCORE TTFL DE LA NUIT`}</div>
               <div style={{ display: 'flex', fontSize: 62, fontWeight: 700, lineHeight: 1.05, marginTop: 12 }}>{String(w.name).slice(0, 30)}</div>
               <div style={{ display: 'flex', fontSize: 28, color: '#9fb0c4', marginTop: 8 }}>{w.team}</div>
-              <div style={{ display: 'flex', alignItems: 'center', marginTop: 22 }}>
-                <div style={{ display: 'flex', alignItems: 'baseline' }}>
-                  <span style={{ fontSize: 100, fontWeight: 700, lineHeight: 1 }}>{w.score}</span>
-                  <span style={{ fontSize: 30, color: '#9fb0c4', marginLeft: 12, letterSpacing: 4 }}>TTFL</span>
+              <div style={{ display: 'flex', flexDirection: 'column', alignSelf: 'flex-start' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minWidth: 536, marginTop: 22 }}>
+                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                    <span style={{ fontSize: 100, fontWeight: 700, lineHeight: 1 }}>{w.score}</span>
+                    {ttflText ? <img src={ttflText} height={58} style={{ objectFit: 'contain', marginLeft: 14 }} /> : <span style={{ fontSize: 30, color: '#9fb0c4', marginLeft: 12, letterSpacing: 4 }}>TTFL</span>}
+                  </div>
+                  {s != null && (
+                    <div style={{ display: 'flex', alignItems: 'center', padding: '8px 22px', borderRadius: 18, border: `3px solid ${col}`, background: 'rgba(0,0,0,.35)' }}>
+                      <span style={{ fontSize: 100, fontWeight: 700, color: col, lineHeight: 1 }}>{s}</span>
+                      {sorareLogo && <img src={sorareLogo} width={50} height={50} style={{ objectFit: 'contain', marginLeft: 14 }} />}
+                    </div>
+                  )}
                 </div>
-                {s != null && (
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginLeft: 40, padding: '10px 26px', borderRadius: 18, border: `3px solid ${col}`, background: 'rgba(0,0,0,.35)' }}>
-                    <span style={{ fontSize: 60, fontWeight: 700, color: col, lineHeight: 1.05 }}>{s}</span>
-                    <span style={{ fontSize: 18, color: '#9fb0c4', letterSpacing: 3 }}>{en ? 'SORARE SCORE' : 'SCORE SORARE'}</span>
-                  </div>
-                )}
-              </div>
-              <div style={{ display: 'flex', marginTop: 20 }}>
-                {[['PTS', w.pts], ['REB', w.reb], [en ? 'AST' : 'PD', w.ast], [en ? 'STL' : 'INT', w.stl], [en ? 'BLK' : 'CT', w.blk]].map(([l, v]) => (
-                  <div key={String(l)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginRight: 14, padding: '6px 18px', borderRadius: 12, background: 'rgba(255,255,255,.07)' }}>
-                    <span style={{ fontSize: 34, fontWeight: 700, lineHeight: 1.1 }}>{String(v ?? 0)}</span>
-                    <span style={{ fontSize: 15, color: '#9fb0c4', letterSpacing: 3 }}>{l}</span>
-                  </div>
-                ))}
+                <div style={{ display: 'flex', marginTop: 20 }}>
+                  {[['PTS', w.pts], ['REB', w.reb], [en ? 'AST' : 'PD', w.ast], [en ? 'STL' : 'INT', w.stl], [en ? 'BLK' : 'CT', w.blk]].map(([l, v], i) => (
+                    <div key={String(l)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 96, marginRight: i < 4 ? 14 : 0, padding: '6px 0', borderRadius: 12, background: 'rgba(255,255,255,.07)' }}>
+                      <span style={{ fontSize: 34, fontWeight: 700, lineHeight: 1.1 }}>{String(v ?? 0)}</span>
+                      <span style={{ fontSize: 15, color: '#9fb0c4', letterSpacing: 3 }}>{l}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </>
