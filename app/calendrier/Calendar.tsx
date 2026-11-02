@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import StarCanvas from '../components/StarCanvas';
 import { useLang, initLang, LangSwitch, t, addEn } from '../i18n';
 import { openDayNow, launchMoment, parisNow, tier, tierBg } from '../../lib/advent';
-import { sfxShake, sfxReveal, sfxOpen, isMuted, setMuted } from '../../lib/advSound';
+import { sfxShake, sfxReveal, sfxOpen, isMuted, setMuted, SHAKE_MS } from '../../lib/advSound';
 
 addEn({
   'CALENDRIER DE L’AVENT': 'ADVENT CALENDAR',
@@ -304,7 +304,7 @@ export default function Calendar() {
     if (!d) { setMsg(t('Impossible de charger cette case, réessaie dans un instant.')); return; }
     if (!d.open) { setMsg(t('Résultats disponibles à 9 h (heure de Paris).')); return; }
     // ouverture du pack : il tremble et s'illumine, puis la carte se retourne
-    setShaking(n); sfxShake(); await new Promise(r => setTimeout(r, 650)); setShaking(0);
+    setShaking(n); sfxShake(); await new Promise(r => setTimeout(r, SHAKE_MS)); setShaking(0);
     sfxReveal((d.top?.[0]?.sorare ?? 0) >= 75);
     const f = { ...flipped, [n]: true }; setFlipped(f); saveFlipped(f); setBurst(n); setTimeout(() => setBurst(0), 1600);
   };
@@ -432,7 +432,7 @@ const css = `
 .adv-front.avail{filter:drop-shadow(0 0 14px rgba(64,232,255,.45));animation:advPack 3s ease-in-out infinite;animation-delay:var(--fd)}
 .adv-front.avail:hover{transform:translateY(-4px) scale(1.04);filter:drop-shadow(0 0 24px rgba(64,232,255,.8))}
 .adv-front.locked{filter:grayscale(.75) brightness(.55)}
-.adv-front.shaking{animation:advShake .65s linear both;filter:drop-shadow(0 0 30px #fff)}
+.adv-front.shaking{animation:advShake 1.1s linear both;filter:drop-shadow(0 0 30px #fff)}
 .adv-packbox{position:absolute;left:50%;top:50%;height:119%;aspect-ratio:896/1200;transform:translate(-50%,-50%);pointer-events:none}
 .adv-pack{width:100%;height:100%;display:block}
 .adv-open{position:absolute;left:50%;bottom:3%;transform:translateX(-50%);padding:.15rem .6rem;border-radius:999px;background:rgba(3,10,22,.82);border:1px solid ${CYAN};font:700 .52rem 'Courier New',monospace;letter-spacing:.2em;color:${CYAN};white-space:nowrap}

@@ -33,33 +33,32 @@ const noise = (c: AudioContext, t0: number, dur: number, vol: number, f1: number
 const bell = (c: AudioContext, f: number, t0: number, vol: number, dec = 1.3) => {
   [1, 2.76, 5.4, 8.93].forEach((r, i) => tone(c, f * r, t0, dec / (1 + i * 0.7), vol / (1 + i * 1.3), 'sine'));
 };
-// Pack qui tremble : cliquetis metalliques qui s'accelerent + souffle montant
+// Pack qui tremble (1,1 s) : crescendo metallique (balayage de bruit + tonalite montante + cliquetis qui s'accelerent) qui prepare l'explosion
+export const SHAKE_MS = 1100;
 export function sfxShake() {
-  const c = get(); if (!c) return; const t = c.currentTime;
-  let at = 0, gap = 0.14, k = 0;
-  while (at < 0.8) { noise(c, t + at, 0.05, 0.05 + k * 0.004, 3200 + k * 260, 6500, 9); at += gap; gap = Math.max(0.04, gap * 0.84); k++; }
-  noise(c, t, 0.85, 0.035, 500, 7000, 1.2);
+  const c = get(); if (!c) return; const t = c.currentTime, D = SHAKE_MS / 1000;
+  // balayage de bruit qui monte et gonfle
+  noise(c, t, D, 0.2, 400, 9000, 3);
+  // tonalite metallique montante (gain exponentiel : de presque rien au maximum)
+  const o = c.createOscillator(), g = c.createGain(), f = c.createBiquadFilter();
+  o.type = 'sawtooth'; o.frequency.setValueAtTime(180, t); o.frequency.exponentialRampToValueAtTime(2400, t + D);
+  f.type = 'bandpass'; f.Q.value = 4; f.frequency.setValueAtTime(600, t); f.frequency.exponentialRampToValueAtTime(5200, t + D);
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.16, t + D); g.gain.linearRampToValueAtTime(0.0001, t + D + 0.03);
+  o.connect(f); f.connect(g); g.connect(c.destination); o.start(t); o.stop(t + D + 0.05);
+  // cliquetis metalliques de plus en plus serres
+  let at = 0, gap = 0.17, k = 0;
+  while (at < D - 0.05) { noise(c, t + at, 0.04, 0.03 + k * 0.006, 4000 + k * 300, 8000, 10); at += gap; gap = Math.max(0.035, gap * 0.82); k++; }
 }
-// Revelation : "shing" metallique tres aigu + longue resonance (plus riche si le score est tres haut).
-// ?snd=I (test) : variante "impact flash" (choc sec + eclat blanc court).
+// Revelation : explosion "impact flash" metallique (choc, eclat blanc, shing aigu a longue resonance) ; plus riche si le score est tres haut
 export function sfxReveal(high = false) {
   const c = get(); if (!c) return; const t = c.currentTime;
-  let alt = false; try { alt = new URLSearchParams(location.search).get('snd') === 'I'; } catch {}
-  if (alt) {
-    tone(c, 160, t, 0.22, 0.2, 'sine', 38);
-    noise(c, t, 0.12, 0.22, 9000, 1800, 0.8, 'highpass');
-    noise(c, t + 0.01, 0.5, 0.07, 6000, 12000, 2, 'highpass');
-    bell(c, 2400, t + 0.02, 0.05, 0.9);
-    if (high) bell(c, 3600, t + 0.14, 0.04, 1.1);
-    return;
-  }
-  // choc tres bref + eclat de metal aigu qui se prolonge
-  tone(c, 120, t, 0.18, 0.08, 'sine', 50);
-  noise(c, t, 0.08, 0.16, 8000, 14000, 1, 'highpass');
-  [3136, 4186, 5274].forEach((f, i) => tone(c, f, t + i * 0.012, 1.6, 0.045 / (1 + i * 0.5), 'sine'));
-  bell(c, 2093, t, 0.06, 1.8);
-  bell(c, 3136, t + 0.09, 0.04, 1.6);
-  if (high) { bell(c, 4186, t + 0.2, 0.035, 1.8); bell(c, 6272, t + 0.3, 0.02, 1.6); }
+  tone(c, 150, t, 0.4, 0.24, 'sine', 36);
+  noise(c, t, 0.16, 0.3, 10000, 1500, 0.7, 'highpass');
+  noise(c, t + 0.01, 0.7, 0.09, 5000, 14000, 1.5, 'highpass');
+  [3136, 4186, 5274].forEach((f, i) => tone(c, f, t + i * 0.012, 1.7, 0.045 / (1 + i * 0.5), 'sine'));
+  bell(c, 2093, t, 0.07, 1.9);
+  bell(c, 3136, t + 0.09, 0.045, 1.7);
+  if (high) { bell(c, 4186, t + 0.2, 0.04, 1.9); bell(c, 6272, t + 0.3, 0.025, 1.7); }
 }
 // Ouverture du panneau
 export function sfxOpen() {
