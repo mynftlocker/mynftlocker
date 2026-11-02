@@ -27,7 +27,8 @@ const loadFont = async () => {
 export async function GET(req: NextRequest) {
   const day = Math.floor(Number(req.nextUrl.searchParams.get('day')));
   let d: any = null;
-  if (day >= 1 && day <= 24 && day <= openDayNow()) { try { d = await buildDay(day); } catch (e) { d = null; } }
+  const demo = Math.floor(Number(req.nextUrl.searchParams.get('demo') || 0)); // apercu avant lancement : ?day=2&demo=3
+  if (day >= 1 && day <= 24 && (demo > 0 ? day <= demo : day <= openDayNow())) { try { d = await buildDay(day, demo); } catch (e) { d = null; } }
   const w = d?.open ? d.top?.[0] : null;
   const [font, cardImg, pack, ttfl] = await Promise.all([
     loadFont(),
