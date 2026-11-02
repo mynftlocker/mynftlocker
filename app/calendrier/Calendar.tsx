@@ -1,7 +1,7 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import StarCanvas from '../components/StarCanvas';
-import { useLang, initLang, LangSwitch, t, addEn } from '../i18n';
+import { useLang, initLang, LangSwitch, t, addEn, getLang } from '../i18n';
 import { openDayNow, launchMoment, parisNow, tier, tierBg } from '../../lib/advent';
 import { sfxShake, sfxReveal, sfxOpen, isMuted, setMuted, SHAKE_MS } from '../../lib/advSound';
 
@@ -60,6 +60,7 @@ addEn({
   'Les cartes Arcade existent en 3 versions. On les fait tourner tous les 3 jours, et le jour 24 s’ouvre une carte Limited.': 'Arcade cards come in 3 versions. We rotate them every 3 days, and on day 24 a Limited card opens.',
   'Tu aimes ? Crée ta galerie gratuite.': 'Enjoying it? Create your free gallery.',
   'Son': 'Sound',
+  'Verrouillé': 'Locked',
 });
 
 type Card = { slug: string; playerSlug: string; name: string; pictureUrl: string; kind: 'arcade' | 'classic' };
@@ -129,7 +130,7 @@ function Door({ n, openDay, d, flipped, loading, shaking, burst, isNew, onClick 
   const col = w ? rowCol(w) : GOLD;
   const score = useCountUp(w?.sorare ?? w?.score ?? 0, flipped && !!w);
   return (
-    <div className={'adv-door' + (flipped ? ' opened' : '') + (n === 24 ? ' finale' : '')} style={{ perspective: '900px', ['--fd' as any]: (n % 7) * 0.35 + 's' }} onClick={onClick} role='button' aria-label={t('Jour') + ' ' + n}>
+    <div className={'adv-door' + (flipped ? ' opened' : '') + (n === 24 ? ' finale' : '')} style={{ perspective: '900px', ['--fd' as any]: (n % 7) * 0.35 + 's' }} onClick={onClick} role='button' tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } }} aria-label={t('Jour') + ' ' + n + ' — ' + (flipped && w ? w.name : avail ? t('OUVRIR') : t('Verrouillé'))}>
       <div className={'adv-inner' + (flipped ? ' flipped' : '')}>
         {/* Face avant : le pack, avec le numero du jour a la place du bouclier */}
         <div className={'adv-face adv-front' + (avail ? ' avail' : ' locked') + (shaking ? ' shaking' : '')}>
@@ -162,18 +163,20 @@ function Stage({ n, d, onClose, onPrev, onNext, hasPrev, hasNext, demo, preview,
   const w = d.top![0]; const col = rowCol(w);
   const score = useCountUp(w.score, true, 1400);
   const sScore = useCountUp(w.sorare ?? 0, w.sorare != null, 1400);
-  const link = 'https://mynftlocker.com/calendrier?day=' + n;
+  const LQ = getLang() === 'en' ? '&lang=en' : ''; // la langue suit le lien partage (apercu et page)
+  const link = 'https://mynftlocker.com/calendrier?day=' + n + LQ;
   const txt = `🎁 ${t('Jour')} ${n} — ${t('CALENDRIER DE L’AVENT')} TTFL × @Sorare Arcade\n🏀 ${w.name} : ${w.score} TTFL${w.sorare != null ? ' · ' + w.sorare + ' Sorare' : ''}`;
   const share = () => { window.open('https://x.com/intent/tweet?text=' + encodeURIComponent(txt) + '&url=' + encodeURIComponent(link), '_blank', 'noopener'); };
   // Image de partage (meme visuel que l'apercu sur X), preparee a l'avance pour partager / telecharger / copier
   const [img, setImg] = useState<{ blob: Blob; file: File } | null>(null);
+  const [imgFail, setImgFail] = useState(false);
   const [msg, setMsg] = useState('');
   const flash = (m: string) => { setMsg(m); setTimeout(() => setMsg(''), 2500); };
   useEffect(() => {
-    let dead = false; setImg(null);
-    fetch('/api/calendrier/og?day=' + n + ogQ).then(r => r.ok ? r.blob() : Promise.reject()).then(b => { if (!dead) setImg({ blob: b, file: new File([b], 'calendrier-avent-jour-' + n + '.png', { type: 'image/png' }) }); }).catch(() => {});
+    let dead = false; setImg(null); setImgFail(false);
+    fetch('/api/calendrier/og?day=' + n + ogQ + LQ).then(r => r.ok ? r.blob() : Promise.reject()).then(b => { if (!dead) setImg({ blob: b, file: new File([b], 'calendrier-avent-jour-' + n + '.png', { type: 'image/png' }) }); }).catch(() => { if (!dead) setImgFail(true); });
     return () => { dead = true; };
-  }, [n, ogQ]);
+  }, [n, ogQ, LQ]);
   const canShare = !!img && typeof navigator !== 'undefined' && !!(navigator as any).canShare && (navigator as any).canShare({ files: [img.file] });
   const canCopy = typeof window !== 'undefined' && !!(window as any).ClipboardItem && !!navigator.clipboard?.write;
   const doShare = async () => { if (!img) return; try { await (navigator as any).share({ files: [img.file], title: w.name, text: txt + '\n' + link }); } catch (e: any) { if (!e || e.name !== 'AbortError') flash(t('Partage impossible')); } };
@@ -184,7 +187,7 @@ function Stage({ n, d, onClose, onPrev, onNext, hasPrev, hasNext, demo, preview,
   useEffect(() => { const k = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); if (e.key === 'ArrowLeft' && hasPrev) onPrev(); if (e.key === 'ArrowRight' && hasNext) onNext(); }; window.addEventListener('keydown', k); return () => window.removeEventListener('keydown', k); }, [onClose, onPrev, onNext, hasPrev, hasNext]);
   const stat = (l: string, v: number) => (<div className='adv-stat'><b>{v}</b><span>{t(l)}</span></div>);
   return (
-    <div className='adv-stage' onClick={onClose}>
+    <div className='adv-stage' onClick={onClose} role='dialog' aria-modal='true' aria-label={w.name}>
       <div className='adv-stagebox' onClick={e => e.stopPropagation()} style={{ ['--tc' as any]: col }}>
         <button className='adv-x' onClick={onClose} aria-label={t('Fermer')}>✕</button>
         <div className='adv-stagecard'>
@@ -214,9 +217,9 @@ function Stage({ n, d, onClose, onPrev, onNext, hasPrev, hasNext, demo, preview,
           </div>
           <div className='adv-sharerow'>
             {canShare && <button className='adv-btn' onClick={doShare}>{ico(<><circle cx='18' cy='5' r='3' /><circle cx='6' cy='12' r='3' /><circle cx='18' cy='19' r='3' /><path d='M8.6 13.5l6.8 4M15.4 6.5l-6.8 4' /></>)}{t('Partager')}</button>}
-            <button className='adv-btn' onClick={share}>{ico(<path d='M4 4l16 16M20 4L4 20' />)}{t('Partager sur X')}</button>
-            <button className='adv-btn' disabled={!img} onClick={doDownload}>{ico(<><path d='M12 3v12' /><path d='M8 11l4 4 4-4' /><path d='M5 21h14' /></>)}{t('Télécharger')}</button>
-            {canCopy && <button className='adv-btn' disabled={!img} onClick={doCopy}>{ico(<><rect x='9' y='9' width='12' height='12' rx='2' /><path d='M5 15V5a2 2 0 012-2h10' /></>)}{t('Copier l’image')}</button>}
+            <button className='adv-btn' onClick={share} title={t('Partager sur X')} aria-label={t('Partager sur X')} style={canShare ? { flex: '0 0 auto' } : undefined}>{ico(<path d='M4 4l16 16M20 4L4 20' />)}{canShare ? 'X' : t('Partager sur X')}</button>
+            {!imgFail && <button className='adv-btn' disabled={!img} onClick={doDownload}>{ico(<><path d='M12 3v12' /><path d='M8 11l4 4 4-4' /><path d='M5 21h14' /></>)}{t('Télécharger')}</button>}
+            {canCopy && !imgFail && <button className='adv-btn' disabled={!img} onClick={doCopy}>{ico(<><rect x='9' y='9' width='12' height='12' rx='2' /><path d='M5 15V5a2 2 0 012-2h10' /></>)}{t('Copier l’image')}</button>}
           </div>
           <div className='adv-cta' style={{ marginTop: '.5rem' }}>
             <button className='adv-btn' onClick={doCopyLink}>{ico(<><path d='M10 13a5 5 0 007 0l3-3a5 5 0 00-7-7l-1 1' /><path d='M14 11a5 5 0 00-7 0l-3 3a5 5 0 007 7l1-1' /></>)}{t('Copier le lien')}</button>
@@ -226,7 +229,7 @@ function Stage({ n, d, onClose, onPrev, onNext, hasPrev, hasNext, demo, preview,
             <a className='adv-btn' href={'/api/go?to=sorare&day=' + n} target='_blank' rel='noopener nofollow sponsored'>{t('Rejoindre Sorare (gratuit)')}</a>
             <a className='adv-btn' href={'/api/go?to=ttfl&day=' + n} target='_blank' rel='noopener nofollow'>{t('Jouer à la TTFL')}</a>
           </div>
-          <div className='adv-ref'>{msg || (!img ? t('Préparation de l’image…') : t('Le lien Sorare est un lien de parrainage.'))}</div>
+          <div className='adv-ref'>{msg || (!img && !imgFail ? t('Préparation de l’image…') : t('Le lien Sorare est un lien de parrainage.'))}</div>
           <div className='adv-nav'>
             <button disabled={!hasPrev} onClick={onPrev}>←</button>
             <button disabled={!hasNext} onClick={onNext}>→</button>
@@ -261,7 +264,8 @@ export default function Calendar() {
     initLang();
     const dm = Math.floor(Number(new URLSearchParams(window.location.search).get('demo') || 0)) || 0;
     setDemo(dm); setOpenDay(unlockedDays(dm));
-    try { const f = JSON.parse(localStorage.getItem('mnfl_adv_flipped_' + (dm ? 'demo' : 'real')) || '{}'); setFlipped(f); } catch {}
+    // En demo, rien n'est memorise : chaque visite repart avec toutes les cases fermees (les anciennes ouvertures de test ne reviennent pas)
+    if (!dm) { try { const f = JSON.parse(localStorage.getItem('mnfl_adv_flipped_real') || '{}'); setFlipped(f); } catch {} }
     try { setHintSeen(localStorage.getItem('mnfl_adv_hint') === '1'); } catch {}
     setMutedS(isMuted());
     setReady(true);
@@ -293,7 +297,7 @@ export default function Calendar() {
     return () => { cancel = true; };
   }, [ready, openDay, load]);
 
-  const saveFlipped = (f: Record<number, boolean>) => { try { localStorage.setItem('mnfl_adv_flipped_' + (demo ? 'demo' : 'real'), JSON.stringify(f)); } catch {} };
+  const saveFlipped = (f: Record<number, boolean>) => { if (demo) return; try { localStorage.setItem('mnfl_adv_flipped_real', JSON.stringify(f)); } catch {} };
   const click = async (n: number) => {
     setMsg('');
     if (n > openDay) { setMsg(t('Cette case n’est pas encore ouverte.')); return; }
@@ -411,6 +415,7 @@ const css = `
 .adv-launch b{color:${GOLD};letter-spacing:.08em}.adv-launch span{font:700 1.1rem 'Courier New',monospace;color:${CYAN}}.adv-launch small{color:#8fa3bd;font-size:.74rem}
 .adv-demo{margin-top:1rem;display:inline-block;padding:.3rem .8rem;border-radius:999px;border:1px dashed rgba(64,232,255,.5);color:${CYAN};font:600 .66rem 'Courier New',monospace;letter-spacing:.12em;text-transform:uppercase}
 .adv-msg{text-align:center;margin:0 auto .8rem;padding:.55rem 1rem;max-width:520px;border-radius:10px;background:rgba(251,146,60,.12);border:1px solid rgba(251,146,60,.4);color:#fdba74;font-size:.82rem}
+.adv-door:focus-visible{outline:2px solid #40e8ff;outline-offset:4px;border-radius:16px}
 .adv-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:24px 18px;margin-top:.6rem}
 .adv-inner{position:absolute;inset:0;transform-style:preserve-3d;transition:transform .95s cubic-bezier(.3,.7,.2,1)}
 .adv-inner.flipped{transform:rotateY(180deg)}
