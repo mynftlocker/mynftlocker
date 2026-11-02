@@ -17,6 +17,8 @@ const toDataUrl = async (u: string) => {
     return 'data:' + ct + ';base64,' + Buffer.from(await r.arrayBuffer()).toString('base64');
   } catch (e) { return null; }
 };
+// Logos du site : on essaie l'adresse courante (Preview protegee = refus), puis la production
+const logo = async (origin: string, path: string) => (await toDataUrl(origin + path)) || (await toDataUrl('https://mynftlocker.com' + path));
 const loadFont = async () => {
   try {
     const r = await fetch('https://cdn.jsdelivr.net/npm/@fontsource/inter@5.0.8/files/inter-latin-700-normal.woff', { signal: AbortSignal.timeout(4000) });
@@ -30,11 +32,12 @@ export async function GET(req: NextRequest) {
   const demo = Math.floor(Number(req.nextUrl.searchParams.get('demo') || 0)); // apercu avant lancement : ?day=2&demo=3
   if (day >= 1 && day <= 24 && (demo > 0 ? day <= demo : day <= openDayNow())) { try { d = await buildDay(day, demo); } catch (e) { d = null; } }
   const w = d?.open ? d.top?.[0] : null;
-  const [font, cardImg, pack, ttfl] = await Promise.all([
+  const [font, cardImg, pack, ttfl, sorareLogo] = await Promise.all([
     loadFont(),
     w?.card?.pictureUrl && /^https:\/\/assets\.sorare\.com\//.test(w.card.pictureUrl) ? toDataUrl(w.card.pictureUrl) : Promise.resolve(null),
     w ? Promise.resolve(null) : toDataUrl(req.nextUrl.origin + '/logo-pack-blank.png'),
-    toDataUrl(req.nextUrl.origin + '/logo-ttfl.png'),
+    logo(req.nextUrl.origin, '/logo-ttfl.png'),
+    logo(req.nextUrl.origin, '/sorare-logo.png'),
   ]);
   const s = w?.sorare as number | null | undefined;
   const col = s != null ? tier(s) : '#f0c96e';
@@ -44,7 +47,7 @@ export async function GET(req: NextRequest) {
         <div style={{ display: 'flex', alignItems: 'center' }}>
           {ttfl ? <img src={ttfl} height={48} style={{ objectFit: 'contain' }} /> : <div style={{ display: 'flex', fontSize: 34, fontWeight: 700, letterSpacing: 4, border: '3px solid #fff', borderRadius: 8, padding: '0 12px' }}>TTFL</div>}
           <div style={{ display: 'flex', fontSize: 30, color: '#9fb0c4', margin: '0 16px' }}>×</div>
-          <div style={{ display: 'flex', fontSize: 34, fontWeight: 700, letterSpacing: 4 }}>SORARE <span style={{ color: '#40e8ff', marginLeft: 12 }}>ARCADE</span></div>
+          <div style={{ display: 'flex', alignItems: 'center', fontSize: 34, fontWeight: 700, letterSpacing: 4 }}>{sorareLogo && <img src={sorareLogo} width={44} height={44} style={{ objectFit: 'contain', marginRight: 12 }} />}SORARE <span style={{ color: '#40e8ff', marginLeft: 12 }}>ARCADE</span></div>
         </div>
         <div style={{ display: 'flex', fontSize: 26, color: '#f5d76e', letterSpacing: 6 }}>ADVENT CALENDAR</div>
       </div>
@@ -54,7 +57,7 @@ export async function GET(req: NextRequest) {
             {cardImg
               ? <img src={cardImg} width={262} height={420} style={{ objectFit: 'contain', borderRadius: 14, boxShadow: `0 0 40px ${col}aa` }} />
               : <div style={{ display: 'flex', width: 262, height: 420, borderRadius: 14, border: `2px solid ${col}` }} />}
-            <div style={{ display: 'flex', flexDirection: 'column', marginLeft: 60, maxWidth: 720 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', height: 420, marginLeft: 60, maxWidth: 720 }}>
               <div style={{ display: 'flex', fontSize: 25, color: '#40e8ff', letterSpacing: 4, whiteSpace: 'nowrap' }}>DAY {day} · BEST TTFL OF THE NIGHT</div>
               <div style={{ display: 'flex', fontSize: 62, fontWeight: 700, lineHeight: 1.05, marginTop: 12 }}>{String(w.name).slice(0, 30)}</div>
               <div style={{ display: 'flex', fontSize: 28, color: '#9fb0c4', marginTop: 8 }}>{w.team}</div>
