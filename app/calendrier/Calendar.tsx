@@ -110,7 +110,7 @@ function Door({ n, openDay, d, flipped, loading, shaking, burst, onClick }: { n:
         {/* Face arriere : la carte, plein format */}
         <div className='adv-face adv-back'>
           {w?.card && <img src={w.card.pictureUrl} alt={w.name} className='adv-img' draggable={false} style={{ filter: 'drop-shadow(0 0 2px ' + col + ') drop-shadow(0 0 12px ' + col + '99)' }} />}
-          <div className='adv-shine' />
+          <div className='adv-shinewrap'><div className='adv-shine' /></div>
           <div className='adv-score' style={{ background: w ? rowBg(w) : col }}>{score}</div>
           <div className='adv-daybadge'>{n}</div>
           <div className='adv-detail' aria-hidden='true'>⌕</div>
@@ -333,6 +333,7 @@ const css = `
 .adv-sbadge{padding:.4rem .9rem;border:2px solid;border-radius:14px;background:rgba(0,0,0,.35);text-align:center}.adv-sbadge b{display:block;font-size:1.9rem;line-height:1.1;font-weight:900}.adv-sbadge small{font:600 .55rem 'Courier New',monospace;letter-spacing:.14em;color:#9fb3cc;text-transform:uppercase}
 .adv-toprow u{min-width:1.7rem;padding:.05rem .4rem;border-radius:999px;color:#04101a;font:800 .72rem system-ui;text-align:center;text-decoration:none}
 .adv-ref{margin-top:.5rem;font-size:.62rem;color:#6f8099}
+.adv-shinewrap{position:absolute;inset:0;overflow:hidden;border-radius:7%/4.5%;pointer-events:none}
 .adv-shine{position:absolute;inset:0;background:linear-gradient(115deg,transparent 35%,rgba(255,255,255,.22) 50%,transparent 65%);transform:translateX(-120%);animation:advShine 3.4s ease-in-out infinite;pointer-events:none}
 .adv-score{position:absolute;top:7px;right:7px;min-width:2.1rem;padding:.12rem .45rem;border-radius:999px;color:#04101a;font:900 clamp(.78rem,2.2vw,1.05rem) system-ui;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,.5)}
 .adv-p{position:absolute;left:50%;top:50%;border-radius:50%;opacity:0;animation:advBurst 1.2s ease-out forwards}
