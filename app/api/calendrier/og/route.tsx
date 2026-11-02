@@ -77,27 +77,27 @@ export async function GET(req: NextRequest) {
               <div style={{ display: 'flex', fontSize: 23, color: '#40e8ff', letterSpacing: 3, whiteSpace: 'nowrap' }}>{en ? `DAY ${day} · BEST TTFL OF THE NIGHT` : `JOUR ${day} · MEILLEUR SCORE TTFL DE LA NUIT`}</div>
               <div style={{ display: 'flex', fontSize: 62, fontWeight: 700, lineHeight: 1.05, marginTop: 12 }}>{String(w.name).slice(0, 30)}</div>
               <div style={{ display: 'flex', fontSize: 28, color: '#9fb0c4', marginTop: 8 }}>{w.team}</div>
-              <div style={{ display: 'flex', flexDirection: 'column', alignSelf: 'flex-start' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minWidth: 536, marginTop: 22 }}>
-                  <div style={{ display: 'flex', alignItems: 'center' }}>
-                    <span style={{ fontSize: 100, fontWeight: 700, lineHeight: 1 }}>{w.score}</span>
-                    {ttflText ? <img src={ttflText} height={58} style={{ objectFit: 'contain', marginLeft: 14 }} /> : <span style={{ fontSize: 30, color: '#9fb0c4', marginLeft: 12, letterSpacing: 4 }}>TTFL</span>}
+              <div style={{ display: 'flex', alignItems: 'center', marginTop: 22 }}>
+                <span style={{ fontSize: 100, fontWeight: 700, lineHeight: 1 }}>{w.score}</span>
+                {ttflText ? <img src={ttflText} height={58} style={{ objectFit: 'contain', marginLeft: 14 }} /> : <span style={{ fontSize: 30, color: '#9fb0c4', marginLeft: 12, letterSpacing: 4 }}>TTFL</span>}
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', marginTop: 14 }}>
+                {[[['PTS', w.pts], ['REB', w.reb], [en ? 'AST' : 'PD', w.ast]], [[en ? 'STL' : 'INT', w.stl], [en ? 'BLK' : 'CT', w.blk]]].map((row, ri) => (
+                  <div key={ri} style={{ display: 'flex', marginTop: ri ? 10 : 0 }}>
+                    {row.map(([l, v]) => (
+                      <div key={String(l)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 96, marginRight: 14, padding: '4px 0', borderRadius: 12, background: 'rgba(255,255,255,.07)' }}>
+                        <span style={{ fontSize: 34, fontWeight: 700, lineHeight: 1.1 }}>{String(v ?? 0)}</span>
+                        <span style={{ fontSize: 15, color: '#9fb0c4', letterSpacing: 3 }}>{l}</span>
+                      </div>
+                    ))}
+                    {ri === 1 && s != null && (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 96, padding: '4px 0', borderRadius: 12, border: `3px solid ${col}`, background: 'rgba(0,0,0,.35)' }}>
+                        <span style={{ fontSize: 34, fontWeight: 700, color: col, lineHeight: 1.1 }}>{s}</span>
+                        {sorareLogo && <img src={sorareLogo} width={26} height={26} style={{ objectFit: 'contain', marginLeft: 8 }} />}
+                      </div>
+                    )}
                   </div>
-                  {s != null && (
-                    <div style={{ display: 'flex', alignItems: 'center', padding: '8px 22px', borderRadius: 18, border: `3px solid ${col}`, background: 'rgba(0,0,0,.35)' }}>
-                      <span style={{ fontSize: 100, fontWeight: 700, color: col, lineHeight: 1 }}>{s}</span>
-                      {sorareLogo && <img src={sorareLogo} width={50} height={50} style={{ objectFit: 'contain', marginLeft: 14 }} />}
-                    </div>
-                  )}
-                </div>
-                <div style={{ display: 'flex', marginTop: 20 }}>
-                  {[['PTS', w.pts], ['REB', w.reb], [en ? 'AST' : 'PD', w.ast], [en ? 'STL' : 'INT', w.stl], [en ? 'BLK' : 'CT', w.blk]].map(([l, v], i) => (
-                    <div key={String(l)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 96, marginRight: i < 4 ? 14 : 0, padding: '6px 0', borderRadius: 12, background: 'rgba(255,255,255,.07)' }}>
-                      <span style={{ fontSize: 34, fontWeight: 700, lineHeight: 1.1 }}>{String(v ?? 0)}</span>
-                      <span style={{ fontSize: 15, color: '#9fb0c4', letterSpacing: 3 }}>{l}</span>
-                    </div>
-                  ))}
-                </div>
+                ))}
               </div>
             </div>
           </>
