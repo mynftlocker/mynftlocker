@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { Analytics } from "@vercel/analytics/next";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -46,6 +47,8 @@ export default function RootLayout({
         {/* H1 invisible : titre de la page pour les moteurs de recherche et les lecteurs d'ecran */}
         <h1 style={{position:"absolute",width:1,height:1,margin:-1,padding:0,overflow:"hidden",clip:"rect(0 0 0 0)",whiteSpace:"nowrap",border:0}}>myNFTlocker — Sorare gallery and locker room</h1>
         {children}
+        {/* Mesure des visites (Vercel Web Analytics : sans cookie, aucune donnee personnelle) */}
+        <Analytics />
       </body>
     </html>
   );
