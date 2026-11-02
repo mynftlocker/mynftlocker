@@ -57,7 +57,7 @@ addEn({
   'Pourquoi 9 h ?': 'Why 9 AM?',
   'Pour que tous les matchs de la nuit NBA soient terminés et leurs statistiques publiées. Chaque case s’ouvre ensuite à 9 h, heure de Paris.': 'So that every game of the NBA night is over and its stats are published. Each door then opens at 9 AM Paris time.',
   'Pourquoi des éditions différentes ?': 'Why different editions?',
-  'Les cartes Arcade existent en 4 versions. On les fait tourner tous les 4 jours, et le jour 24 s’ouvre une carte Limited.': 'Arcade cards come in 4 versions. We rotate them every 4 days, and on day 24 a Limited card opens.',
+  'Les cartes Arcade existent en 3 versions. On les fait tourner tous les 3 jours, et le jour 24 s’ouvre une carte Limited.': 'Arcade cards come in 3 versions. We rotate them every 3 days, and on day 24 a Limited card opens.',
   'Tu aimes ? Crée ta galerie gratuite.': 'Enjoying it? Create your free gallery.',
   'Son': 'Sound',
 });
@@ -368,7 +368,7 @@ export default function Calendar() {
           </div>
           <h2 style={{ marginTop: '2rem' }}>{t('Questions fréquentes')}</h2>
           <div className='adv-faq'>
-            {[['C’est quoi le score TTFL ?', 'Un score de fantasy NBA : points + rebonds + passes + interceptions + contres + tirs réussis, moins les tirs ratés et les balles perdues. Chaque nuit, les meilleurs scores font la une.'], ['C’est quoi Sorare Arcade ?', 'Le mode gratuit de Sorare : des cartes communes, un pack offert chaque jour, pour jouer sans rien payer.'], ['Pourquoi 9 h ?', 'Pour que tous les matchs de la nuit NBA soient terminés et leurs statistiques publiées. Chaque case s’ouvre ensuite à 9 h, heure de Paris.'], ['Pourquoi des éditions différentes ?', 'Les cartes Arcade existent en 4 versions. On les fait tourner tous les 4 jours, et le jour 24 s’ouvre une carte Limited.']].map(([q, a]) => (
+            {[['C’est quoi le score TTFL ?', 'Un score de fantasy NBA : points + rebonds + passes + interceptions + contres + tirs réussis, moins les tirs ratés et les balles perdues. Chaque nuit, les meilleurs scores font la une.'], ['C’est quoi Sorare Arcade ?', 'Le mode gratuit de Sorare : des cartes communes, un pack offert chaque jour, pour jouer sans rien payer.'], ['Pourquoi 9 h ?', 'Pour que tous les matchs de la nuit NBA soient terminés et leurs statistiques publiées. Chaque case s’ouvre ensuite à 9 h, heure de Paris.'], ['Pourquoi des éditions différentes ?', 'Les cartes Arcade existent en 3 versions. On les fait tourner tous les 3 jours, et le jour 24 s’ouvre une carte Limited.']].map(([q, a]) => (
               <details key={q}><summary>{t(q)}</summary><p>{t(a)}</p></details>
             ))}
           </div>

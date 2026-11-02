@@ -75,7 +75,7 @@ export async function GET(req: NextRequest) {
               <div style={{ display: 'flex', fontSize: 25, color: '#40e8ff', letterSpacing: 4, whiteSpace: 'nowrap' }}>DAY {day} · BEST TTFL OF THE NIGHT</div>
               <div style={{ display: 'flex', fontSize: 62, fontWeight: 700, lineHeight: 1.05, marginTop: 12 }}>{String(w.name).slice(0, 30)}</div>
               <div style={{ display: 'flex', fontSize: 28, color: '#9fb0c4', marginTop: 8 }}>{w.team}</div>
-              <div style={{ display: 'flex', alignItems: 'center', marginTop: 30 }}>
+              <div style={{ display: 'flex', alignItems: 'center', marginTop: 22 }}>
                 <div style={{ display: 'flex', alignItems: 'baseline' }}>
                   <span style={{ fontSize: 100, fontWeight: 700, lineHeight: 1 }}>{w.score}</span>
                   <span style={{ fontSize: 30, color: '#9fb0c4', marginLeft: 12, letterSpacing: 4 }}>TTFL</span>
@@ -86,6 +86,14 @@ export async function GET(req: NextRequest) {
                     <span style={{ fontSize: 18, color: '#9fb0c4', letterSpacing: 3 }}>SORARE SCORE</span>
                   </div>
                 )}
+              </div>
+              <div style={{ display: 'flex', marginTop: 20 }}>
+                {[['PTS', w.pts], ['REB', w.reb], ['AST', w.ast], ['STL', w.stl], ['BLK', w.blk]].map(([l, v]) => (
+                  <div key={String(l)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginRight: 14, padding: '6px 18px', borderRadius: 12, background: 'rgba(255,255,255,.07)' }}>
+                    <span style={{ fontSize: 34, fontWeight: 700, lineHeight: 1.1 }}>{String(v ?? 0)}</span>
+                    <span style={{ fontSize: 15, color: '#9fb0c4', letterSpacing: 3 }}>{l}</span>
+                  </div>
+                ))}
               </div>
             </div>
           </>

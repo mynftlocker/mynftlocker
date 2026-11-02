@@ -32,7 +32,7 @@ const slugName = (n: string, keepSuffix: boolean) => {
 const dayStr = (iso: string, shift: number) => { const d = new Date(iso); d.setUTCDate(d.getUTCDate() + shift); return d.toISOString().slice(0, 10).replace(/-/g, ''); };
 
 // Editions d'une carte Arcade (4 versions) : on en montre une par jour, en rotation tous les 4 jours ; le jour 24 = la carte limited.
-export const EDITIONS = ['standard', 'shiny', 'shiny_variant_1', 'holo'];
+export const EDITIONS = ['standard', 'shiny', 'holo']; // 3 versions dans le Set en cours (shiny_variant_1 : repli seulement)
 export const editionForDay = (day: number) => (day >= 24 ? 'limited' : EDITIONS[(day - 1) % EDITIONS.length]);
 const edKey = (se: string) => se.toLowerCase().slice(ARCADE_SET.length + 1).replace(/_base$/, '');
 
