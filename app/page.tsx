@@ -407,6 +407,16 @@ export default function Home() {
       if(d.sorareSlug){ setSlug(d.sorareSlug); setJustLoggedIn(true); }
     }catch(e){ setAuthError(tr('Connexion au serveur impossible.')); setAuthLoading(false); }
   };
+  // Logo : retour a l'accueil. Si la collection est chargee, l'accueil se pose PAR-DESSUS (rien n'est perdu : retour instantane) ; sinon, accueil complet.
+  const [homeOpen,setHomeOpen]=useState(false);
+  const [homeSlug,setHomeSlug]=useState('');
+  const fullReset=()=>{setHomeOpen(false);setOpenPhase(0);setCards([]);setSlug('');setError('');setFlippedSlug(null);setMode('locker');setFiltersOpen(false);setAcctOpen(false);setSlugPanelOpen(false);setAcctMenuSection(null);setSlugProblem(null);setNeedSlug(false);};
+  const goHome=()=>{setAcctOpen(false);setAcctMenuSection(null);setSlugPanelOpen(false);setFiltersOpen(false);setSideOpen(false);setFlippedSlug(null);if(cards.length>0&&openPhase>=3&&!loading){setHomeOpen(true);return;}fullReset();};
+  useEffect(()=>{if(!homeOpen)return;const h=(e:KeyboardEvent)=>{if(e.key==='Escape')setHomeOpen(false);};window.addEventListener('keydown',h);return()=>window.removeEventListener('keydown',h);},[homeOpen]);
+  // Dernieres galeries consultees (acces rapide sur l'accueil)
+  const [recents,setRecents]=useState<string[]>([]);
+  useEffect(()=>{try{const r=localStorage.getItem('mnfl_recent');if(r)setRecents(JSON.parse(r));}catch{}},[]);
+  useEffect(()=>{if(loading||cards.length===0||!slug)return;try{const r=[slug,...(JSON.parse(localStorage.getItem('mnfl_recent')||'[]') as string[]).filter(x=>x!==slug)].slice(0,8);localStorage.setItem('mnfl_recent',JSON.stringify(r));setRecents(r);}catch{}},[loading,cards.length,slug]);
   const handleLogout=async()=>{
     try{ await fetch('/api/auth/logout',{method:'POST'}); }catch(e){}
     setCurrentUser(null);
@@ -666,7 +676,7 @@ export default function Home() {
 
         {/* HEADER logo (x3) */}
         <div style={{textAlign:'center',marginBottom:'0.2rem'}}>
-          <img src='/logo-pack.png' alt='myNFTlocker' title={tr('Retour à l\'accueil')} onClick={()=>{setOpenPhase(0);setCards([]);setSlug('');setError('');setFlippedSlug(null);setMode('locker');setFiltersOpen(false);setAcctOpen(false);setSlugPanelOpen(false);setAcctMenuSection(null);}} style={{display:'inline-block',height:'126px',width:'auto',cursor:'pointer',filter:'drop-shadow(0 6px 18px rgba(0,0,0,0.6))'}} onError={(e)=>{(e.target as HTMLImageElement).style.display='none';}}/>
+          <img src='/logo-pack.png' alt='myNFTlocker' title={tr('Retour à l\'accueil')} onClick={goHome} style={{display:'inline-block',height:'126px',width:'auto',cursor:'pointer',filter:'drop-shadow(0 6px 18px rgba(0,0,0,0.6))'}} onError={(e)=>{(e.target as HTMLImageElement).style.display='none';}}/>
         </div>
 
         <div style={{textAlign:'center',marginBottom:'0.3rem'}}><LangSwitch/></div>
@@ -940,9 +950,22 @@ export default function Home() {
             {openPhase===0&&(
               <div style={{position:'relative',zIndex:2,display:'flex',flexDirection:'column' as const,alignItems:'center'}}>
                 <p style={{color:'#40e8ff',letterSpacing:'0.22em',textTransform:'uppercase',fontSize:'0.62rem',marginBottom:'1rem',fontFamily:'Courier New,monospace',textShadow:'0 0 12px rgba(0,255,255,0.45)',minHeight:'1.1em'}}>{typedIntro}<span style={{opacity:typedIntro.length<INTRO_TEXT.length?1:0,animation:'cyanPulse 0.8s ease-in-out infinite'}}>|</span></p>
+                {currentUser&&currentUser.sorareSlug&&(
+                  <>
+                    <span style={{color:'rgba(207,228,251,0.55)',fontFamily:'Courier New,monospace',fontSize:'0.6rem',letterSpacing:'0.16em',textTransform:'uppercase',marginBottom:'0.7rem'}}>{tr('Connecté en tant que')+' '+currentUser.pseudo}</span>
+                    <button className='intro-btn' onClick={()=>{if(loading)return;setSlug(currentUser.sorareSlug as string);setJustLoggedIn(true);}} disabled={loading} style={{background:'rgba(64,232,255,0.12)',border:'1px solid rgba(64,232,255,0.8)',color:'#40e8ff',padding:'0.65rem 2.4rem',fontSize:'0.78rem',fontWeight:700,letterSpacing:'0.22em',textTransform:'uppercase',cursor:loading?'default':'pointer',fontFamily:'Courier New,monospace',boxShadow:'0 0 22px rgba(64,232,255,0.25)',marginBottom:'1.2rem',opacity:loading?0.5:1}}>{loading?'CHARGEMENT...':'▶ '+tr('Entrer dans ma galerie')}</button>
+                    <span style={{color:'rgba(207,228,251,0.4)',fontFamily:'Courier New,monospace',fontSize:'0.56rem',letterSpacing:'0.16em',textTransform:'uppercase',marginBottom:'0.2rem'}}>{tr('ou ouvre une autre galerie')}</span>
+                  </>
+                )}
                 <input className='intro-input' value={slug} autoCapitalize='none' autoCorrect='off' spellCheck={false} onChange={e=>setSlug(toSlug(e.target.value))} onKeyDown={e=>e.key==='Enter'&&handleIntroClick()} placeholder={tr('ton-slug-sorare')} style={{background:'transparent',border:'none',borderBottom:'1px solid rgba(64,232,255,0.42)',color:'#40e8ff',fontSize:'0.9rem',padding:'0.3rem 0.3rem',width:'230px',maxWidth:'78vw',textAlign:'center',fontFamily:'Courier New,monospace',letterSpacing:'0.07em',marginBottom:'1rem',transition:'border-color 0.2s,box-shadow 0.2s',caretColor:'#40e8ff',animation:'introInputGlow 2.5s ease-in-out 1.5s infinite'}}/>
                 <button className='intro-btn' onClick={handleIntroClick} disabled={!slug||loading} style={{background:'transparent',border:'1px solid rgba(64,232,255,0.45)',color:'#40e8ff',padding:'0.5rem 2.2rem',fontSize:'0.7rem',fontWeight:700,letterSpacing:'0.22em',textTransform:'uppercase',cursor:slug&&!loading?'pointer':'not-allowed',fontFamily:'Courier New,monospace',clipPath:'polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px)',transition:'all 0.2s',opacity:slug&&!loading?1:0.35}}>{loading?'CHARGEMENT...':tr('▶ OUVRIR')}</button>
                 {error&&<p style={{color:'#fca5a5',fontSize:'0.7rem',marginTop:'1rem',fontFamily:'Courier New,monospace'}}>{error}</p>}
+                {currentUser&&(
+                  <>
+                    <span onClick={()=>{if(loading)return;setSlug('memejacquet1998');setJustLoggedIn(true);}} style={{marginTop:'1.1rem',color:'#f5d76e',cursor:loading?'default':'pointer',fontFamily:'Courier New,monospace',fontSize:'0.62rem',letterSpacing:'0.16em',textTransform:'uppercase',textShadow:'0 0 10px rgba(245,215,110,0.35)'}}>{'▶ '+tr('Voir une démo')}</span>
+                    <span onClick={handleLogout} style={{marginTop:'0.9rem',color:'#40e8ff',cursor:'pointer',fontFamily:'Courier New,monospace',fontSize:'0.6rem',letterSpacing:'0.14em',textTransform:'uppercase',borderBottom:'1px solid rgba(64,232,255,0.45)',paddingBottom:'1px'}}>{tr('Se déconnecter')}</span>
+                  </>
+                )}
                 {!currentUser&&(
                   <>
                     <span onClick={()=>{if(loading)return;setSlug('memejacquet1998');setJustLoggedIn(true);}} style={{marginTop:'1.1rem',color:'#f5d76e',cursor:loading?'default':'pointer',fontFamily:'Courier New,monospace',fontSize:'0.62rem',letterSpacing:'0.16em',textTransform:'uppercase',textShadow:'0 0 10px rgba(245,215,110,0.35)'}}>{'▶ '+tr('Voir une démo')}</span>
@@ -964,6 +987,42 @@ export default function Home() {
             <div style={{position:'fixed',bottom:'1rem',left:'50%',transform:'translateX(-50%)',zIndex:2,display:'flex',gap:'2.5rem',alignItems:'center'}}><a href='https://sorare.com' target='_blank' rel='noreferrer' style={{color:'rgba(255,255,255,0.5)',fontSize:'0.6rem',letterSpacing:'0.14em',textTransform:'uppercase',textDecoration:'none',fontFamily:'Courier New,monospace',transition:'color 0.2s',pointerEvents:'auto'}} onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.color='rgba(64,232,255,0.95)';}} onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.color='rgba(255,255,255,0.5)';}}>SORARE</a><span style={{color:'rgba(255,255,255,0.28)',fontSize:'0.5rem'}}>|</span><a href='/cgu' target='_blank' rel='noopener noreferrer' style={{color:'rgba(255,255,255,0.5)',fontSize:'0.6rem',letterSpacing:'0.14em',textTransform:'uppercase',textDecoration:'none',fontFamily:'Courier New,monospace',pointerEvents:'auto',transition:'color 0.2s'}} onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.color='rgba(64,232,255,0.95)';}} onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.color='rgba(255,255,255,0.5)';}}>{tr('CGU')}</a><span style={{color:'rgba(255,255,255,0.28)',fontSize:'0.5rem'}}>|</span><a href='https://x.com/myNFTlocker' target='_blank' rel='noopener noreferrer' aria-label='myNFTlocker on X' style={{color:'rgba(255,255,255,0.5)',fontSize:'0.6rem',letterSpacing:'0.14em',textTransform:'uppercase',textDecoration:'none',fontFamily:'Courier New,monospace',pointerEvents:'auto',transition:'color 0.2s'}} onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.color='rgba(64,232,255,0.95)';}} onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.color='rgba(255,255,255,0.5)';}}>X</a><span style={{color:'rgba(255,255,255,0.28)',fontSize:'0.5rem'}}>|</span><LangSwitch/></div>
           </div>
         )}
+        {homeOpen&&cards.length>0&&(()=>{
+          const own=(currentUser?.sorareSlug||'').toLowerCase();
+          const here=(slug||'').toLowerCase();
+          const chip=(sl:string)=>(<span key={sl} onClick={()=>{setHomeOpen(false);openManager(sl);}} style={{cursor:'pointer',padding:'0.28rem 0.8rem',border:'1px solid rgba(64,232,255,0.35)',borderRadius:'999px',color:'#cfe4fb',fontFamily:'Courier New,monospace',fontSize:'0.66rem',letterSpacing:'0.08em',background:'rgba(64,232,255,0.06)'}}>{sl}</span>);
+          const quick=[...favs,...recents].map(x=>String(x).toLowerCase()).filter((x,i,a)=>a.indexOf(x)===i&&x!==here&&x!==own).slice(0,10);
+          const lbl:any={fontFamily:'Courier New,monospace',letterSpacing:'0.16em',textTransform:'uppercase' as const};
+          return(
+          <div style={{position:'fixed',inset:0,zIndex:300,background:'#030510',display:'flex',flexDirection:'column' as const,alignItems:'center',justifyContent:'safe center',overflow:'auto',padding:'1.5rem 1rem',boxSizing:'border-box' as const}} className='thin-sb'>
+            <style>{`@keyframes homeFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}.home-btn:hover{background:rgba(64,232,255,0.18)!important;color:#fff!important}`}</style>
+            <StarCanvas phase={0} burst={false}/>
+            <div style={{position:'relative',zIndex:2,display:'flex',flexDirection:'column' as const,alignItems:'center',width:'100%',maxWidth:'420px',textAlign:'center' as const}}>
+              <img src='/logo-pack.png' alt='myNFTlocker' style={{width:'min(34vw,150px)',height:'auto',filter:'drop-shadow(0 0 18px rgba(0,200,235,0.35))',animation:'homeFloat 3.8s ease-in-out infinite',marginBottom:'1.2rem'}}/>
+              {currentUser&&<span style={{...lbl,color:'rgba(207,228,251,0.55)',fontSize:'0.6rem',marginBottom:'0.9rem'}}>{tr('Connecté en tant que')+' '+currentUser.pseudo}</span>}
+              <button autoFocus className='home-btn' onClick={()=>setHomeOpen(false)} style={{...lbl,background:'rgba(64,232,255,0.12)',border:'1px solid rgba(64,232,255,0.8)',color:'#40e8ff',padding:'0.7rem 2rem',fontSize:'0.76rem',fontWeight:700,cursor:'pointer',boxShadow:'0 0 22px rgba(64,232,255,0.25)',width:'100%'}}>{'▶ '+(here===own?tr('Retour à ma galerie'):tr('Retour à la galerie de')+' '+slug)}</button>
+              {own&&here!==own&&(<button className='home-btn' onClick={()=>{setHomeOpen(false);openManager(own);}} style={{...lbl,marginTop:'0.7rem',background:'transparent',border:'1px solid rgba(64,232,255,0.4)',color:'#40e8ff',padding:'0.55rem 2rem',fontSize:'0.68rem',cursor:'pointer',width:'100%'}}>{tr('Ma galerie')}</button>)}
+              {quick.length>0&&(<div style={{marginTop:'1.4rem',width:'100%'}}>
+                <div style={{...lbl,color:'rgba(207,228,251,0.4)',fontSize:'0.56rem',marginBottom:'0.5rem'}}>{tr('Accès rapide')}</div>
+                <div style={{display:'flex',flexWrap:'wrap' as const,gap:'0.45rem',justifyContent:'center'}}>{quick.map(chip)}</div>
+              </div>)}
+              <div style={{marginTop:'1.4rem',width:'100%'}}>
+                <div style={{...lbl,color:'rgba(207,228,251,0.4)',fontSize:'0.56rem',marginBottom:'0.4rem'}}>{tr('ou ouvre une autre galerie')}</div>
+                <input value={homeSlug} autoCapitalize='none' autoCorrect='off' spellCheck={false} onChange={e=>setHomeSlug(toSlug(e.target.value))} onKeyDown={e=>{if(e.key==='Enter'&&homeSlug){setHomeOpen(false);openManager(homeSlug);setHomeSlug('');}}} placeholder={tr('ton-slug-sorare')} style={{background:'transparent',border:'none',borderBottom:'1px solid rgba(64,232,255,0.42)',color:'#40e8ff',fontSize:'0.9rem',padding:'0.3rem',width:'230px',textAlign:'center' as const,fontFamily:'Courier New,monospace',outline:'none'}}/>
+              </div>
+              <div style={{display:'flex',gap:'1.6rem',marginTop:'1.6rem',alignItems:'center',justifyContent:'center',flexWrap:'wrap' as const}}>
+                <span onClick={()=>{setHomeOpen(false);openManager('memejacquet1998');}} style={{...lbl,color:'#f5d76e',cursor:'pointer',fontSize:'0.62rem',textShadow:'0 0 10px rgba(245,215,110,0.35)'}}>{'▶ '+tr('Voir une démo')}</span>
+                {currentUser?(<span onClick={async()=>{await handleLogout();fullReset();}} style={{...lbl,color:'#40e8ff',cursor:'pointer',fontSize:'0.6rem',borderBottom:'1px solid rgba(64,232,255,0.45)',paddingBottom:'1px'}}>{tr('Se déconnecter')}</span>):(<span onClick={()=>{setAuthMode('login');setAuthOpen(true);}} style={{...lbl,color:'#40e8ff',cursor:'pointer',fontSize:'0.6rem',borderBottom:'1px solid rgba(64,232,255,0.45)',paddingBottom:'1px'}}>{tr('Connexion')}</span>)}
+              </div>
+            </div>
+            <div style={{position:'fixed',bottom:'1rem',left:'50%',transform:'translateX(-50%)',zIndex:2,display:'flex',gap:'2rem',alignItems:'center'}}>
+              <a href='https://sorare.com' target='_blank' rel='noreferrer' style={{color:'rgba(255,255,255,0.5)',fontSize:'0.6rem',letterSpacing:'0.14em',textTransform:'uppercase',textDecoration:'none',fontFamily:'Courier New,monospace'}}>SORARE</a>
+              <a href='/cgu' target='_blank' rel='noopener noreferrer' style={{color:'rgba(255,255,255,0.5)',fontSize:'0.6rem',letterSpacing:'0.14em',textTransform:'uppercase',textDecoration:'none',fontFamily:'Courier New,monospace'}}>{tr('CGU')}</a>
+              <a href='https://x.com/myNFTlocker' target='_blank' rel='noopener noreferrer' aria-label='myNFTlocker on X' style={{color:'rgba(255,255,255,0.5)',fontSize:'0.6rem',letterSpacing:'0.14em',textTransform:'uppercase',textDecoration:'none',fontFamily:'Courier New,monospace'}}>X</a>
+              <LangSwitch/>
+            </div>
+          </div>);
+        })()}
         {emailNotice&&(
           <div onClick={()=>setEmailNotice(null)} style={{position:'fixed',top:'1rem',left:'50%',transform:'translateX(-50%)',zIndex:400,maxWidth:'90vw',padding:'0.7rem 1.2rem',background:'rgba(4,10,22,0.94)',border:'1px solid '+(emailNotice.ok?'rgba(126,224,160,0.6)':'rgba(255,138,122,0.6)'),borderRadius:'0.4rem',color:emailNotice.ok?'#7ee0a0':'#ff8a7a',fontSize:'0.78rem',cursor:'pointer',boxShadow:'0 6px 24px rgba(0,0,0,0.5)'}}>{tr(emailNotice.text)}</div>
         )}
@@ -1090,7 +1149,7 @@ export default function Home() {
           <div style={{display:'flex',flexDirection:'column' as const,gap:'0.15rem',marginBottom:'0.35rem'}}>
             {/* LOGO+COMPTE FUSIONNES sur une seule ligne (gain de hauteur + logo plus visible) */}
             <div style={{display:'flex',alignItems:'center',gap:'0.6rem'}}>
-              <img src='/logo-pack.png' alt='myNFTlocker' title={tr('Retour à l\'accueil')} onClick={()=>{setOpenPhase(0);setCards([]);setSlug('');setError('');setFlippedSlug(null);setMode('locker');setFiltersOpen(false);setAcctOpen(false);setSlugPanelOpen(false);setAcctMenuSection(null);}} style={{height:'62px',width:'auto',flexShrink:0,cursor:'pointer',filter:'drop-shadow(0 6px 18px rgba(0,0,0,0.6))'}} onError={(e)=>{(e.target as HTMLImageElement).style.display='none';}}/>
+              <img src='/logo-pack.png' alt='myNFTlocker' title={tr('Retour à l\'accueil')} onClick={goHome} style={{height:'62px',width:'auto',flexShrink:0,cursor:'pointer',filter:'drop-shadow(0 6px 18px rgba(0,0,0,0.6))'}} onError={(e)=>{(e.target as HTMLImageElement).style.display='none';}}/>
               <div onClick={()=>setAcctOpen(o=>!o)} style={{flex:1,minWidth:0,display:'flex',alignItems:'center',gap:'0.5rem',padding:'0.4rem 0.5rem',borderRadius:'0.3rem',cursor:'pointer',background:'rgba(255,255,255,0.03)',border:'1px solid rgba(111,195,232,0.18)'}}>
               <div style={{width:'44px',height:'44px',flexShrink:0,borderRadius:'50%',background:'radial-gradient(circle at 35% 30%,#1a1c24,#0a0b0f)',border:'1.5px solid #6fc3e8',boxShadow:'0 0 10px rgba(111,195,232,0.5)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'1.1rem',fontWeight:900,color:'#6fc3e8'}}>{(slug||'?').trim().charAt(0).toUpperCase()||'?'}</div>
               <div style={{flex:1,minWidth:0,textAlign:'left'}}>
