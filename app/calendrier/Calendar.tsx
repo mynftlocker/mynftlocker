@@ -294,7 +294,7 @@ const css = `
 .adv-stage{position:fixed;inset:0;z-index:50;background:rgba(2,4,10,.86);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:1rem;animation:advFade .3s}
 .adv-stagebox{position:relative;display:flex;gap:2rem;align-items:center;max-width:900px;width:100%;max-height:94vh;overflow:auto;padding:1.6rem;border-radius:20px;border:1px solid var(--tc);background:radial-gradient(ellipse at 30% 20%,color-mix(in srgb,var(--tc) 22%,#0a1020),#060a15 70%);box-shadow:0 0 60px color-mix(in srgb,var(--tc) 45%,transparent)}
 .adv-x{position:absolute;top:.6rem;right:.8rem;background:none;border:none;color:#9fb3cc;font-size:1.1rem;cursor:pointer;z-index:3}
-.adv-stagecard{position:relative;flex:0 0 40%;aspect-ratio:3/4.2;animation:advRise 1s cubic-bezier(.2,.8,.2,1),advFloat 4s 1s ease-in-out infinite;overflow:hidden;border-radius:14px}
+.adv-stagecard{position:relative;flex:none;width:min(40%,calc(62vh * .714));aspect-ratio:3/4.2;animation:advRise 1s cubic-bezier(.2,.8,.2,1),advFloat 4s 1s ease-in-out infinite;overflow:hidden;border-radius:14px}
 .adv-stagecard img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 12px 26px rgba(0,0,0,.7))}
 .adv-stageinfo{flex:1;min-width:0}
 .adv-kicker{font:700 .66rem 'Courier New',monospace;letter-spacing:.2em;color:${CYAN};text-transform:uppercase}
@@ -318,6 +318,6 @@ const css = `
 @keyframes advRise{from{opacity:0;transform:translateY(40px) rotateY(90deg) scale(.7)}to{opacity:1;transform:none}}
 @keyframes advFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
 @media(max-width:900px){.adv-grid{grid-template-columns:repeat(4,1fr);gap:14px}}
-@media(max-width:640px){.adv-grid{grid-template-columns:repeat(3,1fr);gap:10px}.adv-stagebox{flex-direction:column;padding:1.1rem}.adv-stagecard{flex:none;width:58%}.adv-wrap{padding:.9rem .8rem 2.5rem}}
+@media(max-width:640px){.adv-grid{grid-template-columns:repeat(3,1fr);gap:10px}.adv-stagebox{flex-direction:column;padding:1.1rem}.adv-stagecard{width:min(46%,calc(38vh * .714))}.adv-wrap{padding:.9rem .8rem 2.5rem}}
 @media(prefers-reduced-motion:reduce){.adv-inner{transition-duration:.01s}.adv-shine,.adv-front.avail,.adv-stagecard{animation:none}.adv-p{display:none}}
 `;
