@@ -200,7 +200,7 @@ function Stage({ n, d, onClose, onPrev, onNext, hasPrev, hasNext, demo, preview,
           <h2 className='adv-name'>{w.name}</h2>
           <div className='adv-team'>{w.team}</div>
           <div className='adv-scores'>
-            <div className='adv-bigscore' style={{ color: '#fff' }}><img src='/logo-ttfl-text.png' alt='TTFL' className='adv-ttflword' />{score}</div>
+            <div className='adv-bigscore' style={{ color: '#fff' }}>{score}<img src='/logo-ttfl-text.png' alt='TTFL' className='adv-ttflword' /></div>
           </div>
           <div className='adv-stats'>{stat('PTS', w.pts)}{stat('REB', w.reb)}{stat('PD', w.ast)}{stat('INT', w.stl)}{stat('CT', w.blk)}{w.sorare != null && <div className='adv-stat adv-stat-s' title={t('Score Sorare')} aria-label={t('Score Sorare') + ' ' + sScore} style={{ borderColor: col, boxShadow: '0 0 16px ' + col + '66' }}><b style={{ color: col }}>{sScore}</b><img src='/sorare-logo.png' alt='' /></div>}</div>
           <div className='adv-sub' style={{ marginTop: '1rem' }}>{t('Le top de la nuit')}</div>
