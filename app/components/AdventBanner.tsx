@@ -16,6 +16,8 @@ export default function AdventBanner() {
 .adv-banner .ab-sorare em{font-style:normal;color:#40e8ff;letter-spacing:.16em;font-size:.6rem}
 .adv-banner .ab-title{font:900 .98rem system-ui;letter-spacing:.14em;text-transform:uppercase;background:linear-gradient(180deg,#fff2c4 0%,#f0c96e 45%,#b98a2e 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
 @keyframes advBannerGlow{0%,100%{box-shadow:0 0 16px rgba(240,201,110,.18)}50%{box-shadow:0 0 30px rgba(240,201,110,.42)}}
+.adv-banner .ab-sep{display:none}
+@media(min-width:901px){.adv-banner{flex-direction:row;align-items:center;gap:.9rem;top:.7rem;padding:.3rem 1rem}.adv-banner .ab-sep{display:block;width:1px;height:22px;background:rgba(240,201,110,.45)}.adv-banner .ab-ttfl{height:22px}.adv-banner .ab-sorare img{width:20px;height:20px}.adv-banner .ab-title{font-size:.86rem}}
 @media(max-width:640px){.adv-banner{top:.6rem;padding:.4rem .8rem .45rem}.adv-banner .ab-ttfl{height:22px}.adv-banner .ab-title{font-size:.82rem}}
 @media(prefers-reduced-motion:reduce){.adv-banner{animation:none}}
 `}</style>
@@ -24,6 +26,7 @@ export default function AdventBanner() {
         <i className='ab-x' style={{ fontStyle: 'normal' }}>×</i>
         <span className='ab-sorare'><img src='/sorare-logo.png' alt='' />SORARE <em>ARCADE</em></span>
       </span>
+      <i className='ab-sep' />
       <span className='ab-title'>{t('Calendrier de l’Avent')}</span>
     </a>
   );
