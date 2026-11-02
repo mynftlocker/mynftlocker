@@ -23,13 +23,18 @@ addEn({
   'Carte Arcade': 'Arcade card',
   'Carte classique': 'Classic card',
   'PTS': 'PTS', 'REB': 'REB', 'PD': 'AST', 'INT': 'STL', 'CT': 'BLK',
-  'Les scores TTFL sont calculés à partir des box scores NBA (points + rebonds + passes + interceptions + contres + tirs, 3 points et lancers francs réussis − tirs, 3 points et lancers francs ratés − balles perdues). Projet indépendant, non affilié à Sorare, à la NBA ni à la TTFL.': 'TTFL scores are computed from NBA box scores (points + rebounds + assists + steals + blocks + made field goals, threes and free throws − missed field goals, threes and free throws − turnovers). Independent project, not affiliated with Sorare, the NBA or TTFL.',
+  'Les scores TTFL sont calculés à partir des box scores NBA (points + rebonds + passes + interceptions + contres + tirs, 3 points et lancers francs réussis − tirs, 3 points et lancers francs ratés − balles perdues). Projet indépendant, non affilié à Sorare, à la NBA ni à la TTFL. Le lien Sorare est un lien de parrainage.': 'TTFL scores are computed from NBA box scores (points + rebounds + assists + steals + blocks + made field goals, threes and free throws − missed field goals, threes and free throws − turnovers). Independent project, not affiliated with Sorare, the NBA or TTFL. The Sorare link is a referral link.',
   'Retour au site': 'Back to the site',
   'jours': 'days', 'h': 'h', 'min': 'min',
+  'Clique sur une carte retournée pour voir le détail du joueur': 'Tap a flipped card to see the player details',
+  'Score Sorare': 'Sorare score',
+  'Rejoindre Sorare (gratuit)': 'Join Sorare (free)',
+  'Jouer à la TTFL': 'Play TTFL',
+  'Le lien Sorare est un lien de parrainage.': 'The Sorare link is a referral link.',
 });
 
 type Card = { slug: string; playerSlug: string; name: string; pictureUrl: string; kind: 'arcade' | 'classic' };
-type Row = { id: string; name: string; team: string; score: number; pts: number; reb: number; ast: number; stl: number; blk: number; to: number; card: Card | null };
+type Row = { id: string; name: string; team: string; score: number; pts: number; reb: number; ast: number; stl: number; blk: number; to: number; card: Card | null; sorare?: number | null };
 type DayData = { open: boolean; pending?: boolean; day: number; date?: string; games?: number; top?: Row[] };
 
 const YEAR = 2026;
@@ -44,7 +49,9 @@ const unlockedDays = (demo: number) => {
   return Math.min(24, p.getDate());
 };
 // Code couleur des scores, dans l'esprit de Sorare
-const tier = (s: number) => (s >= 80 ? '#c084fc' : s >= 60 ? '#38bdf8' : s >= 45 ? '#4ade80' : s >= 30 ? '#fbbf24' : '#fb923c');
+// (seuils de score Sorare : <5 / 5-14 / 15-24 / 25-34 / 35-44 / 45+)
+const tier = (s: number) => (s >= 45 ? '#00f3eb' : s >= 35 ? '#25ed36' : s >= 25 ? '#b6ff1a' : s >= 15 ? '#f0ce1d' : s >= 5 ? '#ff7e34' : '#ff5a5a');
+const rowCol = (r: { score: number; sorare?: number | null }) => tier(r.sorare ?? r.score); // couleur = score Sorare (sinon TTFL)
 
 function useCountUp(target: number, active: boolean, ms = 1100) {
   const [v, setV] = useState(0);
@@ -77,31 +84,33 @@ function Burst({ color }: { color: string }) {
   );
 }
 
-function Door({ n, openDay, d, flipped, loading, burst, onClick }: { n: number; openDay: number; d?: DayData; flipped: boolean; loading: boolean; burst: boolean; onClick: () => void }) {
+function Door({ n, openDay, d, flipped, loading, shaking, burst, onClick }: { n: number; openDay: number; d?: DayData; flipped: boolean; loading: boolean; shaking: boolean; burst: boolean; onClick: () => void }) {
   const avail = n <= openDay;
   const w = d?.top?.[0];
-  const col = w ? tier(w.score) : GOLD;
-  const score = useCountUp(w?.score || 0, flipped && !!w);
+  const col = w ? rowCol(w) : GOLD;
+  const score = useCountUp(w?.sorare ?? w?.score ?? 0, flipped && !!w);
   return (
-    <div className='adv-door' style={{ perspective: '900px' }} onClick={onClick} role='button' aria-label={t('Jour') + ' ' + n}>
+    <div className={'adv-door' + (flipped ? ' opened' : '')} style={{ perspective: '900px', ['--fd' as any]: (n % 7) * 0.35 + 's' }} onClick={onClick} role='button' aria-label={t('Jour') + ' ' + n}>
       <div className={'adv-inner' + (flipped ? ' flipped' : '')}>
-        {/* Face avant : la case */}
-        <div className={'adv-face adv-front' + (avail ? ' avail' : ' locked')}>
-          <div className='adv-arch'>
-            <span className='adv-num'>{n}</span>
-            {avail ? (
-              <span className='adv-open'>{loading ? '…' : t('OUVRIR')}</span>
-            ) : (
-              <svg width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='rgba(240,201,110,0.55)' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round'><rect x='4' y='11' width='16' height='10' rx='2' /><path d='M8 11V7a4 4 0 0 1 8 0v4' /></svg>
-            )}
+        {/* Face avant : le pack, avec le numero du jour a la place du bouclier */}
+        <div className={'adv-face adv-front' + (avail ? ' avail' : ' locked') + (shaking ? ' shaking' : '')}>
+          <div className='adv-packbox'>
+            <img src='/logo-pack.png' alt='' className='adv-pack' draggable={false} />
+            <span className='adv-medal'><b>{n}</b></span>
           </div>
+          {avail && <span className='adv-open'>{loading ? '…' : t('OUVRIR')}</span>}
+          {!avail && (
+            <svg className='adv-lock' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='rgba(240,201,110,0.8)' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round'><rect x='4' y='11' width='16' height='10' rx='2' /><path d='M8 11V7a4 4 0 0 1 8 0v4' /></svg>
+          )}
+          {shaking && <div className='adv-flash' />}
         </div>
-        {/* Face arriere : la carte */}
-        <div className='adv-face adv-back' style={{ borderColor: col, boxShadow: '0 0 26px ' + col + '55, inset 0 0 30px ' + col + '22' }}>
+        {/* Face arriere : la carte, plein format */}
+        <div className='adv-face adv-back' style={{ borderColor: col, boxShadow: '0 0 26px ' + col + '66, inset 0 0 22px ' + col + '22' }}>
           {w?.card && <img src={w.card.pictureUrl} alt={w.name} className='adv-img' draggable={false} />}
           <div className='adv-shine' />
           <div className='adv-score' style={{ background: col }}>{score}</div>
-          <div className='adv-cap'><b>{w?.name}</b></div>
+          <div className='adv-daybadge'>{n}</div>
+          <div className='adv-detail' aria-hidden='true'>⌕</div>
           {burst && <Burst color={col} />}
         </div>
       </div>
@@ -110,8 +119,9 @@ function Door({ n, openDay, d, flipped, loading, burst, onClick }: { n: number; 
 }
 
 function Stage({ n, d, onClose, onPrev, onNext, hasPrev, hasNext, demo }: { n: number; d: DayData; onClose: () => void; onPrev: () => void; onNext: () => void; hasPrev: boolean; hasNext: boolean; demo: boolean }) {
-  const w = d.top![0]; const col = tier(w.score);
+  const w = d.top![0]; const col = rowCol(w);
   const score = useCountUp(w.score, true, 1400);
+  const sScore = useCountUp(w.sorare ?? 0, w.sorare != null, 1400);
   const share = () => {
     const txt = `🏀 TTFL × @Sorare Arcade — ${t('CALENDRIER DE L’AVENT')} · ${t('Jour')} ${n}: ${w.name} (${w.score} TTFL)`;
     window.open('https://x.com/intent/tweet?text=' + encodeURIComponent(txt) + '&url=' + encodeURIComponent('https://mynftlocker.com/calendrier'), '_blank', 'noopener');
@@ -131,7 +141,10 @@ function Stage({ n, d, onClose, onPrev, onNext, hasPrev, hasNext, demo }: { n: n
           <div className='adv-sub'>{t('Meilleur score TTFL de la nuit')}</div>
           <h2 className='adv-name'>{w.name}</h2>
           <div className='adv-team'>{w.team}</div>
-          <div className='adv-bigscore' style={{ color: col, textShadow: '0 0 28px ' + col + '99' }}>{score}<small>TTFL</small></div>
+          <div className='adv-scores'>
+            <div className='adv-bigscore' style={{ color: '#fff' }}>{score}<small>TTFL</small></div>
+            {w.sorare != null && <div className='adv-sbadge' style={{ borderColor: col, boxShadow: '0 0 22px ' + col + '77' }}><b style={{ color: col }}>{sScore}</b><small>{t('Score Sorare')}</small></div>}
+          </div>
           <div className='adv-stats'>{stat('PTS', w.pts)}{stat('REB', w.reb)}{stat('PD', w.ast)}{stat('INT', w.stl)}{stat('CT', w.blk)}</div>
           <div className='adv-sub' style={{ marginTop: '1rem' }}>{t('Le top de la nuit')}</div>
           <div className='adv-top'>
@@ -140,7 +153,7 @@ function Stage({ n, d, onClose, onPrev, onNext, hasPrev, hasNext, demo }: { n: n
                 <span>{i + 2}</span>
                 {r.card ? <img src={r.card.pictureUrl} alt='' /> : <i />}
                 <em>{r.name}<small>{r.team}</small></em>
-                <b style={{ color: tier(r.score) }}>{r.score}</b>
+                <b>{r.score}</b>{r.sorare != null && <u style={{ background: rowCol(r) }}>{r.sorare}</u>}
               </div>
             ))}
           </div>
@@ -148,6 +161,11 @@ function Stage({ n, d, onClose, onPrev, onNext, hasPrev, hasNext, demo }: { n: n
             <button className='adv-btn gold' onClick={share}>{t('Partager sur X')}</button>
             <a className='adv-btn' href='/'>{t('Découvrir myNFTlocker')}</a>
           </div>
+          <div className='adv-cta' style={{ marginTop: '.6rem' }}>
+            <a className='adv-btn' href={'/api/go?to=sorare&day=' + n} target='_blank' rel='noopener nofollow sponsored'>{t('Rejoindre Sorare (gratuit)')}</a>
+            <a className='adv-btn' href={'/api/go?to=ttfl&day=' + n} target='_blank' rel='noopener nofollow'>{t('Jouer à la TTFL')}</a>
+          </div>
+          <div className='adv-ref'>{t('Le lien Sorare est un lien de parrainage.')}</div>
           <div className='adv-nav'>
             <button disabled={!hasPrev} onClick={onPrev}>←</button>
             <button disabled={!hasNext} onClick={onNext}>→</button>
@@ -168,6 +186,8 @@ export default function Calendar() {
   const [flipped, setFlipped] = useState<Record<number, boolean>>({});
   const [burst, setBurst] = useState(0);
   const [stage, setStage] = useState(0);
+  const [shaking, setShaking] = useState(0);
+  const [hintSeen, setHintSeen] = useState(true);
   const [msg, setMsg] = useState('');
   const [left, setLeft] = useState('');
   const fetching = useRef<Record<number, Promise<DayData | null>>>({});
@@ -177,6 +197,7 @@ export default function Calendar() {
     const dm = Math.floor(Number(new URLSearchParams(window.location.search).get('demo') || 0)) || 0;
     setDemo(dm); setOpenDay(unlockedDays(dm));
     try { const f = JSON.parse(localStorage.getItem('mnfl_adv_flipped_' + (dm ? 'demo' : 'real')) || '{}'); setFlipped(f); } catch {}
+    try { setHintSeen(localStorage.getItem('mnfl_adv_hint') === '1'); } catch {}
     setReady(true);
   }, []);
   useEffect(() => { // compte a rebours avant le 1er decembre
@@ -205,12 +226,14 @@ export default function Calendar() {
   const click = async (n: number) => {
     setMsg('');
     if (n > openDay) { setMsg(t('Cette case n’est pas encore ouverte.')); return; }
-    if (flipped[n] && data[n]?.open) { setStage(n); return; }
+    if (flipped[n] && data[n]?.open) { setStage(n); if (!hintSeen) { setHintSeen(true); try { localStorage.setItem('mnfl_adv_hint', '1'); } catch {} } return; }
     setLoading(s => ({ ...s, [n]: true }));
     const d = data[n] || await load(n);
     setLoading(s => ({ ...s, [n]: false }));
     if (!d) { setMsg(t('Impossible de charger cette case, réessaie dans un instant.')); return; }
     if (!d.open) { setMsg(t('Résultats disponibles vers 8 h (heure de Paris).')); return; }
+    // ouverture du pack : il tremble et s'illumine, puis la carte se retourne
+    setShaking(n); await new Promise(r => setTimeout(r, 650)); setShaking(0);
     const f = { ...flipped, [n]: true }; setFlipped(f); saveFlipped(f); setBurst(n); setTimeout(() => setBurst(0), 1600);
   };
   const days = Array.from({ length: 24 }, (_, i) => i + 1);
@@ -228,23 +251,27 @@ export default function Calendar() {
           <LangSwitch />
         </header>
         <section className='adv-hero'>
-          <div className='adv-eyebrow'>TTFL × SORARE ARCADE</div>
+          <div className='adv-logos'>
+            <span className='adv-ttfl'>TTFL</span><i>×</i>
+            <span className='adv-sorare'><img src='/sorare-logo.png' alt='' />SORARE <em>ARCADE</em></span>
+          </div>
           <h1>{t('CALENDRIER DE L’AVENT')}</h1>
           <p>{t('Chaque matin de décembre, le meilleur score TTFL de la nuit NBA, sur sa carte Arcade gratuite de Sorare.')}</p>
           {ready && openDay === 0 && (<div className='adv-launch'><b>{t('Ouverture le 1er décembre')}</b>{left && <span>{left}</span>}<small>{t('Reviens chaque matin : une nouvelle case s’ouvre avec la nuit NBA de la veille.')}</small></div>)}
           {demo > 0 && <div className='adv-demo'>{t('Aperçu avec les vraies dernières nuits NBA')}</div>}
         </section>
         {msg && <div className='adv-msg'>{msg}</div>}
+        {!msg && !hintSeen && openedList.length > 0 && <div className='adv-hint'>{t('Clique sur une carte retournée pour voir le détail du joueur')}</div>}
         <section className='adv-grid'>
           {days.map(n => (
-            <Door key={n} n={n} openDay={openDay} d={data[n]} flipped={!!flipped[n] && !!data[n]?.open} loading={!!loading[n]} burst={burst === n} onClick={() => click(n)} />
+            <Door key={n} n={n} openDay={openDay} d={data[n]} flipped={!!flipped[n] && !!data[n]?.open} loading={!!loading[n]} shaking={shaking === n} burst={burst === n} onClick={() => click(n)} />
           ))}
         </section>
         <section className='adv-promo'>
           <p>{t('Ta galerie Sorare, ton vestiaire, tes stats : gratuit sur myNFTlocker.')}</p>
           <a className='adv-btn gold' href='/'>{t('Découvrir myNFTlocker')}</a>
         </section>
-        <footer className='adv-foot'>{t('Les scores TTFL sont calculés à partir des box scores NBA (points + rebonds + passes + interceptions + contres + tirs, 3 points et lancers francs réussis − tirs, 3 points et lancers francs ratés − balles perdues). Projet indépendant, non affilié à Sorare, à la NBA ni à la TTFL.')}</footer>
+        <footer className='adv-foot'>{t('Les scores TTFL sont calculés à partir des box scores NBA (points + rebonds + passes + interceptions + contres + tirs, 3 points et lancers francs réussis − tirs, 3 points et lancers francs ratés − balles perdues). Projet indépendant, non affilié à Sorare, à la NBA ni à la TTFL. Le lien Sorare est un lien de parrainage.')}</footer>
       </div>
       {stage > 0 && stageData?.open && stageData.top && (
         <Stage n={stage} d={stageData} demo={demo > 0} onClose={() => setStage(0)}
@@ -261,31 +288,46 @@ const css = `
 .adv-head{display:flex;justify-content:space-between;align-items:center}
 .adv-home{color:rgba(207,228,251,.65);font:600 .68rem 'Courier New',monospace;letter-spacing:.12em;text-decoration:none;text-transform:uppercase}
 .adv-hero{text-align:center;padding:1.6rem 0 1.4rem}
-.adv-eyebrow{font:700 .72rem 'Courier New',monospace;letter-spacing:.32em;color:${CYAN};text-shadow:0 0 12px ${CYAN}88}
 .adv-hero h1{margin:.5rem 0 .6rem;font-size:clamp(1.8rem,6vw,3.4rem);font-weight:900;letter-spacing:.06em;line-height:1.05;background:linear-gradient(180deg,#fff2c4 0%,${GOLD} 45%,#b98a2e 100%);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 18px rgba(240,201,110,.35))}
 .adv-hero p{margin:0 auto;max-width:560px;font-size:.95rem;line-height:1.55;color:#aebfd6}
 .adv-launch{margin:1.3rem auto 0;display:inline-flex;flex-direction:column;gap:.3rem;padding:.9rem 1.4rem;border:1px solid rgba(240,201,110,.45);border-radius:14px;background:rgba(240,201,110,.06)}
 .adv-launch b{color:${GOLD};letter-spacing:.08em}.adv-launch span{font:700 1.1rem 'Courier New',monospace;color:${CYAN}}.adv-launch small{color:#8fa3bd;font-size:.74rem}
 .adv-demo{margin-top:1rem;display:inline-block;padding:.3rem .8rem;border-radius:999px;border:1px dashed rgba(64,232,255,.5);color:${CYAN};font:600 .66rem 'Courier New',monospace;letter-spacing:.12em;text-transform:uppercase}
 .adv-msg{text-align:center;margin:0 auto .8rem;padding:.55rem 1rem;max-width:520px;border-radius:10px;background:rgba(251,146,60,.12);border:1px solid rgba(251,146,60,.4);color:#fdba74;font-size:.82rem}
-.adv-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:18px;margin-top:.6rem}
-.adv-door{aspect-ratio:3/4.3;cursor:pointer;position:relative;-webkit-tap-highlight-color:transparent}
+.adv-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:24px 18px;margin-top:.6rem}
 .adv-inner{position:absolute;inset:0;transform-style:preserve-3d;transition:transform .95s cubic-bezier(.3,.7,.2,1)}
 .adv-inner.flipped{transform:rotateY(180deg)}
 .adv-face{position:absolute;inset:0;border-radius:16px;backface-visibility:hidden;-webkit-backface-visibility:hidden;overflow:hidden}
-.adv-front{background:linear-gradient(160deg,#0f1b2e 0%,#09101e 55%,#060a15 100%);border:1.5px solid rgba(240,201,110,.5);display:flex;align-items:center;justify-content:center;transition:transform .25s,box-shadow .25s}
-.adv-front.avail{box-shadow:0 0 22px rgba(64,232,255,.28),inset 0 0 24px rgba(64,232,255,.08);border-color:rgba(240,201,110,.85);animation:advPulse 2.6s ease-in-out infinite}
-.adv-front.avail:hover{transform:translateY(-4px) scale(1.03)}
-.adv-front.locked{opacity:.62}
-.adv-front:after{content:'';position:absolute;inset:0;background:repeating-linear-gradient(45deg,rgba(255,255,255,.018) 0 2px,transparent 2px 6px);pointer-events:none}
-.adv-arch{width:74%;height:82%;border:1.5px solid rgba(240,201,110,.45);border-radius:999px 999px 10px 10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.5rem;background:radial-gradient(ellipse at 50% 30%,rgba(64,232,255,.10),transparent 70%)}
-.adv-num{font-size:clamp(2rem,5.2vw,3.1rem);font-weight:900;line-height:1;background:linear-gradient(180deg,#fff2c4,${GOLD} 55%,#b98a2e);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 10px rgba(240,201,110,.4))}
-.adv-open{font:700 .55rem 'Courier New',monospace;letter-spacing:.2em;color:${CYAN}}
-.adv-face.adv-back{transform:rotateY(180deg);background:#060a15;border:2px solid ${GOLD};display:block}
-.adv-img{position:absolute;inset:6% 6% 16% 6%;width:88%;height:78%;object-fit:contain;filter:drop-shadow(0 6px 14px rgba(0,0,0,.6))}
+.adv-logos{display:flex;align-items:center;justify-content:center;gap:.8rem;flex-wrap:wrap}
+.adv-logos i{font-style:normal;color:#8fa3bd;font-size:1.1rem}
+.adv-ttfl{font:900 1.5rem system-ui;letter-spacing:.14em;color:#fff;padding:.15rem .7rem;border:2px solid #fff;border-radius:6px}
+.adv-sorare{display:inline-flex;align-items:center;gap:.5rem;font:800 1.05rem system-ui;letter-spacing:.16em;color:#fff}.adv-sorare img{width:34px;height:34px;object-fit:contain}.adv-sorare em{font-style:normal;color:${CYAN};letter-spacing:.2em;font-size:.8rem}
+.adv-door{aspect-ratio:3/4.2;cursor:pointer;position:relative;-webkit-tap-highlight-color:transparent}
+.adv-door.opened{animation:advFloat 4.2s ease-in-out infinite;animation-delay:var(--fd)}
+.adv-door.opened:hover{animation-play-state:paused}
+.adv-front{display:flex;align-items:center;justify-content:center;border-radius:0;overflow:visible;transition:transform .25s,filter .25s}
+.adv-front.avail{filter:drop-shadow(0 0 14px rgba(64,232,255,.45));animation:advPack 3s ease-in-out infinite;animation-delay:var(--fd)}
+.adv-front.avail:hover{transform:translateY(-4px) scale(1.04);filter:drop-shadow(0 0 24px rgba(64,232,255,.8))}
+.adv-front.locked{filter:grayscale(.75) brightness(.55)}
+.adv-front.shaking{animation:advShake .65s linear both;filter:drop-shadow(0 0 30px #fff)}
+.adv-packbox{position:absolute;left:50%;top:50%;height:119%;aspect-ratio:896/1200;transform:translate(-50%,-50%);pointer-events:none}
+.adv-pack{width:100%;height:100%;display:block}
+.adv-medal{position:absolute;left:50%;top:27.2%;width:30%;aspect-ratio:1;transform:translate(-50%,-50%);border-radius:50%;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 35% 30%,#fff2c4,${GOLD} 45%,#8a6418);border:2px solid #fff2c4;box-shadow:0 2px 10px rgba(0,0,0,.55),inset 0 -3px 6px rgba(90,60,10,.5)}
+.adv-medal b{font-size:clamp(1.1rem,3.6vw,2.1rem);font-weight:900;line-height:1;color:#2a1c04;text-shadow:0 1px 0 rgba(255,255,255,.5)}
+.adv-open{position:absolute;left:50%;bottom:3%;transform:translateX(-50%);padding:.15rem .6rem;border-radius:999px;background:rgba(3,10,22,.82);border:1px solid ${CYAN};font:700 .52rem 'Courier New',monospace;letter-spacing:.2em;color:${CYAN};white-space:nowrap}
+.adv-lock{position:absolute;left:50%;bottom:6%;transform:translateX(-50%)}
+.adv-flash{position:absolute;inset:-20%;background:radial-gradient(circle,rgba(255,255,255,.95),rgba(64,232,255,.4) 40%,transparent 70%);animation:advFlash .65s ease-in both;pointer-events:none}
+.adv-face.adv-back{transform:rotateY(180deg);background:#060a15;border:2px solid ${GOLD};display:block;border-radius:12px}
+.adv-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.adv-daybadge{position:absolute;top:7px;left:7px;width:1.6rem;height:1.6rem;border-radius:50%;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 35% 30%,#fff2c4,${GOLD} 50%,#8a6418);color:#2a1c04;font:900 .8rem system-ui;box-shadow:0 2px 8px rgba(0,0,0,.6)}
+.adv-detail{position:absolute;right:7px;bottom:7px;width:1.7rem;height:1.7rem;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(3,10,22,.8);border:1.5px solid ${CYAN};color:${CYAN};font-size:1.05rem;line-height:1;animation:advTap 1.8s ease-in-out infinite}
+.adv-hint{text-align:center;margin:0 auto .9rem;padding:.5rem 1rem;max-width:520px;border-radius:999px;border:1px dashed rgba(64,232,255,.55);color:${CYAN};font-size:.8rem;animation:advBlink 1.8s ease-in-out infinite}
+.adv-scores{display:flex;align-items:center;gap:1rem;flex-wrap:wrap}
+.adv-sbadge{padding:.4rem .9rem;border:2px solid;border-radius:14px;background:rgba(0,0,0,.35);text-align:center}.adv-sbadge b{display:block;font-size:1.9rem;line-height:1.1;font-weight:900}.adv-sbadge small{font:600 .55rem 'Courier New',monospace;letter-spacing:.14em;color:#9fb3cc;text-transform:uppercase}
+.adv-toprow u{min-width:1.7rem;padding:.05rem .4rem;border-radius:999px;color:#04101a;font:800 .72rem system-ui;text-align:center;text-decoration:none}
+.adv-ref{margin-top:.5rem;font-size:.62rem;color:#6f8099}
 .adv-shine{position:absolute;inset:0;background:linear-gradient(115deg,transparent 35%,rgba(255,255,255,.22) 50%,transparent 65%);transform:translateX(-120%);animation:advShine 3.4s ease-in-out infinite;pointer-events:none}
 .adv-score{position:absolute;top:7px;right:7px;min-width:2.1rem;padding:.12rem .45rem;border-radius:999px;color:#04101a;font:900 clamp(.78rem,2.2vw,1.05rem) system-ui;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,.5)}
-.adv-cap{position:absolute;left:0;right:0;bottom:0;padding:1.4rem .4rem .45rem;background:linear-gradient(0deg,rgba(3,5,12,.95),transparent);text-align:center;font-size:clamp(.55rem,1.6vw,.78rem);line-height:1.15;color:#fff}
 .adv-p{position:absolute;left:50%;top:50%;border-radius:50%;opacity:0;animation:advBurst 1.2s ease-out forwards}
 .adv-promo{margin:2.6rem auto 0;text-align:center}.adv-promo p{margin:0 0 .9rem;color:#aebfd6;font-size:.95rem}
 .adv-btn{display:inline-block;cursor:pointer;padding:.7rem 1.4rem;border-radius:999px;border:1px solid rgba(64,232,255,.6);background:rgba(64,232,255,.08);color:${CYAN};font:700 .74rem 'Courier New',monospace;letter-spacing:.14em;text-transform:uppercase;text-decoration:none}
@@ -314,10 +356,15 @@ const css = `
 @keyframes advPulse{0%,100%{box-shadow:0 0 18px rgba(64,232,255,.22),inset 0 0 20px rgba(64,232,255,.06)}50%{box-shadow:0 0 34px rgba(64,232,255,.5),inset 0 0 28px rgba(64,232,255,.14)}}
 @keyframes advShine{0%,55%{transform:translateX(-120%)}100%{transform:translateX(120%)}}
 @keyframes advBurst{0%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) scale(.2)}}
+@keyframes advPack{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+@keyframes advShake{0%{transform:rotate(0)}10%{transform:rotate(-4deg) scale(1.03)}20%{transform:rotate(4deg) scale(1.05)}30%{transform:rotate(-5deg) scale(1.07)}40%{transform:rotate(5deg) scale(1.09)}50%{transform:rotate(-6deg) scale(1.1)}60%{transform:rotate(6deg) scale(1.12)}80%{transform:rotate(-3deg) scale(1.14)}100%{transform:rotate(0) scale(1.16)}}
+@keyframes advFlash{0%{opacity:0}60%{opacity:.5}100%{opacity:1}}
+@keyframes advBlink{0%,100%{opacity:1}50%{opacity:.55}}
+@keyframes advTap{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(1.1)}}
 @keyframes advFade{from{opacity:0}to{opacity:1}}
 @keyframes advRise{from{opacity:0;transform:translateY(40px) rotateY(90deg) scale(.7)}to{opacity:1;transform:none}}
 @keyframes advFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
 @media(max-width:900px){.adv-grid{grid-template-columns:repeat(4,1fr);gap:14px}}
-@media(max-width:640px){.adv-grid{grid-template-columns:repeat(3,1fr);gap:10px}.adv-stagebox{flex-direction:column;padding:1.1rem}.adv-stagecard{width:min(46%,calc(38vh * .714))}.adv-wrap{padding:.9rem .8rem 2.5rem}}
-@media(prefers-reduced-motion:reduce){.adv-inner{transition-duration:.01s}.adv-shine,.adv-front.avail,.adv-stagecard{animation:none}.adv-p{display:none}}
+@media(max-width:640px){.adv-grid{grid-template-columns:repeat(3,1fr);gap:20px 10px}.adv-stagebox{flex-direction:column;padding:1.1rem}.adv-stagecard{width:min(46%,calc(38vh * .714))}.adv-wrap{padding:.9rem .8rem 2.5rem}}
+@media(prefers-reduced-motion:reduce){.adv-inner{transition-duration:.01s}.adv-shine,.adv-front.avail,.adv-door.opened,.adv-detail,.adv-hint,.adv-stagecard,.adv-front.shaking{animation:none}.adv-p{display:none}}
 `;

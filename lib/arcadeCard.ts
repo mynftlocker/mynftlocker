@@ -63,3 +63,22 @@ export async function arcadeCardFor(espnId: string, name: string): Promise<Arcad
     return null;
   }
 }
+
+// Score Sorare du joueur pour la nuit NBA `usDate` (jour americain AAAA-MM-JJ). La date des matchs Sorare est en UTC :
+// on retire 12 h pour retomber sur le jour americain. Null si le score n'est pas (encore) publie.
+export async function sorareScoreFor(playerSlug: string, usDate: string): Promise<number | null> {
+  const key = 'sscore:' + playerSlug + ':' + usDate;
+  const hit = await redis.get<number | 'none'>(key).catch(() => null);
+  if (hit === 'none') return null;
+  if (typeof hit === 'number') return hit;
+  try {
+    const d = await gql(`{anyPlayer(slug:${JSON.stringify(playerSlug)}){... on NBAPlayer{playerGameScores(last:6){score anyGame{date}}}}}`);
+    const list: any[] = d?.anyPlayer?.playerGameScores || [];
+    const m = list.find(g => g?.anyGame?.date && new Date(new Date(g.anyGame.date).getTime() - 12 * 3600e3).toISOString().slice(0, 10) === usDate);
+    const s = m && typeof m.score === 'number' ? Math.round(m.score) : null;
+    await redis.set(key, s ?? 'none', { ex: s != null ? 60 * 60 * 24 * 60 : 1800 }).catch(() => {});
+    return s;
+  } catch {
+    return null;
+  }
+}
