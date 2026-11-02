@@ -95,7 +95,7 @@ function Door({ n, openDay, d, flipped, loading, shaking, burst, onClick }: { n:
         {/* Face avant : le pack, avec le numero du jour a la place du bouclier */}
         <div className={'adv-face adv-front' + (avail ? ' avail' : ' locked') + (shaking ? ' shaking' : '')}>
           <div className='adv-packbox'>
-            <img src='/logo-pack.png' alt='' className='adv-pack' draggable={false} />
+            <img src='/logo-pack-blank.png' alt='' className='adv-pack' draggable={false} />
             <span className='adv-medal'><b>{n}</b></span>
           </div>
           {avail && <span className='adv-open'>{loading ? '…' : t('OUVRIR')}</span>}
@@ -158,7 +158,7 @@ function Stage({ n, d, onClose, onPrev, onNext, hasPrev, hasNext, demo }: { n: n
             ))}
           </div>
           <div className='adv-cta'>
-            <button className='adv-btn gold' onClick={share}>{t('Partager sur X')}</button>
+            <button className='adv-btn' onClick={share}>{t('Partager sur X')}</button>
             <a className='adv-btn' href='/'>{t('Découvrir myNFTlocker')}</a>
           </div>
           <div className='adv-cta' style={{ marginTop: '.6rem' }}>
@@ -252,7 +252,7 @@ export default function Calendar() {
         </header>
         <section className='adv-hero'>
           <div className='adv-logos'>
-            <span className='adv-ttfl'>TTFL</span><i>×</i>
+            <img src='/logo-ttfl.png' alt='TTFL' className='adv-ttfl' /><i>×</i>
             <span className='adv-sorare'><img src='/sorare-logo.png' alt='' />SORARE <em>ARCADE</em></span>
           </div>
           <h1>{t('CALENDRIER DE L’AVENT')}</h1>
@@ -269,7 +269,7 @@ export default function Calendar() {
         </section>
         <section className='adv-promo'>
           <p>{t('Ta galerie Sorare, ton vestiaire, tes stats : gratuit sur myNFTlocker.')}</p>
-          <a className='adv-btn gold' href='/'>{t('Découvrir myNFTlocker')}</a>
+          <a className='adv-btn' href='/'>{t('Découvrir myNFTlocker')}</a>
         </section>
         <footer className='adv-foot'>{t('Les scores TTFL sont calculés à partir des box scores NBA (points + rebonds + passes + interceptions + contres + tirs, 3 points et lancers francs réussis − tirs, 3 points et lancers francs ratés − balles perdues). Projet indépendant, non affilié à Sorare, à la NBA ni à la TTFL. Le lien Sorare est un lien de parrainage.')}</footer>
       </div>
@@ -298,9 +298,15 @@ const css = `
 .adv-inner{position:absolute;inset:0;transform-style:preserve-3d;transition:transform .95s cubic-bezier(.3,.7,.2,1)}
 .adv-inner.flipped{transform:rotateY(180deg)}
 .adv-face{position:absolute;inset:0;border-radius:16px;backface-visibility:hidden;-webkit-backface-visibility:hidden;overflow:hidden}
+.adv-ttfl{height:46px;width:auto;display:block}
+.adv-sorare img{width:40px;height:40px}
+.adv-medal{position:absolute;left:50%;top:27.2%;transform:translate(-50%,-50%);line-height:1}
+.adv-medal b{display:block;font-weight:900;font-family:'Arial Black','Impact','Helvetica Neue',Arial,sans-serif;font-size:clamp(2rem,6.4vw,3.7rem);line-height:1;letter-spacing:-.02em;background:linear-gradient(180deg,#fff7cf 0%,#f6d77f 26%,#d9a23a 50%,#8d5c12 52%,#e8bd55 76%,#fff0b0 100%);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 1px 0 #3d2604) drop-shadow(0 -1px 0 #3d2604) drop-shadow(1px 0 0 #3d2604) drop-shadow(-1px 0 0 #3d2604) drop-shadow(0 4px 5px rgba(0,0,0,.65))}
+.adv-cta{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-top:1rem}.adv-cta .adv-btn{text-align:center;padding:.7rem .6rem}
+.adv-promo .adv-btn{display:inline-block}
+@media(max-width:640px){.adv-ttfl{height:36px}.adv-sorare img{width:32px;height:32px}.adv-sorare{font-size:.9rem}}
 .adv-logos{display:flex;align-items:center;justify-content:center;gap:.8rem;flex-wrap:wrap}
 .adv-logos i{font-style:normal;color:#8fa3bd;font-size:1.1rem}
-.adv-ttfl{font:900 1.5rem system-ui;letter-spacing:.14em;color:#fff;padding:.15rem .7rem;border:2px solid #fff;border-radius:6px}
 .adv-sorare{display:inline-flex;align-items:center;gap:.5rem;font:800 1.05rem system-ui;letter-spacing:.16em;color:#fff}.adv-sorare img{width:34px;height:34px;object-fit:contain}.adv-sorare em{font-style:normal;color:${CYAN};letter-spacing:.2em;font-size:.8rem}
 .adv-door{aspect-ratio:3/4.2;cursor:pointer;position:relative;-webkit-tap-highlight-color:transparent}
 .adv-door.opened{animation:advFloat 4.2s ease-in-out infinite;animation-delay:var(--fd)}
@@ -312,8 +318,6 @@ const css = `
 .adv-front.shaking{animation:advShake .65s linear both;filter:drop-shadow(0 0 30px #fff)}
 .adv-packbox{position:absolute;left:50%;top:50%;height:119%;aspect-ratio:896/1200;transform:translate(-50%,-50%);pointer-events:none}
 .adv-pack{width:100%;height:100%;display:block}
-.adv-medal{position:absolute;left:50%;top:27.2%;width:30%;aspect-ratio:1;transform:translate(-50%,-50%);border-radius:50%;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 35% 30%,#fff2c4,${GOLD} 45%,#8a6418);border:2px solid #fff2c4;box-shadow:0 2px 10px rgba(0,0,0,.55),inset 0 -3px 6px rgba(90,60,10,.5)}
-.adv-medal b{font-size:clamp(1.1rem,3.6vw,2.1rem);font-weight:900;line-height:1;color:#2a1c04;text-shadow:0 1px 0 rgba(255,255,255,.5)}
 .adv-open{position:absolute;left:50%;bottom:3%;transform:translateX(-50%);padding:.15rem .6rem;border-radius:999px;background:rgba(3,10,22,.82);border:1px solid ${CYAN};font:700 .52rem 'Courier New',monospace;letter-spacing:.2em;color:${CYAN};white-space:nowrap}
 .adv-lock{position:absolute;left:50%;bottom:6%;transform:translateX(-50%)}
 .adv-flash{position:absolute;inset:-20%;background:radial-gradient(circle,rgba(255,255,255,.95),rgba(64,232,255,.4) 40%,transparent 70%);animation:advFlash .65s ease-in both;pointer-events:none}
@@ -351,7 +355,6 @@ const css = `
 .adv-toprow span{width:1rem;color:#8fa3bd;font-size:.75rem}.adv-toprow img,.adv-toprow i{width:26px;height:34px;object-fit:contain;flex:0 0 auto}
 .adv-toprow em{flex:1;min-width:0;font-style:normal;color:#e6efff;font-size:.82rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.adv-toprow em small{display:block;color:#7a8da8;font-size:.64rem}
 .adv-toprow b{font-size:1rem}
-.adv-cta{display:flex;gap:.6rem;flex-wrap:wrap;margin-top:1rem}
 .adv-nav{display:flex;gap:.5rem;margin-top:.8rem}.adv-nav button{width:2.2rem;height:2.2rem;border-radius:50%;border:1px solid rgba(255,255,255,.18);background:transparent;color:#cfe4fb;cursor:pointer}.adv-nav button:disabled{opacity:.25;cursor:default}
 @keyframes advPulse{0%,100%{box-shadow:0 0 18px rgba(64,232,255,.22),inset 0 0 20px rgba(64,232,255,.06)}50%{box-shadow:0 0 34px rgba(64,232,255,.5),inset 0 0 28px rgba(64,232,255,.14)}}
 @keyframes advShine{0%,55%{transform:translateX(-120%)}100%{transform:translateX(120%)}}
@@ -364,6 +367,9 @@ const css = `
 @keyframes advFade{from{opacity:0}to{opacity:1}}
 @keyframes advRise{from{opacity:0;transform:translateY(40px) rotateY(90deg) scale(.7)}to{opacity:1;transform:none}}
 @keyframes advFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.adv-top{gap:min(.35rem,.6vh)}
+@media(min-width:641px){.adv-stagebox{overflow:hidden;max-height:96vh}.adv-name{font-size:min(2.1rem,4.4vh)}.adv-bigscore{font-size:min(5rem,10vh);margin:min(.5rem,.8vh) 0}.adv-sbadge b{font-size:min(1.9rem,3.6vh)}.adv-stagecard{width:min(40%,calc(66vh * .714))}}
+@media(min-width:641px) and (max-height:800px){.adv-stagebox{padding:.9rem 1.4rem;gap:1.4rem}.adv-stat{padding:.2rem .5rem}.adv-stat b{font-size:.95rem}.adv-toprow{padding:.12rem .5rem}.adv-toprow img,.adv-toprow i{width:20px;height:26px}.adv-cta{margin-top:.55rem}.adv-btn{padding:.45rem .6rem;font-size:.66rem}.adv-nav{margin-top:.5rem}.adv-nav button{width:1.9rem;height:1.9rem}.adv-ref{margin-top:.3rem}.adv-sub{margin-top:.2rem}.adv-team{font-size:.78rem}}
 @media(max-width:900px){.adv-grid{grid-template-columns:repeat(4,1fr);gap:14px}}
 @media(max-width:640px){.adv-grid{grid-template-columns:repeat(3,1fr);gap:20px 10px}.adv-stagebox{flex-direction:column;padding:1.1rem}.adv-stagecard{width:min(46%,calc(38vh * .714))}.adv-wrap{padding:.9rem .8rem 2.5rem}}
 @media(prefers-reduced-motion:reduce){.adv-inner{transition-duration:.01s}.adv-shine,.adv-front.avail,.adv-door.opened,.adv-detail,.adv-hint,.adv-stagecard,.adv-front.shaking{animation:none}.adv-p{display:none}}
