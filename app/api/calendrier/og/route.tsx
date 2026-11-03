@@ -78,7 +78,7 @@ export async function GET(req: NextRequest) {
               <div style={{ display: 'flex', fontSize: 62, fontWeight: 700, lineHeight: 1.05, marginTop: 12 }}>{String(w.name).slice(0, 30)}</div>
               <div style={{ display: 'flex', fontSize: 28, color: '#9fb0c4', marginTop: 8 }}>{w.team}</div>
               <div style={{ display: 'flex', alignItems: 'center', marginTop: 22 }}>
-                <span style={{ fontSize: 100, fontWeight: 700, lineHeight: 1 }}>{w.score}</span>
+                <span style={{ fontSize: 100, fontWeight: 700, lineHeight: 1, color: '#ff2d3d' }}>{w.score}</span>
                 {ttflText ? <img src={ttflText} height={58} style={{ objectFit: 'contain', marginLeft: 14 }} /> : <span style={{ fontSize: 30, color: '#9fb0c4', marginLeft: 12, letterSpacing: 4 }}>TTFL</span>}
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', marginTop: 14 }}>

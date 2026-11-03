@@ -200,7 +200,7 @@ function Stage({ n, d, onClose, onPrev, onNext, hasPrev, hasNext, demo, preview,
           <h2 className='adv-name'>{w.name}</h2>
           <div className='adv-team'>{w.team}</div>
           <div className='adv-scores'>
-            <div className='adv-bigscore' style={{ color: '#fff' }}>{score}<img src='/logo-ttfl-text.png' alt='TTFL' className='adv-ttflword' /></div>
+            <div className='adv-bigscore' style={{ color: '#ff2d3d' }}>{score}<img src='/logo-ttfl-text.png' alt='TTFL' className='adv-ttflword' /></div>
           </div>
           <div className='adv-stats'>{stat('PTS', w.pts)}{stat('REB', w.reb)}{stat('PD', w.ast)}{stat('INT', w.stl)}{stat('CT', w.blk)}{w.sorare != null && <div className='adv-stat' title={t('Score Sorare')} aria-label={t('Score Sorare') + ' ' + sScore}><b>{sScore}</b><span>SORARE</span></div>}</div>
           <div className='adv-sub' style={{ marginTop: '1rem' }}>{t('Le top de la nuit')}</div>
@@ -210,7 +210,7 @@ function Stage({ n, d, onClose, onPrev, onNext, hasPrev, hasNext, demo, preview,
                 <span>{i + 2}</span>
                 {r.card ? <img src={r.card.pictureUrl} alt='' /> : <i />}
                 <em>{r.name}<small>{r.team}</small></em>
-                <b>{r.score}</b>{r.sorare != null && <u style={{ background: rowBg(r) }}>{r.sorare}</u>}
+                <b style={{ color: '#ff2d3d' }}>{r.score}</b>{r.sorare != null && <u style={{ background: rowBg(r) }}>{r.sorare}</u>}
               </div>
             ))}
           </div>
