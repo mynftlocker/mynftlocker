@@ -73,7 +73,7 @@ export async function GET(req: NextRequest) {
             {cardImg
               ? <img src={cardImg} width={262} height={420} style={{ objectFit: 'contain', borderRadius: 14, boxShadow: `0 0 40px ${col}aa` }} />
               : <div style={{ display: 'flex', width: 262, height: 420, borderRadius: 14, border: `2px solid ${col}` }} />}
-            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', height: 420, marginLeft: 60, maxWidth: 720 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center', height: 420, width: 834 }}>
               <div style={{ display: 'flex', fontSize: 23, color: '#40e8ff', letterSpacing: 3, whiteSpace: 'nowrap' }}>{en ? `DAY ${day} · BEST TTFL OF THE NIGHT` : `JOUR ${day} · MEILLEUR SCORE TTFL DE LA NUIT`}</div>
               <div style={{ display: 'flex', fontSize: 62, fontWeight: 700, lineHeight: 1.05, marginTop: 12 }}>{String(w.name).slice(0, 30)}</div>
               <div style={{ display: 'flex', fontSize: 28, color: '#9fb0c4', marginTop: 8 }}>{w.team}</div>
@@ -85,15 +85,15 @@ export async function GET(req: NextRequest) {
                 {[[['PTS', w.pts], ['REB', w.reb], [en ? 'AST' : 'PD', w.ast]], [[en ? 'STL' : 'INT', w.stl], [en ? 'BLK' : 'CT', w.blk]]].map((row, ri) => (
                   <div key={ri} style={{ display: 'flex', marginTop: ri ? 10 : 0 }}>
                     {row.map(([l, v]) => (
-                      <div key={String(l)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 96, marginRight: 14, padding: '4px 0', borderRadius: 12, background: 'rgba(255,255,255,.07)' }}>
+                      <div key={String(l)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 96, margin: '0 7px', padding: '4px 0', borderRadius: 12, background: 'rgba(255,255,255,.07)' }}>
                         <span style={{ fontSize: 34, fontWeight: 700, lineHeight: 1.1 }}>{String(v ?? 0)}</span>
                         <span style={{ fontSize: 15, color: '#9fb0c4', letterSpacing: 3 }}>{l}</span>
                       </div>
                     ))}
                     {ri === 1 && s != null && (
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 96, padding: '4px 0', borderRadius: 12, border: `3px solid ${col}`, background: 'rgba(0,0,0,.35)' }}>
-                        <span style={{ fontSize: 34, fontWeight: 700, color: col, lineHeight: 1.1 }}>{s}</span>
-                        {sorareLogo && <img src={sorareLogo} width={26} height={26} style={{ objectFit: 'contain', marginLeft: 8 }} />}
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 96, padding: '4px 0', borderRadius: 12, background: 'rgba(255,255,255,.07)' }}>
+                        <span style={{ fontSize: 34, fontWeight: 700, lineHeight: 1.1 }}>{s}</span>
+                        {sorareLogo ? <img src={sorareLogo} width={17} height={17} style={{ objectFit: 'contain' }} /> : <span style={{ fontSize: 15, color: '#9fb0c4', letterSpacing: 3 }}>SOR</span>}
                       </div>
                     )}
                   </div>
