@@ -93,7 +93,7 @@ export async function GET(req: NextRequest) {
                     {ri === 1 && s != null && (
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 96, padding: '4px 0', borderRadius: 12, background: 'rgba(255,255,255,.07)' }}>
                         <span style={{ fontSize: 34, fontWeight: 700, lineHeight: 1.1 }}>{s}</span>
-                        {sorareLogo ? <img src={sorareLogo} width={17} height={17} style={{ objectFit: 'contain' }} /> : <span style={{ fontSize: 15, color: '#9fb0c4', letterSpacing: 3 }}>SOR</span>}
+                        <span style={{ fontSize: 15, color: '#9fb0c4', letterSpacing: 2 }}>SORARE</span>
                       </div>
                     )}
                   </div>
