@@ -115,7 +115,7 @@ export async function GET(req: NextRequest) {
         <div style={{ display: 'flex' }}>mynftlocker.com/calendrier</div>
       </div>
       {qr && w && (
-        <div style={{ position: 'absolute', right: 186, bottom: 24, height: 112, width: 330, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'flex-end', textAlign: 'right' }}>
+        <div style={{ position: 'absolute', right: 52, bottom: 146, width: 340, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', textAlign: 'right' }}>
           <div style={{ display: 'flex', fontSize: 19, color: '#40e8ff', letterSpacing: 3 }}>{en ? 'SCAN TO OPEN YOUR DOOR' : 'SCANNE POUR OUVRIR TA CASE'}</div>
           <div style={{ display: 'flex', fontSize: 23, color: '#cfe4fb', marginTop: 8, lineHeight: 1.25 }}>{en ? 'A free Arcade card every morning at 9 am' : 'Une carte Arcade gratuite chaque matin à 9 h'}</div>
         </div>
