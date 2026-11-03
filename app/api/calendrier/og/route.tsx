@@ -116,7 +116,7 @@ export async function GET(req: NextRequest) {
       </div>
       {qr && w && (
         <div style={{ position: 'absolute', right: 52, bottom: 146, width: 340, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', textAlign: 'right' }}>
-          <div style={{ display: 'flex', fontSize: 19, color: '#40e8ff', letterSpacing: 3 }}>{en ? 'SCAN TO OPEN YOUR DOOR' : 'SCANNE POUR OUVRIR TA CASE'}</div>
+          <div style={{ display: 'flex', fontSize: 19, color: '#40e8ff', letterSpacing: 3 }}>{en ? 'SCAN & OPEN YOUR DOOR' : 'SCANNE ET OUVRE TA CASE'}</div>
           <div style={{ display: 'flex', fontSize: 23, color: '#cfe4fb', marginTop: 8, lineHeight: 1.25 }}>{en ? 'A free Arcade card every morning at 9 am' : 'Une carte Arcade gratuite chaque matin à 9 h'}</div>
         </div>
       )}
