@@ -202,7 +202,7 @@ function Stage({ n, d, onClose, onPrev, onNext, hasPrev, hasNext, demo, preview,
           <div className='adv-scores'>
             <div className='adv-bigscore' style={{ color: '#fff' }}>{score}<img src='/logo-ttfl-text.png' alt='TTFL' className='adv-ttflword' /></div>
           </div>
-          <div className='adv-stats'>{stat('PTS', w.pts)}{stat('REB', w.reb)}{stat('PD', w.ast)}{stat('INT', w.stl)}{stat('CT', w.blk)}{w.sorare != null && <div className='adv-stat adv-stat-s' title={t('Score Sorare')} aria-label={t('Score Sorare') + ' ' + sScore} style={{ borderColor: col, boxShadow: '0 0 16px ' + col + '66' }}><b style={{ color: col }}>{sScore}</b><img src='/sorare-logo.png' alt='' /></div>}</div>
+          <div className='adv-stats'>{stat('PTS', w.pts)}{stat('REB', w.reb)}{stat('PD', w.ast)}{stat('INT', w.stl)}{stat('CT', w.blk)}{w.sorare != null && <div className='adv-stat' title={t('Score Sorare')} aria-label={t('Score Sorare') + ' ' + sScore}><b>{sScore}</b><span><img className='adv-statlogo' src='/sorare-logo.png' alt='' /></span></div>}</div>
           <div className='adv-sub' style={{ marginTop: '1rem' }}>{t('Le top de la nuit')}</div>
           <div className='adv-top'>
             {d.top!.slice(1, 5).map((r, i) => (
@@ -502,7 +502,7 @@ const css = `
 .adv-team{color:#9fb3cc;font-size:.85rem;margin-top:.15rem}
 .adv-bigscore{font-size:clamp(3rem,9vw,5rem);font-weight:900;line-height:1;margin:.5rem 0}.adv-bigscore small{font-size:.9rem;margin-left:.4rem;letter-spacing:.2em;opacity:.8}
 .adv-stats{display:flex;gap:.5rem;flex-wrap:wrap}.adv-stat{min-width:3.1rem;padding:.4rem .55rem;border-radius:10px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);text-align:center}
-.adv-stat-s{margin-left:auto;display:flex;align-items:center;justify-content:center;gap:.35rem;border:2px solid;background:rgba(0,0,0,.35)}.adv-stat-s b{display:inline!important;font-size:1.15rem!important}.adv-stat-s img{width:16px;height:16px}.adv-bigscore:has(.adv-ttflword){display:flex;align-items:center;gap:.7rem;flex-wrap:nowrap}.adv-ttflword{height:clamp(1.6rem,5vh,2.4rem);width:auto;flex:0 0 auto;margin:0}
+.adv-statlogo{width:11px;height:11px;display:block;margin:.12rem auto 0}.adv-bigscore:has(.adv-ttflword){display:flex;align-items:center;gap:.7rem;flex-wrap:nowrap}.adv-ttflword{height:clamp(1.6rem,5vh,2.4rem);width:auto;flex:0 0 auto;margin:0}
 .adv-stat b{display:block;font-size:1.05rem;color:#fff}.adv-stat span{font:600 .55rem 'Courier New',monospace;letter-spacing:.14em;color:#8fa3bd}
 .adv-top{display:flex;flex-direction:column;gap:.35rem;margin-top:.4rem}
 .adv-toprow{display:flex;align-items:center;gap:.6rem;padding:.3rem .5rem;border-radius:10px;background:rgba(255,255,255,.04)}

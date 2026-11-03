@@ -91,9 +91,9 @@ export async function GET(req: NextRequest) {
                       </div>
                     ))}
                     {ri === 1 && s != null && (
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 96, padding: '4px 0', borderRadius: 12, border: `3px solid ${col}`, background: 'rgba(0,0,0,.35)' }}>
-                        <span style={{ fontSize: 34, fontWeight: 700, color: col, lineHeight: 1.1 }}>{s}</span>
-                        {sorareLogo && <img src={sorareLogo} width={26} height={26} style={{ objectFit: 'contain', marginLeft: 8 }} />}
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 96, padding: '4px 0', borderRadius: 12, background: 'rgba(255,255,255,.07)' }}>
+                        <span style={{ fontSize: 34, fontWeight: 700, lineHeight: 1.1 }}>{s}</span>
+                        {sorareLogo ? <img src={sorareLogo} width={17} height={17} style={{ objectFit: 'contain' }} /> : <span style={{ fontSize: 15, color: '#9fb0c4', letterSpacing: 3 }}>SOR</span>}
                       </div>
                     )}
                   </div>
@@ -114,6 +114,12 @@ export async function GET(req: NextRequest) {
       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 24, color: '#9fb0c4' }}>
         <div style={{ display: 'flex' }}>mynftlocker.com/calendrier</div>
       </div>
+      {qr && w && (
+        <div style={{ position: 'absolute', right: 186, bottom: 24, height: 112, width: 330, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'flex-end', textAlign: 'right' }}>
+          <div style={{ display: 'flex', fontSize: 19, color: '#40e8ff', letterSpacing: 3 }}>{en ? 'SCAN TO OPEN YOUR DOOR' : 'SCANNE POUR OUVRIR TA CASE'}</div>
+          <div style={{ display: 'flex', fontSize: 23, color: '#cfe4fb', marginTop: 8, lineHeight: 1.25 }}>{en ? 'A free Arcade card every morning at 9 am' : 'Une carte Arcade gratuite chaque matin à 9 h'}</div>
+        </div>
+      )}
       {qr && (
         <div style={{ position: 'absolute', right: 52, bottom: 24, display: 'flex', width: 112, height: 112 }}>
           <img src={qr} width={112} height={112} />
