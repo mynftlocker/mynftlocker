@@ -73,7 +73,7 @@ export async function GET(req: NextRequest) {
             {cardImg
               ? <img src={cardImg} width={262} height={420} style={{ objectFit: 'contain', borderRadius: 14, boxShadow: `0 0 40px ${col}aa` }} />
               : <div style={{ display: 'flex', width: 262, height: 420, borderRadius: 14, border: `2px solid ${col}` }} />}
-            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', height: 420, marginLeft: 60, maxWidth: 720 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center', height: 420, flex: 1 }}>
               <div style={{ display: 'flex', fontSize: 23, color: '#40e8ff', letterSpacing: 3, whiteSpace: 'nowrap' }}>{en ? `DAY ${day} · BEST TTFL OF THE NIGHT` : `JOUR ${day} · MEILLEUR SCORE TTFL DE LA NUIT`}</div>
               <div style={{ display: 'flex', fontSize: 62, fontWeight: 700, lineHeight: 1.05, marginTop: 12 }}>{String(w.name).slice(0, 30)}</div>
               <div style={{ display: 'flex', fontSize: 28, color: '#9fb0c4', marginTop: 8 }}>{w.team}</div>
@@ -85,7 +85,7 @@ export async function GET(req: NextRequest) {
                 {[[['PTS', w.pts], ['REB', w.reb], [en ? 'AST' : 'PD', w.ast]], [[en ? 'STL' : 'INT', w.stl], [en ? 'BLK' : 'CT', w.blk]]].map((row, ri) => (
                   <div key={ri} style={{ display: 'flex', marginTop: ri ? 10 : 0 }}>
                     {row.map(([l, v]) => (
-                      <div key={String(l)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 96, marginRight: 14, padding: '4px 0', borderRadius: 12, background: 'rgba(255,255,255,.07)' }}>
+                      <div key={String(l)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 96, margin: '0 7px', padding: '4px 0', borderRadius: 12, background: 'rgba(255,255,255,.07)' }}>
                         <span style={{ fontSize: 34, fontWeight: 700, lineHeight: 1.1 }}>{String(v ?? 0)}</span>
                         <span style={{ fontSize: 15, color: '#9fb0c4', letterSpacing: 3 }}>{l}</span>
                       </div>
@@ -114,12 +114,6 @@ export async function GET(req: NextRequest) {
       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 24, color: '#9fb0c4' }}>
         <div style={{ display: 'flex' }}>mynftlocker.com/calendrier</div>
       </div>
-      {qr && w && (
-        <div style={{ position: 'absolute', right: 52, bottom: 146, width: 340, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', textAlign: 'right' }}>
-          <div style={{ display: 'flex', fontSize: 19, color: '#40e8ff', letterSpacing: 3 }}>{en ? 'SCAN & OPEN YOUR DOOR' : 'SCANNE ET OUVRE TA CASE'}</div>
-          <div style={{ display: 'flex', fontSize: 23, color: '#cfe4fb', marginTop: 8, lineHeight: 1.25 }}>{en ? 'A free Arcade card every morning at 9 am' : 'Une carte Arcade gratuite chaque matin à 9 h'}</div>
-        </div>
-      )}
       {qr && (
         <div style={{ position: 'absolute', right: 52, bottom: 24, display: 'flex', width: 112, height: 112 }}>
           <img src={qr} width={112} height={112} />
