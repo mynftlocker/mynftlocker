@@ -10,6 +10,7 @@ import { MessagingCtx } from './lib/messagingContext';
 // INSCRIPTIONS : fermees tant que NEXT_PUBLIC_SIGNUP_OPEN n'est pas 'true' (Vercel > Settings > Environment Variables). Les comptes existants peuvent toujours se connecter.
 const SIGNUP_OPEN=process.env.NEXT_PUBLIC_SIGNUP_OPEN==='true';
 import { setManager } from './lib-share';
+import GameplayList from './components/GameplayList';
 import { isArcadeCard, ARCADE_DEFAULT, activeInjury } from './lib/gameplay';
 import { collectPrefs, pullPrefs, pushPrefs } from './lib/prefsSync';
 import StarCanvas from './components/StarCanvas';
@@ -66,6 +67,9 @@ export default function Home() {
   // Modes : Arcade (set Arcade uniquement) et Gameplay (outils de composition, caches par defaut pour garder la galerie propre)
   const [arcadeOnly,setArcadeOnly]=useState(ARCADE_DEFAULT);
   const [gameplay,setGameplay]=useState(false);
+  const [gList,setGList]=useState(false); // Gameplay : vue Liste (une ligne par carte) au lieu de la galerie
+  useEffect(()=>{try{setGList(localStorage.getItem('mnfl_glist')==='1');}catch{}},[]);
+  const toggleGList=(v:boolean)=>{setGList(v);try{localStorage.setItem('mnfl_glist',v?'1':'0');}catch{}};
   const [fComp,setFComp]=useState('all');
   const [fStars,setFStars]=useState('all');
   const [fAvail,setFAvail]=useState('all');
@@ -1092,7 +1096,14 @@ export default function Home() {
     
       {(mode==='gallery'||galleryWarm)&&(
             <div style={{...galleryBg,minHeight:'100vh',display:mode==='gallery'?'block':'none'}}>
-              <GalleryView cards={filteredGallery} badgeSort={mode==='gallery'?gSort:undefined} gameplay={gameplay} hof={[...hof,...hofFoot]} onStar={handleStar}/>
+              {gameplay&&gSport==='nba'&&(
+                <div style={{display:'flex',justifyContent:'center',gap:'0.4rem',padding:'0.6rem 0 0.2rem'}}>
+                  {[{v:false,l:tr('Galerie')},{v:true,l:tr('Liste')}].map(o=>(<button key={o.l} onClick={()=>toggleGList(o.v)} style={{padding:'0.3rem 0.9rem',borderRadius:999,border:'1px solid '+(gList===o.v?'#40e8ff':'rgba(255,255,255,0.2)'),background:gList===o.v?'rgba(64,232,255,0.15)':'transparent',color:gList===o.v?'#40e8ff':'#ccd',cursor:'pointer',fontSize:'0.78rem'}}>{o.l}</button>))}
+                </div>
+              )}
+              {gameplay&&gSport==='nba'&&gList
+                ?<GameplayList cards={filteredGallery}/>
+                :<GalleryView cards={filteredGallery} badgeSort={mode==='gallery'?gSort:undefined} gameplay={gameplay} hof={[...hof,...hofFoot]} onStar={handleStar}/>}
             </div>
           )}
           </div>
