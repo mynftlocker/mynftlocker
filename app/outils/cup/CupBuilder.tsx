@@ -144,11 +144,6 @@ export default function CupBuilder() {
     ...pool.flatMap(x => [{ ...x, v: x.v * 1.05, is: true, buy: true, pw: 1.05 }, { ...x, is: false, buy: true, pw: 1 }]),
   ], [pool, ownedItems]);
   const buyItems = useMemo(() => pool.filter(x => !own(x.p.slug)).flatMap(x => [{ ...x, v: x.v * 1.05, is: true, buy: true, pw: 1.05 }, { ...x, is: false, buy: true, pw: 1 }]), [pool, owned, col]); // achat : In-Season +5 %, Classic +0 % // eslint-disable-line react-hooks/exhaustive-deps
-  const free = useMemo(() => best(freeItems, T.is, 5), [freeItems, T.is]);
-  const mine = useMemo(() => best(ownedItems, T.is), [ownedItems, T.is]);
-  const gains = useMemo(() => { if (ownedPool.length < 5) return []; const m = new Map<string, { x: (typeof buyItems)[number]; g: number }>(); for (const x of buyItems) { const g = best([...ownedItems, x], T.is, 1).total - mine.total; const c = m.get(x.p.slug); if (g > 0.05 && (!c || g > c.g)) m.set(x.p.slug, { x, g }); } return [...m.values()].sort((a, b) => b.g - a.g).slice(0, 12); }, [buyItems, ownedItems, ownedPool, mine, T.is]);
-  const buy1 = useMemo(() => best([...ownedItems, ...buyItems], T.is, 1).sel, [ownedItems, buyItems, T.is]);
-  const buy2 = useMemo(() => best([...ownedItems, ...buyItems], T.is, 2).sel, [ownedItems, buyItems, T.is]);
 
   const stat = (list: { p: P; v: number; pw?: number }[]) => {
     const mean = list.reduce((s, x) => s + x.v, 0);
@@ -168,6 +163,25 @@ export default function CupBuilder() {
     const sd = Math.sqrt(list.reduce((s, x) => s + (x.p.sd ?? 14) ** 2, 0));
     return { mean, prob: 1 - cdf((T.pts - mean) / sd) };
   };
+  // Objectif = PROBABILITE d'atteindre le palier (pas la moyenne) : on teste plusieurs "gouts du risque" (valeur + k x ecart-type du joueur)
+  // et on garde la compo dont la simulation donne la meilleure probabilite. Palier loin => joueurs a pics ; palier proche => joueurs reguliers.
+  const bestP = <T extends Opt & { p: P; pw?: number }>(pool: T[], need: number, maxBuy = 0) => {
+    let top: { total: number; idx: number[]; sel: T[] } | null = null, bp = -1;
+    for (const k of [0, 0.25, 0.5, 0.8, 1.2]) {
+      const r = best(pool.map(x => ({ ...x, v: x.v + k * (x.p.sd ?? 10) * (x.pw ?? 1) })), need, maxBuy);
+      const sel = r.idx.map(i => pool.find(x => x.i === i && r.sel.some(y => y.i === i && y.is === x.is && !!y.buy === !!x.buy))).filter(Boolean) as T[];
+      if (sel.length !== 5) continue;
+      const pr = stat(sel).prob;
+      if (pr > bp + 1e-9) { bp = pr; top = { total: sel.reduce((a, x) => a + x.v, 0), idx: sel.map(x => x.i), sel }; }
+    }
+    return top || best(pool, need, maxBuy);
+  };
+  const free = useMemo(() => bestP(freeItems, T.is, 5), [freeItems, T.is]);
+  const mine = useMemo(() => bestP(ownedItems, T.is), [ownedItems, T.is]);
+  const baseMean = useMemo(() => best(ownedItems, T.is).total, [ownedItems, T.is]);
+  const gains = useMemo(() => { if (ownedPool.length < 5) return []; const m = new Map<string, { x: (typeof buyItems)[number]; g: number }>(); for (const x of buyItems) { const g = best([...ownedItems, x], T.is, 1).total - baseMean; const c = m.get(x.p.slug); if (g > 0.05 && (!c || g > c.g)) m.set(x.p.slug, { x, g }); } return [...m.values()].sort((a, b) => b.g - a.g).slice(0, 12); }, [buyItems, ownedItems, ownedPool, baseMean, T.is]);
+  const buy1 = useMemo(() => bestP([...ownedItems, ...buyItems], T.is, 1).sel, [ownedItems, buyItems, T.is]);
+  const buy2 = useMemo(() => bestP([...ownedItems, ...buyItems], T.is, 2).sel, [ownedItems, buyItems, T.is]);
   const mineList = mine.sel, freeList = free.sel;
   const sM = stat(mineList), sF = stat(freeList), sB1 = stat(buy1), sB2 = stat(buy2);
   const stars = (l: { p: P }[]) => l.reduce((s, x) => s + x.p.stars, 0);
@@ -275,10 +289,10 @@ export default function CupBuilder() {
           Projection = celle de Sorare pour le match de la nuit choisie (comme sur la fiche joueur). Le « Mix » la tempère avec les L5 / L10. Chaque score est multiplié par le bonus réel de la carte (power, XP) ; une carte In-Season à acheter est comptée au bonus minimum de +5 %. Les cartes déjà alignées dans une autre compo de la GW sont exclues automatiquement.
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(320px,1fr))', gap: 14 }}>
-          <Team l={mineList} s={sM} title="Sans achat : ma meilleure compo" sub={ownedPool.length ? `avec tes ${ownedPool.length} joueurs Limited+ de la nuit` : 'aucune de tes cartes ne joue cette nuit (ou galerie non chargée)'} />
+          <Team l={mineList} s={sM} title="Sans achat : ma meilleure compo" sub={ownedPool.length ? `avec tes ${ownedPool.length} joueurs Limited+ de la nuit · optimisée pour la probabilité d'atteindre le palier` : 'aucune de tes cartes ne joue cette nuit (ou galerie non chargée)'} />
           {ownedPool.length > 0 && <Team l={buy1} s={sB1} title="Avec 1 achat" sub="ta meilleure compo avec 1 carte en plus (Classic si l'In-Season requis est déjà couvert)" />}
           {ownedPool.length > 0 && <Team l={buy2} s={sB2} title="Avec 2 achats" sub="ta meilleure compo avec jusqu'à 2 cartes en plus" />}
-          <Team l={freeList} s={sF} title="Plafond (can't do more)" sub="meilleure compo possible sous le cap : tes cartes + toutes les cartes à acheter (In-Season +5 %, Classic +0 %)" />
+          <Team l={freeList} s={sF} title="Plafond (can't do more)" sub="meilleure compo possible sous le cap (la plus probable d'atteindre le palier) : tes cartes + toutes les cartes à acheter (In-Season +5 %, Classic +0 %)" />
         </div>
 
         {ownedPool.length > 0 && ownedPool.length < 5 && <div style={{ ...box, fontSize: 13, opacity: 0.8 }}>Il faut au moins 5 joueurs possédés ce soir-là pour calculer les achats (aujourd'hui : {ownedPool.length}).</div>}
