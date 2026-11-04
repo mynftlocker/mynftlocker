@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { redis } from '../../../../lib/redis';
 import { ownerOnly } from '../../../../lib/owner';
 import { getJson } from '../../../../lib/ttfl';
+import { parseNews, toState, TEAMS } from '../../../../lib/rotowire';
 
 // Tableau des blessures NBA partage (site + fil SORARE 2) : une ligne par joueur avec statut, date de retour OU de reevaluation, source et date de mise a jour.
 // Sources par ordre de fiabilite : rotowire / underdog / manual (saisis par Claude) > espn (releve automatique quotidien via le cron, sert de base).
@@ -32,13 +33,40 @@ async function refreshEspn(): Promise<number> {
   return fresh.length;
 }
 
+// News publiques Rotowire (page generale + une page par equipe) : la news la plus recente de chaque joueur donne son etat ; les delais (« 4-6 weeks ») donnent la date de retour / reevaluation.
+async function refreshRotowire(debug = false): Promise<any> {
+  const urls = ['https://www.rotowire.com/basketball/news.php', ...Object.keys(TEAMS).map(t => `https://www.rotowire.com/basketball/news.php?team=${t}`)];
+  const pages = await Promise.all(urls.map(u => fetch(u, { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; myNFTlockerBot/1.0)', Accept: 'text/html' }, signal: AbortSignal.timeout(15000), cache: 'no-store' }).then(r => (r.ok ? r.text() : '')).catch(() => '')));
+  const items = pages.flatMap(parseNews);
+  if (debug) return { pages: pages.map(p => p.length), items: items.length, sample: items.slice(0, 3) };
+  if (!items.length) return { items: 0 };
+  const latest = new Map<string, (typeof items)[number]>();
+  for (const it of items) { const k = nrm(it.name); const c = latest.get(k); if (!c || it.date > c.date) latest.set(k, it); }
+  const tday = today(); const t = await load(); const map = new Map(t.rows.map(r => [nrm(r.name), r]));
+  let upserts = 0, clears = 0;
+  for (const [k, it] of latest) {
+    const st = toState(it, tday); const cur = map.get(k);
+    if (!st) continue;
+    // Ne jamais ecraser une ligne Underdog/manuelle plus recente que la news Rotowire
+    if (cur && (cur.src === 'underdog' || cur.src === 'manual') && cur.updated.slice(0, 10) >= it.date) continue;
+    if (st.status === 'OK') { if (cur && cur.src === 'rotowire') { map.delete(k); clears++; } continue; } // disponible : on retire seulement une ligne Rotowire perimee
+    map.set(k, { name: it.name, team: st.team || cur?.team || '', status: st.status, until: st.until, untilKind: st.untilKind, detail: st.detail, src: 'rotowire', updated: new Date().toISOString() });
+    upserts++;
+  }
+  await redis.set(KEY, { updated: new Date().toISOString(), rows: [...map.values()] } as Table);
+  return { items: items.length, players: latest.size, upserts, clears };
+}
+
 export async function GET(req: NextRequest) {
   try {
     if (req.nextUrl.searchParams.get('run')) {
       if (!(await redis.set('inj:lock', 1, { nx: true, ex: 3000 }))) return NextResponse.json({ ok: true, skipped: 'recent' });
-      return NextResponse.json({ ok: true, espn: await refreshEspn() });
+      const espn = await refreshEspn();
+      const rw = await refreshRotowire().catch((e: any) => ({ error: String(e).slice(0, 120) }));
+      return NextResponse.json({ ok: true, espn, rotowire: rw });
     }
     const deny = await ownerOnly(req); if (deny) return deny;
+    if (req.nextUrl.searchParams.get('debug') === 'rw') return NextResponse.json(await refreshRotowire(true));
     const t = await load();
     return NextResponse.json({ ok: true, updated: t.updated, rows: prune(t.rows) }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (e) { return NextResponse.json({ ok: false, error: String(e) }, { status: 500 }); }
