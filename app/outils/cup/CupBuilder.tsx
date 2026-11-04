@@ -8,7 +8,7 @@ const TIERS = [
 const CAP = 32; // 16 etoiles en demi-etoiles
 type P = { slug: string; name: string; team: string; opp: string; home: boolean; time: string; stars: number; proj: number; l5: number | null; l10: number | null; sd: number | null; max: number | null; n: number; inj: string | null };
 type Metric = 'proj' | 'l5' | 'l10' | 'mix';
-const LS = 'mnl_cup_owned_v1';
+const EMPTY_OWNED: Record<string, 0 | 1 | 2> = {}; // plus de correction manuelle : tout vient de Sorare
 const LSP = 'mnl_cup_pseudo_v1';
 
 const ymd = (d: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris' }).format(d);
@@ -55,7 +55,7 @@ export default function CupBuilder() {
   const [games, setGames] = useState(0);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState('');
-  const [owned, setOwned] = useState<Record<string, 0 | 1 | 2>>({}); // 1 = Limited+ possedee, 2 = possedee en In-Season
+  const owned = EMPTY_OWNED;
   const [q, setQ] = useState('');
   const [sel, setSel] = useState<string[]>([]); // builder : joueurs choisis
   const [lsort, setLsort] = useState<{ k: string; dir: 1 | -1 }>({ k: 'est', dir: -1 });
@@ -70,7 +70,7 @@ export default function CupBuilder() {
   const [locked, setLocked] = useState<Record<string, true>>({}); // joueurs dont toutes les cartes Limited+ sont deja alignees
   const [usedInfo, setUsedInfo] = useState('');
 
-  useEffect(() => { try { setOwned(JSON.parse(localStorage.getItem(LS) || '{}')); const p = localStorage.getItem(LSP); if (p) setPseudo(p); } catch {} }, []);
+  useEffect(() => { try { const p = localStorage.getItem(LSP); if (p) setPseudo(p); } catch {} }, []);
   const loadGallery = async (pp: string, nt: string = night) => {
     const slug = pp.trim().toLowerCase();
     if (!slug) return;
@@ -111,7 +111,6 @@ export default function CupBuilder() {
     } catch (e: any) { setColSt('err'); setColInfo('Galerie introuvable : ' + String(e?.message || e)); }
   };
   useEffect(() => { loadGallery(typeof window !== 'undefined' && localStorage.getItem(LSP) || 'memejacquet1998', night); }, [night]); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => { try { localStorage.setItem(LS, JSON.stringify(owned)); } catch {} }, [owned]);
   useEffect(() => {
     let off = false; setLoading(true); setErr('');
     fetch('/api/outils/cup?night=' + night).then(r => r.json()).then(j => {
@@ -206,7 +205,6 @@ export default function CupBuilder() {
   const sortBy = (k: string) => setLsort(c => (c.k === k ? { k, dir: (c.dir * -1) as 1 | -1 } : { k, dir: k === 'name' ? 1 : -1 }));
   const arrow = (k: string) => (lsort.k === k ? (lsort.dir === -1 ? ' ↓' : ' ↑') : '');
 
-  const toggle = (slug: string) => setOwned(o => { const n = { ...o }; const c = own(slug); n[slug] = c === 0 ? 1 : c === 1 ? 2 : 0; return n; });
 
   const box: React.CSSProperties = { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(0,255,255,0.18)', borderRadius: 14, padding: '14px 16px', backdropFilter: 'blur(8px)' };
   const btn = (on: boolean): React.CSSProperties => ({ padding: '6px 12px', borderRadius: 999, border: '1px solid ' + (on ? '#00ffff' : 'rgba(255,255,255,0.2)'), background: on ? 'rgba(0,255,255,0.15)' : 'transparent', color: on ? '#00ffff' : '#ddd', cursor: 'pointer', fontSize: 13 });
@@ -262,7 +260,7 @@ export default function CupBuilder() {
           Projection = celle de Sorare pour le match de la nuit choisie (comme sur la fiche joueur). Le « Mix » la tempère avec les L5 / L10. Chaque score est multiplié par le bonus réel de la carte (power, XP) ; une carte In-Season à acheter est comptée au bonus minimum de +5 %. Les cartes déjà alignées dans une autre compo de la GW sont exclues automatiquement.
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(320px,1fr))', gap: 14 }}>
-          <Team l={mineList} s={sM} title="Sans achat : ma meilleure compo" sub={ownedPool.length ? `avec tes ${ownedPool.length} joueurs Limited+ de la nuit (clic sur un joueur pour corriger : possédé → In-Season → retiré)` : 'aucune de tes cartes ne joue cette nuit (ou galerie non chargée)'} />
+          <Team l={mineList} s={sM} title="Sans achat : ma meilleure compo" sub={ownedPool.length ? `avec tes ${ownedPool.length} joueurs Limited+ de la nuit` : 'aucune de tes cartes ne joue cette nuit (ou galerie non chargée)'} />
           {ownedPool.length > 0 && <Team l={buy1} s={sB1} title="Avec 1 achat" sub="ta meilleure compo avec 1 carte en plus (Classic si l'In-Season requis est déjà couvert)" />}
           {ownedPool.length > 0 && <Team l={buy2} s={sB2} title="Avec 2 achats" sub="ta meilleure compo avec jusqu'à 2 cartes en plus" />}
           <Team l={freeList} s={sF} title="Plafond (can't do more)" sub="meilleure compo possible sous le cap : tes cartes + toutes les cartes à acheter (In-Season +5 %, Classic +0 %)" />
@@ -329,17 +327,16 @@ export default function CupBuilder() {
           </div>
           <div style={{ overflowX: 'auto' }}>
             <div style={{ minWidth: 780 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 44px 52px 52px 52px 56px 56px 64px 56px 110px 28px', gap: 4, fontSize: 11, opacity: 0.7, padding: '0 4px 4px', cursor: 'pointer', color: '#40e8ff' }}>
-                <span onClick={() => sortBy('name')}>Joueur{arrow('name')}</span><span onClick={() => sortBy('stars')}>★{arrow('stars')}</span><span onClick={() => sortBy('proj')}>Proj.{arrow('proj')}</span><span onClick={() => sortBy('l5')}>L5{arrow('l5')}</span><span onClick={() => sortBy('l10')}>L10{arrow('l10')}</span><span onClick={() => sortBy('d5')} title="Projection moins L5">± L5{arrow('d5')}</span><span onClick={() => sortBy('d10')} title="Projection moins L10">± L10{arrow('d10')}</span><span onClick={() => sortBy('est')}>Est.{arrow('est')}</span><span onClick={() => sortBy('eff')} title="Points par étoile">Pts/★{arrow('eff')}</span><span>Carte</span><span />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 44px 52px 52px 52px 56px 56px 64px 56px 110px', gap: 4, fontSize: 11, opacity: 0.7, padding: '0 4px 4px', cursor: 'pointer', color: '#40e8ff' }}>
+                <span onClick={() => sortBy('name')}>Joueur{arrow('name')}</span><span onClick={() => sortBy('stars')}>★{arrow('stars')}</span><span onClick={() => sortBy('proj')}>Proj.{arrow('proj')}</span><span onClick={() => sortBy('l5')}>L5{arrow('l5')}</span><span onClick={() => sortBy('l10')}>L10{arrow('l10')}</span><span onClick={() => sortBy('d5')} title="Projection moins L5">± L5{arrow('d5')}</span><span onClick={() => sortBy('d10')} title="Projection moins L10">± L10{arrow('d10')}</span><span onClick={() => sortBy('est')}>Est.{arrow('est')}</span><span onClick={() => sortBy('eff')} title="Points par étoile">Pts/★{arrow('eff')}</span><span>Carte</span>
               </div>
               {rows.slice(0, 150).map(({ x, o }) => {
                 const p = x.p; const ow = own(p.slug);
                 return (
-                  <div key={p.slug} onClick={() => setSel(c => (c.length < 5 ? [...c, p.slug] : c))} style={{ display: 'grid', gridTemplateColumns: '1fr 44px 52px 52px 52px 56px 56px 64px 56px 110px 28px', gap: 4, fontSize: 13, padding: '5px 4px', cursor: 'pointer', borderRadius: 6, background: ow ? 'rgba(0,255,255,0.08)' : 'transparent', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                  <div key={p.slug} onClick={() => setSel(c => (c.length < 5 ? [...c, p.slug] : c))} style={{ display: 'grid', gridTemplateColumns: '1fr 44px 52px 52px 52px 56px 56px 64px 56px 110px', gap: 4, fontSize: 13, padding: '5px 4px', cursor: 'pointer', borderRadius: 6, background: ow ? 'rgba(0,255,255,0.08)' : 'transparent', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
                     <span>{p.name} <span style={{ opacity: 0.5 }}>{p.team.split(' ').pop()} {p.home ? 'vs' : '@'} {p.opp.split(' ').pop()} {p.time}</span>{p.inj ? <span style={{ color: p.inj === 'GTD' ? '#ffb020' : '#ff4d4d' }}> {p.inj}</span> : null}</span>
                     <span>{p.stars}</span><span>{p.proj.toFixed(0)}</span><span>{p.l5 == null ? '–' : p.l5.toFixed(0)}</span><span>{p.l10 == null ? '–' : p.l10.toFixed(0)}</span>{(['l5', 'l10'] as const).map(k => { const d = p[k] == null ? null : p.proj - (p[k] as number); return <span key={k} style={{ color: d == null ? '#9aa' : d > 1 ? '#4ade80' : d < -1 ? '#ff6b6b' : '#cfd8dc' }}>{d == null ? '–' : (d > 0 ? '+' : '') + d.toFixed(0)}</span>; })}<b>{o.v.toFixed(0)}</b><span>{(o.v / p.stars).toFixed(1)}</span>
                     <span style={{ fontSize: 11, opacity: 0.85 }}>{o.buy ? 'À acheter' + (locked[p.slug] ? ' 🔒' : '') : (o.is ? '🟣 IS' : '✅ CL') + ' +' + Math.round(((o.pw ?? 1) - 1) * 100) + '%'}</span>
-                    <span title={ow ? 'Corriger : possédé → In-Season → retiré' : 'Je possède ce joueur'} onClick={e => { e.stopPropagation(); toggle(p.slug); }} style={{ opacity: 0.6 }}>✎</span>
                   </div>
                 );
               })}
