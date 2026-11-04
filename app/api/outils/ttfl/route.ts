@@ -21,7 +21,16 @@ export async function GET(req: NextRequest) {
         const times = ev.map(e => e.date as string).sort();
         out[d] = { first: times[0] || null, games: ev.map(e => { const c = e.competitions?.[0]?.competitors || []; const h = c.find((x: any) => x.homeAway === 'home'), a = c.find((x: any) => x.homeAway === 'away'); return { h: h?.team?.abbreviation, a: a?.team?.abbreviation }; }).filter(g => g.h && g.a) };
       }));
-      return NextResponse.json({ ok: true, sched: out });
+      // Rapport de blessures ESPN (statuts Out / Day-To-Day) : "long" = absence de plusieurs semaines (chirurgie, fracture, dechirure...)
+      const nrm = (x: string) => x.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z]/g, '');
+      const inj: Record<string, { s: 'OUT' | 'DTD'; long: boolean }> = {};
+      const ij = await getJson('https://site.api.espn.com/apis/site/v2/sports/basketball/nba/injuries', 900).catch(() => null);
+      for (const t of ij?.injuries || []) for (const i of t.injuries || []) {
+        const n = i.athlete?.displayName; if (!n) continue;
+        const txt = `${i.shortComment || ''} ${i.longComment || ''}`;
+        inj[nrm(n)] = { s: i.status === 'Out' ? 'OUT' : 'DTD', long: i.status === 'Out' && /surgery|procedure|fractur|torn|tear|ACL|season|weeks|months|indefinite|rupture/i.test(txt) };
+      }
+      return NextResponse.json({ ok: true, sched: out, inj });
     }
     const dates: string[] = [];
     const end = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/New_York' }));

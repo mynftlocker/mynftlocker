@@ -17,6 +17,7 @@ type Cand = { name: string; team: string; opp: string; home: boolean; est: numbe
 type Night = { us: string; games: number; close: string | null; cands: Cand[] };
 type Hist = Record<string, { d: string; t: number; m: number; tm: string }[]>;
 type Sched = Record<string, { first: string | null; games: { h: string; a: string }[] }>;
+type Inj = Record<string, { s: 'OUT' | 'DTD'; long: boolean }>;
 // Nuits sans projection Sorare : moyenne TTFL des 10 derniers matchs ramenee vers la moyenne des titulaires (test du 05/11 : 10,7 d'erreur contre 10,35 avec la projection)
 const farEst = (g: number[]) => (g.length * (g.reduce((s, x) => s + x, 0) / g.length) + 6 * 30) / (g.length + 6);
 
@@ -64,7 +65,7 @@ export default function DeckBuilder() {
         fetch('/api/outils/ttfl').then(r => r.json()).catch(() => null),
         fetch('/api/outils/ttfl?sched=' + dates.join(',')).then(r => r.json()).catch(() => null),
       ]);
-      const hist: Hist = hj?.hist || {}; const sched: Sched = sj?.sched || {};
+      const hist: Hist = hj?.hist || {}; const sched: Sched = sj?.sched || {}; const injs: Inj = sj?.inj || {};
       // Une nuit americaine (jour D) = matchs du jour Paris D a partir de midi + matchs du jour Paris D+1 avant midi (les matchs d'apres-midi US tombent le meme jour a Paris).
       const cache: Record<string, any[]> = {};
       const paris = async (day: string) => {
@@ -97,7 +98,11 @@ export default function DeckBuilder() {
             if (g.length < 3 || !teams.has(last.tm)) continue;
             const l10 = g.slice(-10).map(x => x.t);
             if (l10.reduce((s, x) => s + x, 0) / l10.length < 22) continue;
-            cands.push({ name, team: last.tm, opp: opp[last.tm].o, home: opp[last.tm].home, est: farEst(l10), inj: null, src: 'L' });
+            // Blessures (ESPN) : absence longue = exclu ; absence courte = estimation x0,7 ; incertain = x0,88
+            const ij = injs[norm(name)];
+            if (ij?.long) continue;
+            const f = ij ? (ij.s === 'OUT' ? 0.7 : 0.88) : 1;
+            cands.push({ name, team: last.tm, opp: opp[last.tm].o, home: opp[last.tm].home, est: farEst(l10) * f, inj: ij ? (ij.s === 'OUT' ? 'OUT?' : 'GTD') : null, src: 'L' });
           }
         }
         const close = sc?.first ? new Date(sc.first).toLocaleString('fr-FR', { timeZone: 'Europe/Paris', weekday: 'short', hour: '2-digit', minute: '2-digit' }) : null;
@@ -185,7 +190,7 @@ export default function DeckBuilder() {
               </tbody>
             </table>
           </div>
-          <p style={{ color: c.dim, fontSize: 12, marginTop: 10 }}>Les nuits marquées « moy. TTFL » n'ont pas encore de projection Sorare : elles reposent sur la moyenne TTFL des 10 derniers matchs, sans blessures connues, donc moins fiables. Tout se recalcule à chaque ouverture : refais le calcul avant chaque clôture (le deck ferme au premier match de la journée NBA). Un joueur absent fait 0 et reste bloqué 30 jours.</p>
+          <p style={{ color: c.dim, fontSize: 12, marginTop: 10 }}>Les nuits marquées « moy. TTFL » n'ont pas encore de projection Sorare : elles reposent sur la moyenne TTFL des 10 derniers matchs et sur le rapport de blessures ESPN du jour (absence longue : exclu ; « OUT? » ou GTD : estimation réduite), donc moins fiables. Tout se recalcule à chaque ouverture : refais le calcul avant chaque clôture (le deck ferme au premier match de la journée NBA). Un joueur absent fait 0 et reste bloqué 30 jours.</p>
         </>
       )}
     </div>
