@@ -189,7 +189,7 @@ export default function CupBuilder() {
     for (const c of [...m.values()].sort((a, b) => b.g - a.g).slice(0, 24)) {
       const r = bestP([...ownedItems, c.x], T.is, 1);
       if (!r.sel.some(y => y.p.slug === c.x.p.slug && y.buy)) continue;
-      out.push({ ...c, p0, p1: stat(r.sel).prob });
+      const st = stat(r.sel); out.push({ ...c, g: st.mean - mine.total, p0, p1: st.prob }); // g = points de la compo obtenue - points de ta compo affichee (Sans achat)
     }
     return out.sort((a, b) => (b.p1 - b.p0) - (a.p1 - a.p0) || b.g - a.g).slice(0, 12);
   }, [buyItems, ownedItems, ownedPool, baseMean, T.is, mine]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -317,7 +317,7 @@ export default function CupBuilder() {
             {gains.map(({ x, g, p0, p1 }) => (
               <div key={x.p.slug} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, padding: '2px 0' }}>
                 <span>{x.p.name} <span style={{ opacity: 0.55 }}>· {x.p.stars}★ · {x.p.team.split(' ').pop()} {x.p.home ? 'vs' : '@'} {x.p.opp.split(' ').pop()} · {x.is ? 'IS +5%' : 'Classic suffit'}</span></span>
-                <b style={{ color: '#4ade80' }}>{Math.round(p0 * 100)} % → {Math.round(p1 * 100)} % <span style={{ opacity: 0.6, fontWeight: 400 }}>· +{g.toFixed(1)} pts</span></b>
+                <b style={{ color: '#4ade80' }}>{Math.round(p0 * 100)} % → {Math.round(p1 * 100)} % <span style={{ opacity: 0.6, fontWeight: 400 }}>· {g >= 0 ? '+' : ''}{g.toFixed(1)} pts</span></b>
               </div>
             ))}
           </div>
