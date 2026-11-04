@@ -57,6 +57,10 @@ export default function CupBuilder() {
   const [err, setErr] = useState('');
   const [owned, setOwned] = useState<Record<string, 0 | 1 | 2>>({}); // 1 = Limited+ possedee, 2 = possedee en In-Season
   const [q, setQ] = useState('');
+  const [sel, setSel] = useState<string[]>([]); // builder : joueurs choisis
+  const [lsort, setLsort] = useState<{ k: string; dir: 1 | -1 }>({ k: 'est', dir: -1 });
+  const [onlyMine, setOnlyMine] = useState(false);
+  useEffect(() => { setSel([]); }, [night]);
   const [pseudo, setPseudo] = useState('memejacquet1998');
   const [col, setCol] = useState<Record<string, 1 | 2>>({}); // detecte depuis la galerie Sorare : 1 = Limited+ classic, 2 = Limited+ In-Season
   const [pw, setPw] = useState<Record<string, { c?: number; i?: number }>>({}); // meilleur bonus (power) parmi les cartes libres : c = classic, i = In-Season
@@ -153,8 +157,44 @@ export default function CupBuilder() {
   const mineList = mine.sel, freeList = free.sel;
   const sM = stat(mineList), sF = stat(freeList), sB1 = stat(buy1), sB2 = stat(buy2);
   const stars = (l: { p: P }[]) => l.reduce((s, x) => s + x.p.stars, 0);
+  // ===== BUILDER : tu choisis les joueurs, le cap de 16★ filtre la liste =====
+  const poolBySlug = useMemo(() => { const m: Record<string, (typeof pool)[number]> = {}; pool.forEach(x => { m[x.p.slug] = x; }); return m; }, [pool]);
+  const ownedByS = useMemo(() => { const m: Record<string, typeof ownedItems> = {}; ownedItems.forEach(x => { (m[x.p.slug] ||= []).push(x); }); return m; }, [ownedItems]);
+  type Opt2 = (typeof ownedItems)[number];
+  const optsFor = (x: (typeof pool)[number]): Opt2[] => ownedByS[x.p.slug]?.length ? ownedByS[x.p.slug] : [{ ...x, v: x.v * 1.05, is: true, buy: true, pw: 1.05 }, { ...x, is: false, buy: true, pw: 1 }];
+  const built = useMemo(() => {
+    const groups = sel.map(sl => poolBySlug[sl]).filter(Boolean).map(optsFor);
+    let bestOk: Opt2[] | null = null, bestAny: Opt2[] | null = null, vOk = -1, vAny = -1;
+    const rec = (i: number, cur: Opt2[], tot: number, isn: number) => {
+      if (i === groups.length) { if (tot > vAny) { vAny = tot; bestAny = [...cur]; } if (isn >= T.is && tot > vOk) { vOk = tot; bestOk = [...cur]; } return; }
+      for (const o of groups[i]) { cur.push(o); rec(i + 1, cur, tot + o.v, isn + (o.is ? 1 : 0)); cur.pop(); }
+    };
+    rec(0, [], 0, 0);
+    const items = (bestOk || bestAny || []) as Opt2[];
+    return { items, okIS: !!bestOk || groups.length === 0 };
+  }, [sel, poolBySlug, ownedByS, T.is]); // eslint-disable-line react-hooks/exhaustive-deps
+  const sBuilt = stat(built.items);
+  const usedStars = built.items.reduce((s, x) => s + x.p.stars, 0);
+  const nISb = built.items.filter(x => x.is).length;
+  const slotsLeft = 5 - sel.length;
+  const minStar = useMemo(() => pool.length ? Math.min(...pool.map(x => x.p.stars)) : 0.5, [pool]);
+  const maxStarNow = 16 - usedStars - Math.max(0, slotsLeft - 1) * minStar;
+  const rows = useMemo(() => {
+    if (slotsLeft <= 0) return [];
+    const ql = q.toLowerCase();
+    return pool
+      .filter(x => !sel.includes(x.p.slug) && x.p.stars <= maxStarNow + 1e-9 && (!ql || (x.p.name + x.p.team).toLowerCase().includes(ql)) && (!onlyMine || own(x.p.slug)))
+      .map(x => { const os = optsFor(x); const o = os.reduce((a, b) => (b.v > a.v ? b : a), os[0]); return { x, o }; })
+      .sort((a, b) => {
+        const g = (r: { x: (typeof pool)[number]; o: Opt2 }) => lsort.k === 'name' ? r.x.p.name : lsort.k === 'stars' ? r.x.p.stars : lsort.k === 'proj' ? r.x.p.proj : lsort.k === 'l5' ? (r.x.p.l5 ?? -1) : lsort.k === 'l10' ? (r.x.p.l10 ?? -1) : lsort.k === 'max' ? (r.x.p.max ?? -1) : lsort.k === 'eff' ? r.o.v / r.x.p.stars : r.o.v;
+        const x = g(a), y = g(b);
+        return (typeof x === 'string' ? x.localeCompare(y as string) : (x as number) - (y as number)) * lsort.dir;
+      });
+  }, [pool, sel, q, onlyMine, lsort, maxStarNow, slotsLeft, ownedByS, owned, col]); // eslint-disable-line react-hooks/exhaustive-deps
+  const sortBy = (k: string) => setLsort(c => (c.k === k ? { k, dir: (c.dir * -1) as 1 | -1 } : { k, dir: k === 'name' ? 1 : -1 }));
+  const arrow = (k: string) => (lsort.k === k ? (lsort.dir === -1 ? ' ↓' : ' ↑') : '');
+
   const toggle = (slug: string) => setOwned(o => { const n = { ...o }; const c = own(slug); n[slug] = c === 0 ? 1 : c === 1 ? 2 : 0; return n; });
-  const list = useMemo(() => data.filter(p => !q || (p.name + p.team).toLowerCase().includes(q.toLowerCase())).sort((a, b) => val(b) - val(a)), [data, q, metric]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const box: React.CSSProperties = { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(0,255,255,0.18)', borderRadius: 14, padding: '14px 16px', backdropFilter: 'blur(8px)' };
   const btn = (on: boolean): React.CSSProperties => ({ padding: '6px 12px', borderRadius: 999, border: '1px solid ' + (on ? '#00ffff' : 'rgba(255,255,255,0.2)'), background: on ? 'rgba(0,255,255,0.15)' : 'transparent', color: on ? '#00ffff' : '#ddd', cursor: 'pointer', fontSize: 13 });
@@ -231,20 +271,60 @@ export default function CupBuilder() {
           </div>
         )}
 
-        <div style={box}>
-          <input value={q} onChange={e => setQ(e.target.value)} placeholder="Rechercher un joueur ou une équipe" style={{ width: '100%', padding: 8, borderRadius: 8, border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(0,0,0,0.3)', color: '#fff', marginBottom: 8 }} />
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 44px 52px 52px 52px 52px', gap: 4, fontSize: 11, opacity: 0.55, padding: '0 4px 4px' }}>
-            <span>Joueur (clic = possédée)</span><span>★</span><span>Proj.</span><span>L5</span><span>L10</span><span>Est.</span>
+        <div style={{ ...box, borderColor: 'rgba(255,210,74,0.45)' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginBottom: 8 }}>
+            <div style={{ fontWeight: 700, color: '#ffd24a' }}>Mon builder</div>
+            <span style={{ fontSize: 12, opacity: 0.6 }}>Charger :</span>
+            {[{ l: 'Sans achat', v: mineList }, { l: '1 achat', v: buy1 }, { l: '2 achats', v: buy2 }, { l: 'Plafond', v: freeList }].map(o => (
+              <button key={o.l} onClick={() => setSel(o.v.map(x => x.p.slug))} style={btn(false)}>{o.l}</button>
+            ))}
+            <button onClick={() => setSel([])} style={btn(false)}>Vider</button>
           </div>
-          {list.map(p => {
-            const o = own(p.slug);
+          {Array.from({ length: 5 }).map((_, i) => {
+            const sl = sel[i]; const it = built.items.find(x => x.p.slug === sl);
             return (
-              <div key={p.slug} onClick={() => toggle(p.slug)} style={{ display: 'grid', gridTemplateColumns: '1fr 44px 52px 52px 52px 52px', gap: 4, fontSize: 13, padding: '5px 4px', cursor: 'pointer', borderRadius: 6, background: o ? 'rgba(0,255,255,0.1)' : 'transparent', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-                <span>{o === 2 ? '🟣 ' : o === 1 ? '✅ ' : locked[p.slug] ? '🔒 ' : ''}{p.name} <span style={{ opacity: 0.5 }}>{p.team.split(' ').pop()} {p.home ? 'vs' : '@'} {p.opp.split(' ').pop()} {p.time}</span>{p.inj ? <span style={{ color: p.inj === 'GTD' ? '#ffb020' : '#ff4d4d' }}> {p.inj}</span> : null}</span>
-                <span>{p.stars}</span><span>{p.proj.toFixed(0)}</span><span>{p.l5 == null ? '–' : p.l5.toFixed(0)}</span><span>{p.l10 == null ? '–' : p.l10.toFixed(0)}</span><b>{val(p).toFixed(0)}</b>
+              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 14, padding: '4px 0', borderBottom: '1px solid rgba(255,255,255,0.06)', opacity: it ? 1 : 0.35 }}>
+                {it ? (<>
+                  <span>{it.p.name} <span style={{ opacity: 0.55 }}>· {it.p.stars}★ · {it.p.team.split(' ').pop()} {it.p.home ? 'vs' : '@'} {it.p.opp.split(' ').pop()} · {it.buy ? (it.is ? 'À ACHETER IS' : 'À ACHETER Classic') : it.is ? 'IS' : 'Classic'} · +{Math.round(((it.pw ?? 1) - 1) * 100)}%</span></span>
+                  <span><b>{it.v.toFixed(0)}</b> <button onClick={() => setSel(c => c.filter(z => z !== sl))} style={{ marginLeft: 8, background: 'transparent', border: '1px solid rgba(255,255,255,0.25)', color: '#ff8a8a', borderRadius: 6, cursor: 'pointer' }}>✕</button></span>
+                </>) : <span>Emplacement {i + 1} : clique un joueur dans la liste</span>}
               </div>
             );
           })}
+          <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: 8 }}>
+            <span style={{ color: usedStars > 16 ? '#ff6b6b' : '#ddd' }}>{usedStars}/16★ <span style={{ opacity: 0.6 }}>· reste {Math.max(0, 16 - usedStars)}★</span> · <span style={{ color: nISb >= T.is ? '#4ade80' : '#ffb020' }}>IS {nISb}/{T.is}{nISb >= T.is ? ' ✓' : ''}</span></span>
+            <b style={{ color: sBuilt.mean >= T.pts ? '#4ade80' : '#ffb020' }}>{sBuilt.mean.toFixed(0)} / {T.pts} · {sel.length === 5 ? Math.round(sBuilt.prob * 100) + ' %' : '5 joueurs requis'}</b>
+          </div>
+          {!built.okIS && sel.length > 0 && <div style={{ fontSize: 12, color: '#ffb020', marginTop: 4 }}>Il manque des In-Season pour ce palier : ajoute-en ou choisis des joueurs que tu possèdes en IS.</div>}
+        </div>
+
+        <div style={box}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 8, alignItems: 'center' }}>
+            <input value={q} onChange={e => setQ(e.target.value)} placeholder="Rechercher un joueur ou une équipe" style={{ flex: 1, minWidth: 200, padding: 8, borderRadius: 8, border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(0,0,0,0.3)', color: '#fff' }} />
+            <button onClick={() => setOnlyMine(v => !v)} style={btn(onlyMine)}>Mes cartes seulement</button>
+          </div>
+          <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 6 }}>
+            {slotsLeft <= 0 ? 'Compo complète : retire un joueur pour en ajouter un autre.' : `${rows.length} joueurs possibles : max ${maxStarNow}★ pour ce ${sel.length + 1}e emplacement. Clique pour ajouter. Clique un titre de colonne pour trier.`}
+          </div>
+          <div style={{ overflowX: 'auto' }}>
+            <div style={{ minWidth: 640 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 44px 52px 52px 52px 64px 56px 110px 28px', gap: 4, fontSize: 11, opacity: 0.7, padding: '0 4px 4px', cursor: 'pointer', color: '#40e8ff' }}>
+                <span onClick={() => sortBy('name')}>Joueur{arrow('name')}</span><span onClick={() => sortBy('stars')}>★{arrow('stars')}</span><span onClick={() => sortBy('proj')}>Proj.{arrow('proj')}</span><span onClick={() => sortBy('l5')}>L5{arrow('l5')}</span><span onClick={() => sortBy('l10')}>L10{arrow('l10')}</span><span onClick={() => sortBy('est')}>Est.{arrow('est')}</span><span onClick={() => sortBy('eff')} title="Points par étoile">Pts/★{arrow('eff')}</span><span>Carte</span><span />
+              </div>
+              {rows.slice(0, 150).map(({ x, o }) => {
+                const p = x.p; const ow = own(p.slug);
+                return (
+                  <div key={p.slug} onClick={() => setSel(c => (c.length < 5 ? [...c, p.slug] : c))} style={{ display: 'grid', gridTemplateColumns: '1fr 44px 52px 52px 52px 64px 56px 110px 28px', gap: 4, fontSize: 13, padding: '5px 4px', cursor: 'pointer', borderRadius: 6, background: ow ? 'rgba(0,255,255,0.08)' : 'transparent', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                    <span>{p.name} <span style={{ opacity: 0.5 }}>{p.team.split(' ').pop()} {p.home ? 'vs' : '@'} {p.opp.split(' ').pop()} {p.time}</span>{p.inj ? <span style={{ color: p.inj === 'GTD' ? '#ffb020' : '#ff4d4d' }}> {p.inj}</span> : null}</span>
+                    <span>{p.stars}</span><span>{p.proj.toFixed(0)}</span><span>{p.l5 == null ? '–' : p.l5.toFixed(0)}</span><span>{p.l10 == null ? '–' : p.l10.toFixed(0)}</span><b>{o.v.toFixed(0)}</b><span>{(o.v / p.stars).toFixed(1)}</span>
+                    <span style={{ fontSize: 11, opacity: 0.85 }}>{o.buy ? 'À acheter' + (locked[p.slug] ? ' 🔒' : '') : (o.is ? '🟣 IS' : '✅ CL') + ' +' + Math.round(((o.pw ?? 1) - 1) * 100) + '%'}</span>
+                    <span title={ow ? 'Corriger : possédé → In-Season → retiré' : 'Je possède ce joueur'} onClick={e => { e.stopPropagation(); toggle(p.slug); }} style={{ opacity: 0.6 }}>✎</span>
+                  </div>
+                );
+              })}
+              {rows.length > 150 && <div style={{ fontSize: 12, opacity: 0.6, padding: 6 }}>{rows.length - 150} autres : affine avec la recherche ou le tri.</div>}
+            </div>
+          </div>
         </div>
       </div>
     </main>
