@@ -328,8 +328,8 @@ export default function CupBuilder() {
             {slotsLeft <= 0 ? 'Compo complète : retire un joueur pour en ajouter un autre.' : `${rows.length} joueurs possibles : max ${maxStarNow}★ pour ce ${sel.length + 1}e emplacement. Clique pour ajouter. Clique un titre de colonne pour trier.`}
           </div>
           <div style={{ overflowX: 'auto' }}>
-            <div style={{ minWidth: 780 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 40px 104px 48px 48px 62px 52px 52px 64px 52px', gap: 4, fontSize: 11, opacity: 0.7, padding: '0 4px 4px', cursor: 'pointer', color: '#40e8ff' }}>
+            <div style={{ minWidth: 800 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 40px 104px 48px 48px 62px 52px 52px 80px 52px', gap: 4, fontSize: 11, opacity: 0.7, padding: '0 4px 4px', cursor: 'pointer', color: '#40e8ff' }}>
                 <span onClick={() => sortBy('name')}>Joueur{arrow('name')}</span>
                 <span onClick={() => sortBy('stars')} title="Étoiles de la carte (cap 16)">★{arrow('stars')}</span>
                 <span title="Ta carte (🟣 In-Season, ✅ Classic) et son bonus, ou carte à acheter">Carte</span>
@@ -338,13 +338,13 @@ export default function CupBuilder() {
                 <span onClick={() => sortBy('proj')} title="Projection Sorare pour le match de la nuit (comme sur la fiche joueur)" style={{ lineHeight: 1.1 }}>Proj.{arrow('proj')}<br /><small style={{ fontSize: 9, color: '#ffd24a' }}>Sorare</small></span>
                 <span onClick={() => sortBy('d5')} title="Projection Sorare moins L5 : vert = Sorare voit mieux que sa forme récente" style={{ lineHeight: 1.1 }}>± L5{arrow('d5')}<br /><small style={{ fontSize: 9, opacity: 0.7 }}>proj−L5</small></span>
                 <span onClick={() => sortBy('d10')} title="Projection Sorare moins L10" style={{ lineHeight: 1.1 }}>± L10{arrow('d10')}<br /><small style={{ fontSize: 9, opacity: 0.7 }}>proj−L10</small></span>
-                <span onClick={() => sortBy('est')} title={metric === 'mix' ? 'Score estimé par l\'outil = mix (50 % projection Sorare + 30 % L5 + 20 % L10) × bonus de la carte' : 'Score estimé par l\'outil selon la méthode choisie × bonus de la carte'} style={{ lineHeight: 1.1, color: '#4ade80' }}>Est.{arrow('est')}<br /><small style={{ fontSize: 9 }}>{metric === 'mix' ? 'mix×bonus' : metric === 'proj' ? 'proj×bonus' : metric + '×bonus'}</small></span>
+                <span onClick={() => sortBy('est')} title={metric === 'mix' ? 'Score estimé par l\'outil = mix (50 % projection Sorare + 30 % L5 + 20 % L10) × bonus de la carte' : 'Score estimé par l\'outil selon la méthode choisie × bonus de la carte'} style={{ lineHeight: 1.1, color: '#4ade80' }}>Estimation{arrow('est')}<br /><small style={{ fontSize: 9 }}>{metric === 'mix' ? 'mix×bonus' : metric === 'proj' ? 'proj×bonus' : metric + '×bonus'}</small></span>
                 <span onClick={() => sortBy('eff')} title="Score estimé par étoile">Pts/★{arrow('eff')}</span>
               </div>
               {rows.slice(0, 150).map(({ x, o }) => {
                 const p = x.p; const ow = own(p.slug);
                 return (
-                  <div key={p.slug} onClick={() => setSel(c => (c.length < 5 ? [...c, p.slug] : c))} style={{ display: 'grid', gridTemplateColumns: '1fr 40px 104px 48px 48px 62px 52px 52px 64px 52px', gap: 4, fontSize: 13, padding: '5px 4px', cursor: 'pointer', borderRadius: 6, background: ow ? 'rgba(0,255,255,0.08)' : 'transparent', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                  <div key={p.slug} onClick={() => setSel(c => (c.length < 5 ? [...c, p.slug] : c))} style={{ display: 'grid', gridTemplateColumns: '1fr 40px 104px 48px 48px 62px 52px 52px 80px 52px', gap: 4, fontSize: 13, padding: '5px 4px', cursor: 'pointer', borderRadius: 6, background: ow ? 'rgba(0,255,255,0.08)' : 'transparent', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
                     <span>{p.name} <span style={{ opacity: 0.5 }}>{p.team.split(' ').pop()} {p.home ? 'vs' : '@'} {p.opp.split(' ').pop()} {p.time}</span>{p.inj ? <span style={{ color: p.inj === 'GTD' ? '#ffb020' : '#ff4d4d' }}> {p.inj}</span> : null}</span>
                     <span>{p.stars}</span>
                     <span style={{ fontSize: 11, opacity: 0.9 }}>{o.buy ? 'À acheter' + (locked[p.slug] ? ' 🔒' : '') : (o.is ? '🟣 IS' : '✅ CL') + ' +' + Math.round(((o.pw ?? 1) - 1) * 100) + '%'}</span>
