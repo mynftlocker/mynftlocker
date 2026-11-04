@@ -7,12 +7,14 @@ const A0 = 5.95, A_L10 = 0.08, A_PROJ = 0.62;
 const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z]/g, '');
 const parisDay = (d = new Date()) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris' }).format(d);
 const shift = (day: string, n: number) => { const d = new Date(day + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+// Les matchs d'une nuit NBA commencent apres minuit a Paris : des 8 h, on ouvre sur la nuit suivante.
+const defaultNight = () => { const h = Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Paris', hour: '2-digit', hour12: false }).format(new Date())); return h >= 8 ? shift(parisDay(), 1) : parisDay(); };
 
 type P = { slug: string; name: string; team: string; opp: string; home: boolean; time: string; proj: number; inj: string | null };
 type H = Record<string, { d: string; t: number; m: number }[]>;
 
 export default function TtflBoard() {
-  const [night, setNight] = useState(parisDay());
+  const [night, setNight] = useState(defaultNight);
   const [players, setPlayers] = useState<P[] | null>(null);
   const [hist, setHist] = useState<H | null>(null);
   const [err, setErr] = useState('');
