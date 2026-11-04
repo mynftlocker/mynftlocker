@@ -17,7 +17,7 @@ type Cand = { name: string; team: string; opp: string; home: boolean; est: numbe
 type Night = { us: string; games: number; close: string | null; cands: Cand[] };
 type Hist = Record<string, { d: string; t: number; m: number; tm: string }[]>;
 type Sched = Record<string, { first: string | null; games: { h: string; a: string }[] }>;
-type Inj = Record<string, { s: 'OUT' | 'DTD'; long: boolean }>;
+type Inj = Record<string, { s: 'OUT' | 'DTD'; long: boolean; until?: string | null; kind?: string | null }>;
 // Nuits sans projection Sorare : moyenne TTFL des 10 derniers matchs ramenee vers la moyenne des titulaires (test du 05/11 : 10,7 d'erreur contre 10,35 avec la projection)
 const farEst = (g: number[]) => (g.length * (g.reduce((s, x) => s + x, 0) / g.length) + 6 * 30) / (g.length + 6);
 
@@ -89,7 +89,8 @@ export default function DeckBuilder() {
           const pl = [...d0.filter((p: any) => hr(p.time) >= 12), ...d1.filter((p: any) => hr(p.time) < 12)];
           const seen = new Set<string>();
           cands = pl.filter((p: any) => p.proj >= 5 && !seen.has(p.slug) && seen.add(p.slug)).map((p: any) => ({ name: p.name, team: p.team, opp: p.opp, home: p.home, est: ttflEst(p.proj, p.l5, p.l10, p.inj), inj: p.inj, src: 'S' as const }))
-            .filter((c: Cand) => !c.inj || c.inj === 'GTD');
+            .filter((c: Cand) => !c.inj || c.inj === 'GTD')
+            .filter((c: Cand) => { const ij = injs[norm(c.name)]; return !(ij?.s === 'OUT' && ij.until && us < ij.until); });
         }
         if (!cands.length && teams.size) {
           // Pas de projection Sorare pour cette nuit : joueurs dont la derniere equipe joue ce jour-la, estimes depuis leur moyenne TTFL
@@ -100,8 +101,8 @@ export default function DeckBuilder() {
             if (l10.reduce((s, x) => s + x, 0) / l10.length < 22) continue;
             // Blessures (ESPN) : absence longue = exclu ; absence courte = estimation x0,7 ; incertain = x0,88
             const ij = injs[norm(name)];
-            if (ij?.long) continue;
-            const f = ij ? (ij.s === 'OUT' ? 0.7 : 0.88) : 1;
+            if (ij?.until) { if (us < ij.until) continue; } else if (ij?.long) continue;
+            const f = ij ? (ij.s === 'OUT' ? (ij.until ? (ij.kind === 'reeval' ? 0.7 : 0.85) : 0.7) : 0.88) : 1;
             cands.push({ name, team: last.tm, opp: opp[last.tm].o, home: opp[last.tm].home, est: farEst(l10) * f, inj: ij ? (ij.s === 'OUT' ? 'OUT?' : 'GTD') : null, src: 'L' });
           }
         }

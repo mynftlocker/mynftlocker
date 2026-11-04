@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 
 import { myProj, ttflEst } from '../../../lib/ttflEst';
 import DeckBuilder from './DeckBuilder';
+import InjuriesTable from './InjuriesTable';
 const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z]/g, '');
 const parisDay = (d = new Date()) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris' }).format(d);
 const shift = (day: string, n: number) => { const d = new Date(day + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
@@ -19,7 +20,7 @@ export default function TtflBoard() {
   const [err, setErr] = useState('');
   const [q, setQ] = useState('');
   const [hideOut, setHideOut] = useState(true);
-  const [view, setView] = useState<'night' | 'deck'>('night');
+  const [view, setView] = useState<'night' | 'deck' | 'inj'>('night');
 
   useEffect(() => { fetch('/api/outils/ttfl').then(r => r.json()).then(j => j.ok ? setHist(j.hist) : setErr(j.error || 'historique indisponible')).catch(e => setErr(String(e))); }, []);
   useEffect(() => {
@@ -49,11 +50,11 @@ export default function TtflBoard() {
         <h1 style={{ fontSize: 22, margin: 0, color: c.cy }}>TTFL Board</h1>
         <p style={{ color: c.dim, fontSize: 13, margin: '4px 0 14px' }}>Estimation du score TTFL de la nuit (jour Paris du coup d&apos;envoi). Calculée depuis la projection myNFTlocker (3,77 + 0,75 × projection), formule provisoire à recaler avec le journal des nuits. Joueurs incertains : ×0,88.</p>
         <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
-          {([['night', 'Estimations de la nuit'], ['deck', 'Deck builder']] as const).map(([k, l]) => (
+          {([['night', 'Estimations de la nuit'], ['deck', 'Deck builder'], ['inj', 'Blessures']] as const).map(([k, l]) => (
             <button key={k} onClick={() => setView(k)} style={{ ...btn(c), borderColor: view === k ? c.cy : c.line, color: view === k ? c.cy : '#fff' }}>{l}</button>
           ))}
         </div>
-        {view === 'deck' ? <DeckBuilder /> : <>
+        {view === 'deck' ? <DeckBuilder /> : view === 'inj' ? <InjuriesTable /> : <>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 12 }}>
           <button onClick={() => setNight(shift(night, -1))} style={btn(c)}>◀</button>
           <input type="date" value={night} onChange={e => e.target.value && setNight(e.target.value)} style={{ ...btn(c), padding: '6px 10px' }} />
