@@ -67,7 +67,14 @@ export default function DeckBuilder() {
       const hist: Hist = hj?.hist || {}; const sched: Sched = sj?.sched || {};
       // Une nuit americaine (jour D) = matchs du jour Paris D a partir de midi + matchs du jour Paris D+1 avant midi (les matchs d'apres-midi US tombent le meme jour a Paris).
       const cache: Record<string, any[]> = {};
-      const paris = async (day: string) => { if (!cache[day]) { try { cache[day] = (await (await fetch('/api/outils/cup?night=' + day)).json()).players || []; } catch { cache[day] = []; } } return cache[day]; };
+      const paris = async (day: string) => {
+        if (cache[day]) return cache[day];
+        for (let t = 0; t < 3; t++) {
+          try { const r = await fetch('/api/outils/cup?night=' + day); const j = await r.json(); if (r.ok && !j.error) { cache[day] = j.players || []; return cache[day]; } } catch { /* nouvel essai */ }
+          await new Promise(res => setTimeout(res, 1500));
+        }
+        return [];
+      };
       const out: Night[] = [];
       for (let i = 0; i < days; i++) {
         const us = dates[i]; setProg(`Nuit ${i + 1}/${days}…`);
