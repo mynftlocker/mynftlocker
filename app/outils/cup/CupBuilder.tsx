@@ -185,11 +185,11 @@ export default function CupBuilder() {
     const m = new Map<string, { x: (typeof buyItems)[number]; g: number }>();
     for (const x of buyItems) { const g = best([...ownedItems, x], T.is, 1).total - baseMean; const c = m.get(x.p.slug); if (g > 0.05 && (!c || g > c.g)) m.set(x.p.slug, { x, g }); }
     const p0 = stat(mine.sel).prob;
-    const out: { x: (typeof buyItems)[number]; g: number; p0: number; p1: number }[] = [];
+    const out: { x: (typeof buyItems)[number]; g: number; p0: number; p1: number; out: string[]; inn: string[]; stars: number }[] = [];
     for (const c of [...m.values()].sort((a, b) => b.g - a.g).slice(0, 24)) {
       const r = bestP([...ownedItems, c.x], T.is, 1);
       if (!r.sel.some(y => y.p.slug === c.x.p.slug && y.buy)) continue;
-      const st = stat(r.sel); out.push({ ...c, g: st.mean - mine.total, p0, p1: st.prob }); // g = points de la compo obtenue - points de ta compo affichee (Sans achat)
+      const st = stat(r.sel); const slugs0 = new Set(mine.sel.map(y => y.p.slug)), slugs1 = new Set(r.sel.map(y => y.p.slug)); out.push({ ...c, g: st.mean - mine.total, p0, p1: st.prob, out: mine.sel.filter(y => !slugs1.has(y.p.slug)).map(y => y.p.name), inn: r.sel.filter(y => !slugs0.has(y.p.slug) && y.p.slug !== c.x.p.slug).map(y => y.p.name), stars: r.sel.reduce((a, y) => a + y.p.stars, 0) }); // g = points de la compo obtenue - points de ta compo affichee (Sans achat)
     }
     return out.sort((a, b) => (b.p1 - b.p0) - (a.p1 - a.p0) || b.g - a.g).slice(0, 12);
   }, [buyItems, ownedItems, ownedPool, baseMean, T.is, mine]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -314,11 +314,11 @@ export default function CupBuilder() {
           <div style={box}>
             <div style={{ fontWeight: 700, color: '#ffd24a', marginBottom: 6 }}>Cartes à acheter (gain de probabilité et de points sur ta meilleure compo)</div>
             {gains.length === 0 && <div style={{ fontSize: 13, opacity: 0.7 }}>Aucun achat n'améliore ta compo sous le cap.</div>}
-            {gains.map(({ x, g, p0, p1 }) => (
-              <div key={x.p.slug} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, padding: '2px 0' }}>
+            {gains.map(({ x, g, p0, p1, out: outN, inn, stars: st16 }) => (
+              <div key={x.p.slug} style={{ fontSize: 14, padding: '3px 0' }}><div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span>{x.p.name} <span style={{ opacity: 0.55 }}>· {x.p.stars}★ · {x.p.team.split(' ').pop()} {x.p.home ? 'vs' : '@'} {x.p.opp.split(' ').pop()} · {x.is ? 'IS +5%' : 'Classic suffit'}</span></span>
                 <b style={{ color: '#4ade80' }}>{Math.round(p0 * 100)} % → {Math.round(p1 * 100)} % <span style={{ opacity: 0.6, fontWeight: 400 }}>· {g >= 0 ? '+' : ''}{g.toFixed(1)} pts</span></b>
-              </div>
+              </div><div style={{ fontSize: 12, opacity: 0.65 }}>↔ à la place de {outN.length ? outN.join(', ') : '—'}{inn.length ? ` · et entrent aussi ${inn.join(', ')}` : ''} · {st16}★ / 16★</div></div>
             ))}
           </div>
         )}
