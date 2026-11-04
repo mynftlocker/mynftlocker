@@ -133,9 +133,13 @@ export default function CupBuilder() {
     if (e.i !== undefined) out.push({ ...x, v: x.v * e.i, is: true, pw: e.i });
     return out;
   }), [pool, owned, col, pw]);
-  const freeItems = useMemo(() => pool.map(x => ({ ...x, v: x.v * 1.05, is: true, pw: 1.05 })), [pool]);
+  // Plafond : tes vraies cartes + des cartes hypothetiques (In-Season a +5 % minimum, Classic au bonus max observe +13 %) => toujours >= aux autres compos
+  const freeItems = useMemo(() => [
+    ...ownedItems,
+    ...pool.flatMap(x => [{ ...x, v: x.v * 1.05, is: true, buy: true, pw: 1.05 }, { ...x, v: x.v * 1.13, is: false, buy: true, pw: 1.13 }]),
+  ], [pool, ownedItems]);
   const buyItems = useMemo(() => pool.filter(x => !own(x.p.slug)).map(x => ({ ...x, v: x.v * 1.05, is: true, buy: true, pw: 1.05 })), [pool, owned, col]); // eslint-disable-line react-hooks/exhaustive-deps
-  const free = useMemo(() => best(freeItems, T.is), [freeItems, T.is]);
+  const free = useMemo(() => best(freeItems, T.is, 5), [freeItems, T.is]);
   const mine = useMemo(() => best(ownedItems, T.is), [ownedItems, T.is]);
   const gains = useMemo(() => ownedPool.length < 5 ? [] : buyItems.map(x => ({ x, g: best([...ownedItems, x], T.is, 1).total - mine.total })).filter(r => r.g > 0.05).sort((a, b) => b.g - a.g).slice(0, 12), [buyItems, ownedItems, ownedPool, mine, T.is]);
   const buy1 = useMemo(() => best([...ownedItems, ...buyItems], T.is, 1).sel, [ownedItems, buyItems, T.is]);
@@ -209,7 +213,7 @@ export default function CupBuilder() {
           <Team l={mineList} s={sM} title="Sans achat : ma meilleure compo" sub={ownedPool.length ? `avec tes ${ownedPool.length} joueurs Limited+ de la nuit (clic sur un joueur pour corriger : possédé → In-Season → retiré)` : 'aucune de tes cartes ne joue cette nuit (ou galerie non chargée)'} />
           {ownedPool.length > 0 && <Team l={buy1} s={sB1} title="Avec 1 achat" sub="ta meilleure compo avec 1 carte en plus (Classic si l'In-Season requis est déjà couvert)" />}
           {ownedPool.length > 0 && <Team l={buy2} s={sB2} title="Avec 2 achats" sub="ta meilleure compo avec jusqu'à 2 cartes en plus" />}
-          <Team l={freeList} s={sF} title="Plafond (can't do more)" sub="meilleure équipe possible sous le cap, toutes cartes confondues" />
+          <Team l={freeList} s={sF} title="Plafond (can't do more)" sub="maximum théorique sous le cap : tes cartes + cartes idéales (In-Season +5 %, Classic jusqu'à +13 %)" />
         </div>
 
         {ownedPool.length > 0 && ownedPool.length < 5 && <div style={{ ...box, fontSize: 13, opacity: 0.8 }}>Il faut au moins 5 joueurs possédés ce soir-là pour calculer les achats (aujourd'hui : {ownedPool.length}).</div>}
