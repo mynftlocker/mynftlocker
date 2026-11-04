@@ -60,6 +60,7 @@ export default function CupBuilder() {
   const [sel, setSel] = useState<string[]>([]); // builder : joueurs choisis
   const [lsort, setLsort] = useState<{ k: string; dir: 1 | -1 }>({ k: 'est', dir: -1 });
   const [onlyMine, setOnlyMine] = useState(false);
+  const [onlyIS, setOnlyIS] = useState(false);
   useEffect(() => { setSel([]); }, [night]);
   const [pseudo, setPseudo] = useState('memejacquet1998');
   const [col, setCol] = useState<Record<string, 1 | 2>>({}); // detecte depuis la galerie Sorare : 1 = Limited+ classic, 2 = Limited+ In-Season
@@ -184,13 +185,14 @@ export default function CupBuilder() {
     const ql = q.toLowerCase();
     return pool
       .filter(x => !sel.includes(x.p.slug) && x.p.stars <= maxStarNow + 1e-9 && (!ql || (x.p.name + x.p.team).toLowerCase().includes(ql)) && (!onlyMine || own(x.p.slug)))
-      .map(x => { const os = optsFor(x); const o = os.reduce((a, b) => (b.v > a.v ? b : a), os[0]); return { x, o }; })
+      .map(x => { const os0 = optsFor(x); const os = onlyIS ? os0.filter(z => z.is) : os0; if (!os.length) return null; const o = os.reduce((a, b) => (b.v > a.v ? b : a), os[0]); return { x, o }; })
+      .filter((r): r is { x: (typeof pool)[number]; o: Opt2 } => !!r)
       .sort((a, b) => {
-        const g = (r: { x: (typeof pool)[number]; o: Opt2 }) => lsort.k === 'name' ? r.x.p.name : lsort.k === 'stars' ? r.x.p.stars : lsort.k === 'proj' ? r.x.p.proj : lsort.k === 'l5' ? (r.x.p.l5 ?? -1) : lsort.k === 'l10' ? (r.x.p.l10 ?? -1) : lsort.k === 'max' ? (r.x.p.max ?? -1) : lsort.k === 'eff' ? r.o.v / r.x.p.stars : r.o.v;
+        const g = (r: { x: (typeof pool)[number]; o: Opt2 }) => lsort.k === 'name' ? r.x.p.name : lsort.k === 'stars' ? r.x.p.stars : lsort.k === 'proj' ? r.x.p.proj : lsort.k === 'l5' ? (r.x.p.l5 ?? -1) : lsort.k === 'l10' ? (r.x.p.l10 ?? -1) : lsort.k === 'd5' ? (r.x.p.l5 == null ? -999 : r.x.p.proj - r.x.p.l5) : lsort.k === 'd10' ? (r.x.p.l10 == null ? -999 : r.x.p.proj - r.x.p.l10) : lsort.k === 'max' ? (r.x.p.max ?? -1) : lsort.k === 'eff' ? r.o.v / r.x.p.stars : r.o.v;
         const x = g(a), y = g(b);
         return (typeof x === 'string' ? x.localeCompare(y as string) : (x as number) - (y as number)) * lsort.dir;
       });
-  }, [pool, sel, q, onlyMine, lsort, maxStarNow, slotsLeft, ownedByS, owned, col]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [pool, sel, q, onlyMine, onlyIS, lsort, maxStarNow, slotsLeft, ownedByS, owned, col]); // eslint-disable-line react-hooks/exhaustive-deps
   // Completer : garde les joueurs deja choisis, remplit les emplacements restants au mieux (cap, In-Season, cartes possedees d'abord)
   const complete = (maxBuy: number) => {
     if (slotsLeft <= 0 || sel.length === 0) return;
@@ -320,21 +322,22 @@ export default function CupBuilder() {
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 8, alignItems: 'center' }}>
             <input value={q} onChange={e => setQ(e.target.value)} placeholder="Rechercher un joueur ou une équipe" style={{ flex: 1, minWidth: 200, padding: 8, borderRadius: 8, border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(0,0,0,0.3)', color: '#fff' }} />
             <button onClick={() => setOnlyMine(v => !v)} style={btn(onlyMine)}>Mes cartes seulement</button>
+            <button onClick={() => setOnlyIS(v => !v)} style={btn(onlyIS)}>In-Season seulement</button>
           </div>
           <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 6 }}>
             {slotsLeft <= 0 ? 'Compo complète : retire un joueur pour en ajouter un autre.' : `${rows.length} joueurs possibles : max ${maxStarNow}★ pour ce ${sel.length + 1}e emplacement. Clique pour ajouter. Clique un titre de colonne pour trier.`}
           </div>
           <div style={{ overflowX: 'auto' }}>
-            <div style={{ minWidth: 640 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 44px 52px 52px 52px 64px 56px 110px 28px', gap: 4, fontSize: 11, opacity: 0.7, padding: '0 4px 4px', cursor: 'pointer', color: '#40e8ff' }}>
-                <span onClick={() => sortBy('name')}>Joueur{arrow('name')}</span><span onClick={() => sortBy('stars')}>★{arrow('stars')}</span><span onClick={() => sortBy('proj')}>Proj.{arrow('proj')}</span><span onClick={() => sortBy('l5')}>L5{arrow('l5')}</span><span onClick={() => sortBy('l10')}>L10{arrow('l10')}</span><span onClick={() => sortBy('est')}>Est.{arrow('est')}</span><span onClick={() => sortBy('eff')} title="Points par étoile">Pts/★{arrow('eff')}</span><span>Carte</span><span />
+            <div style={{ minWidth: 780 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 44px 52px 52px 52px 56px 56px 64px 56px 110px 28px', gap: 4, fontSize: 11, opacity: 0.7, padding: '0 4px 4px', cursor: 'pointer', color: '#40e8ff' }}>
+                <span onClick={() => sortBy('name')}>Joueur{arrow('name')}</span><span onClick={() => sortBy('stars')}>★{arrow('stars')}</span><span onClick={() => sortBy('proj')}>Proj.{arrow('proj')}</span><span onClick={() => sortBy('l5')}>L5{arrow('l5')}</span><span onClick={() => sortBy('l10')}>L10{arrow('l10')}</span><span onClick={() => sortBy('d5')} title="Projection moins L5">± L5{arrow('d5')}</span><span onClick={() => sortBy('d10')} title="Projection moins L10">± L10{arrow('d10')}</span><span onClick={() => sortBy('est')}>Est.{arrow('est')}</span><span onClick={() => sortBy('eff')} title="Points par étoile">Pts/★{arrow('eff')}</span><span>Carte</span><span />
               </div>
               {rows.slice(0, 150).map(({ x, o }) => {
                 const p = x.p; const ow = own(p.slug);
                 return (
-                  <div key={p.slug} onClick={() => setSel(c => (c.length < 5 ? [...c, p.slug] : c))} style={{ display: 'grid', gridTemplateColumns: '1fr 44px 52px 52px 52px 64px 56px 110px 28px', gap: 4, fontSize: 13, padding: '5px 4px', cursor: 'pointer', borderRadius: 6, background: ow ? 'rgba(0,255,255,0.08)' : 'transparent', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                  <div key={p.slug} onClick={() => setSel(c => (c.length < 5 ? [...c, p.slug] : c))} style={{ display: 'grid', gridTemplateColumns: '1fr 44px 52px 52px 52px 56px 56px 64px 56px 110px 28px', gap: 4, fontSize: 13, padding: '5px 4px', cursor: 'pointer', borderRadius: 6, background: ow ? 'rgba(0,255,255,0.08)' : 'transparent', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
                     <span>{p.name} <span style={{ opacity: 0.5 }}>{p.team.split(' ').pop()} {p.home ? 'vs' : '@'} {p.opp.split(' ').pop()} {p.time}</span>{p.inj ? <span style={{ color: p.inj === 'GTD' ? '#ffb020' : '#ff4d4d' }}> {p.inj}</span> : null}</span>
-                    <span>{p.stars}</span><span>{p.proj.toFixed(0)}</span><span>{p.l5 == null ? '–' : p.l5.toFixed(0)}</span><span>{p.l10 == null ? '–' : p.l10.toFixed(0)}</span><b>{o.v.toFixed(0)}</b><span>{(o.v / p.stars).toFixed(1)}</span>
+                    <span>{p.stars}</span><span>{p.proj.toFixed(0)}</span><span>{p.l5 == null ? '–' : p.l5.toFixed(0)}</span><span>{p.l10 == null ? '–' : p.l10.toFixed(0)}</span>{(['l5', 'l10'] as const).map(k => { const d = p[k] == null ? null : p.proj - (p[k] as number); return <span key={k} style={{ color: d == null ? '#9aa' : d > 1 ? '#4ade80' : d < -1 ? '#ff6b6b' : '#cfd8dc' }}>{d == null ? '–' : (d > 0 ? '+' : '') + d.toFixed(0)}</span>; })}<b>{o.v.toFixed(0)}</b><span>{(o.v / p.stars).toFixed(1)}</span>
                     <span style={{ fontSize: 11, opacity: 0.85 }}>{o.buy ? 'À acheter' + (locked[p.slug] ? ' 🔒' : '') : (o.is ? '🟣 IS' : '✅ CL') + ' +' + Math.round(((o.pw ?? 1) - 1) * 100) + '%'}</span>
                     <span title={ow ? 'Corriger : possédé → In-Season → retiré' : 'Je possède ce joueur'} onClick={e => { e.stopPropagation(); toggle(p.slug); }} style={{ opacity: 0.6 }}>✎</span>
                   </div>
