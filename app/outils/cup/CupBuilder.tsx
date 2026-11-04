@@ -10,8 +10,6 @@ type P = { slug: string; name: string; team: string; opp: string; home: boolean;
 type Metric = 'proj' | 'l5' | 'l10' | 'mix';
 const LS = 'mnl_cup_owned_v1';
 const LSP = 'mnl_cup_pseudo_v1';
-const LSU = 'mnl_cup_used_v1'; // cartes deja alignees (importees depuis Sorare par Claude) : { ts, list: ['NOM|ANNEE|Rarete|SERIE>Compo'] }
-const norm = (x: string) => x.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
 const ymd = (d: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris' }).format(d);
 const lab = (s: string) => new Intl.DateTimeFormat('fr-FR', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }).format(new Date(s + 'T12:00:00Z'));
@@ -58,7 +56,7 @@ export default function CupBuilder() {
   const [usedInfo, setUsedInfo] = useState('');
 
   useEffect(() => { try { setOwned(JSON.parse(localStorage.getItem(LS) || '{}')); const p = localStorage.getItem(LSP); if (p) setPseudo(p); } catch {} }, []);
-  const loadGallery = async (pp: string) => {
+  const loadGallery = async (pp: string, nt: string = night) => {
     const slug = pp.trim().toLowerCase();
     if (!slug) return;
     setColSt('loading'); setColInfo('');
@@ -77,9 +75,9 @@ export default function CupBuilder() {
           if (o.cards) cards.push(...o.cards);
         }
       }
-      // cartes deja alignees (import Sorare) : cle NOM|ANNEE|rarete|SERIE
-      let usedKeys = new Set<string>(); let usedTs = 0;
-      try { const u = JSON.parse(localStorage.getItem(LSU) || 'null'); if (u?.list) { usedTs = u.ts || 0; usedKeys = new Set<string>(u.list.map((e: string) => { const [k] = e.split('>'); const [n, y, r, sn] = k.split('|'); return norm(n) + '|' + y + '|' + norm(r) + '|' + sn; })); } } catch {}
+      // cartes deja alignees dans une compo de la GW (API Sorare, jeton serveur) : exclues
+      let usedMap: Record<string, string[]> = {}; let usedOk = false;
+      try { const ru = await fetch('/api/outils/cup-used?night=' + nt); if (ru.ok) { const ju = await ru.json(); usedMap = ju.used || {}; usedOk = !!ju.fixture; } } catch {}
       const m: Record<string, 1 | 2> = {}; const lk: Record<string, true> = {}; const any: Record<string, true> = {}; let nb = 0, nis = 0, nu = 0;
       for (const c of cards) {
         if (c.__typename !== 'NBACard') continue;
@@ -87,17 +85,16 @@ export default function CupBuilder() {
         if (!rar || rar === 'common') continue; // Cup : Limited ou plus
         const ps = c.anyPlayer?.slug; if (!ps) continue;
         nb++; any[ps] = true;
-        const sm = String(c.slug || '').match(/^(.*)-(\d{4})-([a-z_]+)-(\d+)$/);
-        if (sm && usedKeys.has(sm[1].replace(/-\d{8}$/, '') + '|' + sm[2] + '|' + norm(sm[3]) + '|' + sm[4])) { nu++; continue; } // deja alignee : indisponible
+        if (usedMap[c.slug]) { nu++; continue; } // deja alignee : indisponible
         if (c.inSeasonEligible) { m[ps] = 2; nis++; } else if (!m[ps]) m[ps] = 1;
       }
       for (const ps of Object.keys(any)) if (!m[ps]) lk[ps] = true;
       setCol(m); setLocked(lk); setColSt('ok');
       setColInfo(`${nb} cartes NBA Limited+ détectées (${nis} In-Season disponibles)`);
-      setUsedInfo(usedKeys.size ? `${nu} de tes cartes sont déjà alignées (import Sorare du ${new Date(usedTs).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}) : exclues` : 'Compos Sorare non importées : demande à Claude « importe mes compos ».');
+      setUsedInfo(usedOk ? `${nu} de tes cartes Limited+ sont déjà alignées dans une compo de cette GW : exclues` : 'Cartes déjà alignées : lecture Sorare indisponible, aucune exclusion appliquée.');
     } catch (e: any) { setColSt('err'); setColInfo('Galerie introuvable : ' + String(e?.message || e)); }
   };
-  useEffect(() => { loadGallery(typeof window !== 'undefined' && localStorage.getItem(LSP) || 'memejacquet1998'); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { loadGallery(typeof window !== 'undefined' && localStorage.getItem(LSP) || 'memejacquet1998', night); }, [night]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { try { localStorage.setItem(LS, JSON.stringify(owned)); } catch {} }, [owned]);
   useEffect(() => {
     let off = false; setLoading(true); setErr('');
