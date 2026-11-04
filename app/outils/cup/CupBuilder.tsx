@@ -142,10 +142,10 @@ export default function CupBuilder() {
     ...ownedItems,
     ...pool.flatMap(x => [{ ...x, v: x.v * 1.05, is: true, buy: true, pw: 1.05 }, { ...x, is: false, buy: true, pw: 1 }]),
   ], [pool, ownedItems]);
-  const buyItems = useMemo(() => pool.filter(x => !own(x.p.slug)).map(x => ({ ...x, v: x.v * 1.05, is: true, buy: true, pw: 1.05 })), [pool, owned, col]); // eslint-disable-line react-hooks/exhaustive-deps
+  const buyItems = useMemo(() => pool.filter(x => !own(x.p.slug)).flatMap(x => [{ ...x, v: x.v * 1.05, is: true, buy: true, pw: 1.05 }, { ...x, is: false, buy: true, pw: 1 }]), [pool, owned, col]); // achat : In-Season +5 %, Classic +0 % // eslint-disable-line react-hooks/exhaustive-deps
   const free = useMemo(() => best(freeItems, T.is, 5), [freeItems, T.is]);
   const mine = useMemo(() => best(ownedItems, T.is), [ownedItems, T.is]);
-  const gains = useMemo(() => ownedPool.length < 5 ? [] : buyItems.map(x => ({ x, g: best([...ownedItems, x], T.is, 1).total - mine.total })).filter(r => r.g > 0.05).sort((a, b) => b.g - a.g).slice(0, 12), [buyItems, ownedItems, ownedPool, mine, T.is]);
+  const gains = useMemo(() => { if (ownedPool.length < 5) return []; const m = new Map<string, { x: (typeof buyItems)[number]; g: number }>(); for (const x of buyItems) { const g = best([...ownedItems, x], T.is, 1).total - mine.total; const c = m.get(x.p.slug); if (g > 0.05 && (!c || g > c.g)) m.set(x.p.slug, { x, g }); } return [...m.values()].sort((a, b) => b.g - a.g).slice(0, 12); }, [buyItems, ownedItems, ownedPool, mine, T.is]);
   const buy1 = useMemo(() => best([...ownedItems, ...buyItems], T.is, 1).sel, [ownedItems, buyItems, T.is]);
   const buy2 = useMemo(() => best([...ownedItems, ...buyItems], T.is, 2).sel, [ownedItems, buyItems, T.is]);
 
@@ -206,7 +206,7 @@ export default function CupBuilder() {
       <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 8 }}>{sub}</div>
       {l.map(x => (
         <div key={x.p.slug} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, padding: '2px 0' }}>
-          <span>{x.p.name} <span style={{ opacity: 0.55 }}>· {x.p.stars}★ · {x.p.team.split(' ').pop()} {x.p.home ? 'vs' : '@'} {x.p.opp.split(' ').pop()}{x.buy ? (nIS >= T.is ? ' · À ACHETER (Classic suffit)' : ' · À ACHETER (IS requis)') : (x.is ? ' · IS' : ' · Classic') + ' · bonus +' + Math.round(((x.pw ?? 1) - 1) * 100) + '%'}</span></span>
+          <span>{x.p.name} <span style={{ opacity: 0.55 }}>· {x.p.stars}★ · {x.p.team.split(' ').pop()} {x.p.home ? 'vs' : '@'} {x.p.opp.split(' ').pop()}{x.buy ? (x.is ? ' · À ACHETER (In-Season +5%)' : ' · À ACHETER (Classic)') : (x.is ? ' · IS' : ' · Classic') + ' · bonus +' + Math.round(((x.pw ?? 1) - 1) * 100) + '%'}</span></span>
           <b>{x.v.toFixed(0)}</b>
         </div>
       ))}
@@ -264,7 +264,7 @@ export default function CupBuilder() {
             {gains.length === 0 && <div style={{ fontSize: 13, opacity: 0.7 }}>Aucun achat n'améliore ta compo sous le cap.</div>}
             {gains.map(({ x, g }) => (
               <div key={x.p.slug} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, padding: '2px 0' }}>
-                <span>{x.p.name} <span style={{ opacity: 0.55 }}>· {x.p.stars}★ · {x.p.team.split(' ').pop()} {x.p.home ? 'vs' : '@'} {x.p.opp.split(' ').pop()}</span></span>
+                <span>{x.p.name} <span style={{ opacity: 0.55 }}>· {x.p.stars}★ · {x.p.team.split(' ').pop()} {x.p.home ? 'vs' : '@'} {x.p.opp.split(' ').pop()} · {x.is ? 'IS +5%' : 'Classic suffit'}</span></span>
                 <b style={{ color: '#4ade80' }}>+{g.toFixed(1)} pts</b>
               </div>
             ))}
