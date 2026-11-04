@@ -19,6 +19,10 @@ export async function GET(req: NextRequest) {
     const d = await gql(`{ currentUser { ${probe} } }`);
     return NextResponse.json({ err: String(d?.errors?.[0]?.message || 'ok').slice(0, 300) });
   }
+  if (probe === 'usage') { // decouverte : types concrets de usedIn sur quelques cartes NBA Limited
+    const d = await gql('{ currentUser { cards(first:40, sport:NBA, rarities:[limited]) { nodes { slug usedIn { __typename } } } } }');
+    return NextResponse.json({ data: d?.data?.currentUser?.cards?.nodes?.filter((n: any) => n.usedIn)?.slice(0, 5) ?? null, err: d?.errors?.[0]?.message?.slice(0, 300) ?? null });
+  }
   if (probe === 'who') return NextResponse.json({ user: who?.data?.currentUser?.slug ?? null, err: who?.errors?.[0]?.message?.slice(0, 160) ?? null });
   const user = who?.data?.currentUser?.slug ?? null;
   if (!user) return NextResponse.json({ error: 'not_authenticated' }, { status: 401 });
