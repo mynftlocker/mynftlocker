@@ -9,25 +9,29 @@ const CAP = 32; // 16 etoiles en demi-etoiles
 type P = { slug: string; name: string; team: string; opp: string; home: boolean; time: string; stars: number; proj: number; l5: number | null; l10: number | null; sd: number | null; max: number | null; n: number; inj: string | null };
 type Metric = 'proj' | 'l5' | 'l10' | 'mix';
 const LS = 'mnl_cup_owned_v1';
+const LSP = 'mnl_cup_pseudo_v1';
 
 const ymd = (d: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris' }).format(d);
 const lab = (s: string) => new Intl.DateTimeFormat('fr-FR', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }).format(new Date(s + 'T12:00:00Z'));
 const erf = (x: number) => { const t = 1 / (1 + 0.3275911 * Math.abs(x)); const y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x); return x >= 0 ? y : -y; };
 const cdf = (z: number) => 0.5 * (1 + erf(z / Math.SQRT2));
 
-function best(pool: { v: number; c: number; i: number }[], k = 5): { total: number; idx: number[] } {
-  // sac a dos : choisir au plus k joueurs, somme des demi-etoiles <= CAP, valeur max
-  const dp: number[][] = Array.from({ length: k + 1 }, () => Array(CAP + 1).fill(-1));
-  const pick: number[][][] = Array.from({ length: k + 1 }, () => Array.from({ length: CAP + 1 }, () => []));
-  for (let c = 0; c <= CAP; c++) dp[0][c] = 0;
+function best(pool: { v: number; c: number; i: number; is: boolean }[], need: number, k = 5): { total: number; idx: number[] } {
+  // sac a dos : au plus k joueurs, somme des demi-etoiles <= CAP, au moins `need` cartes In-Season, valeur max
+  const S = need + 1;
+  const dp: number[][][] = Array.from({ length: k + 1 }, () => Array.from({ length: CAP + 1 }, () => Array(S).fill(-1)));
+  const pick: number[][][][] = Array.from({ length: k + 1 }, () => Array.from({ length: CAP + 1 }, () => Array.from({ length: S }, () => [] as number[])));
+  for (let c = 0; c <= CAP; c++) dp[0][c][0] = 0;
   for (const it of pool) {
-    for (let j = k; j >= 1; j--) for (let c = CAP; c >= it.c; c--) {
-      const prev = dp[j - 1][c - it.c];
-      if (prev >= 0 && prev + it.v > dp[j][c]) { dp[j][c] = prev + it.v; pick[j][c] = [...pick[j - 1][c - it.c], it.i]; }
+    for (let j = k; j >= 1; j--) for (let c = CAP; c >= it.c; c--) for (let t = 0; t < S; t++) {
+      const prev = dp[j - 1][c - it.c][t];
+      if (prev < 0) continue;
+      const nt = Math.min(need, t + (it.is ? 1 : 0));
+      if (prev + it.v > dp[j][c][nt]) { dp[j][c][nt] = prev + it.v; pick[j][c][nt] = [...pick[j - 1][c - it.c][t], it.i]; }
     }
   }
   let bt = 0, bi: number[] = [];
-  for (let j = 0; j <= k; j++) for (let c = 0; c <= CAP; c++) if (dp[j][c] > bt) { bt = dp[j][c]; bi = pick[j][c]; }
+  for (let j = 0; j <= k; j++) for (let c = 0; c <= CAP; c++) if (dp[j][c][need] > bt) { bt = dp[j][c][need]; bi = pick[j][c][need]; }
   return { total: bt, idx: bi };
 }
 
@@ -42,10 +46,45 @@ export default function CupBuilder() {
   const [games, setGames] = useState(0);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState('');
-  const [owned, setOwned] = useState<Record<string, 1 | 2>>({}); // 1 = Limited+ possedee, 2 = possedee en In-Season
+  const [owned, setOwned] = useState<Record<string, 0 | 1 | 2>>({}); // 1 = Limited+ possedee, 2 = possedee en In-Season
   const [q, setQ] = useState('');
+  const [pseudo, setPseudo] = useState('memejacquet1998');
+  const [col, setCol] = useState<Record<string, 1 | 2>>({}); // detecte depuis la galerie Sorare : 1 = Limited+ classic, 2 = Limited+ In-Season
+  const [colSt, setColSt] = useState<'idle' | 'loading' | 'ok' | 'err'>('idle');
+  const [colInfo, setColInfo] = useState('');
 
-  useEffect(() => { try { setOwned(JSON.parse(localStorage.getItem(LS) || '{}')); } catch {} }, []);
+  useEffect(() => { try { setOwned(JSON.parse(localStorage.getItem(LS) || '{}')); const p = localStorage.getItem(LSP); if (p) setPseudo(p); } catch {} }, []);
+  const loadGallery = async (pp: string) => {
+    const slug = pp.trim().toLowerCase();
+    if (!slug) return;
+    setColSt('loading'); setColInfo('');
+    try { localStorage.setItem(LSP, slug); } catch {}
+    try {
+      const r = await fetch('/api/collection?slug=' + encodeURIComponent(slug));
+      if (!r.ok || !r.body) throw new Error('http ' + r.status);
+      const rd = r.body.getReader(); const dec = new TextDecoder(); let buf = ''; const cards: any[] = [];
+      for (;;) {
+        const { done, value } = await rd.read(); if (done) break;
+        buf += dec.decode(value, { stream: true });
+        let nl; while ((nl = buf.indexOf('\n')) >= 0) {
+          const line = buf.slice(0, nl).trim(); buf = buf.slice(nl + 1); if (!line) continue;
+          const o = JSON.parse(line);
+          if (o.error) throw new Error(o.error);
+          if (o.cards) cards.push(...o.cards);
+        }
+      }
+      const m: Record<string, 1 | 2> = {}; let nb = 0, nis = 0;
+      for (const c of cards) {
+        if (c.__typename !== 'NBACard') continue;
+        const rar = String(c.rarityTyped || '').toLowerCase();
+        if (!rar || rar === 'common') continue; // Cup : Limited ou plus
+        const ps = c.anyPlayer?.slug; if (!ps) continue;
+        nb++; if (c.inSeasonEligible) { m[ps] = 2; nis++; } else if (!m[ps]) m[ps] = 1;
+      }
+      setCol(m); setColSt('ok'); setColInfo(`${nb} cartes NBA Limited+ détectées (${nis} In-Season)`);
+    } catch (e: any) { setColSt('err'); setColInfo('Galerie introuvable : ' + String(e?.message || e)); }
+  };
+  useEffect(() => { loadGallery(typeof window !== 'undefined' && localStorage.getItem(LSP) || 'memejacquet1998'); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { try { localStorage.setItem(LS, JSON.stringify(owned)); } catch {} }, [owned]);
   useEffect(() => {
     let off = false; setLoading(true); setErr('');
@@ -62,10 +101,11 @@ export default function CupBuilder() {
     return p.inj === 'GTD' ? b * 0.88 : b;
   };
   const pool = useMemo(() => data.filter(p => !(noOut && p.inj && p.inj !== 'GTD')).map((p, i) => ({ p, v: val(p), c: Math.round(p.stars * 2), i })), [data, metric, noOut]); // eslint-disable-line react-hooks/exhaustive-deps
-  const ownedPool = useMemo(() => pool.filter(x => owned[x.p.slug]), [pool, owned]);
-  const free = useMemo(() => best(pool), [pool]);
-  const mine = useMemo(() => best(ownedPool), [ownedPool]);
-  const gains = useMemo(() => ownedPool.length < 5 ? [] : pool.filter(x => !owned[x.p.slug]).map(x => ({ x, g: best([...ownedPool, x]).total - mine.total })).filter(r => r.g > 0.05).sort((a, b) => b.g - a.g).slice(0, 12), [pool, ownedPool, mine, owned]);
+  const own = (slug: string): 0 | 1 | 2 => (owned[slug] !== undefined ? (owned[slug] as number) : (col[slug] || 0)) as 0 | 1 | 2;
+  const ownedPool = useMemo(() => pool.filter(x => own(x.p.slug)), [pool, owned, col]); // eslint-disable-line react-hooks/exhaustive-deps
+  const free = useMemo(() => best(pool.map(x => ({ ...x, is: true })), T.is), [pool, T.is]);
+  const mine = useMemo(() => best(ownedPool.map(x => ({ ...x, is: own(x.p.slug) === 2 })), T.is), [ownedPool, T.is]); // eslint-disable-line react-hooks/exhaustive-deps
+  const gains = useMemo(() => { const base = ownedPool.map(x => ({ ...x, is: own(x.p.slug) === 2 })); return ownedPool.length < 5 ? [] : pool.filter(x => !own(x.p.slug)).map(x => ({ x, g: best([...base, { ...x, is: true }], T.is).total - mine.total })).filter(r => r.g > 0.05).sort((a, b) => b.g - a.g).slice(0, 12); }, [pool, ownedPool, mine, owned, col, T.is]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const stat = (list: { p: P; v: number }[]) => {
     const mean = list.reduce((s, x) => s + x.v, 0);
@@ -76,7 +116,7 @@ export default function CupBuilder() {
   const freeList = free.idx.map(i => pool.find(x => x.i === i)!).filter(Boolean);
   const sM = stat(mineList), sF = stat(freeList);
   const stars = (l: { p: P }[]) => l.reduce((s, x) => s + x.p.stars, 0);
-  const toggle = (slug: string) => setOwned(o => { const n = { ...o }; const c = n[slug]; if (!c) n[slug] = 1; else if (c === 1) n[slug] = 2; else delete n[slug]; return n; });
+  const toggle = (slug: string) => setOwned(o => { const n = { ...o }; const c = own(slug); n[slug] = c === 0 ? 1 : c === 1 ? 2 : 0; return n; });
   const list = useMemo(() => data.filter(p => !q || (p.name + p.team).toLowerCase().includes(q.toLowerCase())).sort((a, b) => val(b) - val(a)), [data, q, metric]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const box: React.CSSProperties = { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(0,255,255,0.18)', borderRadius: 14, padding: '14px 16px', backdropFilter: 'blur(8px)' };
@@ -87,7 +127,7 @@ export default function CupBuilder() {
       <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 8 }}>{sub}</div>
       {(title.startsWith('Ma') ? mineList : freeList).map(x => (
         <div key={x.p.slug} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, padding: '2px 0' }}>
-          <span>{x.p.name} <span style={{ opacity: 0.55 }}>· {x.p.stars}★ · {x.p.team.split(' ').pop()} {x.p.home ? 'vs' : '@'} {x.p.opp.split(' ').pop()}{owned[x.p.slug] ? '' : ' · À ACHETER'}</span></span>
+          <span>{x.p.name} <span style={{ opacity: 0.55 }}>· {x.p.stars}★ · {x.p.team.split(' ').pop()} {x.p.home ? 'vs' : '@'} {x.p.opp.split(' ').pop()}{own(x.p.slug) ? (own(x.p.slug) === 2 ? ' · IS' : ' · Classic') : ' · À ACHETER'}</span></span>
           <b>{x.v.toFixed(0)}</b>
         </div>
       ))}
@@ -114,17 +154,24 @@ export default function CupBuilder() {
             {([['mix', 'Mix (proj 50 / L5 30 / L10 20)'], ['proj', 'Projection Sorare'], ['l5', 'L5'], ['l10', 'L10']] as [Metric, string][]).map(([m, l]) => <button key={m} onClick={() => setMetric(m)} style={btn(m === metric)}>{l}</button>)}
             <label style={{ fontSize: 13, marginLeft: 8 }}><input type="checkbox" checked={noOut} onChange={e => setNoOut(e.target.checked)} /> Exclure blessés</label>
           </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', marginTop: 10 }}>
+            <span style={{ fontSize: 12, opacity: 0.7 }}>Ma galerie Sorare :</span>
+            <input value={pseudo} onChange={e => setPseudo(e.target.value)} onKeyDown={e => e.key === 'Enter' && loadGallery(pseudo)} style={{ padding: '5px 8px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(0,0,0,0.3)', color: '#fff', fontSize: 13, width: 170 }} />
+            <button onClick={() => loadGallery(pseudo)} style={btn(false)}>Recharger</button>
+            <span style={{ fontSize: 12, color: colSt === 'err' ? '#ff6b6b' : colSt === 'ok' ? '#4ade80' : '#aaa' }}>{colSt === 'loading' ? 'Détection de tes cartes…' : colInfo}</span>
+          </div>
           <div style={{ fontSize: 12, opacity: 0.6, marginTop: 8 }}>
-            {loading ? 'Chargement…' : err ? 'Erreur : ' + err : `${games} matchs · ${data.length} joueurs · cap 16★ · 5 cartes Limited+ · min ${T.is} carte(s) In-Season. Le palier ${T.n} exige ${T.is} IS : vérifie-le à l'achat (non détectable ici). Statuts blessés : à recouper (Rotowire).`}
+            {loading ? 'Chargement…' : err ? 'Erreur : ' + err : `${games} matchs · ${data.length} joueurs · cap 16★ · 5 cartes Limited+ · min ${T.is} carte(s) In-Season (contrainte appliquée : tes cartes sont détectées ; une carte « à acheter » est supposée en In-Season). Statuts blessés : à recouper (Rotowire).`}
           </div>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(320px,1fr))', gap: 14 }}>
-          <Team s={sM} title="Ma meilleure compo" sub={ownedPool.length ? `avec les ${ownedPool.length} cartes marquées « possédée »` : 'marque tes cartes ci-dessous (clic : possédée → In-Season → retirée)'} />
+          <Team s={sM} title="Ma meilleure compo" sub={ownedPool.length ? `avec tes ${ownedPool.length} joueurs Limited+ de la nuit (clic sur un joueur pour corriger : possédé → In-Season → retiré)` : 'aucune de tes cartes ne joue cette nuit (ou galerie non chargée)'} />
           <Team s={sF} title="Compo idéale (sans contrainte)" sub="meilleure équipe sous le cap, toutes cartes confondues" />
         </div>
 
-        {ownedPool.length > 0 && ownedPool.length < 5 && <div style={{ ...box, fontSize: 13, opacity: 0.8 }}>Marque au moins 5 cartes possédées pour voir quelles cartes acheter (aujourd'hui : {ownedPool.length}).</div>}
+        {ownedPool.length > 0 && ownedPool.length < 5 && <div style={{ ...box, fontSize: 13, opacity: 0.8 }}>Il faut au moins 5 joueurs possédés ce soir-là pour calculer les achats (aujourd'hui : {ownedPool.length}).</div>}
+        {ownedPool.length >= 5 && mine.idx.length < 5 && <div style={{ ...box, fontSize: 13, color: '#ffb020' }}>Avec tes cartes, aucune compo de 5 ne respecte le cap de 16★ et les {T.is} In-Season du palier {T.n}. Les achats ci-dessous complètent l'équipe.</div>}
         {ownedPool.length >= 5 && (
           <div style={box}>
             <div style={{ fontWeight: 700, color: '#ffd24a', marginBottom: 6 }}>Cartes à acheter (gain de points sur ta meilleure compo)</div>
@@ -144,7 +191,7 @@ export default function CupBuilder() {
             <span>Joueur (clic = possédée)</span><span>★</span><span>Proj</span><span>L5</span><span>L10</span><span>Est.</span>
           </div>
           {list.map(p => {
-            const o = owned[p.slug];
+            const o = own(p.slug);
             return (
               <div key={p.slug} onClick={() => toggle(p.slug)} style={{ display: 'grid', gridTemplateColumns: '1fr 44px 52px 52px 52px 52px', gap: 4, fontSize: 13, padding: '5px 4px', cursor: 'pointer', borderRadius: 6, background: o ? 'rgba(0,255,255,0.1)' : 'transparent', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
                 <span>{o === 2 ? '🟣 ' : o === 1 ? '✅ ' : ''}{p.name} <span style={{ opacity: 0.5 }}>{p.team.split(' ').pop()} {p.home ? 'vs' : '@'} {p.opp.split(' ').pop()} {p.time}</span>{p.inj ? <span style={{ color: p.inj === 'GTD' ? '#ffb020' : '#ff4d4d' }}> {p.inj}</span> : null}</span>
