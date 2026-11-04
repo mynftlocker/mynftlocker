@@ -47,13 +47,15 @@ export async function GET(req: NextRequest) {
     const tslugs = Object.keys(teams);
     const bySlug: Record<string, string> = {};
     await Promise.all(tslugs.map(async (s) => {
-      const d = await gql(`{ team(slug:"${s}"){ ... on Club{ activePlayers(first:30){ nodes{ slug } } } } }`);
-      (d.team?.activePlayers?.nodes || []).forEach((n: any) => { bySlug[n.slug] = s; });
+      // un echec ponctuel sur une equipe ne doit pas faire tomber toute la nuit : un 2e essai, puis on continue sans elle
+      for (let t = 0; t < 2; t++) {
+        try { const d = await gql(`{ team(slug:"${s}"){ ... on Club{ activePlayers(first:30){ nodes{ slug } } } } }`); (d.team?.activePlayers?.nodes || []).forEach((n: any) => { bySlug[n.slug] = s; }); break; } catch { /* nouvel essai */ }
+      }
     }));
 
     // 3) Details joueurs
     const F = 'slug displayName ... on NBAPlayer{ gameplayTierStars nextClassicFixtureProjectedScore injuries{ status expectedEndDate } playerGameScores(last:10){ score } }';
-    const parts = await Promise.all(chunk(Object.keys(bySlug), 12).map((c) => gql(`{ players(slugs:${JSON.stringify(c)}){ ${F} } }`)));
+    const parts = await Promise.all(chunk(Object.keys(bySlug), 12).map((c) => gql(`{ players(slugs:${JSON.stringify(c)}){ ${F} } }`).catch(() => gql(`{ players(slugs:${JSON.stringify(c)}){ ${F} } }`).catch(() => ({ players: [] })))));
     const now = Date.now();
     const players = parts.flatMap((p) => p.players || []).map((p: any) => {
       const sc: number[] = (p.playerGameScores || []).map((x: any) => Number(x.score)).filter((x: number) => !isNaN(x));

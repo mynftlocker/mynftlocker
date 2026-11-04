@@ -14,7 +14,7 @@ const fmt = (d: string) => new Date(d + 'T12:00:00Z').toLocaleDateString('fr-FR'
 type Pick = { d: string; n: string };
 type Picks = { updated: string; history: (Pick & { s: number | null })[]; planned: Pick[] };
 type Cand = { name: string; team: string; opp: string; home: boolean; est: number; inj: string | null; src: 'S' | 'L' };
-type Night = { us: string; games: number; close: string | null; cands: Cand[] };
+type Night = { us: string; games: number; close: string | null; closed: boolean; cands: Cand[] };
 type Hist = Record<string, { d: string; t: number; m: number; tm: string }[]>;
 type Sched = Record<string, { first: string | null; games: { h: string; a: string }[] }>;
 type Inj = Record<string, { s: 'OUT' | 'DTD'; long: boolean; until?: string | null; kind?: string | null }>;
@@ -55,6 +55,7 @@ export default function DeckBuilder() {
   const [nights, setNights] = useState<Night[] | null>(null);
   const [prog, setProg] = useState('');
   const [err, setErr] = useState('');
+  const [tick, setTick] = useState(0);
 
   useEffect(() => { fetch('/api/outils/ttfl-picks').then(r => r.json()).then(j => j.ok ? setPicks(j.picks) : setErr('picks indisponibles')).catch(e => setErr(String(e))); }, []);
   useEffect(() => {
@@ -107,23 +108,25 @@ export default function DeckBuilder() {
           }
         }
         const close = sc?.first ? new Date(sc.first).toLocaleString('fr-FR', { timeZone: 'Europe/Paris', weekday: 'short', hour: '2-digit', minute: '2-digit' }) : null;
-        out.push({ us, games: sc?.games.length ?? Math.round(teams.size / 2), close, cands });
+        out.push({ us, games: sc?.games.length ?? Math.round(teams.size / 2), close, closed: !!sc?.first && new Date(sc.first).getTime() <= Date.now(), cands });
       }
       if (!dead) setNights(out);
     })();
     return () => { dead = true; };
-  }, [start, days]);
+  }, [start, days, tick]);
 
   const plan = useMemo(() => {
     if (!nights || !picks) return null;
     // Les picks des nuits deja commencees (avant la date de depart) ne changent plus : ils verrouillent toujours le joueur, meme sans "garder mes picks".
-    const hist = [...picks.history, ...picks.planned.filter(x => x.d < start)];
-    const planned = keep ? picks.planned.filter(x => x.d >= start) : [];
+    // Nuits deja fermees (premier match commence) : le pick posé ne peut plus changer, il est figé et bloque le joueur 30 jours.
+    const closedD = new Set(nights.filter(n => n.closed).map(n => n.us));
+    const hist = [...picks.history, ...picks.planned.filter(x => x.d < start || closedD.has(x.d))];
+    const planned = keep ? picks.planned.filter(x => x.d >= start && !closedD.has(x.d)) : [];
     const planAll = picks.planned.filter(x => x.d >= start);
     // verrou : un joueur pické le jour P est indisponible aux jours P+1..P+30
     const blocked = (name: string, d: string) => [...hist, ...planned].some(x => norm(x.n) === norm(name) && x.d !== d && diff(d, x.d) > 0 && diff(d, x.d) <= LOCK);
     const lockedBy = (name: string, d: string) => [...hist, ...planned].find(x => norm(x.n) === norm(name) && x.d !== d && diff(d, x.d) > 0 && diff(d, x.d) <= LOCK);
-    const open = nights.filter(n => n.cands.length && !(keep && planned.some(p => p.d === n.us)));
+    const open = nights.filter(n => n.cands.length && !n.closed && !(keep && planned.some(p => p.d === n.us)));
     const pool = new Map<string, number>(); // nom -> index colonne
     const cols: string[] = [];
     const avail = open.map(n => n.cands.filter(c => !blocked(c.name, n.us)).sort((a, b) => b.est - a.est).slice(0, 60));
@@ -134,13 +137,13 @@ export default function DeckBuilder() {
       choice = assign(P, cols.length);
     }
     const rows = nights.map(n => {
-      const fixedPick = keep ? planned.find(p => p.d === n.us) : undefined;
+      const fixedPick = n.closed ? picks.planned.find(p => p.d === n.us) || picks.history.find(p => p.d === n.us) : keep ? planned.find(p => p.d === n.us) : undefined;
       const cur = planAll.find(p => p.d === n.us);
       const find = (name: string) => n.cands.find(c => norm(c.name) === norm(name));
       let pick: Cand | undefined; let fixed = false;
       if (fixedPick) { pick = find(fixedPick.n); fixed = true; }
-      else { const oi = open.indexOf(n); if (oi >= 0 && choice[oi] >= 0) { const k = cols[choice[oi]]; pick = n.cands.find(c => norm(c.name) === k); } }
-      const alt = n.cands.filter(c => !blocked(c.name, n.us) && c !== pick).sort((a, b) => b.est - a.est).slice(0, 3);
+      else { const oi = open.indexOf(n); if (oi >= 0 && choice[oi] >= 0) { const k = cols[choice[oi]]; pick = avail[oi].find(c => norm(c.name) === k); } }
+      const alt = n.closed ? [] : n.cands.filter(c => !blocked(c.name, n.us) && c !== pick).sort((a, b) => b.est - a.est).slice(0, 3);
       const curC = cur ? find(cur.n) : undefined;
       const curLocked = cur ? lockedBy(cur.n, n.us) : undefined;
       return { n, pick, fixed, alt, cur, curC, curLocked };
@@ -161,6 +164,7 @@ export default function DeckBuilder() {
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 12 }}>
         <input type="date" value={start} onChange={e => e.target.value && setStart(e.target.value)} style={btn} />
         <select value={days} onChange={e => setDays(Number(e.target.value))} style={btn}>{[3, 5, 7, 10, 14].map(d => <option key={d} value={d}>{d} nuits</option>)}</select>
+        <button onClick={() => setTick(t => t + 1)} style={btn}>↻ Recalculer</button>
         <label style={{ fontSize: 13, color: c.dim }}><input type="checkbox" checked={keep} onChange={e => setKeep(e.target.checked)} /> Garder mes picks déjà posés</label>
       </div>
       <div style={{ fontSize: 12, color: c.dim, marginBottom: 10 }}>{picks ? `Picks lus sur TTFL : ${picks.history.length} joués, ${picks.planned.length} posés à l'avance${upd ? ' · mis à jour le ' + upd : ''}` : 'Picks…'}</div>
@@ -179,10 +183,10 @@ export default function DeckBuilder() {
               <tbody>
                 {plan.rows.map(r => (
                   <tr key={r.n.us} style={{ borderTop: `1px solid ${c.line}`, verticalAlign: 'top' }}>
-                    <td style={{ padding: '8px 12px' }}>{fmt(r.n.us)}</td>
+                    <td style={{ padding: '8px 12px' }}>{fmt(r.n.us)}{r.n.closed && <span style={{ color: '#ff6b6b', fontSize: 11 }}> fermée</span>}</td>
                     <td style={{ padding: '8px 12px', color: r.n.games <= 6 ? c.gold : c.dim }}>{r.n.games || '–'}</td>
                     <td style={{ padding: '8px 12px', color: c.dim, whiteSpace: 'nowrap' }}>{r.n.close || '–'}</td>
-                    <td style={{ padding: '8px 12px' }}>{r.pick ? <><b>{r.pick.name}</b><span style={{ color: c.dim }}> {r.pick.home ? 'vs' : '@'} {r.pick.opp.split(' ').pop()}</span>{r.pick.inj && <span style={{ color: c.gold, fontSize: 11 }}> {r.pick.inj}</span>}{r.pick.src === 'L' && <span style={{ color: c.dim, fontSize: 11 }}> (moy. TTFL)</span>}{r.fixed && <span style={{ color: c.dim, fontSize: 11 }}> (posé)</span>}</> : <span style={{ color: c.dim }}>{r.n.games ? 'aucun joueur dispo' : 'pas de match'}</span>}</td>
+                    <td style={{ padding: '8px 12px' }}>{r.pick ? <><b>{r.pick.name}</b><span style={{ color: c.dim }}> {r.pick.home ? 'vs' : '@'} {r.pick.opp.split(' ').pop()}</span>{r.pick.inj && <span style={{ color: c.gold, fontSize: 11 }}> {r.pick.inj}</span>}{r.pick.src === 'L' && <span style={{ color: c.dim, fontSize: 11 }}> (moy. TTFL)</span>}{r.fixed && <span style={{ color: c.dim, fontSize: 11 }}> (posé)</span>}</> : <span style={{ color: c.dim }}>{r.n.closed ? 'nuit fermée, pas de pick posé' : r.n.games ? 'aucun joueur dispo' : 'pas de match'}</span>}</td>
                     <td style={{ padding: '8px 12px', textAlign: 'right', color: c.cy, fontWeight: 700 }}>{r.pick ? r.pick.est.toFixed(1) : '–'}</td>
                     <td style={{ padding: '8px 12px', color: c.dim }}>{r.cur ? <>{r.cur.n}{r.curC ? ` (${r.curC.est.toFixed(1)})` : ''}{r.curLocked && <span style={{ color: '#ff6b6b' }}> bloqué</span>}</> : '–'}</td>
                     <td style={{ padding: '8px 12px', color: c.dim, fontSize: 13 }}>{r.alt.map(a => `${a.name} ${a.est.toFixed(1)}`).join(' · ')}</td>
