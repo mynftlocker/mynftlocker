@@ -17,19 +17,19 @@ const erf = (x: number) => { const t = 1 / (1 + 0.3275911 * Math.abs(x)); const 
 const cdf = (z: number) => 0.5 * (1 + erf(z / Math.SQRT2));
 
 type Opt = { v: number; c: number; i: number; is: boolean; buy?: boolean; pw?: number };
-function best<T extends Opt>(pool: T[], need: number, maxBuy = 0, k = 5): { total: number; idx: number[]; sel: T[] } {
-  // sac a dos par groupes (1 option max par joueur) : au plus k joueurs, somme des demi-etoiles <= CAP, >= `need` cartes In-Season, <= `maxBuy` achats
+function best<T extends Opt>(pool: T[], need: number, maxBuy = 0, k = 5, cap = CAP): { total: number; idx: number[]; sel: T[] } {
+  // sac a dos par groupes (1 option max par joueur) : au plus k joueurs, somme des demi-etoiles <= cap, >= `need` cartes In-Season, <= `maxBuy` achats
   const S = need + 1, B = maxBuy + 1;
-  const mk = <U,>(f: () => U) => Array.from({ length: k + 1 }, () => Array.from({ length: CAP + 1 }, () => Array.from({ length: S }, () => Array.from({ length: B }, f))));
+  const mk = <U,>(f: () => U) => Array.from({ length: k + 1 }, () => Array.from({ length: cap + 1 }, () => Array.from({ length: S }, () => Array.from({ length: B }, f))));
   let dp = mk(() => -1); let pick = mk(() => [] as number[]);
-  for (let c = 0; c <= CAP; c++) dp[0][c][0][0] = 0;
+  for (let c = 0; c <= cap; c++) dp[0][c][0][0] = 0;
   const groups = new Map<number, number[]>();
   pool.forEach((it, ix) => { if (it.buy && maxBuy === 0) return; const g = groups.get(it.i); if (g) g.push(ix); else groups.set(it.i, [ix]); });
   for (const opts of groups.values()) {
     const nd = dp.map(a1 => a1.map(a2 => a2.map(a3 => a3.slice()))); const np = pick.map(a1 => a1.map(a2 => a2.map(a3 => a3.slice())));
     for (const ix of opts) {
       const it = pool[ix];
-      for (let j = k; j >= 1; j--) for (let c = CAP; c >= it.c; c--) for (let t = 0; t < S; t++) for (let u = 0; u < B; u++) {
+      for (let j = k; j >= 1; j--) for (let c = cap; c >= it.c; c--) for (let t = 0; t < S; t++) for (let u = 0; u < B; u++) {
         const prev = dp[j - 1][c - it.c][t][u];
         if (prev < 0) continue;
         const nu = u + (it.buy ? 1 : 0); if (nu >= B) continue;
@@ -40,7 +40,7 @@ function best<T extends Opt>(pool: T[], need: number, maxBuy = 0, k = 5): { tota
     dp = nd; pick = np;
   }
   let bt = 0, bi: number[] = [];
-  for (let j = 0; j <= k; j++) for (let c = 0; c <= CAP; c++) for (let u = 0; u < B; u++) if (dp[j][c][need][u] > bt) { bt = dp[j][c][need][u]; bi = pick[j][c][need][u]; }
+  for (let j = 0; j <= k; j++) for (let c = 0; c <= cap; c++) for (let u = 0; u < B; u++) if (dp[j][c][need][u] > bt) { bt = dp[j][c][need][u]; bi = pick[j][c][need][u]; }
   return { total: bt, idx: bi.map(ix => pool[ix].i), sel: bi.map(ix => pool[ix]) };
 }
 
@@ -191,6 +191,16 @@ export default function CupBuilder() {
         return (typeof x === 'string' ? x.localeCompare(y as string) : (x as number) - (y as number)) * lsort.dir;
       });
   }, [pool, sel, q, onlyMine, lsort, maxStarNow, slotsLeft, ownedByS, owned, col]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Completer : garde les joueurs deja choisis, remplit les emplacements restants au mieux (cap, In-Season, cartes possedees d'abord)
+  const complete = (maxBuy: number) => {
+    if (slotsLeft <= 0 || sel.length === 0) return;
+    const capLeft = CAP - Math.round(usedStars * 2);
+    const needLeft = Math.max(0, T.is - nISb);
+    const taken = new Set(sel);
+    const cands = [...ownedItems, ...(maxBuy > 0 ? buyItems : [])].filter(x => !taken.has(x.p.slug));
+    const r = best(cands, needLeft, maxBuy, slotsLeft, capLeft);
+    if (r.sel.length) setSel(c => [...c, ...r.sel.map(x => x.p.slug)]);
+  };
   const sortBy = (k: string) => setLsort(c => (c.k === k ? { k, dir: (c.dir * -1) as 1 | -1 } : { k, dir: k === 'name' ? 1 : -1 }));
   const arrow = (k: string) => (lsort.k === k ? (lsort.dir === -1 ? ' ↓' : ' ↑') : '');
 
@@ -280,6 +290,14 @@ export default function CupBuilder() {
             ))}
             <button onClick={() => setSel([])} style={btn(false)}>Vider</button>
           </div>
+          {sel.length > 0 && slotsLeft > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginBottom: 8 }}>
+              <span style={{ fontSize: 12, opacity: 0.6 }}>Compléter les {slotsLeft} emplacements :</span>
+              <button onClick={() => complete(0)} style={btn(true)}>Avec mes cartes</button>
+              <button onClick={() => complete(1)} style={btn(false)}>Avec 1 achat max</button>
+              <button onClick={() => complete(2)} style={btn(false)}>Avec 2 achats max</button>
+            </div>
+          )}
           {Array.from({ length: 5 }).map((_, i) => {
             const sl = sel[i]; const it = built.items.find(x => x.p.slug === sl);
             return (
