@@ -10,6 +10,8 @@ type P = { slug: string; name: string; team: string; opp: string; home: boolean;
 type Metric = 'proj' | 'l5' | 'l10' | 'mix';
 const LS = 'mnl_cup_owned_v1';
 const LSP = 'mnl_cup_pseudo_v1';
+const LSU = 'mnl_cup_used_v1'; // cartes deja alignees (importees depuis Sorare par Claude) : { ts, list: ['NOM|ANNEE|Rarete|SERIE>Compo'] }
+const norm = (x: string) => x.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
 const ymd = (d: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris' }).format(d);
 const lab = (s: string) => new Intl.DateTimeFormat('fr-FR', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }).format(new Date(s + 'T12:00:00Z'));
@@ -52,6 +54,8 @@ export default function CupBuilder() {
   const [col, setCol] = useState<Record<string, 1 | 2>>({}); // detecte depuis la galerie Sorare : 1 = Limited+ classic, 2 = Limited+ In-Season
   const [colSt, setColSt] = useState<'idle' | 'loading' | 'ok' | 'err'>('idle');
   const [colInfo, setColInfo] = useState('');
+  const [locked, setLocked] = useState<Record<string, true>>({}); // joueurs dont toutes les cartes Limited+ sont deja alignees
+  const [usedInfo, setUsedInfo] = useState('');
 
   useEffect(() => { try { setOwned(JSON.parse(localStorage.getItem(LS) || '{}')); const p = localStorage.getItem(LSP); if (p) setPseudo(p); } catch {} }, []);
   const loadGallery = async (pp: string) => {
@@ -73,15 +77,24 @@ export default function CupBuilder() {
           if (o.cards) cards.push(...o.cards);
         }
       }
-      const m: Record<string, 1 | 2> = {}; let nb = 0, nis = 0;
+      // cartes deja alignees (import Sorare) : cle NOM|ANNEE|rarete|SERIE
+      let usedKeys = new Set<string>(); let usedTs = 0;
+      try { const u = JSON.parse(localStorage.getItem(LSU) || 'null'); if (u?.list) { usedTs = u.ts || 0; usedKeys = new Set<string>(u.list.map((e: string) => { const [k] = e.split('>'); const [n, y, r, sn] = k.split('|'); return norm(n) + '|' + y + '|' + norm(r) + '|' + sn; })); } } catch {}
+      const m: Record<string, 1 | 2> = {}; const lk: Record<string, true> = {}; const any: Record<string, true> = {}; let nb = 0, nis = 0, nu = 0;
       for (const c of cards) {
         if (c.__typename !== 'NBACard') continue;
         const rar = String(c.rarityTyped || '').toLowerCase();
         if (!rar || rar === 'common') continue; // Cup : Limited ou plus
         const ps = c.anyPlayer?.slug; if (!ps) continue;
-        nb++; if (c.inSeasonEligible) { m[ps] = 2; nis++; } else if (!m[ps]) m[ps] = 1;
+        nb++; any[ps] = true;
+        const sm = String(c.slug || '').match(/^(.*)-(\d{4})-([a-z_]+)-(\d+)$/);
+        if (sm && usedKeys.has(sm[1].replace(/-\d{8}$/, '') + '|' + sm[2] + '|' + norm(sm[3]) + '|' + sm[4])) { nu++; continue; } // deja alignee : indisponible
+        if (c.inSeasonEligible) { m[ps] = 2; nis++; } else if (!m[ps]) m[ps] = 1;
       }
-      setCol(m); setColSt('ok'); setColInfo(`${nb} cartes NBA Limited+ détectées (${nis} In-Season)`);
+      for (const ps of Object.keys(any)) if (!m[ps]) lk[ps] = true;
+      setCol(m); setLocked(lk); setColSt('ok');
+      setColInfo(`${nb} cartes NBA Limited+ détectées (${nis} In-Season disponibles)`);
+      setUsedInfo(usedKeys.size ? `${nu} de tes cartes sont déjà alignées (import Sorare du ${new Date(usedTs).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}) : exclues` : 'Compos Sorare non importées : demande à Claude « importe mes compos ».');
     } catch (e: any) { setColSt('err'); setColInfo('Galerie introuvable : ' + String(e?.message || e)); }
   };
   useEffect(() => { loadGallery(typeof window !== 'undefined' && localStorage.getItem(LSP) || 'memejacquet1998'); }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -159,6 +172,7 @@ export default function CupBuilder() {
             <input value={pseudo} onChange={e => setPseudo(e.target.value)} onKeyDown={e => e.key === 'Enter' && loadGallery(pseudo)} style={{ padding: '5px 8px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(0,0,0,0.3)', color: '#fff', fontSize: 13, width: 170 }} />
             <button onClick={() => loadGallery(pseudo)} style={btn(false)}>Recharger</button>
             <span style={{ fontSize: 12, color: colSt === 'err' ? '#ff6b6b' : colSt === 'ok' ? '#4ade80' : '#aaa' }}>{colSt === 'loading' ? 'Détection de tes cartes…' : colInfo}</span>
+            {usedInfo && <span style={{ fontSize: 12, opacity: 0.75, flexBasis: '100%' }}>{usedInfo}</span>}
           </div>
           <div style={{ fontSize: 12, opacity: 0.6, marginTop: 8 }}>
             {loading ? 'Chargement…' : err ? 'Erreur : ' + err : `${games} matchs · ${data.length} joueurs · cap 16★ · 5 cartes Limited+ · min ${T.is} carte(s) In-Season (contrainte appliquée : tes cartes sont détectées ; une carte « à acheter » est supposée en In-Season). Statuts blessés : OUT/GTD affichés (GTD ×0,88), à recouper (Rotowire).`}
@@ -197,7 +211,7 @@ export default function CupBuilder() {
             const o = own(p.slug);
             return (
               <div key={p.slug} onClick={() => toggle(p.slug)} style={{ display: 'grid', gridTemplateColumns: '1fr 44px 52px 52px 52px 52px', gap: 4, fontSize: 13, padding: '5px 4px', cursor: 'pointer', borderRadius: 6, background: o ? 'rgba(0,255,255,0.1)' : 'transparent', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-                <span>{o === 2 ? '🟣 ' : o === 1 ? '✅ ' : ''}{p.name} <span style={{ opacity: 0.5 }}>{p.team.split(' ').pop()} {p.home ? 'vs' : '@'} {p.opp.split(' ').pop()} {p.time}</span>{p.inj ? <span style={{ color: p.inj === 'GTD' ? '#ffb020' : '#ff4d4d' }}> {p.inj}</span> : null}</span>
+                <span>{o === 2 ? '🟣 ' : o === 1 ? '✅ ' : locked[p.slug] ? '🔒 ' : ''}{p.name} <span style={{ opacity: 0.5 }}>{p.team.split(' ').pop()} {p.home ? 'vs' : '@'} {p.opp.split(' ').pop()} {p.time}</span>{p.inj ? <span style={{ color: p.inj === 'GTD' ? '#ffb020' : '#ff4d4d' }}> {p.inj}</span> : null}</span>
                 <span>{p.stars}</span><span>{p.proj.toFixed(0)}</span><span>{p.l5 == null ? '–' : p.l5.toFixed(0)}</span><span>{p.l10 == null ? '–' : p.l10.toFixed(0)}</span><b>{val(p).toFixed(0)}</b>
               </div>
             );
