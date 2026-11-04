@@ -161,10 +161,13 @@ export default function CupBuilder() {
             <span style={{ fontSize: 12, color: colSt === 'err' ? '#ff6b6b' : colSt === 'ok' ? '#4ade80' : '#aaa' }}>{colSt === 'loading' ? 'Détection de tes cartes…' : colInfo}</span>
           </div>
           <div style={{ fontSize: 12, opacity: 0.6, marginTop: 8 }}>
-            {loading ? 'Chargement…' : err ? 'Erreur : ' + err : `${games} matchs · ${data.length} joueurs · cap 16★ · 5 cartes Limited+ · min ${T.is} carte(s) In-Season (contrainte appliquée : tes cartes sont détectées ; une carte « à acheter » est supposée en In-Season). Statuts blessés : à recouper (Rotowire).`}
+            {loading ? 'Chargement…' : err ? 'Erreur : ' + err : `${games} matchs · ${data.length} joueurs · cap 16★ · 5 cartes Limited+ · min ${T.is} carte(s) In-Season (contrainte appliquée : tes cartes sont détectées ; une carte « à acheter » est supposée en In-Season). Statuts blessés : OUT/GTD affichés (GTD ×0,88), à recouper (Rotowire).`}
           </div>
         </div>
 
+        <div style={{ fontSize: 12, opacity: 0.7, padding: '0 4px' }}>
+          Projection = celle de Sorare pour la prochaine Game Week Classic (moyenne par match). Elle est la même quelle que soit la nuit choisie : l'outil ne distingue pas les nuits, il ne fait que filtrer les joueurs qui jouent ce soir-là. Le « Mix » la tempère avec les L5 / L10. Les cartes déjà alignées dans une autre compo ne sont pas détectées.
+        </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(320px,1fr))', gap: 14 }}>
           <Team s={sM} title="Ma meilleure compo" sub={ownedPool.length ? `avec tes ${ownedPool.length} joueurs Limited+ de la nuit (clic sur un joueur pour corriger : possédé → In-Season → retiré)` : 'aucune de tes cartes ne joue cette nuit (ou galerie non chargée)'} />
           <Team s={sF} title="Compo idéale (sans contrainte)" sub="meilleure équipe sous le cap, toutes cartes confondues" />
@@ -188,7 +191,7 @@ export default function CupBuilder() {
         <div style={box}>
           <input value={q} onChange={e => setQ(e.target.value)} placeholder="Rechercher un joueur ou une équipe" style={{ width: '100%', padding: 8, borderRadius: 8, border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(0,0,0,0.3)', color: '#fff', marginBottom: 8 }} />
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 44px 52px 52px 52px 52px', gap: 4, fontSize: 11, opacity: 0.55, padding: '0 4px 4px' }}>
-            <span>Joueur (clic = possédée)</span><span>★</span><span>Proj</span><span>L5</span><span>L10</span><span>Est.</span>
+            <span>Joueur (clic = possédée)</span><span>★</span><span>Proj*</span><span>L5</span><span>L10</span><span>Est.</span>
           </div>
           {list.map(p => {
             const o = own(p.slug);
