@@ -305,7 +305,7 @@ export default function CupBuilder() {
           <Team l={mineList} s={sM} title="Sans achat : ma meilleure compo" sub={ownedPool.length ? `avec tes ${ownedPool.length} joueurs Limited+ de la nuit · optimisée pour la probabilité d'atteindre le palier` : 'aucune de tes cartes ne joue cette nuit (ou galerie non chargée)'} />
           {ownedPool.length > 0 && <Team l={buy1} s={sB1} title="Avec 1 achat" sub="ta meilleure compo avec 1 carte en plus (Classic si l'In-Season requis est déjà couvert)" />}
           {ownedPool.length > 0 && <Team l={buy2} s={sB2} title="Avec 2 achats" sub="ta meilleure compo avec jusqu'à 2 cartes en plus" />}
-          <Team l={freeList} s={sF} title="Plafond (can't do more)" sub="meilleure compo possible sous le cap (la plus probable d'atteindre le palier) : tes cartes + toutes les cartes à acheter (In-Season +5 %, Classic +0 %)" />
+          <Team l={freeList} s={sF} title="Nothing Better" sub="meilleure compo possible sous le cap (la plus probable d'atteindre le palier) : tes cartes + toutes les cartes à acheter (In-Season +5 %, Classic +0 %)" />
         </div>
 
         {ownedPool.length > 0 && ownedPool.length < 5 && <div style={{ ...box, fontSize: 13, opacity: 0.8 }}>Il faut au moins 5 joueurs possédés ce soir-là pour calculer les achats (aujourd'hui : {ownedPool.length}).</div>}
@@ -327,7 +327,7 @@ export default function CupBuilder() {
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginBottom: 8 }}>
             <div style={{ fontWeight: 700, color: '#ffd24a' }}>Mon builder</div>
             <span style={{ fontSize: 12, opacity: 0.6 }}>Charger :</span>
-            {[{ l: 'Sans achat', v: mineList }, { l: '1 achat', v: buy1 }, { l: '2 achats', v: buy2 }, { l: 'Plafond', v: freeList }].map(o => (
+            {[{ l: 'Sans achat', v: mineList }, { l: '1 achat', v: buy1 }, { l: '2 achats', v: buy2 }, { l: 'Nothing Better', v: freeList }].map(o => (
               <button key={o.l} onClick={() => setSel(o.v.map(x => x.p.slug))} style={btn(false)}>{o.l}</button>
             ))}
             <button onClick={() => setSel([])} style={btn(false)}>Vider</button>
