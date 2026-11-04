@@ -10,6 +10,7 @@ export async function GET(req: NextRequest) {
     // journal estimation / reel du Cup Builder (en tache de fond, ne bloque pas le ping)
     const origin = req.nextUrl.origin;
     after(async () => { try { await fetch(`${origin}/api/outils/cup-log?run=1`, { cache: 'no-store' }); } catch {} });
+    after(async () => { try { await fetch(`${origin}/api/outils/injuries?run=1`, { cache: 'no-store' }); } catch {} });
     return NextResponse.json({ ok: true });
   } catch (e) {
     return NextResponse.json({ ok: false, error: String(e) }, { status: 500 });

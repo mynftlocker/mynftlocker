@@ -23,12 +23,18 @@ export async function GET(req: NextRequest) {
       }));
       // Rapport de blessures ESPN (statuts Out / Day-To-Day) : "long" = absence de plusieurs semaines (chirurgie, fracture, dechirure...)
       const nrm = (x: string) => x.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z]/g, '');
-      const inj: Record<string, { s: 'OUT' | 'DTD'; long: boolean }> = {};
+      const inj: Record<string, { s: 'OUT' | 'DTD'; long: boolean; until?: string | null; kind?: string | null }> = {};
       const ij = await getJson('https://site.api.espn.com/apis/site/v2/sports/basketball/nba/injuries', 900).catch(() => null);
       for (const t of ij?.injuries || []) for (const i of t.injuries || []) {
         const n = i.athlete?.displayName; if (!n) continue;
         const txt = `${i.shortComment || ''} ${i.longComment || ''}`;
         inj[nrm(n)] = { s: i.status === 'Out' ? 'OUT' : 'DTD', long: i.status === 'Out' && /surgery|procedure|fractur|torn|tear|ACL|season|weeks|months|indefinite|rupture/i.test(txt) };
+      }
+      // Tableau partage (Rotowire / Underdog NBA / manuel) : prioritaire sur ESPN, avec date de retour ou de reevaluation
+      const tb = await redis.get<{ rows: { name: string; status: string; until: string | null; untilKind: string | null; src: string }[] }>('inj:table').catch(() => null);
+      for (const r of tb?.rows || []) {
+        if (r.src === 'espn' && inj[nrm(r.name)]) continue;
+        inj[nrm(r.name)] = { s: r.status === 'OUT' ? 'OUT' : 'DTD', long: r.status === 'OUT' && !!r.until, until: r.until, kind: r.untilKind };
       }
       return NextResponse.json({ ok: true, sched: out, inj });
     }
