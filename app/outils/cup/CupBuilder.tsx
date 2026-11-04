@@ -16,22 +16,24 @@ const lab = (s: string) => new Intl.DateTimeFormat('fr-FR', { weekday: 'short', 
 const erf = (x: number) => { const t = 1 / (1 + 0.3275911 * Math.abs(x)); const y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x); return x >= 0 ? y : -y; };
 const cdf = (z: number) => 0.5 * (1 + erf(z / Math.SQRT2));
 
-function best(pool: { v: number; c: number; i: number; is: boolean }[], need: number, k = 5): { total: number; idx: number[] } {
-  // sac a dos : au plus k joueurs, somme des demi-etoiles <= CAP, au moins `need` cartes In-Season, valeur max
-  const S = need + 1;
-  const dp: number[][][] = Array.from({ length: k + 1 }, () => Array.from({ length: CAP + 1 }, () => Array(S).fill(-1)));
-  const pick: number[][][][] = Array.from({ length: k + 1 }, () => Array.from({ length: CAP + 1 }, () => Array.from({ length: S }, () => [] as number[])));
-  for (let c = 0; c <= CAP; c++) dp[0][c][0] = 0;
+function best(pool: { v: number; c: number; i: number; is: boolean; buy?: boolean }[], need: number, maxBuy = 0, k = 5): { total: number; idx: number[] } {
+  // sac a dos : au plus k joueurs, somme des demi-etoiles <= CAP, au moins `need` cartes In-Season, au plus `maxBuy` cartes a acheter, valeur max
+  const S = need + 1, B = maxBuy + 1;
+  const mk = <T,>(f: () => T) => Array.from({ length: k + 1 }, () => Array.from({ length: CAP + 1 }, () => Array.from({ length: S }, () => Array.from({ length: B }, f))));
+  const dp = mk(() => -1); const pick = mk(() => [] as number[]);
+  for (let c = 0; c <= CAP; c++) dp[0][c][0][0] = 0;
   for (const it of pool) {
-    for (let j = k; j >= 1; j--) for (let c = CAP; c >= it.c; c--) for (let t = 0; t < S; t++) {
-      const prev = dp[j - 1][c - it.c][t];
+    if (it.buy && maxBuy === 0) continue;
+    for (let j = k; j >= 1; j--) for (let c = CAP; c >= it.c; c--) for (let t = 0; t < S; t++) for (let u = 0; u < B; u++) {
+      const prev = dp[j - 1][c - it.c][t][u];
       if (prev < 0) continue;
+      const nu = u + (it.buy ? 1 : 0); if (nu >= B) continue;
       const nt = Math.min(need, t + (it.is ? 1 : 0));
-      if (prev + it.v > dp[j][c][nt]) { dp[j][c][nt] = prev + it.v; pick[j][c][nt] = [...pick[j - 1][c - it.c][t], it.i]; }
+      if (prev + it.v > dp[j][c][nt][nu]) { dp[j][c][nt][nu] = prev + it.v; pick[j][c][nt][nu] = [...pick[j - 1][c - it.c][t][u], it.i]; }
     }
   }
   let bt = 0, bi: number[] = [];
-  for (let j = 0; j <= k; j++) for (let c = 0; c <= CAP; c++) if (dp[j][c][need] > bt) { bt = dp[j][c][need]; bi = pick[j][c][need]; }
+  for (let j = 0; j <= k; j++) for (let c = 0; c <= CAP; c++) for (let u = 0; u < B; u++) if (dp[j][c][need][u] > bt) { bt = dp[j][c][need][u]; bi = pick[j][c][need][u]; }
   return { total: bt, idx: bi };
 }
 
@@ -115,8 +117,18 @@ export default function CupBuilder() {
   const ownedPool = useMemo(() => pool.filter(x => own(x.p.slug)), [pool, owned, col]); // eslint-disable-line react-hooks/exhaustive-deps
   const free = useMemo(() => best(pool.map(x => ({ ...x, is: true })), T.is), [pool, T.is]);
   const mine = useMemo(() => best(ownedPool.map(x => ({ ...x, is: own(x.p.slug) === 2 })), T.is), [ownedPool, T.is]); // eslint-disable-line react-hooks/exhaustive-deps
-  const gains = useMemo(() => { const base = ownedPool.map(x => ({ ...x, is: own(x.p.slug) === 2 })); return ownedPool.length < 5 ? [] : pool.filter(x => !own(x.p.slug)).map(x => ({ x, g: best([...base, { ...x, is: true }], T.is).total - mine.total })).filter(r => r.g > 0.05).sort((a, b) => b.g - a.g).slice(0, 12); }, [pool, ownedPool, mine, owned, col, T.is]); // eslint-disable-line react-hooks/exhaustive-deps
+  const gains = useMemo(() => { const base = ownedPool.map(x => ({ ...x, is: own(x.p.slug) === 2 })); return ownedPool.length < 5 ? [] : pool.filter(x => !own(x.p.slug)).map(x => ({ x, g: best([...base, { ...x, is: true, buy: true }], T.is, 1).total - mine.total })).filter(r => r.g > 0.05).sort((a, b) => b.g - a.g).slice(0, 12); }, [pool, ownedPool, mine, owned, col, T.is]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const withBuy = (n: number) => {
+    const items = [
+      ...ownedPool.map(x => ({ ...x, is: own(x.p.slug) === 2 })),
+      ...pool.filter(x => !own(x.p.slug)).map(x => ({ ...x, is: true, buy: true })),
+    ];
+    const r = best(items, T.is, n);
+    return r.idx.map(i => pool.find(x => x.i === i)!).filter(Boolean);
+  };
+  const buy1 = useMemo(() => withBuy(1), [pool, ownedPool, owned, col, T.is]); // eslint-disable-line react-hooks/exhaustive-deps
+  const buy2 = useMemo(() => withBuy(2), [pool, ownedPool, owned, col, T.is]); // eslint-disable-line react-hooks/exhaustive-deps
   const stat = (list: { p: P; v: number }[]) => {
     const mean = list.reduce((s, x) => s + x.v, 0);
     const sd = Math.sqrt(list.reduce((s, x) => s + (x.p.sd ?? 14) ** 2, 0));
@@ -124,7 +136,7 @@ export default function CupBuilder() {
   };
   const mineList = mine.idx.map(i => pool.find(x => x.i === i)!).filter(Boolean);
   const freeList = free.idx.map(i => pool.find(x => x.i === i)!).filter(Boolean);
-  const sM = stat(mineList), sF = stat(freeList);
+  const sM = stat(mineList), sF = stat(freeList), sB1 = stat(buy1), sB2 = stat(buy2);
   const stars = (l: { p: P }[]) => l.reduce((s, x) => s + x.p.stars, 0);
   const toggle = (slug: string) => setOwned(o => { const n = { ...o }; const c = own(slug); n[slug] = c === 0 ? 1 : c === 1 ? 2 : 0; return n; });
   const list = useMemo(() => data.filter(p => !q || (p.name + p.team).toLowerCase().includes(q.toLowerCase())).sort((a, b) => val(b) - val(a)), [data, q, metric]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -177,10 +189,12 @@ export default function CupBuilder() {
         </div>
 
         <div style={{ fontSize: 12, opacity: 0.7, padding: '0 4px' }}>
-          Projection = celle de Sorare pour la prochaine Game Week Classic (moyenne par match). Elle est la même quelle que soit la nuit choisie : l'outil ne distingue pas les nuits, il ne fait que filtrer les joueurs qui jouent ce soir-là. Le « Mix » la tempère avec les L5 / L10. Les cartes déjà alignées dans une autre compo ne sont pas détectées.
+          Projection = celle de Sorare pour la prochaine Game Week Classic (moyenne par match). Elle est la même quelle que soit la nuit choisie : l'outil ne distingue pas les nuits, il ne fait que filtrer les joueurs qui jouent ce soir-là. Le « Mix » la tempère avec les L5 / L10. Les cartes déjà alignées dans une autre compo de la GW sont exclues automatiquement.
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(320px,1fr))', gap: 14 }}>
           <Team s={sM} title="Ma meilleure compo" sub={ownedPool.length ? `avec tes ${ownedPool.length} joueurs Limited+ de la nuit (clic sur un joueur pour corriger : possédé → In-Season → retiré)` : 'aucune de tes cartes ne joue cette nuit (ou galerie non chargée)'} />
+          {ownedPool.length > 0 && <Team s={sB1} title="Avec 1 achat" sub="ta meilleure compo en ajoutant 1 carte In-Season à acheter" />}
+          {ownedPool.length > 0 && <Team s={sB2} title="Avec 2 achats" sub="ta meilleure compo en ajoutant jusqu'à 2 cartes In-Season à acheter" />}
           <Team s={sF} title="Compo idéale (sans contrainte)" sub="meilleure équipe sous le cap, toutes cartes confondues" />
         </div>
 
