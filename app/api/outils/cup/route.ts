@@ -72,7 +72,7 @@ export async function GET(req: NextRequest) {
     // Projection Sorare du MATCH de cette nuit (fiche joueur : anyFutureGames -> playerGameScore.projectedScore), a la place de la projection GW
     // File d'attente limitee (8 requetes a la fois, 1 nouvel essai) pour ne pas surcharger l'API Sorare ; joueurs sans projection utile ignores.
     const todo = players.filter((pl: any) => pl.proj >= 10);
-    let next = 0;
+    let next = 0; let nErr = 0; let lastErr = '';
     const worker = async () => {
       while (next < todo.length) {
         const pl: any = todo[next++];
@@ -83,12 +83,12 @@ export async function GET(req: NextRequest) {
             const v = g?.playerGameScore?.projectedScore;
             if (v != null && isFinite(Number(v))) { pl.projGw = pl.proj; pl.proj = Number(v); pl.pm = true; }
             break;
-          } catch { /* nouvel essai puis on garde la projection GW */ }
+          } catch (e: any) { if (k === 1) { nErr++; lastErr = String(e?.message || e).slice(0, 160); } else await new Promise((r) => setTimeout(r, 400)); }
         }
       }
     };
     await Promise.all(Array.from({ length: 8 }, worker));
-    return NextResponse.json({ night, games: games.length, players });
+    return NextResponse.json({ night, games: games.length, players, pmCount: players.filter((p: any) => p.pm).length, pmTodo: todo.length, pmErr: nErr, pmLastErr: lastErr });
   } catch (e: any) {
     return NextResponse.json({ error: String(e?.message || e) }, { status: 502, headers: { "Cache-Control": "no-store" } });
   }
