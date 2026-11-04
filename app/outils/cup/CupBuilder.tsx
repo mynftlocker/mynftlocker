@@ -16,25 +16,32 @@ const lab = (s: string) => new Intl.DateTimeFormat('fr-FR', { weekday: 'short', 
 const erf = (x: number) => { const t = 1 / (1 + 0.3275911 * Math.abs(x)); const y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x); return x >= 0 ? y : -y; };
 const cdf = (z: number) => 0.5 * (1 + erf(z / Math.SQRT2));
 
-function best(pool: { v: number; c: number; i: number; is: boolean; buy?: boolean }[], need: number, maxBuy = 0, k = 5): { total: number; idx: number[] } {
-  // sac a dos : au plus k joueurs, somme des demi-etoiles <= CAP, au moins `need` cartes In-Season, au plus `maxBuy` cartes a acheter, valeur max
+type Opt = { v: number; c: number; i: number; is: boolean; buy?: boolean; pw?: number };
+function best<T extends Opt>(pool: T[], need: number, maxBuy = 0, k = 5): { total: number; idx: number[]; sel: T[] } {
+  // sac a dos par groupes (1 option max par joueur) : au plus k joueurs, somme des demi-etoiles <= CAP, >= `need` cartes In-Season, <= `maxBuy` achats
   const S = need + 1, B = maxBuy + 1;
-  const mk = <T,>(f: () => T) => Array.from({ length: k + 1 }, () => Array.from({ length: CAP + 1 }, () => Array.from({ length: S }, () => Array.from({ length: B }, f))));
-  const dp = mk(() => -1); const pick = mk(() => [] as number[]);
+  const mk = <U,>(f: () => U) => Array.from({ length: k + 1 }, () => Array.from({ length: CAP + 1 }, () => Array.from({ length: S }, () => Array.from({ length: B }, f))));
+  let dp = mk(() => -1); let pick = mk(() => [] as number[]);
   for (let c = 0; c <= CAP; c++) dp[0][c][0][0] = 0;
-  for (const it of pool) {
-    if (it.buy && maxBuy === 0) continue;
-    for (let j = k; j >= 1; j--) for (let c = CAP; c >= it.c; c--) for (let t = 0; t < S; t++) for (let u = 0; u < B; u++) {
-      const prev = dp[j - 1][c - it.c][t][u];
-      if (prev < 0) continue;
-      const nu = u + (it.buy ? 1 : 0); if (nu >= B) continue;
-      const nt = Math.min(need, t + (it.is ? 1 : 0));
-      if (prev + it.v > dp[j][c][nt][nu]) { dp[j][c][nt][nu] = prev + it.v; pick[j][c][nt][nu] = [...pick[j - 1][c - it.c][t][u], it.i]; }
+  const groups = new Map<number, number[]>();
+  pool.forEach((it, ix) => { if (it.buy && maxBuy === 0) return; const g = groups.get(it.i); if (g) g.push(ix); else groups.set(it.i, [ix]); });
+  for (const opts of groups.values()) {
+    const nd = dp.map(a1 => a1.map(a2 => a2.map(a3 => a3.slice()))); const np = pick.map(a1 => a1.map(a2 => a2.map(a3 => a3.slice())));
+    for (const ix of opts) {
+      const it = pool[ix];
+      for (let j = k; j >= 1; j--) for (let c = CAP; c >= it.c; c--) for (let t = 0; t < S; t++) for (let u = 0; u < B; u++) {
+        const prev = dp[j - 1][c - it.c][t][u];
+        if (prev < 0) continue;
+        const nu = u + (it.buy ? 1 : 0); if (nu >= B) continue;
+        const nt = Math.min(need, t + (it.is ? 1 : 0));
+        if (prev + it.v > nd[j][c][nt][nu]) { nd[j][c][nt][nu] = prev + it.v; np[j][c][nt][nu] = [...pick[j - 1][c - it.c][t][u], ix]; }
+      }
     }
+    dp = nd; pick = np;
   }
   let bt = 0, bi: number[] = [];
   for (let j = 0; j <= k; j++) for (let c = 0; c <= CAP; c++) for (let u = 0; u < B; u++) if (dp[j][c][need][u] > bt) { bt = dp[j][c][need][u]; bi = pick[j][c][need][u]; }
-  return { total: bt, idx: bi };
+  return { total: bt, idx: bi.map(ix => pool[ix].i), sel: bi.map(ix => pool[ix]) };
 }
 
 export default function CupBuilder() {
@@ -52,6 +59,7 @@ export default function CupBuilder() {
   const [q, setQ] = useState('');
   const [pseudo, setPseudo] = useState('memejacquet1998');
   const [col, setCol] = useState<Record<string, 1 | 2>>({}); // detecte depuis la galerie Sorare : 1 = Limited+ classic, 2 = Limited+ In-Season
+  const [pw, setPw] = useState<Record<string, { c?: number; i?: number }>>({}); // meilleur bonus (power) parmi les cartes libres : c = classic, i = In-Season
   const [colSt, setColSt] = useState<'idle' | 'loading' | 'ok' | 'err'>('idle');
   const [colInfo, setColInfo] = useState('');
   const [locked, setLocked] = useState<Record<string, true>>({}); // joueurs dont toutes les cartes Limited+ sont deja alignees
@@ -80,7 +88,7 @@ export default function CupBuilder() {
       // cartes deja alignees dans une compo de la GW (API Sorare, jeton serveur) : exclues
       let usedMap: Record<string, string[]> = {}; let usedOk = false;
       try { const ru = await fetch('/api/outils/cup-used?night=' + nt); if (ru.ok) { const ju = await ru.json(); usedMap = ju.used || {}; usedOk = !!ju.fixture; } } catch {}
-      const m: Record<string, 1 | 2> = {}; const lk: Record<string, true> = {}; const any: Record<string, true> = {}; let nb = 0, nis = 0, nu = 0;
+      const m: Record<string, 1 | 2> = {}; const pwm: Record<string, { c?: number; i?: number }> = {}; const lk: Record<string, true> = {}; const any: Record<string, true> = {}; let nb = 0, nis = 0, nu = 0;
       for (const c of cards) {
         if (c.__typename !== 'NBACard') continue;
         const rar = String(c.rarityTyped || '').toLowerCase();
@@ -88,10 +96,11 @@ export default function CupBuilder() {
         const ps = c.anyPlayer?.slug; if (!ps) continue;
         nb++; any[ps] = true;
         if (usedMap[c.slug]) { nu++; continue; } // deja alignee : indisponible
-        if (c.inSeasonEligible) { m[ps] = 2; nis++; } else if (!m[ps]) m[ps] = 1;
+        const pv = Number(c.power) || 1; const e = (pwm[ps] ||= {});
+        if (c.inSeasonEligible) { m[ps] = 2; nis++; e.i = Math.max(e.i ?? 0, pv); } else { if (!m[ps]) m[ps] = 1; e.c = Math.max(e.c ?? 0, pv); }
       }
       for (const ps of Object.keys(any)) if (!m[ps]) lk[ps] = true;
-      setCol(m); setLocked(lk); setColSt('ok');
+      setCol(m); setPw(pwm); setLocked(lk); setColSt('ok');
       setColInfo(`${nb} cartes NBA Limited+ détectées (${nis} In-Season disponibles)`);
       setUsedInfo(usedOk ? `${nu} de tes cartes Limited+ sont déjà alignées dans une compo de cette GW : exclues` : 'Cartes déjà alignées : lecture Sorare indisponible, aucune exclusion appliquée.');
     } catch (e: any) { setColSt('err'); setColInfo('Galerie introuvable : ' + String(e?.message || e)); }
@@ -115,27 +124,29 @@ export default function CupBuilder() {
   const pool = useMemo(() => data.filter(p => !(noOut && p.inj && p.inj !== 'GTD')).map((p, i) => ({ p, v: val(p), c: Math.round(p.stars * 2), i })), [data, metric, noOut]); // eslint-disable-line react-hooks/exhaustive-deps
   const own = (slug: string): 0 | 1 | 2 => (owned[slug] !== undefined ? (owned[slug] as number) : (col[slug] || 0)) as 0 | 1 | 2;
   const ownedPool = useMemo(() => pool.filter(x => own(x.p.slug)), [pool, owned, col]); // eslint-disable-line react-hooks/exhaustive-deps
-  const free = useMemo(() => best(pool.map(x => ({ ...x, is: true })), T.is), [pool, T.is]);
-  const mine = useMemo(() => best(ownedPool.map(x => ({ ...x, is: own(x.p.slug) === 2 })), T.is), [ownedPool, T.is]); // eslint-disable-line react-hooks/exhaustive-deps
-  const gains = useMemo(() => { const base = ownedPool.map(x => ({ ...x, is: own(x.p.slug) === 2 })); return ownedPool.length < 5 ? [] : pool.filter(x => !own(x.p.slug)).map(x => ({ x, g: best([...base, { ...x, is: true, buy: true }], T.is, 1).total - mine.total })).filter(r => r.g > 0.05).sort((a, b) => b.g - a.g).slice(0, 12); }, [pool, ownedPool, mine, owned, col, T.is]); // eslint-disable-line react-hooks/exhaustive-deps
+  // options par joueur possede : une par type de carte libre (Classic / In-Season), avec le bonus (power) reel de la carte
+  const ownedItems = useMemo(() => pool.flatMap(x => {
+    const sl = x.p.slug, e = pw[sl] || {}, ov = owned[sl];
+    const out: (typeof x & { is: boolean; pw: number; buy?: boolean })[] = [];
+    if (ov !== undefined) { if (ov) { const w = (ov === 2 ? e.i : e.c) ?? e.i ?? e.c ?? 1; out.push({ ...x, v: x.v * w, is: ov === 2, pw: w }); } return out; }
+    if (e.c !== undefined && col[sl]) out.push({ ...x, v: x.v * e.c, is: false, pw: e.c });
+    if (e.i !== undefined) out.push({ ...x, v: x.v * e.i, is: true, pw: e.i });
+    return out;
+  }), [pool, owned, col, pw]);
+  const freeItems = useMemo(() => pool.map(x => ({ ...x, v: x.v * 1.05, is: true, pw: 1.05 })), [pool]);
+  const buyItems = useMemo(() => pool.filter(x => !own(x.p.slug)).map(x => ({ ...x, v: x.v * 1.05, is: true, buy: true, pw: 1.05 })), [pool, owned, col]); // eslint-disable-line react-hooks/exhaustive-deps
+  const free = useMemo(() => best(freeItems, T.is), [freeItems, T.is]);
+  const mine = useMemo(() => best(ownedItems, T.is), [ownedItems, T.is]);
+  const gains = useMemo(() => ownedPool.length < 5 ? [] : buyItems.map(x => ({ x, g: best([...ownedItems, x], T.is, 1).total - mine.total })).filter(r => r.g > 0.05).sort((a, b) => b.g - a.g).slice(0, 12), [buyItems, ownedItems, ownedPool, mine, T.is]);
+  const buy1 = useMemo(() => best([...ownedItems, ...buyItems], T.is, 1).sel, [ownedItems, buyItems, T.is]);
+  const buy2 = useMemo(() => best([...ownedItems, ...buyItems], T.is, 2).sel, [ownedItems, buyItems, T.is]);
 
-  const withBuy = (n: number) => {
-    const items = [
-      ...ownedPool.map(x => ({ ...x, is: own(x.p.slug) === 2 })),
-      ...pool.filter(x => !own(x.p.slug)).map(x => ({ ...x, is: true, buy: true })),
-    ];
-    const r = best(items, T.is, n);
-    return r.idx.map(i => pool.find(x => x.i === i)!).filter(Boolean);
-  };
-  const buy1 = useMemo(() => withBuy(1), [pool, ownedPool, owned, col, T.is]); // eslint-disable-line react-hooks/exhaustive-deps
-  const buy2 = useMemo(() => withBuy(2), [pool, ownedPool, owned, col, T.is]); // eslint-disable-line react-hooks/exhaustive-deps
   const stat = (list: { p: P; v: number }[]) => {
     const mean = list.reduce((s, x) => s + x.v, 0);
     const sd = Math.sqrt(list.reduce((s, x) => s + (x.p.sd ?? 14) ** 2, 0));
     return { mean, prob: list.length === 5 ? 1 - cdf((T.pts - mean) / sd) : 0 };
   };
-  const mineList = mine.idx.map(i => pool.find(x => x.i === i)!).filter(Boolean);
-  const freeList = free.idx.map(i => pool.find(x => x.i === i)!).filter(Boolean);
+  const mineList = mine.sel, freeList = free.sel;
   const sM = stat(mineList), sF = stat(freeList), sB1 = stat(buy1), sB2 = stat(buy2);
   const stars = (l: { p: P }[]) => l.reduce((s, x) => s + x.p.stars, 0);
   const toggle = (slug: string) => setOwned(o => { const n = { ...o }; const c = own(slug); n[slug] = c === 0 ? 1 : c === 1 ? 2 : 0; return n; });
@@ -143,15 +154,15 @@ export default function CupBuilder() {
 
   const box: React.CSSProperties = { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(0,255,255,0.18)', borderRadius: 14, padding: '14px 16px', backdropFilter: 'blur(8px)' };
   const btn = (on: boolean): React.CSSProperties => ({ padding: '6px 12px', borderRadius: 999, border: '1px solid ' + (on ? '#00ffff' : 'rgba(255,255,255,0.2)'), background: on ? 'rgba(0,255,255,0.15)' : 'transparent', color: on ? '#00ffff' : '#ddd', cursor: 'pointer', fontSize: 13 });
-  const Team = ({ s, title, sub, l }: { s: ReturnType<typeof stat>; title: string; sub: string; l: { p: P; v: number }[] }) => {
-    const nIS = l.filter(x => own(x.p.slug) === 2).length;
+  const Team = ({ s, title, sub, l }: { s: ReturnType<typeof stat>; title: string; sub: string; l: { p: P; v: number; is?: boolean; buy?: boolean; pw?: number }[] }) => {
+    const nIS = l.filter(x => x.is && !x.buy).length;
     return (
     <div style={box}>
       <div style={{ fontWeight: 700, color: '#00ffff' }}>{title}</div>
       <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 8 }}>{sub}</div>
       {l.map(x => (
         <div key={x.p.slug} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, padding: '2px 0' }}>
-          <span>{x.p.name} <span style={{ opacity: 0.55 }}>· {x.p.stars}★ · {x.p.team.split(' ').pop()} {x.p.home ? 'vs' : '@'} {x.p.opp.split(' ').pop()}{own(x.p.slug) ? (own(x.p.slug) === 2 ? ' · IS' : ' · Classic') : (nIS >= T.is ? ' · À ACHETER (Classic suffit)' : ' · À ACHETER (IS requis)')}</span></span>
+          <span>{x.p.name} <span style={{ opacity: 0.55 }}>· {x.p.stars}★ · {x.p.team.split(' ').pop()} {x.p.home ? 'vs' : '@'} {x.p.opp.split(' ').pop()}{x.buy ? (nIS >= T.is ? ' · À ACHETER (Classic suffit)' : ' · À ACHETER (IS requis)') : (x.is ? ' · IS' : ' · Classic') + ' · bonus +' + Math.round(((x.pw ?? 1) - 1) * 100) + '%'}</span></span>
           <b>{x.v.toFixed(0)}</b>
         </div>
       ))}
@@ -192,7 +203,7 @@ export default function CupBuilder() {
         </div>
 
         <div style={{ fontSize: 12, opacity: 0.7, padding: '0 4px' }}>
-          Projection = celle de Sorare pour la prochaine Game Week Classic (moyenne par match). Elle est la même quelle que soit la nuit choisie : l'outil ne distingue pas les nuits, il ne fait que filtrer les joueurs qui jouent ce soir-là. Le « Mix » la tempère avec les L5 / L10. Les cartes déjà alignées dans une autre compo de la GW sont exclues automatiquement.
+          Projection = celle de Sorare pour la prochaine Game Week Classic (moyenne par match). Elle est la même quelle que soit la nuit choisie : l'outil ne distingue pas les nuits, il ne fait que filtrer les joueurs qui jouent ce soir-là. Le « Mix » la tempère avec les L5 / L10. Chaque score est multiplié par le bonus réel de la carte (power, XP) ; une carte In-Season à acheter est comptée au bonus minimum de +5 %. Les cartes déjà alignées dans une autre compo de la GW sont exclues automatiquement.
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(320px,1fr))', gap: 14 }}>
           <Team l={mineList} s={sM} title="Sans achat : ma meilleure compo" sub={ownedPool.length ? `avec tes ${ownedPool.length} joueurs Limited+ de la nuit (clic sur un joueur pour corriger : possédé → In-Season → retiré)` : 'aucune de tes cartes ne joue cette nuit (ou galerie non chargée)'} />
