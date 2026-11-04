@@ -55,16 +55,21 @@ export default function DeckBuilder() {
   useEffect(() => {
     let dead = false; setNights(null); setErr('');
     (async () => {
+      // Une nuit americaine (jour D) = matchs du jour Paris D a partir de midi + matchs du jour Paris D+1 avant midi (les matchs d'apres-midi US tombent le meme jour a Paris).
+      const cache: Record<string, any[]> = {};
+      const paris = async (day: string) => { if (!cache[day]) { try { cache[day] = (await (await fetch('/api/outils/cup?night=' + day)).json()).players || []; } catch { cache[day] = []; } } return cache[day]; };
       const out: Night[] = [];
       for (let i = 0; i < days; i++) {
         const us = shift(start, i); setProg(`Nuit ${i + 1}/${days}…`);
-        try {
-          const j = await (await fetch('/api/outils/cup?night=' + shift(us, 1))).json();
-          if (dead) return;
-          const cands: Cand[] = (j.players || []).filter((p: any) => p.proj >= 5).map((p: any) => ({ name: p.name, team: p.team, opp: p.opp, home: p.home, est: ttflEst(p.proj, p.l5, p.l10, p.inj), inj: p.inj }))
-            .filter((c: Cand) => !c.inj || c.inj === 'GTD');
-          out.push({ us, games: j.games || 0, cands });
-        } catch { out.push({ us, games: 0, cands: [] }); }
+        const [d0, d1] = [await paris(us), await paris(shift(us, 1))];
+        if (dead) return;
+        const hr = (t: string) => Number(String(t).slice(0, 2));
+        const pl = [...d0.filter((p: any) => hr(p.time) >= 12), ...d1.filter((p: any) => hr(p.time) < 12)];
+        const seen = new Set<string>();
+        const cands: Cand[] = pl.filter((p: any) => p.proj >= 5 && !seen.has(p.slug) && seen.add(p.slug)).map((p: any) => ({ name: p.name, team: p.team, opp: p.opp, home: p.home, est: ttflEst(p.proj, p.l5, p.l10, p.inj), inj: p.inj }))
+          .filter((c: Cand) => !c.inj || c.inj === 'GTD');
+        const teams = new Set(pl.map((p: any) => p.team));
+        out.push({ us, games: Math.round(teams.size / 2), cands });
       }
       if (!dead) setNights(out);
     })();
