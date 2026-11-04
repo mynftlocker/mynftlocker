@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { redis } from '../../../../lib/redis';
+import { ownerOnly } from '../../../../lib/owner';
 
 // Journal estimation / reel du Cup Builder : chaque jour on garde l'estimation de la nuit suivante, puis on relit les vrais scores.
 // ?run=1 : (appele par le cron quotidien) snapshot de demain + relevé des scores des nuits de plus de 2 jours. Sans parametre : resume de precision.
@@ -43,7 +44,8 @@ export async function GET(req: NextRequest) {
       for (let k = 2; k <= 9; k++) { const n = plus(-k); if (await redis.get(`cuplog:snap:${n}`)) out[n] = await settle(n); }
       return NextResponse.json({ ok: true, ...out });
     }
-    // resume
+    // resume : prive
+    const deny = await ownerOnly(req); if (deny) return deny;
     const nights: string[] = []; for (let k = 2; k <= 60; k++) nights.push(plus(-k));
     const agg = { n: 0, dnp: 0, sP: 0, sM: 0, s5: 0, s10: 0, bP: 0, bM: 0, big: 0, bigPred: 0 }; const per: any[] = [];
     for (const n of nights) {

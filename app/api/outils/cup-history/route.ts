@@ -1,4 +1,5 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { ownerOnly } from '../../../../lib/owner';
 
 // Historique de tes compos Sorare NBA (score reel + rang + score de chaque joueur), pour calibrer l'outil Cup. Jeton serveur, lecture seule.
 export const maxDuration = 60;
@@ -11,7 +12,8 @@ async function gql(query: string) {
   return r.json();
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const deny = await ownerOnly(req); if (deny) return deny;
   try {
     const out = new Map<string, any>();
     let after = '', pages = 0;
