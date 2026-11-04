@@ -286,7 +286,7 @@ export default function CupBuilder() {
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
             <span style={{ fontSize: 12, opacity: 0.7 }}>Estimation :</span>
-            {([['mix', 'Mix (proj 70 / L5 10 / L10 20)'], ['proj', 'Projection Sorare']] as [Metric, string][]).map(([m, l]) => <button key={m} onClick={() => setMetric(m)} style={btn(m === metric)}>{l}</button>)}
+            {([['mix', 'Projection myNFTlocker'], ['proj', 'Projection Sorare']] as [Metric, string][]).map(([m, l]) => <button key={m} onClick={() => setMetric(m)} style={btn(m === metric)}>{l}</button>)}
             <span style={{ fontSize: 12, opacity: 0.7, marginLeft: 8 }}>Compos automatiques :</span>
             {([['proba', 'Meilleure probabilité'], ['pts', 'Meilleure projection']] as [Goal, string][]).map(([g, l]) => <button key={g} onClick={() => setGoal(g)} style={btn(g === goal)} title={g === 'proba' ? 'Maximise les chances d\'atteindre le palier (favorise les joueurs à pics quand le palier est loin)' : 'Maximise le total de points estimés'}>{l}</button>)}
             <label style={{ fontSize: 13, marginLeft: 8 }}><input type="checkbox" checked={noOut} onChange={e => setNoOut(e.target.checked)} /> Exclure blessés</label>
@@ -304,7 +304,7 @@ export default function CupBuilder() {
         </div>
 
         <div style={{ fontSize: 12, opacity: 0.7, padding: '0 4px' }}>
-          Projection = celle de Sorare pour le match de la nuit choisie (comme sur la fiche joueur). Le « Mix » la tempère avec les L5 / L10. Chaque score est multiplié par le bonus réel de la carte (power, XP) ; une carte In-Season à acheter est comptée au bonus minimum de +5 %. Les cartes déjà alignées dans une autre compo de la GW sont exclues automatiquement.
+          Projection = celle de Sorare pour le match de la nuit choisie (comme sur la fiche joueur). La « Projection myNFTlocker » la tempère avec la forme récente (70 % projection Sorare, 10 % L5, 20 % L10). Chaque score est multiplié par le bonus réel de la carte (power, XP) ; une carte In-Season à acheter est comptée au bonus minimum de +5 %. Les cartes déjà alignées dans une autre compo de la GW sont exclues automatiquement.
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(320px,1fr))', gap: 14 }}>
           <Team l={mineList} s={sM} title="Sans achat : ma meilleure compo" sub={ownedPool.length ? `avec tes ${ownedPool.length} joueurs Limited+ de la nuit · ${goal === 'proba' ? 'optimisée pour la probabilité d\'atteindre le palier' : 'optimisée pour le total de points'}` : 'aucune de tes cartes ne joue cette nuit (ou galerie non chargée)'} />
@@ -386,7 +386,7 @@ export default function CupBuilder() {
                 <span onClick={() => sortBy('proj')} title="Projection Sorare pour le match de la nuit (comme sur la fiche joueur)" style={{ lineHeight: 1.1 }}>Proj.{arrow('proj')}<br /><small style={{ fontSize: 9, color: '#ffd24a' }}>Sorare</small></span>
                 <span onClick={() => sortBy('d5')} title="Projection Sorare moins L5 : vert = Sorare voit mieux que sa forme récente" style={{ lineHeight: 1.1 }}>± L5{arrow('d5')}<br /><small style={{ fontSize: 9, opacity: 0.7 }}>proj−L5</small></span>
                 <span onClick={() => sortBy('d10')} title="Projection Sorare moins L10" style={{ lineHeight: 1.1 }}>± L10{arrow('d10')}<br /><small style={{ fontSize: 9, opacity: 0.7 }}>proj−L10</small></span>
-                <span onClick={() => sortBy('est')} title={metric === 'mix' ? 'Score estimé par l\'outil = mix (70 % projection Sorare + 10 % L5 + 20 % L10) × bonus de la carte' : 'Score estimé par l\'outil selon la méthode choisie × bonus de la carte'} style={{ lineHeight: 1.1, color: '#4ade80' }}>Estimation{arrow('est')}<br /><small style={{ fontSize: 9 }}>{metric === 'mix' ? 'mix×bonus' : metric === 'proj' ? 'proj×bonus' : metric + '×bonus'}</small></span>
+                <span onClick={() => sortBy('est')} title={metric === 'mix' ? 'Score estimé = projection myNFTlocker (70 % projection Sorare + 10 % L5 + 20 % L10) × bonus de la carte' : 'Score estimé = projection Sorare × bonus de la carte'} style={{ lineHeight: 1.1, color: '#4ade80' }}>Estimation{arrow('est')}<br /><small style={{ fontSize: 9 }}>{metric === 'mix' ? 'proj. myNFTlocker × bonus' : 'proj. Sorare × bonus'}</small></span>
                 <span onClick={() => sortBy('eff')} title="Score estimé par étoile">Pts/★{arrow('eff')}</span>
               </div>
               {rows.slice(0, 150).map(({ x, o }) => {
