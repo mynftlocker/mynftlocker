@@ -13,8 +13,12 @@ const fmt = (d: string) => new Date(d + 'T12:00:00Z').toLocaleDateString('fr-FR'
 
 type Pick = { d: string; n: string };
 type Picks = { updated: string; history: (Pick & { s: number | null })[]; planned: Pick[] };
-type Cand = { name: string; team: string; opp: string; home: boolean; est: number; inj: string | null };
-type Night = { us: string; games: number; cands: Cand[] };
+type Cand = { name: string; team: string; opp: string; home: boolean; est: number; inj: string | null; src: 'S' | 'L' };
+type Night = { us: string; games: number; close: string | null; cands: Cand[] };
+type Hist = Record<string, { d: string; t: number; m: number; tm: string }[]>;
+type Sched = Record<string, { first: string | null; games: { h: string; a: string }[] }>;
+// Nuits sans projection Sorare : moyenne TTFL des 10 derniers matchs ramenee vers la moyenne des titulaires (test du 05/11 : 10,7 d'erreur contre 10,35 avec la projection)
+const farEst = (g: number[]) => (g.length * (g.reduce((s, x) => s + x, 0) / g.length) + 6 * 30) / (g.length + 6);
 
 // Affectation optimale (algorithme hongrois, maximisation) : n lignes (nuits) <= m colonnes (joueurs). Renvoie la colonne choisie par ligne.
 function assign(profit: number[][], m: number): number[] {
@@ -55,21 +59,42 @@ export default function DeckBuilder() {
   useEffect(() => {
     let dead = false; setNights(null); setErr('');
     (async () => {
+      const dates = Array.from({ length: days }, (_, i) => shift(start, i));
+      const [hj, sj] = await Promise.all([
+        fetch('/api/outils/ttfl').then(r => r.json()).catch(() => null),
+        fetch('/api/outils/ttfl?sched=' + dates.join(',')).then(r => r.json()).catch(() => null),
+      ]);
+      const hist: Hist = hj?.hist || {}; const sched: Sched = sj?.sched || {};
       // Une nuit americaine (jour D) = matchs du jour Paris D a partir de midi + matchs du jour Paris D+1 avant midi (les matchs d'apres-midi US tombent le meme jour a Paris).
       const cache: Record<string, any[]> = {};
       const paris = async (day: string) => { if (!cache[day]) { try { cache[day] = (await (await fetch('/api/outils/cup?night=' + day)).json()).players || []; } catch { cache[day] = []; } } return cache[day]; };
       const out: Night[] = [];
       for (let i = 0; i < days; i++) {
-        const us = shift(start, i); setProg(`Nuit ${i + 1}/${days}…`);
-        const [d0, d1] = [await paris(us), await paris(shift(us, 1))];
-        if (dead) return;
-        const hr = (t: string) => Number(String(t).slice(0, 2));
-        const pl = [...d0.filter((p: any) => hr(p.time) >= 12), ...d1.filter((p: any) => hr(p.time) < 12)];
-        const seen = new Set<string>();
-        const cands: Cand[] = pl.filter((p: any) => p.proj >= 5 && !seen.has(p.slug) && seen.add(p.slug)).map((p: any) => ({ name: p.name, team: p.team, opp: p.opp, home: p.home, est: ttflEst(p.proj, p.l5, p.l10, p.inj), inj: p.inj }))
-          .filter((c: Cand) => !c.inj || c.inj === 'GTD');
-        const teams = new Set(pl.map((p: any) => p.team));
-        out.push({ us, games: Math.round(teams.size / 2), cands });
+        const us = dates[i]; setProg(`Nuit ${i + 1}/${days}…`);
+        const sc = sched[us]; const teams = new Set<string>(); const opp: Record<string, { o: string; home: boolean }> = {};
+        (sc?.games || []).forEach(g => { teams.add(g.h); teams.add(g.a); opp[g.h] = { o: g.a, home: true }; opp[g.a] = { o: g.h, home: false }; });
+        let cands: Cand[] = [];
+        if (i <= 6) {
+          const [d0, d1] = [await paris(us), await paris(shift(us, 1))];
+          if (dead) return;
+          const hr = (t: string) => Number(String(t).slice(0, 2));
+          const pl = [...d0.filter((p: any) => hr(p.time) >= 12), ...d1.filter((p: any) => hr(p.time) < 12)];
+          const seen = new Set<string>();
+          cands = pl.filter((p: any) => p.proj >= 5 && !seen.has(p.slug) && seen.add(p.slug)).map((p: any) => ({ name: p.name, team: p.team, opp: p.opp, home: p.home, est: ttflEst(p.proj, p.l5, p.l10, p.inj), inj: p.inj, src: 'S' as const }))
+            .filter((c: Cand) => !c.inj || c.inj === 'GTD');
+        }
+        if (!cands.length && teams.size) {
+          // Pas de projection Sorare pour cette nuit : joueurs dont la derniere equipe joue ce jour-la, estimes depuis leur moyenne TTFL
+          for (const [name, g0] of Object.entries(hist)) {
+            const g = g0.slice().sort((x, y) => (x.d < y.d ? -1 : 1)); const last = g[g.length - 1];
+            if (g.length < 3 || !teams.has(last.tm)) continue;
+            const l10 = g.slice(-10).map(x => x.t);
+            if (l10.reduce((s, x) => s + x, 0) / l10.length < 22) continue;
+            cands.push({ name, team: last.tm, opp: opp[last.tm].o, home: opp[last.tm].home, est: farEst(l10), inj: null, src: 'L' });
+          }
+        }
+        const close = sc?.first ? new Date(sc.first).toLocaleString('fr-FR', { timeZone: 'Europe/Paris', weekday: 'short', hour: '2-digit', minute: '2-digit' }) : null;
+        out.push({ us, games: sc?.games.length ?? Math.round(teams.size / 2), close, cands });
       }
       if (!dead) setNights(out);
     })();
@@ -137,13 +162,14 @@ export default function DeckBuilder() {
           </div>
           <div style={{ background: c.card, border: `1px solid ${c.line}`, borderRadius: 12, overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
-              <thead><tr style={{ color: c.dim, textAlign: 'left' }}>{['Nuit', 'Matchs', 'Pick proposé', 'Estim.', 'Ton pick posé', 'Alternatives'].map((h, i) => <th key={h} style={{ padding: '10px 12px', fontWeight: 500, textAlign: i === 3 ? 'right' : 'left' }}>{h}</th>)}</tr></thead>
+              <thead><tr style={{ color: c.dim, textAlign: 'left' }}>{['Nuit', 'Matchs', 'Clôture', 'Pick proposé', 'Estim.', 'Ton pick posé', 'Alternatives'].map((h, i) => <th key={h} style={{ padding: '10px 12px', fontWeight: 500, textAlign: i === 4 ? 'right' : 'left' }}>{h}</th>)}</tr></thead>
               <tbody>
                 {plan.rows.map(r => (
                   <tr key={r.n.us} style={{ borderTop: `1px solid ${c.line}`, verticalAlign: 'top' }}>
                     <td style={{ padding: '8px 12px' }}>{fmt(r.n.us)}</td>
                     <td style={{ padding: '8px 12px', color: r.n.games <= 6 ? c.gold : c.dim }}>{r.n.games || '–'}</td>
-                    <td style={{ padding: '8px 12px' }}>{r.pick ? <><b>{r.pick.name}</b><span style={{ color: c.dim }}> {r.pick.home ? 'vs' : '@'} {r.pick.opp.split(' ').pop()}</span>{r.pick.inj && <span style={{ color: c.gold, fontSize: 11 }}> {r.pick.inj}</span>}{r.fixed && <span style={{ color: c.dim, fontSize: 11 }}> (posé)</span>}</> : <span style={{ color: c.dim }}>{r.n.games ? 'aucun joueur dispo' : 'pas de données'}</span>}</td>
+                    <td style={{ padding: '8px 12px', color: c.dim, whiteSpace: 'nowrap' }}>{r.n.close || '–'}</td>
+                    <td style={{ padding: '8px 12px' }}>{r.pick ? <><b>{r.pick.name}</b><span style={{ color: c.dim }}> {r.pick.home ? 'vs' : '@'} {r.pick.opp.split(' ').pop()}</span>{r.pick.inj && <span style={{ color: c.gold, fontSize: 11 }}> {r.pick.inj}</span>}{r.pick.src === 'L' && <span style={{ color: c.dim, fontSize: 11 }}> (moy. TTFL)</span>}{r.fixed && <span style={{ color: c.dim, fontSize: 11 }}> (posé)</span>}</> : <span style={{ color: c.dim }}>{r.n.games ? 'aucun joueur dispo' : 'pas de match'}</span>}</td>
                     <td style={{ padding: '8px 12px', textAlign: 'right', color: c.cy, fontWeight: 700 }}>{r.pick ? r.pick.est.toFixed(1) : '–'}</td>
                     <td style={{ padding: '8px 12px', color: c.dim }}>{r.cur ? <>{r.cur.n}{r.curC ? ` (${r.curC.est.toFixed(1)})` : ''}{r.curLocked && <span style={{ color: '#ff6b6b' }}> bloqué</span>}</> : '–'}</td>
                     <td style={{ padding: '8px 12px', color: c.dim, fontSize: 13 }}>{r.alt.map(a => `${a.name} ${a.est.toFixed(1)}`).join(' · ')}</td>
@@ -152,7 +178,7 @@ export default function DeckBuilder() {
               </tbody>
             </table>
           </div>
-          <p style={{ color: c.dim, fontSize: 12, marginTop: 10 }}>Les nuits lointaines reposent sur des projections et des statuts de blessure qui bougent : refais le calcul avant chaque clôture. Un joueur absent fait 0 et reste bloqué 30 jours.</p>
+          <p style={{ color: c.dim, fontSize: 12, marginTop: 10 }}>Les nuits marquées « moy. TTFL » n'ont pas encore de projection Sorare : elles reposent sur la moyenne TTFL des 10 derniers matchs, sans blessures connues, donc moins fiables. Tout se recalcule à chaque ouverture : refais le calcul avant chaque clôture (le deck ferme au premier match de la journée NBA). Un joueur absent fait 0 et reste bloqué 30 jours.</p>
         </>
       )}
     </div>

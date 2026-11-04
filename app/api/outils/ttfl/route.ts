@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ownerOnly } from '../../../../lib/owner';
-import { getDayRows, ymdLocal } from '../../../../lib/ttfl';
+import { getDayRows, getJson, ymdLocal } from '../../../../lib/ttfl';
 import { redis } from '../../../../lib/redis';
 import { ttflEst } from '../../../../lib/ttflEst';
 
@@ -11,12 +11,24 @@ export async function GET(req: NextRequest) {
   const deny = await ownerOnly(req); if (deny) return deny;
   try {
     if (req.nextUrl.searchParams.get('summary')) return NextResponse.json(await summary());
+    // Planning des journees NBA (jour americain) : matchs et heure du premier coup d'envoi (= cloture du deck TTFL)
+    const sched = req.nextUrl.searchParams.get('sched');
+    if (sched) {
+      const out: Record<string, { first: string | null; games: { h: string; a: string }[] }> = {};
+      await Promise.all(sched.split(',').filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d)).slice(0, 16).map(async d => {
+        const sb = await getJson(`https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard?dates=${d.replace(/-/g, '')}&limit=50`, 1800).catch(() => null);
+        const ev: any[] = sb?.events || [];
+        const times = ev.map(e => e.date as string).sort();
+        out[d] = { first: times[0] || null, games: ev.map(e => { const c = e.competitions?.[0]?.competitors || []; const h = c.find((x: any) => x.homeAway === 'home'), a = c.find((x: any) => x.homeAway === 'away'); return { h: h?.team?.abbreviation, a: a?.team?.abbreviation }; }).filter(g => g.h && g.a) };
+      }));
+      return NextResponse.json({ ok: true, sched: out });
+    }
     const dates: string[] = [];
     const end = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/New_York' }));
     for (let d = new Date(START + 'T12:00:00'); d <= end; d.setDate(d.getDate() + 1)) dates.push(ymdLocal(d));
     const days = await Promise.all(dates.map(async d => ({ d, rows: await getDayRows(d).catch(() => null) })));
-    const hist: Record<string, { d: string; t: number; m: number }[]> = {};
-    for (const { d, rows } of days) for (const r of rows || []) (hist[r.n] ||= []).push({ d, t: r.t, m: r.m });
+    const hist: Record<string, { d: string; t: number; m: number; tm: string }[]> = {};
+    for (const { d, rows } of days) for (const r of rows || []) (hist[r.n] ||= []).push({ d, t: r.t, m: r.m, tm: r.tm });
     return NextResponse.json({ ok: true, nights: days.filter(x => x.rows).length, hist }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (e) {
     return NextResponse.json({ ok: false, error: String(e) }, { status: 502 });
