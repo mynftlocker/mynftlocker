@@ -5,8 +5,9 @@ import { activeInjury } from '../lib/gameplay';
 // Mode Gameplay, vue Liste : une ligne par carte NBA (L10, projection + matchs de la prochaine GW, ecarts, statut, forme, plafond, minutes).
 type PInfo = { l5: number | null; l10: number | null; max: number | null; min5: number | null; min10: number | null; n: number };
 type Game = { date: string; opp: string; home: boolean };
-const cache: { fixture: any; games: Record<string, Game[]>; players: Record<string, PInfo> } = { fixture: null, games: {}, players: {} };
+const cache: { fixture: any; games: Record<string, Game[]>; players: Record<string, PInfo>; future: Record<string, { date: string; gw: number | null; proj: number | null }[]> } = { fixture: null, games: {}, players: {}, future: {} };
 
+const asked = new Set<string>();
 const f1 = (n: number | null | undefined) => (n == null || !isFinite(n) ? '–' : n.toFixed(1));
 const sg = (n: number | null | undefined) => (n == null || !isFinite(n) ? '–' : (n > 0 ? '+' : '') + n.toFixed(1));
 const tone = (n: number | null | undefined, eps = 0.5) => (n == null || !isFinite(n) ? '#9aa' : n > eps ? '#4ade80' : n < -eps ? '#ff6b6b' : '#cfd8dc');
@@ -53,6 +54,24 @@ export default function GameplayList({ cards }: { cards: any[] }) {
     return () => { off = true; };
   }, [slugs]);
 
+  const [visible, setVisible] = useState<string[]>([]);
+  useEffect(() => {
+    let off = false;
+    const todo = visible.filter((sl) => !cache.future[sl] && !asked.has(sl));
+    if (!todo.length) return;
+    todo.forEach((sl) => asked.add(sl));
+    (async () => {
+      try {
+        for (let i = 0; i < todo.length; i += 30) {
+          const d = await (await fetch('/api/gameplay?fut=' + todo.slice(i, i + 30).join(','))).json();
+          Object.assign(cache.future, d.future || {});
+          if (!off) force((x) => x + 1);
+        }
+      } catch { /* silencieux : la projection par match reste vide */ }
+    })();
+    return () => { off = true; };
+  }, [visible]);
+
   const rows = useMemo(() => cards.map((c) => {
     const pi = cache.players[c.anyPlayer?.slug] as PInfo | undefined;
     const l10 = c.averageScore != null ? Number(c.averageScore) : null;
@@ -76,10 +95,12 @@ export default function GameplayList({ cards }: { cards: any[] }) {
   }, [rows, sort]);
 
   const fx = cache.fixture;
+  const visKey = sorted.slice(0, shown).map((r) => r.c.anyPlayer?.slug).filter(Boolean).join(',');
+  useEffect(() => { setVisible(visKey ? [...new Set(visKey.split(','))] : []); }, [visKey]);
   return (
     <div style={{ maxWidth: 1320, margin: '0 auto', padding: '0 1rem 3rem', color: '#e6f0f5' }}>
       <div style={{ fontSize: 12, opacity: 0.7, margin: '4px 0 10px' }}>
-        La projection Sorare est la même pour tous les matchs de la prochaine Game Week{fx ? ` (du ${dayLab(fx.startDate)} au ${dayLab(fx.endDate)})` : ''} ; les matchs affichés sont ceux de cette GW.
+        Chaque match affiche sa projection Sorare (en jaune), comme sur la fiche joueur. Proj. = projection de la prochaine Game Week{fx ? ` (du ${dayLab(fx.startDate)} au ${dayLab(fx.endDate)})` : ''} ; les matchs affichés sont ceux de cette GW.
         {err && <span style={{ color: '#ff6b6b' }}> · {err}</span>}
       </div>
       <div style={{ overflowX: 'auto' }}>
@@ -92,7 +113,10 @@ export default function GameplayList({ cards }: { cards: any[] }) {
             ))}
           </div>
           {sorted.slice(0, shown).map(({ c, pi, l10, proj, dl10, gain, inj, form, max, min }) => {
-            const g = (cache.games[c.anyTeam?.name || ''] || []);
+            const sl = c.anyPlayer?.slug as string;
+            const gm = (cache.games[c.anyTeam?.name || ''] || []);
+            const ft = (cache.future[sl] || []).filter((x) => fx && x.date >= fx.startDate && x.date <= fx.endDate);
+            const g = gm.map((x) => ({ ...x, proj: ft.find((y) => y.date === x.date)?.proj ?? null }));
             const bonus = Math.round((Number(c.power || 1) - 1) * 100);
             const lose = gain != null && gain < 0 && !(Number(c.anyPlayer?.gameplayTierStars) <= 1);
             const dm = pi?.min5 != null && pi?.min10 != null ? pi.min5 - pi.min10 : null;
@@ -105,7 +129,7 @@ export default function GameplayList({ cards }: { cards: any[] }) {
                 <span><b>{cleanName(c)}</b><br /><span style={{ opacity: 0.55, fontSize: 11 }}>{short(c.anyTeam?.name || '')} · {c.anyPlayer?.gameplayTierStars ?? '?'}★ · {c.rarityTyped}</span></span>
                 <b>{f1(l10)}</b>
                 <b style={{ color: '#ffd24a' }}>{f1(proj)}</b>
-                <span style={{ fontSize: 11, lineHeight: 1.35 }}>{g.length ? g.map((x, i) => <span key={i} style={{ display: 'inline-block', marginRight: 6, opacity: 0.85 }}>{dayLab(x.date)} {x.home ? 'vs' : '@'} {short(x.opp)}</span>) : <span style={{ opacity: 0.4 }}>{fx ? 'pas de match' : '…'}</span>}</span>
+                <span style={{ fontSize: 11, lineHeight: 1.35 }}>{g.length ? g.map((x, i) => <span key={i} style={{ display: 'inline-block', marginRight: 6, opacity: 0.85 }}>{dayLab(x.date)} {x.home ? 'vs' : '@'} {short(x.opp)} <b style={{ color: '#ffd24a' }}>{x.proj != null ? Math.round(x.proj) : ''}</b></span>) : <span style={{ opacity: 0.4 }}>{fx ? 'pas de match' : '…'}</span>}</span>
                 <span style={{ color: tone(dl10), fontWeight: 600 }}>{sg(dl10)}</span>
                 <span style={{ color: lose ? '#ff6b6b' : tone(gain, 1), fontWeight: 600 }}>{sg(gain)}{lose ? ' ★↓' : ''}</span>
                 <span style={{ color: inj ? '#ff6b6b' : '#4ade80', fontSize: 12, fontWeight: 600 }}>{inj || 'OK'}</span>
