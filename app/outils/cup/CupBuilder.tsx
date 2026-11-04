@@ -61,6 +61,7 @@ export default function CupBuilder() {
   const [lsort, setLsort] = useState<{ k: string; dir: 1 | -1 }>({ k: 'est', dir: -1 });
   const [onlyMine, setOnlyMine] = useState(false);
   const [onlyIS, setOnlyIS] = useState(false);
+  const [onlyNew, setOnlyNew] = useState(false); // cartes non possedees (a acheter)
   useEffect(() => { setSel([]); }, [night]);
   const [pseudo, setPseudo] = useState('memejacquet1998');
   const [col, setCol] = useState<Record<string, 1 | 2>>({}); // detecte depuis la galerie Sorare : 1 = Limited+ classic, 2 = Limited+ In-Season
@@ -183,7 +184,7 @@ export default function CupBuilder() {
     if (slotsLeft <= 0) return [];
     const ql = q.toLowerCase();
     return pool
-      .filter(x => !sel.includes(x.p.slug) && x.p.stars <= maxStarNow + 1e-9 && (!ql || (x.p.name + x.p.team).toLowerCase().includes(ql)) && (!onlyMine || own(x.p.slug)))
+      .filter(x => !sel.includes(x.p.slug) && x.p.stars <= maxStarNow + 1e-9 && (!ql || (x.p.name + x.p.team).toLowerCase().includes(ql)) && (!onlyMine || own(x.p.slug)) && (!onlyNew || !own(x.p.slug)))
       .map(x => { const os0 = optsFor(x); const os = onlyIS ? os0.filter(z => z.is) : os0; if (!os.length) return null; const o = os.reduce((a, b) => (b.v > a.v ? b : a), os[0]); return { x, o }; })
       .filter((r): r is { x: (typeof pool)[number]; o: Opt2 } => !!r)
       .sort((a, b) => {
@@ -191,7 +192,7 @@ export default function CupBuilder() {
         const x = g(a), y = g(b);
         return (typeof x === 'string' ? x.localeCompare(y as string) : (x as number) - (y as number)) * lsort.dir;
       });
-  }, [pool, sel, q, onlyMine, onlyIS, lsort, maxStarNow, slotsLeft, ownedByS, owned, col]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [pool, sel, q, onlyMine, onlyNew, onlyIS, lsort, maxStarNow, slotsLeft, ownedByS, owned, col]); // eslint-disable-line react-hooks/exhaustive-deps
   // Completer : garde les joueurs deja choisis, remplit les emplacements restants au mieux (cap, In-Season, cartes possedees d'abord)
   const complete = (maxBuy: number) => {
     if (slotsLeft <= 0 || sel.length === 0) return;
@@ -319,7 +320,8 @@ export default function CupBuilder() {
         <div style={box}>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 8, alignItems: 'center' }}>
             <input value={q} onChange={e => setQ(e.target.value)} placeholder="Rechercher un joueur ou une équipe" style={{ flex: 1, minWidth: 200, padding: 8, borderRadius: 8, border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(0,0,0,0.3)', color: '#fff' }} />
-            <button onClick={() => setOnlyMine(v => !v)} style={btn(onlyMine)}>Mes cartes seulement</button>
+            <button onClick={() => { setOnlyMine(v => !v); setOnlyNew(false); }} style={btn(onlyMine)}>Mes cartes seulement</button>
+            <button onClick={() => { setOnlyNew(v => !v); setOnlyMine(false); }} style={btn(onlyNew)}>Cartes non possédées</button>
             <button onClick={() => setOnlyIS(v => !v)} style={btn(onlyIS)}>In-Season seulement</button>
           </div>
           <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 6 }}>
