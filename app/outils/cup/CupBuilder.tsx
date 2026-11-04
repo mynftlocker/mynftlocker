@@ -133,8 +133,8 @@ export default function CupBuilder() {
     if (e.i !== undefined) out.push({ ...x, v: x.v * e.i, is: true, pw: e.i });
     return out;
   }), [pool, owned, col, pw]);
-  const freeItems = useMemo(() => pool.map(x => ({ ...x, is: true, pw: 1 })), [pool]);
-  const buyItems = useMemo(() => pool.filter(x => !own(x.p.slug)).map(x => ({ ...x, is: true, buy: true, pw: 1 })), [pool, owned, col]); // eslint-disable-line react-hooks/exhaustive-deps
+  const freeItems = useMemo(() => pool.map(x => ({ ...x, is: true, pw: 1.05 })), [pool]);
+  const buyItems = useMemo(() => pool.filter(x => !own(x.p.slug)).map(x => ({ ...x, is: true, buy: true, pw: 1.05 })), [pool, owned, col]); // eslint-disable-line react-hooks/exhaustive-deps
   const free = useMemo(() => best(freeItems, T.is), [freeItems, T.is]);
   const mine = useMemo(() => best(ownedItems, T.is), [ownedItems, T.is]);
   const gains = useMemo(() => ownedPool.length < 5 ? [] : buyItems.map(x => ({ x, g: best([...ownedItems, x], T.is, 1).total - mine.total })).filter(r => r.g > 0.05).sort((a, b) => b.g - a.g).slice(0, 12), [buyItems, ownedItems, ownedPool, mine, T.is]);
@@ -203,7 +203,7 @@ export default function CupBuilder() {
         </div>
 
         <div style={{ fontSize: 12, opacity: 0.7, padding: '0 4px' }}>
-          Projection = celle de Sorare pour la prochaine Game Week Classic (moyenne par match). Elle est la même quelle que soit la nuit choisie : l'outil ne distingue pas les nuits, il ne fait que filtrer les joueurs qui jouent ce soir-là. Le « Mix » la tempère avec les L5 / L10. Chaque score est multiplié par le bonus réel de la carte (power, XP) ; une carte à acheter est comptée sans bonus. Les cartes déjà alignées dans une autre compo de la GW sont exclues automatiquement.
+          Projection = celle de Sorare pour la prochaine Game Week Classic (moyenne par match). Elle est la même quelle que soit la nuit choisie : l'outil ne distingue pas les nuits, il ne fait que filtrer les joueurs qui jouent ce soir-là. Le « Mix » la tempère avec les L5 / L10. Chaque score est multiplié par le bonus réel de la carte (power, XP) ; une carte In-Season à acheter est comptée au bonus minimum de +5 %. Les cartes déjà alignées dans une autre compo de la GW sont exclues automatiquement.
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(320px,1fr))', gap: 14 }}>
           <Team l={mineList} s={sM} title="Sans achat : ma meilleure compo" sub={ownedPool.length ? `avec tes ${ownedPool.length} joueurs Limited+ de la nuit (clic sur un joueur pour corriger : possédé → In-Season → retiré)` : 'aucune de tes cartes ne joue cette nuit (ou galerie non chargée)'} />
