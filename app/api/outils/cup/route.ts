@@ -70,14 +70,24 @@ export async function GET(req: NextRequest) {
       };
     }).filter((p: any) => p.stars != null && p.proj != null);
     // Projection Sorare du MATCH de cette nuit (fiche joueur : anyFutureGames -> playerGameScore.projectedScore), a la place de la projection GW
-    await Promise.all(players.map(async (pl: any) => {
-      try {
-        const d = await gql(`{ anyPlayer(slug:"${pl.slug}"){ ... on NBAPlayer{ anyFutureGames(first:6){ nodes{ ... on GameOfBasketball{ date playerGameScore(playerSlug:"${pl.slug}"){ projectedScore } } } } } } }`);
-        const g = (d.anyPlayer?.anyFutureGames?.nodes || []).find((x: any) => berlinDay(x.date) === night);
-        const v = g?.playerGameScore?.projectedScore;
-        if (v != null && isFinite(Number(v))) { pl.projGw = pl.proj; pl.proj = Number(v); pl.pm = true; }
-      } catch { /* on garde la projection GW */ }
-    }));
+    // File d'attente limitee (8 requetes a la fois, 1 nouvel essai) pour ne pas surcharger l'API Sorare ; joueurs sans projection utile ignores.
+    const todo = players.filter((pl: any) => pl.proj >= 10);
+    let next = 0;
+    const worker = async () => {
+      while (next < todo.length) {
+        const pl: any = todo[next++];
+        for (let k = 0; k < 2; k++) {
+          try {
+            const d = await gql(`{ anyPlayer(slug:"${pl.slug}"){ ... on NBAPlayer{ anyFutureGames(first:6){ nodes{ ... on GameOfBasketball{ date playerGameScore(playerSlug:"${pl.slug}"){ projectedScore } } } } } } }`);
+            const g = (d.anyPlayer?.anyFutureGames?.nodes || []).find((x: any) => berlinDay(x.date) === night);
+            const v = g?.playerGameScore?.projectedScore;
+            if (v != null && isFinite(Number(v))) { pl.projGw = pl.proj; pl.proj = Number(v); pl.pm = true; }
+            break;
+          } catch { /* nouvel essai puis on garde la projection GW */ }
+        }
+      }
+    };
+    await Promise.all(Array.from({ length: 8 }, worker));
     return NextResponse.json({ night, games: games.length, players });
   } catch (e: any) {
     return NextResponse.json({ error: String(e?.message || e) }, { status: 502, headers: { "Cache-Control": "no-store" } });
