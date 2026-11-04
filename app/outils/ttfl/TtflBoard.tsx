@@ -36,7 +36,7 @@ export default function TtflBoard() {
       const est = ttflEst(p.proj, p.l5, p.l10, p.inj);
       const out = !!p.inj && p.inj !== 'GTD';
       return { ...p, n, l10, est, mp: myProj(p.proj, p.l5, p.l10, p.inj), last: n ? g[n - 1].t : null, out };
-    })  .filter(r => !(hideOut && r.out) && (!q || norm(r.name).includes(norm(q)) || norm(r.team).includes(norm(q))))
+    })  .filter(r => r.proj >= 5 && !(hideOut && r.out) && (!q || norm(r.name).includes(norm(q)) || norm(r.team).includes(norm(q))))
       .sort((a, b) => b.est - a.est);
   }, [players, hist, q, hideOut]);
 
@@ -69,8 +69,8 @@ export default function TtflBoard() {
                     <td style={{ padding: '8px 12px', color: c.dim }}>{r.home ? 'vs' : '@'} {r.opp} · {r.time}</td>
                     <td style={{ padding: '8px 12px', textAlign: 'right', color: c.cy, fontWeight: 700 }}>{r.est.toFixed(1)}</td>
                     <td style={{ padding: '8px 12px', textAlign: 'right' }}>{r.mp.toFixed(1)}</td>
-                    <td style={{ padding: '8px 12px', textAlign: 'right' }}>{(r.l10 as number).toFixed(1)} <span style={{ color: c.dim, fontSize: 11 }}>({r.n})</span></td>
-                    <td style={{ padding: '8px 12px', textAlign: 'right' }}>{r.last}</td>
+                    <td style={{ padding: '8px 12px', textAlign: 'right' }}>{r.l10 == null ? '–' : r.l10.toFixed(1)} <span style={{ color: c.dim, fontSize: 11 }}>({r.n})</span></td>
+                    <td style={{ padding: '8px 12px', textAlign: 'right' }}>{r.last ?? '–'}</td>
                   </tr>
                 ))}
                 {!rows.length && <tr><td colSpan={7} style={{ padding: 16, color: c.dim }}>Aucun joueur pour cette nuit.</td></tr>}
