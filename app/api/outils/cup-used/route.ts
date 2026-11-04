@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { ownerOnly } from '../../../../lib/owner';
 
 // Cartes deja alignees dans une compo Sorare de la GW qui contient la nuit demandee (outil perso Cup Builder).
 // Utilise le jeton Sorare deja configure cote serveur (SORARE_JWT / SORARE_AUD) : le navigateur ne recoit que des slugs de cartes.
@@ -13,6 +14,7 @@ async function gql(query: string) {
 }
 
 export async function GET(req: NextRequest) {
+  const deny = await ownerOnly(req); if (deny) return deny;
   const night = (req.nextUrl.searchParams.get('night') || '').trim();
   if (!/^\d{4}-\d{2}-\d{2}$/.test(night)) return NextResponse.json({ error: 'night=YYYY-MM-DD requis' }, { status: 400 });
   try {
