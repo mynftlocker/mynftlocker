@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 // Outil perso NBA Cup : liste les joueurs des matchs d'une nuit (date Europe/Paris du coup d'envoi)
 // avec etoiles, projection Sorare, scores recents. Donnees 100% publiques (API Sorare), rien de prive.
 export const revalidate = 600;
+export const maxDuration = 30;
 
 const GQL = 'https://api.sorare.com/graphql';
 async function gql(query: string) {
@@ -27,8 +28,8 @@ export async function GET(req: NextRequest) {
     const slugs: string[] = fx.so5.so5Fixtures.nodes.map((n: any) => n.slug);
     const games: any[] = [];
     const seen = new Set<string>();
-    for (const s of slugs) {
-      const d = await gql(`{ so5{ so5Fixture(slug:"${s}"){ games{ id date homeTeam{ ... on TeamInterface{ name slug } } awayTeam{ ... on TeamInterface{ name slug } } } } } }`);
+    const fxGames = await Promise.all(slugs.map((s) => gql(`{ so5{ so5Fixture(slug:"${s}"){ games{ id date homeTeam{ ... on TeamInterface{ name slug } } awayTeam{ ... on TeamInterface{ name slug } } } } } }`)));
+    for (const d of fxGames) {
       for (const g of d.so5.so5Fixture?.games || []) {
         if (seen.has(g.id)) continue; seen.add(g.id);
         if (berlinDay(g.date) === night) games.push(g);
