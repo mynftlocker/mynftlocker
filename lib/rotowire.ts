@@ -6,7 +6,7 @@ export type RwState = { name: string; team: string; status: 'OUT' | 'GTD' | 'PRO
 export const TEAMS: Record<string, string> = { ATL: 'Atlanta Hawks', BKN: 'Brooklyn Nets', BOS: 'Boston Celtics', CHA: 'Charlotte Hornets', CHI: 'Chicago Bulls', CLE: 'Cleveland Cavaliers', DAL: 'Dallas Mavericks', DEN: 'Denver Nuggets', DET: 'Detroit Pistons', GSW: 'Golden State Warriors', HOU: 'Houston Rockets', IND: 'Indiana Pacers', LAC: 'LA Clippers', LAL: 'Los Angeles Lakers', MEM: 'Memphis Grizzlies', MIA: 'Miami Heat', MIL: 'Milwaukee Bucks', MIN: 'Minnesota Timberwolves', NOP: 'New Orleans Pelicans', NYK: 'New York Knicks', OKC: 'Oklahoma City Thunder', ORL: 'Orlando Magic', PHI: 'Philadelphia 76ers', PHX: 'Phoenix Suns', POR: 'Portland Trail Blazers', SAC: 'Sacramento Kings', SAS: 'San Antonio Spurs', TOR: 'Toronto Raptors', UTA: 'Utah Jazz', WAS: 'Washington Wizards' };
 const MONTHS = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
 const clean = (s: string) => s.replace(/<[^>]*>/g, ' ').replace(/&#039;|&#x27;|&rsquo;/g, "'").replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/\s+/g, ' ').trim();
-const pick = (b: string, cls: string) => { const m = b.match(new RegExp(`news-update__${cls}[^>]*>([\\s\\S]*?)</(?:a|div|b|span)>`)); return m ? clean(m[1]) : ''; };
+const pick = (b: string, cls: string) => { const m = b.match(new RegExp(`news-update__${cls}[^>]*>([\\s\\S]*?)</${cls === 'news' ? 'div' : '(?:a|div|b|span)'}>`)); return m ? clean(m[1]) : ''; };
 
 export function parseNews(html: string): RwItem[] {
   const out: RwItem[] = [];
