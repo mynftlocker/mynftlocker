@@ -66,3 +66,31 @@ export async function getNight(date: string, top = 10): Promise<Night | null> {
   if (day.finished && rows.length) await redis.set(key, out, { ex: 60 * 60 * 24 * 60 }).catch(() => {});
   return { ...out, top: out.top.slice(0, top) };
 }
+
+// Toutes les lignes joueur d'une nuit terminee (date americaine) : nom, equipe, minutes, score TTFL. Cache 60 jours. Sert aux estimations (outil prive /outils/ttfl).
+export type DayRow = { n: string; tm: string; m: number; t: number };
+export async function getDayRows(date: string): Promise<DayRow[] | null> {
+  const day = await loadDay(date);
+  if (!day.finished) return null;
+  const key = 'ttfl:rows:' + date;
+  const hit = await redis.get<DayRow[]>(key).catch(() => null);
+  if (hit?.length) return hit;
+  const rows: DayRow[] = [];
+  await Promise.all(day.events.map(async e => {
+    const sum = await getJson(`${ESPN}/summary?event=${e.id}`);
+    for (const team of sum?.boxscore?.players || []) {
+      const st = team?.statistics?.[0]; if (!st) continue;
+      const L: string[] = st.labels || [];
+      const ix = (l: string) => L.indexOf(l);
+      for (const a of st.athletes || []) {
+        if (a.didNotPlay || !a.stats?.length) continue;
+        const g = (l: string) => Number(a.stats[ix(l)] ?? 0) || 0;
+        const [fgm, fga] = pair(a.stats[ix('FG')]); const [tpm, tpa] = pair(a.stats[ix('3PT')]); const [ftm, fta] = pair(a.stats[ix('FT')]);
+        if (!g('MIN')) continue;
+        rows.push({ n: a.athlete?.displayName, tm: team.team?.abbreviation, m: g('MIN'), t: g('PTS') + g('REB') + g('AST') + g('STL') + g('BLK') + fgm + tpm + ftm - (fga - fgm) - (tpa - tpm) - (fta - ftm) - g('TO') });
+      }
+    }
+  }));
+  if (rows.length) await redis.set(key, rows, { ex: 60 * 60 * 24 * 60 }).catch(() => {});
+  return rows;
+}
