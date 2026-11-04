@@ -18,11 +18,14 @@ export default function TtflBoard() {
   const [players, setPlayers] = useState<P[] | null>(null);
   const [hist, setHist] = useState<H | null>(null);
   const [err, setErr] = useState('');
+  const [tbl, setTbl] = useState<Record<string, { status: string; until: string | null }>>({});
   const [q, setQ] = useState('');
   const [hideOut, setHideOut] = useState(true);
   const [view, setView] = useState<'night' | 'deck' | 'inj'>('night');
 
   useEffect(() => { fetch('/api/outils/ttfl').then(r => r.json()).then(j => j.ok ? setHist(j.hist) : setErr(j.error || 'historique indisponible')).catch(e => setErr(String(e))); }, []);
+  // Tableau des blessures partage (Rotowire / Underdog / ESPN) : complete le statut Sorare
+  useEffect(() => { fetch('/api/outils/injuries').then(r => r.json()).then(j => { if (j.ok) { const m: Record<string, { status: string; until: string | null }> = {}; for (const r of j.rows) m[norm(r.name)] = { status: r.status, until: r.until }; setTbl(m); } }).catch(() => {}); }, []);
   useEffect(() => {
     setPlayers(null);
     fetch('/api/outils/cup?night=' + night).then(r => r.json()).then(j => j.error ? setErr(j.error) : setPlayers(j.players || [])).catch(e => setErr(String(e)));
@@ -37,11 +40,13 @@ export default function TtflBoard() {
       const n = g.length;
       const l10 = n ? g.reduce((s, x) => s + x.t, 0) / n : null;
       const est = ttflEst(p.proj, p.l5, p.l10, p.inj);
-      const out = !!p.inj && p.inj !== 'GTD';
-      return { ...p, n, l10, est, mp: myProj(p.proj, p.l5, p.l10, p.inj), last: n ? g[n - 1].t : null, out };
+      const ti = tbl[norm(p.name)];
+      const tOut = !!ti && ti.status === 'OUT' && (!ti.until || night < ti.until);
+      const out = (!!p.inj && p.inj !== 'GTD') || tOut;
+      return { ...p, inj: p.inj || (tOut ? 'OUT' : null), n, l10, est, mp: myProj(p.proj, p.l5, p.l10, p.inj), last: n ? g[n - 1].t : null, out };
     })  .filter(r => r.proj >= 5 && !(hideOut && r.out) && (!q || norm(r.name).includes(norm(q)) || norm(r.team).includes(norm(q))))
       .sort((a, b) => b.est - a.est);
-  }, [players, hist, q, hideOut]);
+  }, [players, hist, q, hideOut, tbl, night]);
 
   const c = { bg: '#07090d', card: 'rgba(255,255,255,.04)', line: 'rgba(255,255,255,.1)', cy: '#00ffff', gold: '#e5b94e', dim: 'rgba(255,255,255,.55)' };
   return (
