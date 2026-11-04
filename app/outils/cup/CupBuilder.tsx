@@ -6,7 +6,7 @@ const TIERS = [
   { n: 1, pts: 230, is: 1 }, { n: 2, pts: 250, is: 1 }, { n: 3, pts: 270, is: 2 }, { n: 4, pts: 280, is: 3 }, { n: 5, pts: 300, is: 4 },
 ];
 const CAP = 32; // 16 etoiles en demi-etoiles
-type P = { slug: string; name: string; team: string; opp: string; home: boolean; time: string; stars: number; proj: number; l5: number | null; l10: number | null; sd: number | null; max: number | null; n: number; inj: string | null };
+type P = { slug: string; name: string; team: string; opp: string; home: boolean; time: string; stars: number; proj: number; l5: number | null; l10: number | null; sd: number | null; max: number | null; sc?: number[]; n: number; inj: string | null };
 type Metric = 'proj' | 'l5' | 'l10' | 'mix';
 const EMPTY_OWNED: Record<string, 0 | 1 | 2> = {}; // plus de correction manuelle : tout vient de Sorare
 const LSP = 'mnl_cup_pseudo_v1';
@@ -150,10 +150,23 @@ export default function CupBuilder() {
   const buy1 = useMemo(() => best([...ownedItems, ...buyItems], T.is, 1).sel, [ownedItems, buyItems, T.is]);
   const buy2 = useMemo(() => best([...ownedItems, ...buyItems], T.is, 2).sel, [ownedItems, buyItems, T.is]);
 
-  const stat = (list: { p: P; v: number }[]) => {
+  const stat = (list: { p: P; v: number; pw?: number }[]) => {
     const mean = list.reduce((s, x) => s + x.v, 0);
+    if (list.length !== 5) return { mean, prob: 0 };
+    // Probabilite : simulation sur les VRAIS scores recents de chaque joueur (capte les joueurs a pics), recentres sur l'estimation
+    if (list.every(x => (x.p.sc?.length ?? 0) >= 5)) {
+      let seed = 1234567; for (const x of list) for (let i = 0; i < x.p.slug.length; i++) seed = (seed * 31 + x.p.slug.charCodeAt(i)) >>> 0;
+      const rnd = () => { seed = (seed + 0x6D2B79F5) >>> 0; let t = seed; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+      const N = 4000; let ok = 0;
+      for (let k = 0; k < N; k++) {
+        let tot = 0;
+        for (const x of list) { const sc = x.p.sc as number[]; const m10 = sc.reduce((a, b) => a + b, 0) / sc.length; tot += Math.max(0, x.v + (sc[Math.floor(rnd() * sc.length)] - m10) * (x.pw ?? 1)); }
+        if (tot >= T.pts) ok++;
+      }
+      return { mean, prob: ok / N };
+    }
     const sd = Math.sqrt(list.reduce((s, x) => s + (x.p.sd ?? 14) ** 2, 0));
-    return { mean, prob: list.length === 5 ? 1 - cdf((T.pts - mean) / sd) : 0 };
+    return { mean, prob: 1 - cdf((T.pts - mean) / sd) };
   };
   const mineList = mine.sel, freeList = free.sel;
   const sM = stat(mineList), sF = stat(freeList), sB1 = stat(buy1), sB2 = stat(buy2);
@@ -180,6 +193,7 @@ export default function CupBuilder() {
   const slotsLeft = 5 - sel.length;
   const minStar = useMemo(() => pool.length ? Math.min(...pool.map(x => x.p.stars)) : 0.5, [pool]);
   const maxStarNow = 16 - usedStars - Math.max(0, slotsLeft - 1) * minStar;
+  const pics = (p: P): number | null => (p.sc && p.sc.length >= 5 && p.l10 != null ? p.sc.filter(v => v >= (p.l10 as number) + 15).length : null);
   const rows = useMemo(() => {
     if (slotsLeft <= 0) return [];
     const ql = q.toLowerCase();
@@ -188,7 +202,7 @@ export default function CupBuilder() {
       .map(x => { const os0 = optsFor(x); const os = onlyIS ? os0.filter(z => z.is) : os0; if (!os.length) return null; const o = os.reduce((a, b) => (b.v > a.v ? b : a), os[0]); return { x, o }; })
       .filter((r): r is { x: (typeof pool)[number]; o: Opt2 } => !!r)
       .sort((a, b) => {
-        const g = (r: { x: (typeof pool)[number]; o: Opt2 }) => lsort.k === 'name' ? r.x.p.name : lsort.k === 'stars' ? r.x.p.stars : lsort.k === 'proj' ? r.x.p.proj : lsort.k === 'l5' ? (r.x.p.l5 ?? -1) : lsort.k === 'l10' ? (r.x.p.l10 ?? -1) : lsort.k === 'd5' ? (r.x.p.l5 == null ? -999 : r.x.p.proj - r.x.p.l5) : lsort.k === 'd10' ? (r.x.p.l10 == null ? -999 : r.x.p.proj - r.x.p.l10) : lsort.k === 'max' ? (r.x.p.max ?? -1) : lsort.k === 'eff' ? r.o.v / r.x.p.stars : r.o.v;
+        const g = (r: { x: (typeof pool)[number]; o: Opt2 }) => lsort.k === 'name' ? r.x.p.name : lsort.k === 'stars' ? r.x.p.stars : lsort.k === 'proj' ? r.x.p.proj : lsort.k === 'l5' ? (r.x.p.l5 ?? -1) : lsort.k === 'l10' ? (r.x.p.l10 ?? -1) : lsort.k === 'pics' ? (pics(r.x.p) ?? -1) : lsort.k === 'd5' ? (r.x.p.l5 == null ? -999 : r.x.p.proj - r.x.p.l5) : lsort.k === 'd10' ? (r.x.p.l10 == null ? -999 : r.x.p.proj - r.x.p.l10) : lsort.k === 'max' ? (r.x.p.max ?? -1) : lsort.k === 'eff' ? r.o.v / r.x.p.stars : r.o.v;
         const x = g(a), y = g(b);
         return (typeof x === 'string' ? x.localeCompare(y as string) : (x as number) - (y as number)) * lsort.dir;
       });
@@ -328,13 +342,15 @@ export default function CupBuilder() {
             {slotsLeft <= 0 ? 'Compo complète : retire un joueur pour en ajouter un autre.' : `${rows.length} joueurs possibles : max ${maxStarNow}★ pour ce ${sel.length + 1}e emplacement. Clique pour ajouter. Clique un titre de colonne pour trier.`}
           </div>
           <div style={{ overflowX: 'auto' }}>
-            <div style={{ minWidth: 800 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 40px 104px 48px 48px 62px 52px 52px 80px 52px', gap: 4, fontSize: 11, opacity: 0.7, padding: '0 4px 4px', cursor: 'pointer', color: '#40e8ff' }}>
+            <div style={{ minWidth: 900 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 40px 104px 48px 48px 56px 52px 62px 52px 52px 80px 52px', gap: 4, fontSize: 11, opacity: 0.7, padding: '0 4px 4px', cursor: 'pointer', color: '#40e8ff' }}>
                 <span onClick={() => sortBy('name')}>Joueur{arrow('name')}</span>
                 <span onClick={() => sortBy('stars')} title="Étoiles de la carte (cap 16)">★{arrow('stars')}</span>
                 <span title="Ta carte (🟣 In-Season, ✅ Classic) et son bonus, ou carte à acheter">Carte</span>
                 <span onClick={() => sortBy('l5')} title="Moyenne des 5 derniers matchs">L5{arrow('l5')}</span>
                 <span onClick={() => sortBy('l10')} title="Moyenne des 10 derniers matchs">L10{arrow('l10')}</span>
+                <span onClick={() => sortBy('max')} title="Meilleur score sur les 10 derniers matchs">Plafond{arrow('max')}</span>
+                <span onClick={() => sortBy('pics')} title="Nombre de matchs sur 10 à au moins L10 + 15 points : le joueur capable de pics" style={{ lineHeight: 1.1 }}>Pics{arrow('pics')}<br /><small style={{ fontSize: 9, opacity: 0.7 }}>≥ L10+15</small></span>
                 <span onClick={() => sortBy('proj')} title="Projection Sorare pour le match de la nuit (comme sur la fiche joueur)" style={{ lineHeight: 1.1 }}>Proj.{arrow('proj')}<br /><small style={{ fontSize: 9, color: '#ffd24a' }}>Sorare</small></span>
                 <span onClick={() => sortBy('d5')} title="Projection Sorare moins L5 : vert = Sorare voit mieux que sa forme récente" style={{ lineHeight: 1.1 }}>± L5{arrow('d5')}<br /><small style={{ fontSize: 9, opacity: 0.7 }}>proj−L5</small></span>
                 <span onClick={() => sortBy('d10')} title="Projection Sorare moins L10" style={{ lineHeight: 1.1 }}>± L10{arrow('d10')}<br /><small style={{ fontSize: 9, opacity: 0.7 }}>proj−L10</small></span>
@@ -344,11 +360,12 @@ export default function CupBuilder() {
               {rows.slice(0, 150).map(({ x, o }) => {
                 const p = x.p; const ow = own(p.slug);
                 return (
-                  <div key={p.slug} onClick={() => setSel(c => (c.length < 5 ? [...c, p.slug] : c))} style={{ display: 'grid', gridTemplateColumns: '1fr 40px 104px 48px 48px 62px 52px 52px 80px 52px', gap: 4, fontSize: 13, padding: '5px 4px', cursor: 'pointer', borderRadius: 6, background: ow ? 'rgba(0,255,255,0.08)' : 'transparent', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                  <div key={p.slug} onClick={() => setSel(c => (c.length < 5 ? [...c, p.slug] : c))} style={{ display: 'grid', gridTemplateColumns: '1fr 40px 104px 48px 48px 56px 52px 62px 52px 52px 80px 52px', gap: 4, fontSize: 13, padding: '5px 4px', cursor: 'pointer', borderRadius: 6, background: ow ? 'rgba(0,255,255,0.08)' : 'transparent', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
                     <span>{p.name} <span style={{ opacity: 0.5 }}>{p.team.split(' ').pop()} {p.home ? 'vs' : '@'} {p.opp.split(' ').pop()} {p.time}</span>{p.inj ? <span style={{ color: p.inj === 'GTD' ? '#ffb020' : '#ff4d4d' }}> {p.inj}</span> : null}</span>
                     <span>{p.stars}</span>
                     <span style={{ fontSize: 11, opacity: 0.9 }}>{o.buy ? 'À acheter' + (locked[p.slug] ? ' 🔒' : '') : (o.is ? '🟣 IS' : '✅ CL') + ' +' + Math.round(((o.pw ?? 1) - 1) * 100) + '%'}</span>
                     <span>{p.l5 == null ? '–' : p.l5.toFixed(0)}</span><span>{p.l10 == null ? '–' : p.l10.toFixed(0)}</span>
+                    <span>{p.max == null ? '–' : p.max.toFixed(0)}</span><span>{pics(p) == null ? '–' : pics(p) + '/' + (p.sc?.length ?? 0)}</span>
                     <span style={{ color: '#ffd24a' }}>{p.proj.toFixed(0)}</span>
                     {(['l5', 'l10'] as const).map(k => { const d = p[k] == null ? null : p.proj - (p[k] as number); return <span key={k} style={{ color: d == null ? '#9aa' : d > 1 ? '#4ade80' : d < -1 ? '#ff6b6b' : '#cfd8dc' }}>{d == null ? '–' : (d > 0 ? '+' : '') + d.toFixed(0)}</span>; })}
                     <b style={{ color: '#4ade80' }}>{o.v.toFixed(0)}</b><span>{(o.v / p.stars).toFixed(1)}</span>

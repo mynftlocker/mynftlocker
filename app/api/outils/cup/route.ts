@@ -66,7 +66,7 @@ export async function GET(req: NextRequest) {
       return {
         slug: p.slug, name: p.displayName, team: t.name, opp: t.opp, home: t.home, time: t.time,
         stars: p.gameplayTierStars, proj: p.nextClassicFixtureProjectedScore,
-        l5: avg(l5), l10: m, sd, max: sc.length ? Math.max(...sc) : null, n: l10.length, inj: inj?.status || null,
+        l5: avg(l5), l10: m, sd, max: sc.length ? Math.max(...sc) : null, sc: l10, n: l10.length, inj: inj?.status || null,
       };
     }).filter((p: any) => p.stars != null && p.proj != null);
     // Projection Sorare du MATCH de cette nuit (fiche joueur : anyFutureGames -> playerGameScore.projectedScore), a la place de la projection GW
