@@ -7,7 +7,8 @@ const TIERS = [
 ];
 const CAP = 32; // 16 etoiles en demi-etoiles
 type P = { slug: string; name: string; team: string; opp: string; home: boolean; time: string; stars: number; proj: number; l5: number | null; l10: number | null; sd: number | null; max: number | null; sc?: number[]; n: number; inj: string | null };
-type Metric = 'proj' | 'l5' | 'l10' | 'mix';
+type Metric = 'proj' | 'mix';
+type Goal = 'proba' | 'pts'; // objectif des compos automatiques : meilleure probabilite d'atteindre le palier / meilleur total de points
 const EMPTY_OWNED: Record<string, 0 | 1 | 2> = {}; // plus de correction manuelle : tout vient de Sorare
 const LSP = 'mnl_cup_pseudo_v1';
 
@@ -50,6 +51,7 @@ export default function CupBuilder() {
   const [night, setNight] = useState(nights[1]);
   const [tier, setTier] = useState(2);
   const [metric, setMetric] = useState<Metric>('mix');
+  const [goal, setGoal] = useState<Goal>('proba');
   const [noOut, setNoOut] = useState(true);
   const [data, setData] = useState<P[]>([]);
   const [games, setGames] = useState(0);
@@ -123,7 +125,7 @@ export default function CupBuilder() {
   const T = TIERS[tier - 1];
   const val = (p: P) => {
     const l5 = p.l5 ?? p.proj, l10 = p.l10 ?? p.proj;
-    const b = metric === 'proj' ? p.proj : metric === 'l5' ? l5 : metric === 'l10' ? l10 : 0.7 * p.proj + 0.1 * l5 + 0.2 * l10;
+    const b = metric === 'proj' ? p.proj : 0.7 * p.proj + 0.1 * l5 + 0.2 * l10;
     return p.inj === 'GTD' ? b * 0.88 : b;
   };
   const pool = useMemo(() => data.filter(p => !(noOut && p.inj && p.inj !== 'GTD')).map((p, i) => ({ p, v: val(p), c: Math.round(p.stars * 2), i })), [data, metric, noOut]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -166,6 +168,7 @@ export default function CupBuilder() {
   // Objectif = PROBABILITE d'atteindre le palier (pas la moyenne) : on teste plusieurs "gouts du risque" (valeur + k x ecart-type du joueur)
   // et on garde la compo dont la simulation donne la meilleure probabilite. Palier loin => joueurs a pics ; palier proche => joueurs reguliers.
   const bestP = <T extends Opt & { p: P; pw?: number }>(pool: T[], need: number, maxBuy = 0) => {
+    if (goal === 'pts') return best(pool, need, maxBuy);
     let top: { total: number; idx: number[]; sel: T[] } | null = null, bp = -1;
     for (const k of [0, 0.25, 0.5, 0.8, 1.2]) {
       const r = best(pool.map(x => ({ ...x, v: x.v + k * (x.p.sd ?? 10) * (x.pw ?? 1) })), need, maxBuy);
@@ -176,8 +179,8 @@ export default function CupBuilder() {
     }
     return top || best(pool, need, maxBuy);
   };
-  const free = useMemo(() => bestP(freeItems, T.is, 5), [freeItems, T.is]);
-  const mine = useMemo(() => bestP(ownedItems, T.is), [ownedItems, T.is]);
+  const free = useMemo(() => bestP(freeItems, T.is, 5), [freeItems, T.is, goal]); // eslint-disable-line react-hooks/exhaustive-deps
+  const mine = useMemo(() => bestP(ownedItems, T.is), [ownedItems, T.is, goal]); // eslint-disable-line react-hooks/exhaustive-deps
   const baseMean = useMemo(() => best(ownedItems, T.is).total, [ownedItems, T.is]);
   // Achats : pre-selection par gain de points (rapide), puis classement par gain de PROBABILITE (meme objectif que les compos affichees)
   const gains = useMemo(() => {
@@ -191,10 +194,10 @@ export default function CupBuilder() {
       if (!r.sel.some(y => y.p.slug === c.x.p.slug && y.buy)) continue;
       const st = stat(r.sel); const slugs0 = new Set(mine.sel.map(y => y.p.slug)), slugs1 = new Set(r.sel.map(y => y.p.slug)); out.push({ ...c, g: st.mean - mine.total, p0, p1: st.prob, out: mine.sel.filter(y => !slugs1.has(y.p.slug)).map(y => y.p.name), inn: r.sel.filter(y => !slugs0.has(y.p.slug) && y.p.slug !== c.x.p.slug).map(y => y.p.name), stars: r.sel.reduce((a, y) => a + y.p.stars, 0) }); // g = points de la compo obtenue - points de ta compo affichee (Sans achat)
     }
-    return out.sort((a, b) => (b.p1 - b.p0) - (a.p1 - a.p0) || b.g - a.g).slice(0, 12);
-  }, [buyItems, ownedItems, ownedPool, baseMean, T.is, mine]); // eslint-disable-line react-hooks/exhaustive-deps
-  const buy1 = useMemo(() => bestP([...ownedItems, ...buyItems], T.is, 1).sel, [ownedItems, buyItems, T.is]);
-  const buy2 = useMemo(() => bestP([...ownedItems, ...buyItems], T.is, 2).sel, [ownedItems, buyItems, T.is]);
+    return out.sort((a, b) => goal === 'pts' ? b.g - a.g : (b.p1 - b.p0) - (a.p1 - a.p0) || b.g - a.g).slice(0, 12);
+  }, [buyItems, ownedItems, ownedPool, baseMean, T.is, mine, goal]); // eslint-disable-line react-hooks/exhaustive-deps
+  const buy1 = useMemo(() => bestP([...ownedItems, ...buyItems], T.is, 1).sel, [ownedItems, buyItems, T.is, goal]); // eslint-disable-line react-hooks/exhaustive-deps
+  const buy2 = useMemo(() => bestP([...ownedItems, ...buyItems], T.is, 2).sel, [ownedItems, buyItems, T.is, goal]); // eslint-disable-line react-hooks/exhaustive-deps
   const mineList = mine.sel, freeList = free.sel;
   const sM = stat(mineList), sF = stat(freeList), sB1 = stat(buy1), sB2 = stat(buy2);
   const stars = (l: { p: P }[]) => l.reduce((s, x) => s + x.p.stars, 0);
@@ -283,7 +286,9 @@ export default function CupBuilder() {
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
             <span style={{ fontSize: 12, opacity: 0.7 }}>Estimation :</span>
-            {([['mix', 'Mix (proj 70 / L5 10 / L10 20)'], ['proj', 'Projection Sorare'], ['l5', 'L5'], ['l10', 'L10']] as [Metric, string][]).map(([m, l]) => <button key={m} onClick={() => setMetric(m)} style={btn(m === metric)}>{l}</button>)}
+            {([['mix', 'Mix (proj 70 / L5 10 / L10 20)'], ['proj', 'Projection Sorare']] as [Metric, string][]).map(([m, l]) => <button key={m} onClick={() => setMetric(m)} style={btn(m === metric)}>{l}</button>)}
+            <span style={{ fontSize: 12, opacity: 0.7, marginLeft: 8 }}>Compos automatiques :</span>
+            {([['proba', 'Meilleure probabilité'], ['pts', 'Meilleure projection']] as [Goal, string][]).map(([g, l]) => <button key={g} onClick={() => setGoal(g)} style={btn(g === goal)} title={g === 'proba' ? 'Maximise les chances d\'atteindre le palier (favorise les joueurs à pics quand le palier est loin)' : 'Maximise le total de points estimés'}>{l}</button>)}
             <label style={{ fontSize: 13, marginLeft: 8 }}><input type="checkbox" checked={noOut} onChange={e => setNoOut(e.target.checked)} /> Exclure blessés</label>
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', marginTop: 10 }}>
@@ -302,10 +307,10 @@ export default function CupBuilder() {
           Projection = celle de Sorare pour le match de la nuit choisie (comme sur la fiche joueur). Le « Mix » la tempère avec les L5 / L10. Chaque score est multiplié par le bonus réel de la carte (power, XP) ; une carte In-Season à acheter est comptée au bonus minimum de +5 %. Les cartes déjà alignées dans une autre compo de la GW sont exclues automatiquement.
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(320px,1fr))', gap: 14 }}>
-          <Team l={mineList} s={sM} title="Sans achat : ma meilleure compo" sub={ownedPool.length ? `avec tes ${ownedPool.length} joueurs Limited+ de la nuit · optimisée pour la probabilité d'atteindre le palier` : 'aucune de tes cartes ne joue cette nuit (ou galerie non chargée)'} />
+          <Team l={mineList} s={sM} title="Sans achat : ma meilleure compo" sub={ownedPool.length ? `avec tes ${ownedPool.length} joueurs Limited+ de la nuit · ${goal === 'proba' ? 'optimisée pour la probabilité d\'atteindre le palier' : 'optimisée pour le total de points'}` : 'aucune de tes cartes ne joue cette nuit (ou galerie non chargée)'} />
           {ownedPool.length > 0 && <Team l={buy1} s={sB1} title="Avec 1 achat" sub="ta meilleure compo avec 1 carte en plus (Classic si l'In-Season requis est déjà couvert)" />}
           {ownedPool.length > 0 && <Team l={buy2} s={sB2} title="Avec 2 achats" sub="ta meilleure compo avec jusqu'à 2 cartes en plus" />}
-          <Team l={freeList} s={sF} title="Nothing Better" sub="meilleure compo possible sous le cap (la plus probable d'atteindre le palier) : tes cartes + toutes les cartes à acheter (In-Season +5 %, Classic +0 %)" />
+          <Team l={freeList} s={sF} title="Nothing Better" sub={`meilleure compo possible sous le cap (${goal === 'proba' ? 'la plus probable d\'atteindre le palier' : 'le plus de points'}) : tes cartes + toutes les cartes à acheter (In-Season +5 %, Classic +0 %)`} />
         </div>
 
         {ownedPool.length > 0 && ownedPool.length < 5 && <div style={{ ...box, fontSize: 13, opacity: 0.8 }}>Il faut au moins 5 joueurs possédés ce soir-là pour calculer les achats (aujourd'hui : {ownedPool.length}).</div>}
