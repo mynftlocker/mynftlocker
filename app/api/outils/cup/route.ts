@@ -70,25 +70,16 @@ export async function GET(req: NextRequest) {
       };
     }).filter((p: any) => p.stars != null && p.proj != null);
     // Projection Sorare du MATCH de cette nuit (fiche joueur : anyFutureGames -> playerGameScore.projectedScore), a la place de la projection GW
-    // File d'attente limitee (8 requetes a la fois, 1 nouvel essai) pour ne pas surcharger l'API Sorare ; joueurs sans projection utile ignores.
-    const todo = players.filter((pl: any) => pl.proj >= 10);
-    let next = 0; let nErr = 0; let lastErr = '';
-    const worker = async () => {
-      while (next < todo.length) {
-        const pl: any = todo[next++];
-        for (let k = 0; k < 2; k++) {
-          try {
-            const d = await gql(`{ anyPlayer(slug:"${pl.slug}"){ ... on NBAPlayer{ anyFutureGames(first:6){ nodes{ ... on GameOfBasketball{ date playerGameScore(playerSlug:"${pl.slug}"){ projectedScore } } } } } } }`);
-            const g = (d.anyPlayer?.anyFutureGames?.nodes || []).find((x: any) => berlinDay(x.date) === night);
-            const v = g?.playerGameScore?.projectedScore;
-            if (v != null && isFinite(Number(v))) { pl.projGw = pl.proj; pl.proj = Number(v); pl.pm = true; }
-            break;
-          } catch (e: any) { if (k === 1) { nErr++; lastErr = String(e?.message || e).slice(0, 160); } else await new Promise((r) => setTimeout(r, 400)); }
-        }
-      }
-    };
-    await Promise.all(Array.from({ length: 8 }, worker));
-    return NextResponse.json({ night, games: games.length, players, pmCount: players.filter((p: any) => p.pm).length, pmTodo: todo.length, pmErr: nErr, pmLastErr: lastErr });
+    // Projection Sorare du MATCH de la nuit (comme sur la fiche joueur) : une seule requete par match (anyGame -> playerGameScores.projectedScore)
+    const pmap: Record<string, number> = {}; let nErr = 0; let lastErr = '';
+    await Promise.all(games.map(async (g: any) => {
+      try {
+        const d = await gql(`{ anyGame(id:"${g.id}"){ ... on GameOfBasketball{ playerGameScores{ projectedScore anyPlayer{ slug } } } } }`);
+        for (const x of d.anyGame?.playerGameScores || []) if (x?.anyPlayer?.slug && x.projectedScore != null) pmap[x.anyPlayer.slug] = Number(x.projectedScore);
+      } catch (e: any) { nErr++; lastErr = String(e?.message || e).slice(0, 160); }
+    }));
+    for (const pl of players as any[]) { const v = pmap[pl.slug]; if (v != null && isFinite(v)) { pl.projGw = pl.proj; pl.proj = v; pl.pm = true; } }
+    return NextResponse.json({ night, games: games.length, players, pmCount: players.filter((p: any) => p.pm).length, pmTodo: games.length, pmErr: nErr, pmLastErr: lastErr });
   } catch (e: any) {
     return NextResponse.json({ error: String(e?.message || e) }, { status: 502, headers: { "Cache-Control": "no-store" } });
   }
