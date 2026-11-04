@@ -38,6 +38,8 @@ export function toState(it: RwItem, today: string): RwState | null {
     if (until >= today) return { ...base, status: 'OUT', until, untilKind: /re-?evaluat/i.test(t) ? 'reeval' : 'return' };
     return null; // delai deja ecoule : la news ne dit plus rien d'actuel
   }
+  const dy = t.match(/(?:at least\s+)?(\d+)(?:\s*(?:-|to|–)\s*\d+)?\s+(?:more\s+)?days/i);
+  if (dy && /(out|miss|sidelined|expected|timeline)/i.test(t) && !/re-?evaluat/i.test(t)) { const until = addDays(it.date, Number(dy[1])); if (until >= today) return { ...base, status: 'OUT', until, untilKind: 'return' }; return null; }
   if (/re-?evaluated|reevaluated/i.test(t) && /day|week/i.test(t)) {
     const m = t.match(/(\d+|one|two|three|four|five|six|seven|ten)\s*(days?|weeks?)/i);
     if (m) { const until = addDays(it.date, num(m[1]) * (/week/i.test(m[2]) ? 7 : 1)); if (until >= today) return { ...base, status: 'OUT', until, untilKind: 'reeval' }; }

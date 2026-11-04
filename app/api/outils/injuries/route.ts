@@ -40,13 +40,15 @@ async function refreshRotowire(debug = false): Promise<any> {
   const items = pages.flatMap(parseNews);
   if (debug) return { pages: pages.map(p => p.length), items: items.length, sample: items.slice(0, 3) };
   if (!items.length) return { items: 0 };
-  const latest = new Map<string, (typeof items)[number]>();
-  for (const it of items) { const k = nrm(it.name); const c = latest.get(k); if (!c || it.date > c.date) latest.set(k, it); }
+  // Par joueur : la news la plus recente qui dit quelque chose de la disponibilite (une news de match sans blessure ne masque pas une blessure longue)
   const tday = today(); const t = await load(); const map = new Map(t.rows.map(r => [nrm(r.name), r]));
+  const byP = new Map<string, typeof items>();
+  for (const it of items) { const k = nrm(it.name); (byP.get(k) || byP.set(k, []).get(k)!).push(it); }
+  const latest = new Map<string, { it: (typeof items)[number]; st: NonNullable<ReturnType<typeof toState>> }>();
+  for (const [k, list] of byP) { list.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0)); for (const it of list) { const st = toState(it, tday); if (st) { latest.set(k, { it, st }); break; } } }
   let upserts = 0, clears = 0;
-  for (const [k, it] of latest) {
-    const st = toState(it, tday); const cur = map.get(k);
-    if (!st) continue;
+  for (const [k, { it, st }] of latest) {
+    const cur = map.get(k);
     // Ne jamais ecraser une ligne Underdog/manuelle plus recente que la news Rotowire
     if (cur && (cur.src === 'underdog' || cur.src === 'manual') && cur.updated.slice(0, 10) >= it.date) continue;
     if (st.status === 'OK') { if (cur && cur.src === 'rotowire') { map.delete(k); clears++; } continue; } // disponible : on retire seulement une ligne Rotowire perimee
@@ -54,7 +56,7 @@ async function refreshRotowire(debug = false): Promise<any> {
     upserts++;
   }
   await redis.set(KEY, { updated: new Date().toISOString(), rows: [...map.values()] } as Table);
-  return { items: items.length, players: latest.size, upserts, clears };
+  return { items: items.length, players: byP.size, upserts, clears };
 }
 
 // Journal quotidien (un instantane par jour, 400 jours) : sert a mesurer les joueurs souvent blesses (nombre de jours listes, nombre d'episodes).
