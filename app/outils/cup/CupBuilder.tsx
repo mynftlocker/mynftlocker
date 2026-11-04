@@ -143,22 +143,25 @@ export default function CupBuilder() {
 
   const box: React.CSSProperties = { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(0,255,255,0.18)', borderRadius: 14, padding: '14px 16px', backdropFilter: 'blur(8px)' };
   const btn = (on: boolean): React.CSSProperties => ({ padding: '6px 12px', borderRadius: 999, border: '1px solid ' + (on ? '#00ffff' : 'rgba(255,255,255,0.2)'), background: on ? 'rgba(0,255,255,0.15)' : 'transparent', color: on ? '#00ffff' : '#ddd', cursor: 'pointer', fontSize: 13 });
-  const Team = ({ s, title, sub }: { s: ReturnType<typeof stat>; title: string; sub: string }) => (
+  const Team = ({ s, title, sub, l }: { s: ReturnType<typeof stat>; title: string; sub: string; l: { p: P; v: number }[] }) => {
+    const nIS = l.filter(x => own(x.p.slug) === 2).length;
+    return (
     <div style={box}>
       <div style={{ fontWeight: 700, color: '#00ffff' }}>{title}</div>
       <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 8 }}>{sub}</div>
-      {(title.startsWith('Ma') ? mineList : freeList).map(x => (
+      {l.map(x => (
         <div key={x.p.slug} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, padding: '2px 0' }}>
-          <span>{x.p.name} <span style={{ opacity: 0.55 }}>· {x.p.stars}★ · {x.p.team.split(' ').pop()} {x.p.home ? 'vs' : '@'} {x.p.opp.split(' ').pop()}{own(x.p.slug) ? (own(x.p.slug) === 2 ? ' · IS' : ' · Classic') : ' · À ACHETER'}</span></span>
+          <span>{x.p.name} <span style={{ opacity: 0.55 }}>· {x.p.stars}★ · {x.p.team.split(' ').pop()} {x.p.home ? 'vs' : '@'} {x.p.opp.split(' ').pop()}{own(x.p.slug) ? (own(x.p.slug) === 2 ? ' · IS' : ' · Classic') : (nIS >= T.is ? ' · À ACHETER (Classic suffit)' : ' · À ACHETER (IS requis)')}</span></span>
           <b>{x.v.toFixed(0)}</b>
         </div>
       ))}
       <div style={{ marginTop: 8, borderTop: '1px solid rgba(255,255,255,0.12)', paddingTop: 8, display: 'flex', justifyContent: 'space-between' }}>
-        <span>{stars(title.startsWith('Ma') ? mineList : freeList)}/16★ · total</span>
+        <span>{stars(l)}/16★ · total</span>
         <b style={{ color: s.mean >= T.pts ? '#4ade80' : '#ffb020' }}>{s.mean.toFixed(0)} / {T.pts} · {Math.round(s.prob * 100)}%</b>
       </div>
     </div>
-  );
+    );
+  };
 
   return (
     <main style={{ minHeight: '100vh', background: '#07090d', color: '#eee', padding: '20px 16px 60px', fontFamily: 'system-ui, sans-serif' }}>
@@ -192,10 +195,10 @@ export default function CupBuilder() {
           Projection = celle de Sorare pour la prochaine Game Week Classic (moyenne par match). Elle est la même quelle que soit la nuit choisie : l'outil ne distingue pas les nuits, il ne fait que filtrer les joueurs qui jouent ce soir-là. Le « Mix » la tempère avec les L5 / L10. Les cartes déjà alignées dans une autre compo de la GW sont exclues automatiquement.
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(320px,1fr))', gap: 14 }}>
-          <Team s={sM} title="Ma meilleure compo" sub={ownedPool.length ? `avec tes ${ownedPool.length} joueurs Limited+ de la nuit (clic sur un joueur pour corriger : possédé → In-Season → retiré)` : 'aucune de tes cartes ne joue cette nuit (ou galerie non chargée)'} />
-          {ownedPool.length > 0 && <Team s={sB1} title="Avec 1 achat" sub="ta meilleure compo en ajoutant 1 carte In-Season à acheter" />}
-          {ownedPool.length > 0 && <Team s={sB2} title="Avec 2 achats" sub="ta meilleure compo en ajoutant jusqu'à 2 cartes In-Season à acheter" />}
-          <Team s={sF} title="Compo idéale (sans contrainte)" sub="meilleure équipe sous le cap, toutes cartes confondues" />
+          <Team l={mineList} s={sM} title="Sans achat : ma meilleure compo" sub={ownedPool.length ? `avec tes ${ownedPool.length} joueurs Limited+ de la nuit (clic sur un joueur pour corriger : possédé → In-Season → retiré)` : 'aucune de tes cartes ne joue cette nuit (ou galerie non chargée)'} />
+          {ownedPool.length > 0 && <Team l={buy1} s={sB1} title="Avec 1 achat" sub="ta meilleure compo avec 1 carte en plus (Classic si l'In-Season requis est déjà couvert)" />}
+          {ownedPool.length > 0 && <Team l={buy2} s={sB2} title="Avec 2 achats" sub="ta meilleure compo avec jusqu'à 2 cartes en plus" />}
+          <Team l={freeList} s={sF} title="Plafond (can't do more)" sub="meilleure équipe possible sous le cap, toutes cartes confondues" />
         </div>
 
         {ownedPool.length > 0 && ownedPool.length < 5 && <div style={{ ...box, fontSize: 13, opacity: 0.8 }}>Il faut au moins 5 joueurs possédés ce soir-là pour calculer les achats (aujourd'hui : {ownedPool.length}).</div>}
