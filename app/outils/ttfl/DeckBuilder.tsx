@@ -78,9 +78,10 @@ export default function DeckBuilder() {
 
   const plan = useMemo(() => {
     if (!nights || !picks) return null;
-    const hist = picks.history;
-    const planned = keep ? picks.planned : [];
-    const planAll = picks.planned;
+    // Les picks des nuits deja commencees (avant la date de depart) ne changent plus : ils verrouillent toujours le joueur, meme sans "garder mes picks".
+    const hist = [...picks.history, ...picks.planned.filter(x => x.d < start)];
+    const planned = keep ? picks.planned.filter(x => x.d >= start) : [];
+    const planAll = picks.planned.filter(x => x.d >= start);
     // verrou : un joueur pické le jour P est indisponible aux jours P+1..P+30
     const blocked = (name: string, d: string) => [...hist, ...planned].some(x => norm(x.n) === norm(name) && x.d !== d && diff(d, x.d) > 0 && diff(d, x.d) <= LOCK);
     const lockedBy = (name: string, d: string) => [...hist, ...planned].find(x => norm(x.n) === norm(name) && x.d !== d && diff(d, x.d) > 0 && diff(d, x.d) <= LOCK);
@@ -111,7 +112,7 @@ export default function DeckBuilder() {
     const curCount = rows.filter(r => r.curC).length;
     const best = rows.reduce((b, r) => (r.pick && (!b || r.pick.est > b.pick!.est) ? r : b), null as (typeof rows)[number] | null);
     return { rows, total, curTotal, curCount, best };
-  }, [nights, picks, keep]);
+  }, [nights, picks, keep, start]);
 
   const c = { card: 'rgba(255,255,255,.04)', line: 'rgba(255,255,255,.1)', cy: '#00ffff', gold: '#e5b94e', dim: 'rgba(255,255,255,.55)' };
   const btn: React.CSSProperties = { background: c.card, border: `1px solid ${c.line}`, color: '#fff', borderRadius: 8, padding: '6px 12px', fontSize: 14 };
