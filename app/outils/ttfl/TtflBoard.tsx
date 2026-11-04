@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { myProj, ttflEst } from '../../../lib/ttflEst';
 import DeckBuilder from './DeckBuilder';
 import InjuriesTable from './InjuriesTable';
+import Bilan from './Bilan';
 const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z]/g, '');
 const parisDay = (d = new Date()) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris' }).format(d);
 const shift = (day: string, n: number) => { const d = new Date(day + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
@@ -21,7 +22,7 @@ export default function TtflBoard() {
   const [tbl, setTbl] = useState<Record<string, { status: string; until: string | null }>>({});
   const [q, setQ] = useState('');
   const [hideOut, setHideOut] = useState(true);
-  const [view, setView] = useState<'night' | 'deck' | 'inj'>('night');
+  const [view, setView] = useState<'night' | 'deck' | 'inj' | 'bilan'>('night');
 
   useEffect(() => { fetch('/api/outils/ttfl').then(r => r.json()).then(j => j.ok ? setHist(j.hist) : setErr(j.error || 'historique indisponible')).catch(e => setErr(String(e))); }, []);
   // Tableau des blessures partage (Rotowire / Underdog / ESPN) : complete le statut Sorare
@@ -55,11 +56,11 @@ export default function TtflBoard() {
         <h1 style={{ fontSize: 22, margin: 0, color: c.cy }}>TTFL Board</h1>
         <p style={{ color: c.dim, fontSize: 13, margin: '4px 0 14px' }}>Estimation du score TTFL de la nuit (jour Paris du coup d&apos;envoi). Calculée depuis la projection myNFTlocker (3,77 + 0,75 × projection), formule provisoire à recaler avec le journal des nuits. Joueurs incertains : ×0,88.</p>
         <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
-          {([['night', 'Estimations de la nuit'], ['deck', 'Deck builder'], ['inj', 'Blessures']] as const).map(([k, l]) => (
+          {([['night', 'Estimations de la nuit'], ['deck', 'Deck builder'], ['inj', 'Blessures'], ['bilan', 'Bilan']] as const).map(([k, l]) => (
             <button key={k} onClick={() => setView(k)} style={{ ...btn(c), borderColor: view === k ? c.cy : c.line, color: view === k ? c.cy : '#fff' }}>{l}</button>
           ))}
         </div>
-        {view === 'deck' ? <DeckBuilder /> : view === 'inj' ? <InjuriesTable /> : <>
+        {view === 'deck' ? <DeckBuilder /> : view === 'inj' ? <InjuriesTable /> : view === 'bilan' ? <Bilan /> : <>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 12 }}>
           <button onClick={() => setNight(shift(night, -1))} style={btn(c)}>◀</button>
           <input type="date" value={night} onChange={e => e.target.value && setNight(e.target.value)} style={{ ...btn(c), padding: '6px 10px' }} />
@@ -79,7 +80,7 @@ export default function TtflBoard() {
                 {rows.map((r, i) => (
                   <tr key={r.slug} style={{ borderTop: `1px solid ${c.line}`, opacity: r.out ? 0.45 : 1 }}>
                     <td style={{ padding: '8px 12px', color: c.dim }}>{i + 1}</td>
-                    <td style={{ padding: '8px 12px' }}>{r.name}{r.inj && <span style={{ marginLeft: 8, fontSize: 11, color: c.gold }}>{r.inj}</span>}</td>
+                    <td style={{ padding: '8px 12px' }}>{r.name}{r.inj && <span style={{ marginLeft: 8, fontSize: 11, color: c.gold }}>{r.inj}{tbl[norm(r.name)]?.until ? ` → ${tbl[norm(r.name)].until!.slice(5).split('-').reverse().join('/')}` : ''}</span>}</td>
                     <td style={{ padding: '8px 12px', color: c.dim }}>{r.home ? 'vs' : '@'} {r.opp} · {r.time}</td>
                     <td style={{ padding: '8px 12px', textAlign: 'right', color: c.cy, fontWeight: 700 }}>{r.est.toFixed(1)}</td>
                     <td style={{ padding: '8px 12px', textAlign: 'right' }}>{r.mp.toFixed(1)}</td>
