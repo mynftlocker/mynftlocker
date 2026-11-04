@@ -79,7 +79,7 @@ export default function GameplayList({ cards }: { cards: any[] }) {
   return (
     <div style={{ maxWidth: 1320, margin: '0 auto', padding: '0 1rem 3rem', color: '#e6f0f5' }}>
       <div style={{ fontSize: 12, opacity: 0.7, margin: '4px 0 10px' }}>
-        La projection Sorare est la même pour tous les matchs de la prochaine Game Week{fx ? ` (GW ${fx.gameWeek}, ${dayLab(fx.startDate)}–${dayLab(fx.endDate)})` : ''} ; les matchs affichés sont ceux de cette GW.
+        La projection Sorare est la même pour tous les matchs de la prochaine Game Week{fx ? ` (du ${dayLab(fx.startDate)} au ${dayLab(fx.endDate)})` : ''} ; les matchs affichés sont ceux de cette GW.
         {err && <span style={{ color: '#ff6b6b' }}> · {err}</span>}
       </div>
       <div style={{ overflowX: 'auto' }}>
