@@ -179,7 +179,20 @@ export default function CupBuilder() {
   const free = useMemo(() => bestP(freeItems, T.is, 5), [freeItems, T.is]);
   const mine = useMemo(() => bestP(ownedItems, T.is), [ownedItems, T.is]);
   const baseMean = useMemo(() => best(ownedItems, T.is).total, [ownedItems, T.is]);
-  const gains = useMemo(() => { if (ownedPool.length < 5) return []; const m = new Map<string, { x: (typeof buyItems)[number]; g: number }>(); for (const x of buyItems) { const g = best([...ownedItems, x], T.is, 1).total - baseMean; const c = m.get(x.p.slug); if (g > 0.05 && (!c || g > c.g)) m.set(x.p.slug, { x, g }); } return [...m.values()].sort((a, b) => b.g - a.g).slice(0, 12); }, [buyItems, ownedItems, ownedPool, baseMean, T.is]);
+  // Achats : pre-selection par gain de points (rapide), puis classement par gain de PROBABILITE (meme objectif que les compos affichees)
+  const gains = useMemo(() => {
+    if (ownedPool.length < 5) return [];
+    const m = new Map<string, { x: (typeof buyItems)[number]; g: number }>();
+    for (const x of buyItems) { const g = best([...ownedItems, x], T.is, 1).total - baseMean; const c = m.get(x.p.slug); if (g > 0.05 && (!c || g > c.g)) m.set(x.p.slug, { x, g }); }
+    const p0 = stat(mine.sel).prob;
+    const out: { x: (typeof buyItems)[number]; g: number; p0: number; p1: number }[] = [];
+    for (const c of [...m.values()].sort((a, b) => b.g - a.g).slice(0, 24)) {
+      const r = bestP([...ownedItems, c.x], T.is, 1);
+      if (!r.sel.some(y => y.p.slug === c.x.p.slug && y.buy)) continue;
+      out.push({ ...c, p0, p1: stat(r.sel).prob });
+    }
+    return out.sort((a, b) => (b.p1 - b.p0) - (a.p1 - a.p0) || b.g - a.g).slice(0, 12);
+  }, [buyItems, ownedItems, ownedPool, baseMean, T.is, mine]); // eslint-disable-line react-hooks/exhaustive-deps
   const buy1 = useMemo(() => bestP([...ownedItems, ...buyItems], T.is, 1).sel, [ownedItems, buyItems, T.is]);
   const buy2 = useMemo(() => bestP([...ownedItems, ...buyItems], T.is, 2).sel, [ownedItems, buyItems, T.is]);
   const mineList = mine.sel, freeList = free.sel;
@@ -299,12 +312,12 @@ export default function CupBuilder() {
         {ownedPool.length >= 5 && mine.idx.length < 5 && <div style={{ ...box, fontSize: 13, color: '#ffb020' }}>Avec tes cartes, aucune compo de 5 ne respecte le cap de 16★ et les {T.is} In-Season du palier {T.n}. Les achats ci-dessous complètent l'équipe.</div>}
         {ownedPool.length >= 5 && (
           <div style={box}>
-            <div style={{ fontWeight: 700, color: '#ffd24a', marginBottom: 6 }}>Cartes à acheter (gain de points sur ta meilleure compo)</div>
+            <div style={{ fontWeight: 700, color: '#ffd24a', marginBottom: 6 }}>Cartes à acheter (gain de probabilité et de points sur ta meilleure compo)</div>
             {gains.length === 0 && <div style={{ fontSize: 13, opacity: 0.7 }}>Aucun achat n'améliore ta compo sous le cap.</div>}
-            {gains.map(({ x, g }) => (
+            {gains.map(({ x, g, p0, p1 }) => (
               <div key={x.p.slug} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, padding: '2px 0' }}>
                 <span>{x.p.name} <span style={{ opacity: 0.55 }}>· {x.p.stars}★ · {x.p.team.split(' ').pop()} {x.p.home ? 'vs' : '@'} {x.p.opp.split(' ').pop()} · {x.is ? 'IS +5%' : 'Classic suffit'}</span></span>
-                <b style={{ color: '#4ade80' }}>+{g.toFixed(1)} pts</b>
+                <b style={{ color: '#4ade80' }}>{Math.round(p0 * 100)} % → {Math.round(p1 * 100)} % <span style={{ opacity: 0.6, fontWeight: 400 }}>· +{g.toFixed(1)} pts</span></b>
               </div>
             ))}
           </div>
