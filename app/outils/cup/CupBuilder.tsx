@@ -123,7 +123,7 @@ export default function CupBuilder() {
   const T = TIERS[tier - 1];
   const val = (p: P) => {
     const l5 = p.l5 ?? p.proj, l10 = p.l10 ?? p.proj;
-    const b = metric === 'proj' ? p.proj : metric === 'l5' ? l5 : metric === 'l10' ? l10 : 0.5 * p.proj + 0.3 * l5 + 0.2 * l10;
+    const b = metric === 'proj' ? p.proj : metric === 'l5' ? l5 : metric === 'l10' ? l10 : 0.7 * p.proj + 0.1 * l5 + 0.2 * l10;
     return p.inj === 'GTD' ? b * 0.88 : b;
   };
   const pool = useMemo(() => data.filter(p => !(noOut && p.inj && p.inj !== 'GTD')).map((p, i) => ({ p, v: val(p), c: Math.round(p.stars * 2), i })), [data, metric, noOut]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -256,7 +256,7 @@ export default function CupBuilder() {
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
             <span style={{ fontSize: 12, opacity: 0.7 }}>Estimation :</span>
-            {([['mix', 'Mix (proj 50 / L5 30 / L10 20)'], ['proj', 'Projection Sorare'], ['l5', 'L5'], ['l10', 'L10']] as [Metric, string][]).map(([m, l]) => <button key={m} onClick={() => setMetric(m)} style={btn(m === metric)}>{l}</button>)}
+            {([['mix', 'Mix (proj 70 / L5 10 / L10 20)'], ['proj', 'Projection Sorare'], ['l5', 'L5'], ['l10', 'L10']] as [Metric, string][]).map(([m, l]) => <button key={m} onClick={() => setMetric(m)} style={btn(m === metric)}>{l}</button>)}
             <label style={{ fontSize: 13, marginLeft: 8 }}><input type="checkbox" checked={noOut} onChange={e => setNoOut(e.target.checked)} /> Exclure blessés</label>
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', marginTop: 10 }}>
@@ -354,7 +354,7 @@ export default function CupBuilder() {
                 <span onClick={() => sortBy('proj')} title="Projection Sorare pour le match de la nuit (comme sur la fiche joueur)" style={{ lineHeight: 1.1 }}>Proj.{arrow('proj')}<br /><small style={{ fontSize: 9, color: '#ffd24a' }}>Sorare</small></span>
                 <span onClick={() => sortBy('d5')} title="Projection Sorare moins L5 : vert = Sorare voit mieux que sa forme récente" style={{ lineHeight: 1.1 }}>± L5{arrow('d5')}<br /><small style={{ fontSize: 9, opacity: 0.7 }}>proj−L5</small></span>
                 <span onClick={() => sortBy('d10')} title="Projection Sorare moins L10" style={{ lineHeight: 1.1 }}>± L10{arrow('d10')}<br /><small style={{ fontSize: 9, opacity: 0.7 }}>proj−L10</small></span>
-                <span onClick={() => sortBy('est')} title={metric === 'mix' ? 'Score estimé par l\'outil = mix (50 % projection Sorare + 30 % L5 + 20 % L10) × bonus de la carte' : 'Score estimé par l\'outil selon la méthode choisie × bonus de la carte'} style={{ lineHeight: 1.1, color: '#4ade80' }}>Estimation{arrow('est')}<br /><small style={{ fontSize: 9 }}>{metric === 'mix' ? 'mix×bonus' : metric === 'proj' ? 'proj×bonus' : metric + '×bonus'}</small></span>
+                <span onClick={() => sortBy('est')} title={metric === 'mix' ? 'Score estimé par l\'outil = mix (70 % projection Sorare + 10 % L5 + 20 % L10) × bonus de la carte' : 'Score estimé par l\'outil selon la méthode choisie × bonus de la carte'} style={{ lineHeight: 1.1, color: '#4ade80' }}>Estimation{arrow('est')}<br /><small style={{ fontSize: 9 }}>{metric === 'mix' ? 'mix×bonus' : metric === 'proj' ? 'proj×bonus' : metric + '×bonus'}</small></span>
                 <span onClick={() => sortBy('eff')} title="Score estimé par étoile">Pts/★{arrow('eff')}</span>
               </div>
               {rows.slice(0, 150).map(({ x, o }) => {
