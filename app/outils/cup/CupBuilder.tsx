@@ -329,16 +329,29 @@ export default function CupBuilder() {
           </div>
           <div style={{ overflowX: 'auto' }}>
             <div style={{ minWidth: 780 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 44px 52px 52px 52px 56px 56px 64px 56px 110px', gap: 4, fontSize: 11, opacity: 0.7, padding: '0 4px 4px', cursor: 'pointer', color: '#40e8ff' }}>
-                <span onClick={() => sortBy('name')}>Joueur{arrow('name')}</span><span onClick={() => sortBy('stars')}>★{arrow('stars')}</span><span onClick={() => sortBy('proj')}>Proj.{arrow('proj')}</span><span onClick={() => sortBy('l5')}>L5{arrow('l5')}</span><span onClick={() => sortBy('l10')}>L10{arrow('l10')}</span><span onClick={() => sortBy('d5')} title="Projection moins L5">± L5{arrow('d5')}</span><span onClick={() => sortBy('d10')} title="Projection moins L10">± L10{arrow('d10')}</span><span onClick={() => sortBy('est')}>Est.{arrow('est')}</span><span onClick={() => sortBy('eff')} title="Points par étoile">Pts/★{arrow('eff')}</span><span>Carte</span>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 40px 104px 48px 48px 62px 52px 52px 64px 52px', gap: 4, fontSize: 11, opacity: 0.7, padding: '0 4px 4px', cursor: 'pointer', color: '#40e8ff' }}>
+                <span onClick={() => sortBy('name')}>Joueur{arrow('name')}</span>
+                <span onClick={() => sortBy('stars')} title="Étoiles de la carte (cap 16)">★{arrow('stars')}</span>
+                <span title="Ta carte (🟣 In-Season, ✅ Classic) et son bonus, ou carte à acheter">Carte</span>
+                <span onClick={() => sortBy('l5')} title="Moyenne des 5 derniers matchs">L5{arrow('l5')}</span>
+                <span onClick={() => sortBy('l10')} title="Moyenne des 10 derniers matchs">L10{arrow('l10')}</span>
+                <span onClick={() => sortBy('proj')} title="Projection Sorare pour le match de la nuit (comme sur la fiche joueur)" style={{ lineHeight: 1.1 }}>Proj.{arrow('proj')}<br /><small style={{ fontSize: 9, color: '#ffd24a' }}>Sorare</small></span>
+                <span onClick={() => sortBy('d5')} title="Projection Sorare moins L5 : vert = Sorare voit mieux que sa forme récente" style={{ lineHeight: 1.1 }}>± L5{arrow('d5')}<br /><small style={{ fontSize: 9, opacity: 0.7 }}>proj−L5</small></span>
+                <span onClick={() => sortBy('d10')} title="Projection Sorare moins L10" style={{ lineHeight: 1.1 }}>± L10{arrow('d10')}<br /><small style={{ fontSize: 9, opacity: 0.7 }}>proj−L10</small></span>
+                <span onClick={() => sortBy('est')} title={metric === 'mix' ? 'Score estimé par l\'outil = mix (50 % projection Sorare + 30 % L5 + 20 % L10) × bonus de la carte' : 'Score estimé par l\'outil selon la méthode choisie × bonus de la carte'} style={{ lineHeight: 1.1, color: '#4ade80' }}>Est.{arrow('est')}<br /><small style={{ fontSize: 9 }}>{metric === 'mix' ? 'mix×bonus' : metric === 'proj' ? 'proj×bonus' : metric + '×bonus'}</small></span>
+                <span onClick={() => sortBy('eff')} title="Score estimé par étoile">Pts/★{arrow('eff')}</span>
               </div>
               {rows.slice(0, 150).map(({ x, o }) => {
                 const p = x.p; const ow = own(p.slug);
                 return (
-                  <div key={p.slug} onClick={() => setSel(c => (c.length < 5 ? [...c, p.slug] : c))} style={{ display: 'grid', gridTemplateColumns: '1fr 44px 52px 52px 52px 56px 56px 64px 56px 110px', gap: 4, fontSize: 13, padding: '5px 4px', cursor: 'pointer', borderRadius: 6, background: ow ? 'rgba(0,255,255,0.08)' : 'transparent', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                  <div key={p.slug} onClick={() => setSel(c => (c.length < 5 ? [...c, p.slug] : c))} style={{ display: 'grid', gridTemplateColumns: '1fr 40px 104px 48px 48px 62px 52px 52px 64px 52px', gap: 4, fontSize: 13, padding: '5px 4px', cursor: 'pointer', borderRadius: 6, background: ow ? 'rgba(0,255,255,0.08)' : 'transparent', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
                     <span>{p.name} <span style={{ opacity: 0.5 }}>{p.team.split(' ').pop()} {p.home ? 'vs' : '@'} {p.opp.split(' ').pop()} {p.time}</span>{p.inj ? <span style={{ color: p.inj === 'GTD' ? '#ffb020' : '#ff4d4d' }}> {p.inj}</span> : null}</span>
-                    <span>{p.stars}</span><span>{p.proj.toFixed(0)}</span><span>{p.l5 == null ? '–' : p.l5.toFixed(0)}</span><span>{p.l10 == null ? '–' : p.l10.toFixed(0)}</span>{(['l5', 'l10'] as const).map(k => { const d = p[k] == null ? null : p.proj - (p[k] as number); return <span key={k} style={{ color: d == null ? '#9aa' : d > 1 ? '#4ade80' : d < -1 ? '#ff6b6b' : '#cfd8dc' }}>{d == null ? '–' : (d > 0 ? '+' : '') + d.toFixed(0)}</span>; })}<b>{o.v.toFixed(0)}</b><span>{(o.v / p.stars).toFixed(1)}</span>
-                    <span style={{ fontSize: 11, opacity: 0.85 }}>{o.buy ? 'À acheter' + (locked[p.slug] ? ' 🔒' : '') : (o.is ? '🟣 IS' : '✅ CL') + ' +' + Math.round(((o.pw ?? 1) - 1) * 100) + '%'}</span>
+                    <span>{p.stars}</span>
+                    <span style={{ fontSize: 11, opacity: 0.9 }}>{o.buy ? 'À acheter' + (locked[p.slug] ? ' 🔒' : '') : (o.is ? '🟣 IS' : '✅ CL') + ' +' + Math.round(((o.pw ?? 1) - 1) * 100) + '%'}</span>
+                    <span>{p.l5 == null ? '–' : p.l5.toFixed(0)}</span><span>{p.l10 == null ? '–' : p.l10.toFixed(0)}</span>
+                    <span style={{ color: '#ffd24a' }}>{p.proj.toFixed(0)}</span>
+                    {(['l5', 'l10'] as const).map(k => { const d = p[k] == null ? null : p.proj - (p[k] as number); return <span key={k} style={{ color: d == null ? '#9aa' : d > 1 ? '#4ade80' : d < -1 ? '#ff6b6b' : '#cfd8dc' }}>{d == null ? '–' : (d > 0 ? '+' : '') + d.toFixed(0)}</span>; })}
+                    <b style={{ color: '#4ade80' }}>{o.v.toFixed(0)}</b><span>{(o.v / p.stars).toFixed(1)}</span>
                   </div>
                 );
               })}
