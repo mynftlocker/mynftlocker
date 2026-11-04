@@ -15,12 +15,16 @@ const plus = (n: number) => day(new Date(Date.now() + n * 86400000));
 type Snap = { t: number; p: [string, number, number | null, number | null, number | null, number | null, string | null][] };
 
 async function snapshot(origin: string, night: string) {
-  if (await redis.get(`cuplog:snap:${night}`)) return 'deja';
+  const [haveC, haveT] = await Promise.all([redis.get(`cuplog:snap:${night}`), redis.get(`ttflog:snap:${night}`)]);
+  if (haveC && haveT) return 'deja';
   const r = await fetch(`${origin}/api/outils/cup?night=${night}`, { cache: 'no-store' });
   const j = await r.json(); const pl: any[] = (j.players || []).filter((p: any) => p.pm);
   if (!pl.length) return 'vide';
   const snap: Snap = { t: Date.now(), p: pl.map(p => [p.slug, p.proj, p.l5 ?? null, p.l10 ?? null, p.sd ?? null, p.max ?? null, p.inj ?? null]) };
-  await redis.set(`cuplog:snap:${night}`, snap, { ex: 60 * 86400 }); return pl.length;
+  if (!haveC) await redis.set(`cuplog:snap:${night}`, snap, { ex: 60 * 86400 });
+  // Journal TTFL : memes entrees mais avec le nom (le score TTFL reel est relu par nom dans les box-scores ESPN)
+  if (!haveT) await redis.set(`ttflog:snap:${night}`, pl.map(p => [p.name, p.proj, p.l5 ?? null, p.l10 ?? null, p.inj ?? null]), { ex: 60 * 86400 }).catch(() => {});
+  return pl.length;
 }
 async function settle(night: string) {
   if (await redis.get(`cuplog:res:${night}`)) return 'deja';
