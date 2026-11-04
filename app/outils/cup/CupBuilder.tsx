@@ -133,8 +133,8 @@ export default function CupBuilder() {
     if (e.i !== undefined) out.push({ ...x, v: x.v * e.i, is: true, pw: e.i });
     return out;
   }), [pool, owned, col, pw]);
-  const freeItems = useMemo(() => pool.map(x => ({ ...x, is: true, pw: 1.05 })), [pool]);
-  const buyItems = useMemo(() => pool.filter(x => !own(x.p.slug)).map(x => ({ ...x, is: true, buy: true, pw: 1.05 })), [pool, owned, col]); // eslint-disable-line react-hooks/exhaustive-deps
+  const freeItems = useMemo(() => pool.map(x => ({ ...x, v: x.v * 1.05, is: true, pw: 1.05 })), [pool]);
+  const buyItems = useMemo(() => pool.filter(x => !own(x.p.slug)).map(x => ({ ...x, v: x.v * 1.05, is: true, buy: true, pw: 1.05 })), [pool, owned, col]); // eslint-disable-line react-hooks/exhaustive-deps
   const free = useMemo(() => best(freeItems, T.is), [freeItems, T.is]);
   const mine = useMemo(() => best(ownedItems, T.is), [ownedItems, T.is]);
   const gains = useMemo(() => ownedPool.length < 5 ? [] : buyItems.map(x => ({ x, g: best([...ownedItems, x], T.is, 1).total - mine.total })).filter(r => r.g > 0.05).sort((a, b) => b.g - a.g).slice(0, 12), [buyItems, ownedItems, ownedPool, mine, T.is]);
