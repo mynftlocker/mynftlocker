@@ -20,6 +20,7 @@ const avg = (a: number[]) => (a.length ? a.reduce((s, x) => s + x, 0) / a.length
 
 export async function GET(req: NextRequest) {
   const slugs = (req.nextUrl.searchParams.get('slugs') || '').split(',').map((s) => s.trim()).filter((s) => /^[a-z0-9-]{3,80}$/.test(s)).slice(0, 60);
+  const fut = (req.nextUrl.searchParams.get('fut') || '').split(',').map((s) => s.trim()).filter((s) => /^[a-z0-9-]{3,80}$/.test(s)).slice(0, 40);
   const wantGames = req.nextUrl.searchParams.get('games') === '1';
   try {
     let fixture: any = null; const games: Record<string, { date: string; opp: string; home: boolean }[]> = {};
@@ -46,7 +47,15 @@ export async function GET(req: NextRequest) {
         min5: avg(mn.slice(0, 5)), min10: avg(mn), n: sc.length,
       };
     }
-    return NextResponse.json({ fixture, games, players });
+    // Projection Sorare PAR MATCH (fiche joueur) : anyFutureGames -> playerGameScore(playerSlug).projectedScore
+    const future: Record<string, { date: string; gw: number | null; proj: number | null }[]> = {};
+    await Promise.all(fut.map(async (sl) => {
+      try {
+        const d = await gql(`{ anyPlayer(slug:"${sl}"){ ... on NBAPlayer{ anyFutureGames(first:8){ nodes{ ... on GameOfBasketball{ date so5Fixture{ gameWeek } playerGameScore(playerSlug:"${sl}"){ projectedScore } } } } } } }`);
+        future[sl] = (d.anyPlayer?.anyFutureGames?.nodes || []).map((g: any) => ({ date: g.date, gw: g.so5Fixture?.gameWeek ?? null, proj: g.playerGameScore?.projectedScore ?? null }));
+      } catch { /* joueur sans donnee : ligne sans projection par match */ }
+    }));
+    return NextResponse.json({ fixture, games, players, future });
   } catch (e: any) {
     return NextResponse.json({ error: String(e?.message || e) }, { status: 502, headers: { 'Cache-Control': 'no-store' } });
   }
