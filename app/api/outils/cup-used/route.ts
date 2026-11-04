@@ -15,7 +15,7 @@ async function gql(query: string) {
 export async function GET(req: NextRequest) {
   const probe = req.nextUrl.searchParams.get('probe');
   const who = await gql('{ currentUser { slug nickname } }');
-  if (probe && /^[A-Za-z0-9_]{2,40}$/.test(probe) && probe !== 'who') { // decouverte du schema : ne renvoie que le message d'erreur (suggestions de champs), jamais de donnees
+  if (probe && /^[A-Za-z0-9_]{2,40}$/.test(probe) && probe !== 'who' && probe !== 'usage') { // decouverte du schema : ne renvoie que le message d'erreur (suggestions de champs), jamais de donnees
     const d = await gql(`{ currentUser { ${probe} } }`);
     return NextResponse.json({ err: String(d?.errors?.[0]?.message || 'ok').slice(0, 300) });
   }
