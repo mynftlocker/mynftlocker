@@ -69,6 +69,15 @@ export async function GET(req: NextRequest) {
         l5: avg(l5), l10: m, sd, max: sc.length ? Math.max(...sc) : null, n: l10.length, inj: inj?.status || null,
       };
     }).filter((p: any) => p.stars != null && p.proj != null);
+    // Projection Sorare du MATCH de cette nuit (fiche joueur : anyFutureGames -> playerGameScore.projectedScore), a la place de la projection GW
+    await Promise.all(players.map(async (pl: any) => {
+      try {
+        const d = await gql(`{ anyPlayer(slug:"${pl.slug}"){ ... on NBAPlayer{ anyFutureGames(first:6){ nodes{ ... on GameOfBasketball{ date playerGameScore(playerSlug:"${pl.slug}"){ projectedScore } } } } } } }`);
+        const g = (d.anyPlayer?.anyFutureGames?.nodes || []).find((x: any) => berlinDay(x.date) === night);
+        const v = g?.playerGameScore?.projectedScore;
+        if (v != null && isFinite(Number(v))) { pl.projGw = pl.proj; pl.proj = Number(v); pl.pm = true; }
+      } catch { /* on garde la projection GW */ }
+    }));
     return NextResponse.json({ night, games: games.length, players });
   } catch (e: any) {
     return NextResponse.json({ error: String(e?.message || e) }, { status: 502, headers: { "Cache-Control": "no-store" } });
