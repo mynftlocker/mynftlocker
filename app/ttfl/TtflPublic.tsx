@@ -11,10 +11,28 @@ const defaultNight = () => { const h = Number(new Intl.DateTimeFormat('en-GB', {
 const lbl = (day: string) => new Date(day + 'T12:00:00Z').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
 const dm = (d: string) => d.slice(5).split('-').reverse().join('/');
 
-type R = { name: string; team: string; opp: string; home: boolean; time: string; est: number; proj: number; l10: number | null; n: number; last: number | null; gp: number; tg: number; status: 'OUT' | 'GTD' | null; until: string | null };
+type R = { name: string; team: string; opp: string; home: boolean; time: string; est: number; proj: number; l10: number | null; n: number; last: number | null; gp: number; tg: number; g: [string, number, number][]; status: 'OUT' | 'GTD' | null; until: string | null };
 type I = { name: string; team: string; status: 'OUT' | 'GTD' | 'PROB'; until: string | null; untilKind: 'return' | 'reeval' | null; src: string; updated: string };
 type SK = 'name' | 'match' | 'est' | 'l10' | 'last' | 'pres';
-const val = (r: R, k: SK): number | string => k === 'name' ? r.name : k === 'match' ? r.opp : k === 'est' ? r.est : k === 'l10' ? r.l10 ?? -1 : k === 'last' ? r.last ?? -1 : r.tg ? r.gp / r.tg : -1;
+type W = 5 | 10 | 0;
+const avg = (r: R, w: W) => { const g = w ? r.g.slice(-w) : r.g; return g.length ? g.reduce((s, x) => s + x[1], 0) / g.length : null; };
+const trend = (r: R) => { const a = avg(r, 5), b = avg(r, 10); return a == null || b == null || r.g.length < 6 ? 0 : a - b >= 3 ? 1 : a - b <= -3 ? -1 : 0; };
+const ddmm = (d: string) => d.slice(8) + '/' + d.slice(5, 7);
+// Scores TTFL match par match (barres) avec la projection de la nuit et la moyenne en reperes.
+function Bars({ r }: { r: R }) {
+  const g = r.g.slice(-20); const W = 640, H = 200, L = 30, B = 22, T = 14; const hi = Math.max(10, ...g.map(x => x[1]), r.est) + 4; const lo = Math.min(0, ...g.map(x => x[1]));
+  const bw = (W - L - 8) / Math.max(g.length, 1); const y = (v: number) => T + (1 - (v - lo) / (hi - lo)) * (H - T - B); const a = avg(r, 0);
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block' }} role="img" aria-label={`Scores TTFL de ${r.name}`}>
+      <line x1={L} x2={W - 8} y1={y(0)} y2={y(0)} stroke={c.line} />
+      {g.map((x, i) => <g key={x[0]}><rect x={L + i * bw + 3} y={Math.min(y(x[1]), y(0))} width={Math.max(bw - 6, 2)} height={Math.abs(y(x[1]) - y(0))} rx="3" fill={x[1] >= r.est ? c.cy : 'rgba(0,255,255,.35)'} /><text x={L + i * bw + bw / 2} y={y(Math.max(x[1], 0)) - 4} fill="#fff" fontSize="10" textAnchor="middle">{x[1]}</text><text x={L + i * bw + bw / 2} y={H - 6} fill={c.dim} fontSize="9" textAnchor="middle">{ddmm(x[0])}</text></g>)}
+      <line x1={L} x2={W - 8} y1={y(r.est)} y2={y(r.est)} stroke={c.gold} strokeDasharray="5 4" /><text x={L + 2} y={y(r.est) - 4} fill={c.gold} fontSize="11">Projection {r.est.toFixed(1)}</text>
+      {a != null && <><line x1={L} x2={W - 8} y1={y(a)} y2={y(a)} stroke="rgba(255,255,255,.5)" strokeDasharray="2 4" /><text x={W - 10} y={y(a) - 4} fill="rgba(255,255,255,.7)" fontSize="11" textAnchor="end">Moyenne {a.toFixed(1)}</text></>}
+    </svg>
+  );
+}
+let W_CUR: W = 10;
+const val = (r: R, k: SK): number | string => k === 'name' ? r.name : k === 'match' ? r.opp : k === 'est' ? r.est : k === 'l10' ? avg(r, W_CUR) ?? -1 : k === 'last' ? r.last ?? -1 : r.tg ? r.gp / r.tg : -1;
 const c = { cy: '#00ffff', gold: '#e5b94e', dim: 'rgba(255,255,255,.6)', line: 'rgba(255,255,255,.12)', card: 'rgba(8,12,28,.72)' };
 
 export default function TtflPublic() {
@@ -25,6 +43,8 @@ export default function TtflPublic() {
   const [hideOut, setHideOut] = useState(true);
   const [view, setView] = useState<'night' | 'live' | 'inj'>('night');
   const [inj, setInj] = useState<I[] | null>(null);
+  const [win, setWin] = useState<W>(10);
+  const [open, setOpen] = useState<string | null>(null);
   const [sort, setSort] = useState<{ k: SK; dir: 1 | -1 }>({ k: 'est', dir: -1 });
 
   useEffect(() => {
@@ -33,12 +53,13 @@ export default function TtflPublic() {
   }, [night]);
   useEffect(() => { if (view === 'inj' && !inj) fetch('/api/ttfl?inj=1').then(r => r.json()).then(j => j.ok && setInj(j.rows)).catch(() => {}); }, [view, inj]);
 
+  W_CUR = win;
   const list = useMemo(() => (rows || []).filter(r => !(hideOut && r.status === 'OUT') && (!q || norm(r.name).includes(norm(q)) || norm(r.team).includes(norm(q))))
-    .slice().sort((a, b) => { const x = val(a, sort.k), y = val(b, sort.k); const d = typeof x === 'string' ? x.localeCompare(y as string) : (x as number) - (y as number); return d * sort.dir || b.est - a.est; }), [rows, hideOut, q, sort]);
+    .slice().sort((a, b) => { const x = val(a, sort.k), y = val(b, sort.k); const d = typeof x === 'string' ? x.localeCompare(y as string) : (x as number) - (y as number); return d * sort.dir || b.est - a.est; }), [rows, hideOut, q, sort, win]);
   const rank = useMemo(() => { const m: Record<string, number> = {}; (rows || []).forEach((r, i) => { m[r.name] = i + 1; }); return m; }, [rows]);
   const heat = (v: number | null, lo: number, hi: number) => v == null ? c.dim : hi <= lo ? '#fff' : (v - lo) / (hi - lo) > 0.75 ? c.cy : (v - lo) / (hi - lo) > 0.4 ? '#fff' : 'rgba(255,255,255,.6)';
   const eLo = Math.min(...list.map(r => r.est)), eHi = Math.max(...list.map(r => r.est));
-  const lLo = Math.min(...list.filter(r => r.l10 != null).map(r => r.l10 as number)), lHi = Math.max(...list.filter(r => r.l10 != null).map(r => r.l10 as number));
+  const lv = list.map(r => avg(r, win)).filter((x): x is number => x != null); const lLo = Math.min(...lv), lHi = Math.max(...lv);
   const toggle = (k: SK) => setSort(s => s.k === k ? { k, dir: (s.dir * -1) as 1 | -1 } : { k, dir: k === 'name' || k === 'match' ? 1 : -1 });
   const projMap = useMemo(() => { const m: Record<string, number> = {}; (rows || []).forEach(r => { m[norm(r.name)] = r.est; }); return m; }, [rows]);
   const top = (rows || []).filter(r => r.status !== 'OUT').slice(0, 5);
@@ -89,25 +110,35 @@ export default function TtflPublic() {
               ))}
             </div>
           )}
+          {rows && list.length > 0 && <div style={{ display: 'flex', gap: 6, alignItems: 'center', margin: '0 0 8px', fontSize: 13, color: c.dim }}>Forme sur
+            {([[5, '5 matchs'], [10, '10 matchs'], [0, 'Saison']] as [W, string][]).map(([w, l]) => <button key={w} onClick={() => setWin(w)} style={{ ...btn(win === w), padding: '4px 10px', fontSize: 13 }}>{l}</button>)}
+            <span style={{ marginLeft: 'auto', fontSize: 12 }}>Clique sur un joueur pour voir ses scores match par match</span></div>}
           {rows && list.length > 0 && (
             <div style={{ background: c.card, border: `1px solid ${c.line}`, borderRadius: 14, overflowX: 'auto', backdropFilter: 'blur(6px)' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, minWidth: 640 }}>
                 <thead><tr style={{ color: c.dim, textAlign: 'left' }}>
                   <th style={{ padding: '10px 12px', fontWeight: 500 }}>#</th>
-                  {([['name', 'Joueur'], ['match', 'Match'], ['est', 'Projection'], ['l10', 'Moy. 10'], ['last', 'Dernier'], ['pres', 'Présence']] as [SK, string][]).map(([k, h], i) => (
+                  {([['name', 'Joueur'], ['match', 'Match'], ['est', 'Projection'], ['l10', win ? 'Moy. ' + win : 'Moy. saison'], ['last', 'Dernier'], ['pres', 'Présence']] as [SK, string][]).map(([k, h], i) => (
                     <th key={k} onClick={() => toggle(k)} aria-sort={sort.k === k ? (sort.dir === 1 ? 'ascending' : 'descending') : 'none'} style={{ padding: '10px 12px', fontWeight: 500, textAlign: i > 1 ? 'right' : 'left', whiteSpace: 'nowrap', cursor: 'pointer', userSelect: 'none', color: sort.k === k ? c.cy : c.dim }}>{h} {sort.k === k ? (sort.dir === 1 ? '▲' : '▼') : <span style={{ opacity: .35 }}>↕</span>}</th>
                   ))}
                 </tr></thead>
-                <tbody>{list.map(r => (
-                  <tr key={r.name} style={{ borderTop: `1px solid ${c.line}`, opacity: r.status === 'OUT' ? 0.45 : 1 }}>
+                <tbody>{list.map(r => { const a = avg(r, win), tr = trend(r), o = open === r.name; return [
+                  <tr key={r.name} onClick={() => setOpen(o ? null : r.name)} style={{ borderTop: `1px solid ${c.line}`, opacity: r.status === 'OUT' ? 0.45 : 1, cursor: 'pointer', background: o ? 'rgba(0,255,255,.07)' : 'transparent' }}>
                     <td style={{ padding: '8px 12px', color: c.dim }}>{rank[r.name]}</td>
                     <td style={{ padding: '8px 12px', whiteSpace: 'nowrap' }}>{r.name}{r.status && badge(r.status, r.status === 'OUT' && r.until ? `OUT → ${dm(r.until)}` : r.status)}</td>
                     <td style={{ padding: '8px 12px', color: c.dim, whiteSpace: 'nowrap' }}>{r.home ? 'vs' : '@'} {r.opp} · {r.time}</td>
                     <td style={{ padding: '8px 12px', textAlign: 'right', color: heat(r.est, eLo, eHi), fontWeight: 700 }}>{r.est.toFixed(1)}</td>
-                    <td style={{ padding: '8px 12px', textAlign: 'right', color: heat(r.l10, lLo, lHi) }}>{r.l10 == null ? '–' : r.l10.toFixed(1)}</td>
+                    <td style={{ padding: '8px 12px', textAlign: 'right', color: heat(a, lLo, lHi) }}>{a == null ? '–' : a.toFixed(1)}{tr !== 0 && <span title={tr > 0 ? 'En hausse (5 derniers vs 10)' : 'En baisse (5 derniers vs 10)'} style={{ marginLeft: 4, fontSize: 10, color: tr > 0 ? '#4ade80' : '#ff7b7b' }}>{tr > 0 ? '▲' : '▼'}</span>}</td>
                     <td style={{ padding: '8px 12px', textAlign: 'right' }}>{r.last ?? '–'}</td>
                     <td style={{ padding: '8px 12px', textAlign: 'right', color: r.tg && r.gp < r.tg - 1 ? '#ff9f43' : c.dim }}>{r.tg ? `${r.gp}/${r.tg}` : '–'}</td>
-                  </tr>))}</tbody>
+                  </tr>,
+                  o && <tr key={r.name + 'x'}><td colSpan={7} style={{ padding: '10px 12px 14px', background: 'rgba(0,255,255,.04)' }}>
+                    {r.g.length ? <Bars r={r} /> : <span style={{ color: c.dim }}>Pas encore de match joué cette saison.</span>}
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8, fontSize: 12 }}>
+                      {([['Moy. 5', avg(r, 5)], ['Moy. 10', avg(r, 10)], ['Saison', avg(r, 0)], ['Max', r.g.length ? Math.max(...r.g.map(x => x[1])) : null], ['Min', r.g.length ? Math.min(...r.g.map(x => x[1])) : null]] as [string, number | null][]).map(([k, v]) => (
+                        <span key={k} style={{ border: `1px solid ${c.line}`, borderRadius: 8, padding: '3px 8px' }}><span style={{ color: c.dim }}>{k}</span> <b>{v == null ? '–' : v.toFixed(1)}</b></span>))}
+                    </div>
+                  </td></tr>]; })}</tbody>
               </table>
             </div>
           )}
