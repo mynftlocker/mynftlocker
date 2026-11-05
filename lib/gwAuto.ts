@@ -13,6 +13,7 @@ export type Room = {
   night?: string;     // Cup : seule la nuit demandee compte (YYYY-MM-DD, date Paris)
   pins: string[];     // cartes imposees (ids de cartes)
   auto: boolean;      // true = le moteur complete ; false = seulement les cartes choisies
+  rar?: string[];     // raretes autorisees pour l'auto (defaut : limited)
 };
 
 export const PRESETS: { kind: RoomKind; label: string; cap: number; minIS: number; bonus: boolean }[] = [
@@ -26,7 +27,9 @@ export const PRESETS: { kind: RoomKind; label: string; cap: number; minIS: numbe
 // Paliers de la Cup : cartes In-Season minimum (cap 16 etoiles)
 export const CUP_TIERS = [{ n: 1, pts: 230, is: 1 }, { n: 2, pts: 250, is: 1 }, { n: 3, pts: 270, is: 2 }, { n: 4, pts: 280, is: 3 }, { n: 5, pts: 300, is: 4 }];
 
-export type Card = { id: string; p: GP; is: boolean; pw: number; pic: string | null };
+export type Card = { id: string; p: GP; is: boolean; pw: number; pic: string | null; rar?: string };
+export const RARITIES = [{ k: 'limited', l: 'Limited' }, { k: 'rare', l: 'Rare' }, { k: 'super_rare', l: 'Super Rare' }];
+export const roomRar = (r: Room) => r.rar && r.rar.length ? r.rar : ['limited'];
 
 const parisDay = (iso: string) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris' }).format(new Date(iso));
 export const gtdMul = (p: GP) => (p.inj === 'GTD' ? 0.88 : 1);
@@ -103,7 +106,8 @@ export function allocate(rooms: Room[], cards: Card[]): RoomResult[] {
     locked.forEach(c => taken.add(c.id));
     let lineup = locked;
     if (r.auto && locked.length < 5) {
-      const free = cards.filter(c => !taken.has(c.id) && !pinned.has(c.id)).map(c => toCand(c, r));
+      const rr = roomRar(r);
+      const free = cards.filter(c => !taken.has(c.id) && !pinned.has(c.id) && rr.includes(c.rar || 'limited')).map(c => toCand(c, r));
       lineup = solve(free, r, locked);
     }
     lineup.forEach(c => taken.add(c.id));

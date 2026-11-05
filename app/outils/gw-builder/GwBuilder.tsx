@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
 import type { GP } from '../../../lib/gwLineup';
-import { PRESETS, CUP_TIERS, allocate, cardValue, type Card, type Room, type RoomKind } from '../../../lib/gwAuto';
+import { PRESETS, RARITIES, roomRar, CUP_TIERS, allocate, cardValue, type Card, type Room, type RoomKind } from '../../../lib/gwAuto';
 import StarBg from '../../components/StarBg';
 import { Slab } from '../gw/Slab';
 
@@ -93,11 +93,11 @@ export default function GwBuilder() {
     const by: Record<string, GP> = {}; players.forEach(p => { by[p.slug] = p; });
     const out: Card[] = [];
     for (const x of rawCards) {
-      if (String(x.rarityTyped || '').toLowerCase() !== 'limited') continue; // Limited uniquement
+      const rar = String(x.rarityTyped || '').toLowerCase(); if (!['limited', 'rare', 'super_rare'].includes(rar)) continue;
       const p = by[x.anyPlayer?.slug]; if (!p || p.games <= 0) continue;
       if (noInj && p.inj && p.inj !== 'GTD') continue;
       if (used[x.slug]) continue; // deja alignee dans une compo de cette GW
-      out.push({ id: x.slug, p, is: !!x.inSeasonEligible, pw: Number(x.power) || 1, pic: x.pictureUrl || p.pic });
+      out.push({ id: x.slug, p, is: !!x.inSeasonEligible, pw: Number(x.power) || 1, pic: x.pictureUrl || p.pic, rar });
     }
     return out;
   }, [rawCards, players, used, noInj]);
@@ -130,7 +130,7 @@ export default function GwBuilder() {
     const mine = pickerRes.lineup.filter(x => pickerRoom.pins.includes(x.id)), ql = q.toLowerCase(); // seules les cartes imposees comptent : le moteur complete autour
     const pinnedElsewhere = new Set((rooms || []).filter(r => r.id !== picker).flatMap(r => r.pins));
     const cost = mine.reduce((s, x) => s + x.cost, 0), cnt: Record<string, number> = {}; mine.forEach(x => { cnt[x.p.team] = (cnt[x.p.team] || 0) + 1; });
-    return cards.filter(x => !pinnedElsewhere.has(x.id) && !mine.some(m => m.id === x.id) && !mine.some(m => m.p.slug === x.p.slug)
+    return cards.filter(x => !pinnedElsewhere.has(x.id) && !mine.some(m => m.id === x.id) && !mine.some(m => m.p.slug === x.p.slug) && roomRar(pickerRoom).includes(x.rar || 'limited')
       && cost + Math.round(x.p.stars * 2) <= pickerRoom.cap * 2 && (cnt[x.p.team] || 0) < pickerRoom.perTeam && (!ql || (x.p.name + x.p.teamName).toLowerCase().includes(ql)))
       .map(x => ({ x, v: cardValue(x, pickerRoom) })).filter(z => z.v > 0).sort((a, b) => b.v - a.v).slice(0, 60);
   }, [pickerRoom, pickerRes, cards, results, rooms, picker, q]);
@@ -176,6 +176,7 @@ export default function GwBuilder() {
                     <Chip t={`max ${res.maxTeam}/${r.perTeam} par équipe`} ok={res.maxTeam <= r.perTeam} />
                     {r.night && <Chip t={`nuit du ${dayLab(r.night)}`} />}
                     {!r.bonus && <Chip t="sans bonus XP" />}
+                    {RARITIES.map(ra => { const on = roomRar(r).includes(ra.k); return <button key={ra.k} onClick={() => patch(r.id, x => { const cur = roomRar(x); const nx = cur.includes(ra.k) ? cur.filter(k => k !== ra.k) : [...cur, ra.k]; return { ...x, rar: nx.length ? nx : cur }; })} style={{ ...btn(on), padding: '3px 9px', fontSize: 11, borderRadius: 999 }}>{ra.l}</button>; })}
                     {res.issues.filter(x => !/^\d+★|In-Season$|équipe/.test(x)).map(x => <Chip key={x} t={x} ok={false} />)}
                   </div>
                 </div>
@@ -220,7 +221,7 @@ export default function GwBuilder() {
           <div style={{ fontSize: 12, color: c.dim, letterSpacing: 1, marginBottom: 8 }}>AJOUTER UNE COMPO À LA FIN DE L’ORDRE</div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{PRESETS.map(p => <button key={p.kind} onClick={() => add(p.kind)} style={btn()}>+ {p.label}</button>)}<button onClick={() => setRooms(defaultRooms(nights[0]))} style={{ ...btn(), marginLeft: 'auto' }}>Ordre par défaut</button></div>
         </div>
-        <p style={{ color: c.dim, fontSize: 12, margin: '14px 2px 0', lineHeight: 1.5 }}>Valeur affichée = projection Sorare de la GW (de la nuit choisie pour la Cup) × bonus de la carte × 0,88 si GTD ; sans bonus en Arena. Cartes Limited uniquement, cartes déjà alignées sur Sorare exclues. Règles : 5 joueurs différents, plafond d’étoiles, max 4 joueurs d’une même équipe, minimum In-Season selon la compo. Tu envoies toi-même les compos sur Sorare.</p>
+        <p style={{ color: c.dim, fontSize: 12, margin: '14px 2px 0', lineHeight: 1.5 }}>Valeur affichée = projection Sorare de la GW (de la nuit choisie pour la Cup) × bonus de la carte × 0,88 si GTD ; sans bonus en Arena. Raretés au choix par compo (Limited par défaut), cartes déjà alignées sur Sorare exclues. Règles : 5 joueurs différents, plafond d’étoiles, max 4 joueurs d’une même équipe, minimum In-Season selon la compo. Tu envoies toi-même les compos sur Sorare.</p>
       </main>
 
       {/* Choix manuel d'une carte */}
