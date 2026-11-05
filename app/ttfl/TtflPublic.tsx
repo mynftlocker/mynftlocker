@@ -11,7 +11,7 @@ const defaultNight = () => { const h = Number(new Intl.DateTimeFormat('en-GB', {
 const lbl = (day: string) => new Date(day + 'T12:00:00Z').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
 const dm = (d: string) => d.slice(5).split('-').reverse().join('/');
 
-type R = { name: string; team: string; opp: string; home: boolean; time: string; est: number; proj: number; l10: number | null; n: number; last: number | null; gp: number; tg: number; g: [string, number, number][]; status: 'OUT' | 'GTD' | null; until: string | null };
+type R = { name: string; team: string; opp: string; home: boolean; time: string; est: number; proj: number; l10: number | null; n: number; last: number | null; gp: number; tg: number; g: [string, number, number][]; slug: string; status: 'OUT' | 'GTD' | null; until: string | null };
 type I = { name: string; team: string; status: 'OUT' | 'GTD' | 'PROB'; until: string | null; untilKind: 'return' | 'reeval' | null; src: string; updated: string; l10: number | null; n: number };
 const fam = (n: string) => { const w = n.replace(/\s+(Jr\.?|Sr\.?|II|III|IV)$/i, '').split(' '); return norm(w[w.length - 1]); };
 type IK = 'status' | 'name' | 'team' | 'until' | 'l10';
@@ -22,12 +22,12 @@ const trend = (r: R) => { const a = avg(r, 5), b = avg(r, 10); return a == null 
 const ddmm = (d: string) => d.slice(8) + '/' + d.slice(5, 7);
 // Scores TTFL match par match (barres) avec la projection de la nuit et la moyenne en reperes.
 function Bars({ r }: { r: R }) {
-  const g = r.g.slice(-20); const W = 640, H = 200, L = 30, B = 22, T = 14; const hi = Math.max(10, ...g.map(x => x[1]), r.est) + 4; const lo = Math.min(0, ...g.map(x => x[1]));
-  const bw = Math.min(46, (W - L - 8) / Math.max(g.length, 1)); const y = (v: number) => T + (1 - (v - lo) / (hi - lo)) * (H - T - B); const a = avg(r, 0);
+  const g = r.g.slice(-10); const W = 640, H = 210, L = 30, B = 22, T = 14; const hi = Math.max(10, ...g.map(x => x[1]), r.est) + 4; const lo = Math.min(0, ...g.map(x => x[1]));
+  const bw = (W - L - 8) / 10; const off = 10 - g.length; const y = (v: number) => T + (1 - (v - lo) / (hi - lo)) * (H - T - B); const a = avg(r, 0);
   return (
     <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block' }} role="img" aria-label={`Scores TTFL de ${r.name}`}>
       <line x1={L} x2={W - 8} y1={y(0)} y2={y(0)} stroke={c.line} />
-      {g.map((x, i) => <g key={x[0]}><rect x={L + i * bw + 3} y={Math.min(y(x[1]), y(0))} width={Math.max(bw - 6, 2)} height={Math.abs(y(x[1]) - y(0))} rx="3" fill={x[1] >= r.est ? c.cy : 'rgba(0,255,255,.4)'} /><text x={L + i * bw + bw / 2} y={y(Math.max(x[1], 0)) - 4} fill="#fff" fontSize="10" textAnchor="middle">{x[1]}</text><text x={L + i * bw + bw / 2} y={H - 6} fill={c.dim} fontSize="9" textAnchor="middle">{ddmm(x[0])}</text></g>)}
+      {g.map((x, i) => <g key={x[0]}><rect x={L + (i + off) * bw + bw / 2 - 16} y={Math.min(y(x[1]), y(0))} width={32} height={Math.abs(y(x[1]) - y(0))} rx="3" fill={x[1] >= r.est ? c.cy : 'rgba(0,255,255,.4)'} /><text x={L + (i + off) * bw + bw / 2} y={y(Math.max(x[1], 0)) - 4} fill="#fff" fontSize="12" fontWeight="700" textAnchor="middle">{x[1]}</text><text x={L + (i + off) * bw + bw / 2} y={H - 6} fill={c.dim} fontSize="10" textAnchor="middle">{ddmm(x[0])}</text></g>)}
       <line x1={L} x2={W - 8} y1={y(r.est)} y2={y(r.est)} stroke={c.gold} strokeDasharray="5 4" /><text x={W - 10} y={y(r.est) + 14} fill={c.gold} textAnchor="end" fontSize="11" stroke="#050818" strokeWidth="3" paintOrder="stroke">Projection {r.est.toFixed(1)}</text>
       {a != null && <><line x1={L} x2={W - 8} y1={y(a)} y2={y(a)} stroke="rgba(255,255,255,.5)" strokeDasharray="2 4" /><text x={W - 10} y={y(a) - 4} fill="rgba(255,255,255,.7)" fontSize="11" textAnchor="end" stroke="#050818" strokeWidth="3" paintOrder="stroke">Moyenne {a.toFixed(1)}</text></>}
     </svg>
@@ -39,6 +39,7 @@ const c = { cy: '#00ffff', gold: '#e5b94e', dim: 'rgba(255,255,255,.6)', line: '
 
 export default function TtflPublic() {
   const [night, setNight] = useState(defaultNight);
+  const [initGame, setInitGame] = useState<string | null>(null);
   const [rows, setRows] = useState<R[] | null>(null);
   const [err, setErr] = useState('');
   const [q, setQ] = useState('');
@@ -50,6 +51,8 @@ export default function TtflPublic() {
   const [open, setOpen] = useState<string | null>(null);
   const [sort, setSort] = useState<{ k: SK; dir: 1 | -1 }>({ k: 'est', dir: -1 });
 
+  // Lien direct vers un match : /ttfl?v=live&night=AAAA-MM-JJ&game=ID
+  useEffect(() => { const sp = new URLSearchParams(window.location.search); const n = sp.get('night'); if (n && /^\d{4}-\d{2}-\d{2}$/.test(n)) setNight(n); if (sp.get('v') === 'live') setView('live'); const g = sp.get('game'); if (g && /^\d+$/.test(g)) setInitGame(g); }, []);
   useEffect(() => {
     setRows(null); setErr('');
     fetch('/api/ttfl?night=' + night).then(r => r.json()).then(j => j.ok ? setRows(j.rows) : setErr(j.error || 'Indisponible')).catch(e => setErr(String(e)));
@@ -139,9 +142,10 @@ export default function TtflPublic() {
                   </tr>,
                   o && <tr key={r.name + 'x'}><td colSpan={7} style={{ padding: '10px 12px 14px', background: 'rgba(0,255,255,.04)' }}>
                     {r.g.length ? <Bars r={r} /> : <span style={{ color: c.dim }}>Pas encore de match joué cette saison.</span>}
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8, fontSize: 12 }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10, fontSize: 15, alignItems: 'center' }}>
                       {([['Moy. 5', avg(r, 5)], ['Moy. 10', avg(r, 10)], ['Saison', avg(r, 0)], ['Max', r.g.length ? Math.max(...r.g.map(x => x[1])) : null], ['Min', r.g.length ? Math.min(...r.g.map(x => x[1])) : null]] as [string, number | null][]).map(([k, v]) => (
-                        <span key={k} style={{ border: `1px solid ${c.line}`, borderRadius: 8, padding: '3px 8px' }}><span style={{ color: c.dim }}>{k}</span> <b>{v == null ? '–' : v.toFixed(1)}</b></span>))}
+                        <span key={k} style={{ border: `1px solid ${c.line}`, borderRadius: 10, padding: '6px 12px', background: 'rgba(255,255,255,.05)' }}><span style={{ color: c.dim, fontSize: 13 }}>{k}</span> <b style={{ fontSize: 18 }}>{v == null ? '–' : v.toFixed(1)}</b></span>))}
+                      {r.slug && <a href={`/ttfl/joueur/${r.slug}`} onClick={e => e.stopPropagation()} style={{ marginLeft: 'auto', background: c.cy, color: '#001018', fontWeight: 700, padding: '8px 14px', borderRadius: 10, textDecoration: 'none', fontSize: 14 }}>Fiche joueur →</a>}
                     </div>
                   </td></tr>]; })}</tbody>
               </table>
@@ -150,7 +154,7 @@ export default function TtflPublic() {
           <p style={{ color: c.dim, fontSize: 12, marginTop: 14, lineHeight: 1.5 }}>Projection myNFTlocker = score TTFL attendu, calculé depuis la projection Sorare lissée avec la forme récente (joueurs incertains GTD pondérés à la baisse). Calibrage en cours sur les scores réels. « Présence » = matchs joués / matchs de l&apos;équipe cette saison. Heures de Paris.</p>
         </>}
 
-        {view === 'live' && <LiveTab night={night} proj={projMap} />}
+        {view === 'live' && <LiveTab night={night} proj={projMap} initialGame={initGame} />}
 
         {view === 'inj' && (
           <div style={{ background: c.card, border: `1px solid ${c.line}`, borderRadius: 14, overflowX: 'auto' }}>

@@ -28,7 +28,7 @@ function Curve({ p, proj }: { p: P; proj: number | null }) {
   );
 }
 
-export default function LiveTab({ night, proj }: { night: string; proj: Record<string, number> }) {
+export default function LiveTab({ night, proj, initialGame }: { night: string; proj: Record<string, number>; initialGame?: string | null }) {
   const [games, setGames] = useState<G[] | null>(null);
   const [err, setErr] = useState('');
   const [sel, setSel] = useState<string | null>(null);
@@ -36,7 +36,7 @@ export default function LiveTab({ night, proj }: { night: string; proj: Record<s
   const [pid, setPid] = useState<string | null>(null);
 
   const loadGames = useCallback(() => fetch('/api/ttfl/live?night=' + night).then(r => r.json()).then(j => j.ok ? (setGames(j.games), setErr('')) : setErr(j.error || 'Indisponible')).catch(e => setErr(String(e))), [night]);
-  useEffect(() => { setGames(null); setSel(null); setDet(null); loadGames(); }, [night, loadGames]);
+  useEffect(() => { setGames(null); setSel(initialGame || null); setDet(null); loadGames(); }, [night, loadGames, initialGame]);
   const anyLive = !!games?.some(g => g.state === 'in');
   useEffect(() => { const t = setInterval(loadGames, anyLive ? 15000 : 60000); return () => clearInterval(t); }, [loadGames, anyLive]);
 
