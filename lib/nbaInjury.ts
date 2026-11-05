@@ -7,7 +7,7 @@ const MAP: Record<string, NbaInj['status'] | 'OK'> = { Out: 'OUT', Doubtful: 'DO
 
 // Nom de fichier : Injury-Report_AAAA-MM-JJ_hh_mmAM.pdf (heure de l'Est, pas de 30 min ; on teste aussi 15 min par securite).
 function slots(): string[] {
-  const out: string[] = []; const now = Date.now();
+  const out: string[] = []; const now = Math.floor(Date.now() / 900000) * 900000;
   for (let k = 0; k < 56; k++) {
     const d = new Date(now - k * 15 * 60000);
     const p = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: true }).formatToParts(d).map(x => [x.type, x.value]));
