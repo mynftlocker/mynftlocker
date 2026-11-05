@@ -2,13 +2,15 @@
 import { useEffect, useMemo, useState } from 'react';
 import StarBg from '../components/StarBg';
 import LiveTab from './LiveTab';
+import { t as tr, useLang, initLang, LangSwitch } from '../i18n';
+import './i18nTtfl';
 
 const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z]/g, '');
 const parisDay = (d = new Date()) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris' }).format(d);
 const shift = (day: string, n: number) => { const d = new Date(day + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
 // Les matchs d'une nuit NBA commencent apres minuit a Paris : des 8 h on ouvre sur la nuit suivante.
 const defaultNight = () => { const h = Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Paris', hour: '2-digit', hour12: false }).format(new Date())); return h >= 8 ? shift(parisDay(), 1) : parisDay(); };
-const lbl = (day: string) => new Date(day + 'T12:00:00Z').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
+const lbl = (day: string, en = false) => new Date(day + 'T12:00:00Z').toLocaleDateString(en ? 'en-GB' : 'fr-FR', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
 const dm = (d: string) => d.slice(5).split('-').reverse().join('/');
 
 type R = { name: string; team: string; opp: string; home: boolean; time: string; est: number; proj: number; l10: number | null; n: number; last: number | null; gp: number; tg: number; g: [string, number, number][]; slug: string; status: 'OUT' | 'GTD' | null; until: string | null };
@@ -27,11 +29,11 @@ function Bars({ r }: { r: R }) {
   const g = r.g.slice(-10); const W = 640, H = 210, L = 30, B = 22, T = 14; const hi = Math.max(10, ...g.map(x => x[1]), r.est) + 4; const lo = Math.min(0, ...g.map(x => x[1]));
   const bw = (W - L - 8) / 10; const off = 10 - g.length; const y = (v: number) => T + (1 - (v - lo) / (hi - lo)) * (H - T - B); const a = avg(r, 0);
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block' }} role="img" aria-label={`Scores TTFL de ${r.name}`}>
+    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block' }} role="img" aria-label={tr('Scores TTFL de ') + r.name}>
       <line x1={L} x2={W - 8} y1={y(0)} y2={y(0)} stroke={c.line} />
       {g.map((x, i) => <g key={x[0]}><rect x={L + (i + off) * bw + bw / 2 - 16} y={Math.min(y(x[1]), y(0))} width={32} height={Math.abs(y(x[1]) - y(0))} rx="3" fill={x[1] >= r.est ? c.cy : 'rgba(0,255,255,.4)'} /><text x={L + (i + off) * bw + bw / 2} y={y(Math.max(x[1], 0)) - 4} fill="#fff" fontSize="12" fontWeight="700" textAnchor="middle">{x[1]}</text><text x={L + (i + off) * bw + bw / 2} y={H - 6} fill={c.dim} fontSize="10" textAnchor="middle">{ddmm(x[0])}</text></g>)}
-      <line x1={L} x2={W - 8} y1={y(r.est)} y2={y(r.est)} stroke={c.gold} strokeDasharray="5 4" /><text x={W - 10} y={y(r.est) + 14} fill={c.gold} textAnchor="end" fontSize="11" stroke="#050818" strokeWidth="3" paintOrder="stroke">Projection {r.est.toFixed(1)}</text>
-      {a != null && <><line x1={L} x2={W - 8} y1={y(a)} y2={y(a)} stroke="rgba(255,255,255,.5)" strokeDasharray="2 4" /><text x={W - 10} y={y(a) - 4} fill="rgba(255,255,255,.7)" fontSize="11" textAnchor="end" stroke="#050818" strokeWidth="3" paintOrder="stroke">Moyenne {a.toFixed(1)}</text></>}
+      <line x1={L} x2={W - 8} y1={y(r.est)} y2={y(r.est)} stroke={c.gold} strokeDasharray="5 4" /><text x={W - 10} y={y(r.est) + 14} fill={c.gold} textAnchor="end" fontSize="11" stroke="#050818" strokeWidth="3" paintOrder="stroke">{tr('Projection')} {r.est.toFixed(1)}</text>
+      {a != null && <><line x1={L} x2={W - 8} y1={y(a)} y2={y(a)} stroke="rgba(255,255,255,.5)" strokeDasharray="2 4" /><text x={W - 10} y={y(a) - 4} fill="rgba(255,255,255,.7)" fontSize="11" textAnchor="end" stroke="#050818" strokeWidth="3" paintOrder="stroke">{tr('Moyenne ')}{a.toFixed(1)}</text></>}
     </svg>
   );
 }
@@ -56,6 +58,7 @@ export default function TtflPublic() {
   const openRow = (r: R) => { setOpen(o => (o === r.name ? null : r.name)); if (r.slug && !hx[r.slug]) fetch('/api/ttfl/player?slug=' + r.slug).then(x => x.json()).then(j => j.ok && setHx(h => ({ ...h, [r.slug]: [...(j.pastGames || []), ...(j.games || [])].map((x: any) => [x.d, x.t, x.m] as [string, number, number]) }))).catch(() => {}); };
   const [sort, setSort] = useState<{ k: SK; dir: 1 | -1 }>({ k: 'est', dir: -1 });
   // Telephone : tableau recompose (joueur + match sur 2 lignes), en-tete compact, top 5 defilant.
+  const lang = useLang(); const en = lang === 'en'; useEffect(() => { initLang(); }, []);
   const [narrow, setNarrow] = useState(false); const pd = narrow ? '7px 6px' : '8px 12px';
   useEffect(() => { const m = window.matchMedia('(max-width: 640px)'); const f = () => setNarrow(m.matches); f(); m.addEventListener('change', f); return () => m.removeEventListener('change', f); }, []);
 
@@ -63,7 +66,7 @@ export default function TtflPublic() {
   useEffect(() => { const sp = new URLSearchParams(window.location.search); const n = sp.get('night'); if (n && /^\d{4}-\d{2}-\d{2}$/.test(n)) setNight(n); if (sp.get('v') === 'live') setView('live'); const g = sp.get('game'); if (g && /^\d+$/.test(g)) setInitGame(g); }, []);
   useEffect(() => {
     setRows(null); setErr('');
-    fetch('/api/ttfl?night=' + night).then(r => r.json()).then(j => j.ok ? setRows(j.rows) : setErr(j.error || 'Indisponible')).catch(e => setErr(String(e)));
+    fetch('/api/ttfl?night=' + night).then(r => r.json()).then(j => j.ok ? setRows(j.rows) : setErr(j.error || tr('Indisponible'))).catch(e => setErr(String(e)));
   }, [night]);
   useEffect(() => { if (view === 'inj' && !inj) fetch('/api/ttfl?inj=1').then(r => r.json()).then(j => j.ok && setInj(j.rows)).catch(() => {}); }, [view, inj]);
 
@@ -91,8 +94,8 @@ export default function TtflPublic() {
       <div style={{ maxWidth: 1000, margin: '0 auto', position: 'relative' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: narrow ? 10 : 20, flexWrap: narrow ? 'nowrap' : 'wrap' }}>
           <div style={{ flex: narrow ? '1 1 0' : '1 1 420px', minWidth: 0 }}>
-        <h1 style={{ fontSize: narrow ? 24 : 'clamp(26px,5vw,42px)', margin: '0 0 4px', letterSpacing: '.01em', lineHeight: 1.15 }}>Remplis ton deck de <span style={{ color: c.cy }}>best picks</span> TTFL</h1>
-        <p style={{ color: c.dim, margin: narrow ? '0 0 10px' : '0 0 18px', maxWidth: 700, lineHeight: 1.45, fontSize: narrow ? 13 : 15 }}>Les <b style={{ color: '#fff' }}>projections myNFTlocker</b> : le score TTFL attendu de chaque joueur NBA pour la nuit, selon la forme, le match, les blessures et les retours. Mises à jour en continu.</p>
+        <h1 style={{ fontSize: narrow ? 24 : 'clamp(26px,5vw,42px)', margin: '0 0 4px', letterSpacing: '.01em', lineHeight: 1.15 }}>{en ? 'Fill your deck with' : 'Remplis ton deck de'} <span style={{ color: c.cy }}>best picks</span> TTFL</h1>
+        <p style={{ color: c.dim, margin: narrow ? '0 0 10px' : '0 0 18px', maxWidth: 700, lineHeight: 1.45, fontSize: narrow ? 13 : 15 }}>{en ? <>The <b style={{ color: '#fff' }}>myNFTlocker projections</b>: the TTFL score expected from every NBA player tonight, based on form, matchup, injuries and returns. Updated continuously.</> : <>Les <b style={{ color: '#fff' }}>projections myNFTlocker</b> : le score TTFL attendu de chaque joueur NBA pour la nuit, selon la forme, le match, les blessures et les retours. Mises à jour en continu.</>}</p>
           </div>
           <a href="/" title="Retour à l'accueil myNFTlocker" style={{ flex: '0 0 auto', margin: '0 auto' }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -101,25 +104,26 @@ export default function TtflPublic() {
         </div>
 
         <div style={{ display: 'flex', gap: narrow ? 6 : 8, marginBottom: narrow ? 10 : 16, overflowX: 'auto' }}>
-          <button style={{ ...btn(view === 'night'), whiteSpace: 'nowrap', padding: narrow ? '8px 10px' : undefined }} onClick={() => setView('night')}>{narrow ? 'Projections' : 'Projections de la nuit'}</button>
-          <button style={{ ...btn(view === 'live'), whiteSpace: 'nowrap', padding: narrow ? '8px 10px' : undefined }} onClick={() => setView('live')}>En direct</button>
-          <button style={{ ...btn(view === 'inj'), whiteSpace: 'nowrap', padding: narrow ? '8px 10px' : undefined }} onClick={() => setView('inj')}>{narrow ? 'Blessures' : 'Blessures et retours'}</button>
+          <button style={{ ...btn(view === 'night'), whiteSpace: 'nowrap', padding: narrow ? '8px 10px' : undefined }} onClick={() => setView('night')}>{narrow ? tr('Projections') : tr('Projections de la nuit')}</button>
+          <button style={{ ...btn(view === 'live'), whiteSpace: 'nowrap', padding: narrow ? '8px 10px' : undefined }} onClick={() => setView('live')}>{tr('En direct')}</button>
+          <button style={{ ...btn(view === 'inj'), whiteSpace: 'nowrap', padding: narrow ? '8px 10px' : undefined }} onClick={() => setView('inj')}>{narrow ? tr('Blessures') : tr('Blessures et retours')}</button>
+          <LangSwitch style={{ marginLeft: 'auto', flex: '0 0 auto' }} />
         </div>
 
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 16 }}>
           {view !== 'inj' && <>
-            <button style={btn()} onClick={() => setNight(shift(night, -1))} aria-label="Nuit précédente">◀</button>
-            <div style={{ ...btn(), cursor: 'default', textTransform: 'capitalize', minWidth: 170, textAlign: 'center' }}>{lbl(night)}</div>
-            <button style={btn()} onClick={() => setNight(shift(night, 1))} aria-label="Nuit suivante">▶</button>
+            <button style={btn()} onClick={() => setNight(shift(night, -1))} aria-label={tr('Nuit précédente')}>◀</button>
+            <div style={{ ...btn(), cursor: 'default', textTransform: 'capitalize', minWidth: 170, textAlign: 'center' }}>{lbl(night, en)}</div>
+            <button style={btn()} onClick={() => setNight(shift(night, 1))} aria-label={tr('Nuit suivante')}>▶</button>
           </>}
-          <input placeholder="Joueur ou équipe" value={q} onChange={e => setQ(e.target.value)} style={{ ...btn(), cursor: 'text', flex: '1 1 160px', minWidth: 0 }} />
-          {view === 'night' && <label style={{ fontSize: 13, color: c.dim, display: 'flex', gap: 6, alignItems: 'center' }}><input type="checkbox" checked={hideOut} onChange={e => setHideOut(e.target.checked)} /> Masquer les absents</label>}
+          <input placeholder={tr('Joueur ou équipe')} value={q} onChange={e => setQ(e.target.value)} style={{ ...btn(), cursor: 'text', flex: '1 1 160px', minWidth: 0 }} />
+          {view === 'night' && <label style={{ fontSize: 13, color: c.dim, display: 'flex', gap: 6, alignItems: 'center' }}><input type="checkbox" checked={hideOut} onChange={e => setHideOut(e.target.checked)} /> {tr('Masquer les absents')}</label>}
         </div>
 
         {view === 'night' && <>
           {err && <p style={{ color: '#ff7b7b' }}>{err}</p>}
-          {!rows && !err && <p style={{ color: c.dim }}>Chargement…</p>}
-          {rows && !rows.length && <p style={{ color: c.dim }}>Aucun match NBA cette nuit.</p>}
+          {!rows && !err && <p style={{ color: c.dim }}>{tr('Chargement…')}</p>}
+          {rows && !rows.length && <p style={{ color: c.dim }}>{tr('Aucun match NBA cette nuit.')}</p>}
           {top.length > 0 && !q && (
             <div style={narrow ? { display: 'flex', gap: 8, marginBottom: 12, overflowX: 'auto', paddingBottom: 4, scrollbarWidth: 'none' } : { display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(170px,1fr))', gap: 10, marginBottom: 18 }}>
               {top.map((r, i) => (
@@ -132,56 +136,56 @@ export default function TtflPublic() {
               ))}
             </div>
           )}
-          {rows && list.length > 0 && <div style={{ display: 'flex', gap: 6, alignItems: 'center', margin: '0 0 8px', fontSize: 13, color: c.dim }}>Forme sur
-            {([[5, '5 matchs'], [10, '10 matchs'], [0, 'Saison']] as [W, string][]).map(([w, l]) => <button key={w} onClick={() => setWin(w)} style={{ ...btn(win === w), padding: '4px 10px', fontSize: 13 }}>{l}</button>)}
-            {!narrow && <span style={{ marginLeft: 'auto', fontSize: 12 }}>Clique sur un joueur pour voir ses scores match par match</span>}</div>}
+          {rows && list.length > 0 && <div style={{ display: 'flex', gap: 6, alignItems: 'center', margin: '0 0 8px', fontSize: 13, color: c.dim }}>{tr('Forme sur')}
+            {([[5, '5 matchs'], [10, '10 matchs'], [0, 'Saison']] as [W, string][]).map(([w, l]) => <button key={w} onClick={() => setWin(w)} style={{ ...btn(win === w), padding: '4px 10px', fontSize: 13 }}>{tr(l)}</button>)}
+            {!narrow && <span style={{ marginLeft: 'auto', fontSize: 12 }}>{tr('Clique sur un joueur pour voir ses scores match par match')}</span>}</div>}
           {rows && list.length > 0 && (
             <div style={{ background: c.card, border: `1px solid ${c.line}`, borderRadius: 14, overflowX: 'auto', backdropFilter: 'blur(6px)' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: narrow ? 13 : 14, minWidth: narrow ? 0 : 640 }}>
                 <thead><tr style={{ color: c.dim, textAlign: 'left' }}>
                   <th style={{ padding: narrow ? '8px 6px' : '10px 12px', fontWeight: 500 }}>#</th>
-                  {([['name', 'Joueur'], ['match', 'Match'], ['est', narrow ? 'Proj.' : 'Projection'], ['l10', win ? 'Moy. ' + win : narrow ? 'Moy.' : 'Moy. saison'], ['reg', narrow ? 'Régul.' : 'Régularité'], ['last', 'Dernier'], ['pres', 'Présence']] as [SK, string][]).filter(([k]) => !narrow || k !== 'match' && k !== 'last' && k !== 'pres').map(([k, h], i) => (
+                  {([['name', tr('Joueur')], ['match', tr('Match')], ['est', narrow ? tr('Proj.') : tr('Projection')], ['l10', win ? tr('Moy.') + ' ' + win : narrow ? tr('Moy.') : tr('Moy. saison')], ['reg', narrow ? tr('Régul.') : tr('Régularité')], ['last', tr('Dernier')], ['pres', tr('Présence')]] as [SK, string][]).filter(([k]) => !narrow || k !== 'match' && k !== 'last' && k !== 'pres').map(([k, h], i) => (
                     <th key={k} onClick={() => toggle(k)} aria-sort={sort.k === k ? (sort.dir === 1 ? 'ascending' : 'descending') : 'none'} style={{ padding: narrow ? '8px 6px' : '10px 12px', fontWeight: 500, textAlign: i > 1 ? 'right' : 'left', whiteSpace: 'nowrap', cursor: 'pointer', userSelect: 'none', color: sort.k === k ? c.cy : c.dim }}>{h} {sort.k === k ? (sort.dir === 1 ? '▲' : '▼') : <span style={{ opacity: .35 }}>↕</span>}</th>
                   ))}
                 </tr></thead>
-                <tbody>{list.map(r => { const a = avg(r, win), tr = trend(r), o = open === r.name; return [
+                <tbody>{list.map(r => { const a = avg(r, win), trd = trend(r), o = open === r.name; return [
                   <tr key={r.name} onClick={() => openRow(r)} style={{ borderTop: `1px solid ${c.line}`, opacity: r.status === 'OUT' ? 0.45 : 1, cursor: 'pointer', background: o ? 'rgba(0,255,255,.07)' : 'transparent' }}>
                     <td style={{ padding: pd, color: c.dim }}>{rank[r.name]}</td>
-                    <td style={{ padding: pd, whiteSpace: narrow ? 'normal' : 'nowrap' }}>{r.name}{r.status && badge(r.status, r.status === 'OUT' && r.until ? `OUT → ${dm(r.until)}` : r.status)}{narrow && <div style={{ fontSize: 11, color: c.dim }}>{r.home ? 'vs' : '@'} {r.opp.split(' ').pop()} · {r.time}{r.tg && r.gp < r.tg - 1 ? <span style={{ color: '#ff9f43' }}> · {r.gp}/{r.tg} matchs</span> : null}</div>}</td>
+                    <td style={{ padding: pd, whiteSpace: narrow ? 'normal' : 'nowrap' }}>{r.name}{r.status && badge(r.status, r.status === 'OUT' && r.until ? `OUT → ${dm(r.until)}` : r.status)}{narrow && <div style={{ fontSize: 11, color: c.dim }}>{r.home ? 'vs' : '@'} {r.opp.split(' ').pop()} · {r.time}{r.tg && r.gp < r.tg - 1 ? <span style={{ color: '#ff9f43' }}> · {r.gp}/{r.tg} {tr('matchs')}</span> : null}</div>}</td>
                     {!narrow && <td style={{ padding: pd, color: c.dim, whiteSpace: 'nowrap' }}>{r.home ? 'vs' : '@'} {r.opp} · {r.time}</td>}
                     <td style={{ padding: pd, textAlign: 'right', color: heat(r.est, eLo, eHi), fontWeight: 700 }}>{r.est.toFixed(1)}</td>
-                    <td style={{ padding: pd, textAlign: 'right', color: heat(a, lLo, lHi) }}>{a == null ? '–' : a.toFixed(1)}{tr !== 0 && <span title={tr > 0 ? 'En hausse (5 derniers vs 10)' : 'En baisse (5 derniers vs 10)'} style={{ marginLeft: 4, fontSize: 10, color: tr > 0 ? '#4ade80' : '#ff7b7b' }}>{tr > 0 ? '▲' : '▼'}</span>}</td>
-                    {(() => { const q = reg(r, win); const m = avg(r, win); const lab = !q ? null : q.cv < 0.25 ? ['Très régulier', '#4ade80'] : q.cv < 0.35 ? ['Régulier', '#a3e635'] : q.cv < 0.45 ? ['Moyen', '#e5b94e'] : ['Irrégulier', '#ff9f43']; return <td title={q && m != null ? `Il score le plus souvent entre ${Math.max(0, Math.round(m - q.sd))} et ${Math.round(m + q.sd)}` : 'Pas assez de matchs'} style={{ padding: pd, textAlign: 'right', whiteSpace: 'nowrap', color: lab ? lab[1] : c.dim }}>{lab ? lab[0] : '–'}</td>; })()}
+                    <td style={{ padding: pd, textAlign: 'right', color: heat(a, lLo, lHi) }}>{a == null ? '–' : a.toFixed(1)}{trd !== 0 && <span title={trd > 0 ? tr('En hausse (5 derniers vs 10)') : tr('En baisse (5 derniers vs 10)')} style={{ marginLeft: 4, fontSize: 10, color: trd > 0 ? '#4ade80' : '#ff7b7b' }}>{trd > 0 ? '▲' : '▼'}</span>}</td>
+                    {(() => { const q = reg(r, win); const m = avg(r, win); const lab = !q ? null : q.cv < 0.25 ? [tr('Très régulier'), '#4ade80'] : q.cv < 0.35 ? [tr('Régulier'), '#a3e635'] : q.cv < 0.45 ? [tr('Moyen'), '#e5b94e'] : [tr('Irrégulier'), '#ff9f43']; return <td title={q && m != null ? `${en ? 'Usually scores between' : 'Il score le plus souvent entre'} ${Math.max(0, Math.round(m - q.sd))} ${tr(' et ').trim()} ${Math.round(m + q.sd)}` : tr('pas assez de matchs')} style={{ padding: pd, textAlign: 'right', whiteSpace: 'nowrap', color: lab ? lab[1] : c.dim }}>{lab ? lab[0] : '–'}</td>; })()}
                     {!narrow && <td style={{ padding: pd, textAlign: 'right' }}>{r.last ?? '–'}</td>}
                     {!narrow && <td style={{ padding: pd, textAlign: 'right', color: r.tg && r.gp < r.tg - 1 ? '#ff9f43' : c.dim }}>{r.tg ? `${r.gp}/${r.tg}` : '–'}</td>}
                   </tr>,
                   o && (() => { const rr = hx[r.slug] ? { ...r, g: hx[r.slug] } : r; return <tr key={r.name + 'x'}><td colSpan={narrow ? 5 : 8} style={{ padding: '10px 12px 14px', background: 'rgba(0,255,255,.04)' }}>
-                    {rr.g.length ? <Bars r={rr} /> : <span style={{ color: c.dim }}>Pas encore de match joué cette saison.</span>}
+                    {rr.g.length ? <Bars r={rr} /> : <span style={{ color: c.dim }}>{tr('Pas encore de match joué cette saison.')}</span>}
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10, fontSize: 15, alignItems: 'center' }}>
-                      {([['Moy. 5', avg(rr, 5)], ['Moy. 10', avg(rr, 10)], ['Moy. ' + rr.g.length + ' matchs', avg(rr, 0)], ['Max', rr.g.length ? Math.max(...rr.g.map(x => x[1])) : null], ['Min', rr.g.length ? Math.min(...rr.g.map(x => x[1])) : null]] as [string, number | null][]).map(([k, v]) => (
+                      {([[tr('Moy. 5'), avg(rr, 5)], [tr('Moy. 10'), avg(rr, 10)], [tr('Moy.') + ' ' + rr.g.length + ' ' + tr('matchs'), avg(rr, 0)], [tr('Max'), rr.g.length ? Math.max(...rr.g.map(x => x[1])) : null], [tr('Min'), rr.g.length ? Math.min(...rr.g.map(x => x[1])) : null]] as [string, number | null][]).map(([k, v]) => (
                         <span key={k} style={{ border: `1px solid ${c.line}`, borderRadius: 10, padding: '6px 12px', background: 'rgba(255,255,255,.05)' }}><span style={{ color: c.dim, fontSize: 13 }}>{k}</span> <b style={{ fontSize: 18 }}>{v == null ? '–' : v.toFixed(1)}</b></span>))}
-                      {r.slug && <a href={`/ttfl/joueur/${r.slug}`} onClick={e => e.stopPropagation()} style={{ marginLeft: 'auto', background: c.cy, color: '#001018', fontWeight: 700, padding: '8px 14px', borderRadius: 10, textDecoration: 'none', fontSize: 14 }}>Fiche joueur →</a>}
+                      {r.slug && <a href={`/ttfl/joueur/${r.slug}`} onClick={e => e.stopPropagation()} style={{ marginLeft: 'auto', background: c.cy, color: '#001018', fontWeight: 700, padding: '8px 14px', borderRadius: 10, textDecoration: 'none', fontSize: 14 }}>{tr('Fiche joueur →')}</a>}
                     </div>
                   </td></tr>; })()]; })}</tbody>
               </table>
             </div>
           )}
-          <p style={{ color: c.dim, fontSize: 12, marginTop: 14, lineHeight: 1.5 }}>Projection myNFTlocker = score TTFL attendu, calculé depuis la projection Sorare lissée avec la forme récente (joueurs incertains GTD pondérés à la baisse). Calibrage en cours sur les scores réels. « Présence » = matchs joués / matchs de l&apos;équipe cette saison. Heures de Paris.</p>
+          <p style={{ color: c.dim, fontSize: 12, marginTop: 14, lineHeight: 1.5 }}>{tr('Projection myNFTlocker = score TTFL attendu, calculé depuis la projection Sorare lissée avec la forme récente (joueurs incertains GTD pondérés à la baisse). Calibrage en cours sur les scores réels. « Présence » = matchs joués / matchs de l’équipe cette saison. Heures de Paris.')}</p>
         </>}
 
         {view === 'live' && <LiveTab night={night} proj={projMap} slugs={slugMap} initialGame={initGame} />}
 
         {view === 'inj' && (
           <div style={{ background: c.card, border: `1px solid ${c.line}`, borderRadius: 14, overflowX: 'auto' }}>
-            {!inj && <p style={{ padding: 14, color: c.dim, margin: 0 }}>Chargement…</p>}
+            {!inj && <p style={{ padding: 14, color: c.dim, margin: 0 }}>{tr('Chargement…')}</p>}
             {inj && <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: narrow ? 13 : 14, minWidth: narrow ? 0 : 600 }}>
-              <thead><tr style={{ color: c.dim, textAlign: 'left' }}>{([['name', 'Joueur (nom de famille)'], ['team', 'Équipe'], ['status', 'Statut'], ['until', narrow ? 'Retour' : 'Retour / réévaluation'], ['l10', 'Moy. 10']] as [IK, string][]).filter(([k]) => !narrow || k !== 'team').map(([k, h]) => <th key={k} onClick={() => itoggle(k)} style={{ padding: narrow ? '8px 6px' : '10px 12px', fontWeight: 500, cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap', color: isort.k === k ? c.cy : c.dim }}>{h} {isort.k === k ? (isort.dir === 1 ? '▲' : '▼') : <span style={{ opacity: .35 }}>↕</span>}</th>)}</tr></thead>
+              <thead><tr style={{ color: c.dim, textAlign: 'left' }}>{([['name', tr('Joueur (nom de famille)')], ['team', tr('Équipe')], ['status', tr('Statut')], ['until', narrow ? tr('Retour') : tr('Retour / réévaluation')], ['l10', tr('Moy. 10')]] as [IK, string][]).filter(([k]) => !narrow || k !== 'team').map(([k, h]) => <th key={k} onClick={() => itoggle(k)} style={{ padding: narrow ? '8px 6px' : '10px 12px', fontWeight: 500, cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap', color: isort.k === k ? c.cy : c.dim }}>{h} {isort.k === k ? (isort.dir === 1 ? '▲' : '▼') : <span style={{ opacity: .35 }}>↕</span>}</th>)}</tr></thead>
               <tbody>{injList.map(r => (
                 <tr key={r.name} style={{ borderTop: `1px solid ${c.line}` }}>
                   <td style={{ padding: pd }}>{(() => { const sl = rows?.find(x => norm(x.name) === norm(r.name))?.slug || 'n-' + r.name.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''); return <a href={`/ttfl/joueur/${sl}`} style={{ color: '#fff', textDecoration: 'none', borderBottom: `1px dashed ${c.cy}` }}>{r.name} →</a>; })()}{narrow && <div style={{ fontSize: 11, color: c.dim }}>{r.team || '–'}</div>}</td>
                   {!narrow && <td style={{ padding: pd, color: c.dim }}>{r.team || '–'}</td>}
                   <td style={{ padding: pd, color: r.status === 'OUT' ? '#ff7b7b' : c.gold, fontWeight: 700 }}>{r.status}</td>
-                  <td style={{ padding: pd }}>{r.until ? `${dm(r.until)} (${r.untilKind === 'reeval' ? (narrow ? 'réévaluation' : 'réévaluation') : 'retour'})` : '–'}</td>
+                  <td style={{ padding: pd }}>{r.until ? `${dm(r.until)} (${r.untilKind === 'reeval' ? tr('réévaluation') : tr('retour')})` : '–'}</td>
                   <td style={{ padding: pd, textAlign: 'right' }}>{r.l10 == null ? '–' : r.l10.toFixed(1)}</td>
                 </tr>))}</tbody>
             </table>}
@@ -189,8 +193,8 @@ export default function TtflPublic() {
         )}
 
         <div style={{ marginTop: 28, textAlign: 'center' }}>
-          <a href="/" style={{ display: 'inline-block', background: c.cy, color: '#001018', fontWeight: 700, padding: '12px 22px', borderRadius: 12, textDecoration: 'none' }}>Découvrir myNFTlocker</a>
-          <div style={{ color: c.dim, fontSize: 12, marginTop: 10 }}>Projections TTFL © myNFTlocker.com</div>
+          <a href="/" style={{ display: 'inline-block', background: c.cy, color: '#001018', fontWeight: 700, padding: '12px 22px', borderRadius: 12, textDecoration: 'none' }}>{tr('Découvrir myNFTlocker')}</a>
+          <div style={{ color: c.dim, fontSize: 12, marginTop: 10 }}>{tr('Projections TTFL © myNFTlocker.com')} · <a href="/cgu" style={{ color: c.dim }}>{tr('CGU et mentions légales')}</a></div>
         </div>
       </div>
     </main>
