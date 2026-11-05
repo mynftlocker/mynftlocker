@@ -66,7 +66,10 @@ export default function Home() {
   const [gDir,setGDir]=useState<'desc'|'asc'>('desc');
   // Modes : Arcade (set Arcade uniquement) et Gameplay (outils de composition, caches par defaut pour garder la galerie propre)
   const [arcadeOnly,setArcadeOnly]=useState(ARCADE_DEFAULT);
-  const [gameplay,setGameplay]=useState(false);
+  // Mode Gameplay verrouille tant que le socle (builder GW, projections) n'est pas valide : passer GAMEPLAY_OPEN a true pour le rouvrir
+  const GAMEPLAY_OPEN=false;
+  const [gameplayRaw,setGameplay]=useState(false);
+  const gameplay=GAMEPLAY_OPEN&&gameplayRaw;
   const [gList,setGList]=useState(false); // Gameplay : vue Liste (une ligne par carte) au lieu de la galerie
   useEffect(()=>{try{setGList(localStorage.getItem('mnfl_glist')==='1');}catch{}},[]);
   const toggleGList=(v:boolean)=>{setGList(v);try{localStorage.setItem('mnfl_glist',v?'1':'0');}catch{}};
@@ -78,7 +81,7 @@ export default function Home() {
   useEffect(()=>{try{const a=localStorage.getItem('mnfl_arcade');if(a!=null)setArcadeOnly(a==='1');const g=localStorage.getItem('mnfl_gameplay');if(g!=null)setGameplay(g==='1');const f=localStorage.getItem('mnfl_favs');if(f)setFavs(JSON.parse(f));const os=localStorage.getItem('mnfl_open_sport');if(os)setOpenSport(os);}catch{}},[]);
   const toggleArcade=()=>{const n=!arcadeOnly;setArcadeOnly(n);try{localStorage.setItem('mnfl_arcade',n?'1':'0');}catch{}setLockerStart(0);setFlippedSlug(null);};
   const chooseOpenSport=(v:string)=>{setOpenSport(v);try{localStorage.setItem('mnfl_open_sport',v);}catch{}}; // 'auto' est stocke explicitement (sinon le compte restaurerait l'ancien choix)
-  const toggleGameplay=()=>{const n=!gameplay;setGameplay(n);try{localStorage.setItem('mnfl_gameplay',n?'1':'0');}catch{}};
+  const toggleGameplay=()=>{const n=!gameplayRaw;setGameplay(n);try{localStorage.setItem('mnfl_gameplay',n?'1':'0');}catch{}};
   const [openPhase,setOpenPhase]=useState(0);
   const canvasRef=useRef<HTMLCanvasElement|null>(null);
   const mouseXYRef=useRef<{x:number,y:number}>({x:0,y:0});
@@ -763,7 +766,7 @@ export default function Home() {
             <FilterMenu title={tr('Édition de la carte')} options={specialOpts} current={fSpecial} onSelect={setFSpecial}/>
             <ToggleRow title='Arcade' hint={tr('Set Arcade uniquement')} on={arcadeOnly} onToggle={toggleArcade}/>
             {arcadeOnly&&arcadeCount===0&&<p style={{fontSize:'0.62rem',color:'#f5d76e',margin:'0 0.5rem 0.3rem'}}>{tr('Aucune carte Arcade pour ce sport')}</p>}
-            <ToggleRow title='Gameplay' hint={tr('Outils de composition')} on={gameplay} onToggle={toggleGameplay}/>
+            {GAMEPLAY_OPEN&&<ToggleRow title='Gameplay' hint={tr('Outils de composition')} on={gameplay} onToggle={toggleGameplay}/>}
             {gameplay&&(<>
               <FilterMenu title={tr('Compétition')} options={compOpts} current={fComp} onSelect={setFComp}/>
               <FilterMenu title={tr('Étoiles')} options={starOpts} current={fStars} onSelect={setFStars}/>
@@ -1244,7 +1247,7 @@ export default function Home() {
             <FilterMenu title={tr('Édition de la carte')} options={specialOpts} current={fSpecial} onSelect={setFSpecial}/>
             <ToggleRow title='Arcade' hint={tr('Set Arcade uniquement')} on={arcadeOnly} onToggle={toggleArcade}/>
             {arcadeOnly&&arcadeCount===0&&<p style={{fontSize:'0.62rem',color:'#f5d76e',margin:'0 0.5rem 0.3rem'}}>{tr('Aucune carte Arcade pour ce sport')}</p>}
-            <ToggleRow title='Gameplay' hint={tr('Outils de composition')} on={gameplay} onToggle={toggleGameplay}/>
+            {GAMEPLAY_OPEN&&<ToggleRow title='Gameplay' hint={tr('Outils de composition')} on={gameplay} onToggle={toggleGameplay}/>}
             {gameplay&&(<>
               <FilterMenu title={tr('Compétition')} options={compOpts} current={fComp} onSelect={setFComp}/>
               <FilterMenu title={tr('Étoiles')} options={starOpts} current={fStars} onSelect={setFStars}/>
