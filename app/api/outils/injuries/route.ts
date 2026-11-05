@@ -9,7 +9,7 @@ import { parseNews, toState, TEAMS } from '../../../../lib/rotowire';
 // Sources par ordre de fiabilite : rotowire / underdog / manual (saisis par Claude) > espn (releve automatique quotidien via le cron, sert de base).
 // GET (prive) : lit le tableau.  POST (prive) : { rows:[...] } upsert par nom, { remove:[noms] } suppression.  GET ?run=1 (cron) : met a jour la base ESPN.
 export const maxDuration = 30;
-export type InjRow = { name: string; team: string; status: 'OUT' | 'GTD' | 'DOUBT' | 'PROB'; until: string | null; untilKind: 'return' | 'reeval' | null; detail: string; src: 'espn' | 'nba' | 'rotowire' | 'underdog' | 'manual'; updated: string };
+export type InjRow = { name: string; team: string; status: 'OUT' | 'GTD' | 'QUEST' | 'DOUBT' | 'PROB'; until: string | null; untilKind: 'return' | 'reeval' | null; detail: string; src: 'espn' | 'nba' | 'rotowire' | 'underdog' | 'manual'; updated: string };
 const KEY = 'inj:table';
 const nrm = (x: string) => x.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z]/g, '');
 const today = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris' }).format(new Date());
@@ -121,7 +121,7 @@ export async function POST(req: NextRequest) {
     const b = await req.json(); const t = await load(); const map = new Map(t.rows.map(r => [nrm(r.name), r]));
     for (const n of b.remove || []) map.delete(nrm(String(n)));
     for (const r of b.rows || []) {
-      if (typeof r?.name !== 'string' || !['OUT', 'GTD', 'DOUBT', 'PROB'].includes(r.status)) continue;
+      if (typeof r?.name !== 'string' || !['OUT', 'GTD', 'QUEST', 'DOUBT', 'PROB'].includes(r.status)) continue;
       const until = /^\d{4}-\d{2}-\d{2}$/.test(r.until || '') ? r.until : null;
       map.set(nrm(r.name), { name: r.name.slice(0, 80), team: String(r.team || '').slice(0, 60), status: r.status, until, untilKind: until ? (r.untilKind === 'reeval' ? 'reeval' : 'return') : null, detail: String(r.detail || '').slice(0, 220), src: ['rotowire', 'underdog', 'manual'].includes(r.src) ? r.src : 'manual', updated: new Date().toISOString() });
     }

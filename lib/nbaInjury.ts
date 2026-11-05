@@ -1,9 +1,9 @@
 // Injury report officiel NBA (PDF public, publie toutes les 30 min dans la journee americaine) : statuts Out / Doubtful / Questionable / Probable.
 import { extractText, getDocumentProxy } from 'unpdf';
 
-export type NbaInj = { name: string; team: string; status: 'OUT' | 'DOUBT' | 'GTD' | 'PROB'; detail: string };
+export type NbaInj = { name: string; team: string; status: 'OUT' | 'DOUBT' | 'QUEST' | 'PROB'; detail: string };
 const TEAMS = ['Atlanta Hawks', 'Boston Celtics', 'Brooklyn Nets', 'Charlotte Hornets', 'Chicago Bulls', 'Cleveland Cavaliers', 'Dallas Mavericks', 'Denver Nuggets', 'Detroit Pistons', 'Golden State Warriors', 'Houston Rockets', 'Indiana Pacers', 'LA Clippers', 'Los Angeles Clippers', 'Los Angeles Lakers', 'Memphis Grizzlies', 'Miami Heat', 'Milwaukee Bucks', 'Minnesota Timberwolves', 'New Orleans Pelicans', 'New York Knicks', 'Oklahoma City Thunder', 'Orlando Magic', 'Philadelphia 76ers', 'Phoenix Suns', 'Portland Trail Blazers', 'Sacramento Kings', 'San Antonio Spurs', 'Toronto Raptors', 'Utah Jazz', 'Washington Wizards'];
-const MAP: Record<string, NbaInj['status'] | 'OK'> = { Out: 'OUT', Doubtful: 'DOUBT', Questionable: 'GTD', Probable: 'PROB', Available: 'OK' };
+const MAP: Record<string, NbaInj['status'] | 'OK'> = { Out: 'OUT', Doubtful: 'DOUBT', Questionable: 'QUEST', Probable: 'PROB', Available: 'OK' };
 
 // Nom de fichier : Injury-Report_AAAA-MM-JJ_hh_mmAM.pdf (heure de l'Est, pas de 30 min ; on teste aussi 15 min par securite).
 function slots(): string[] {

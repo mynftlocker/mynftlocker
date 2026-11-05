@@ -9,7 +9,7 @@ import { ttflEst, myProj } from '../../../lib/ttflEst';
 export const maxDuration = 60;
 const START = '2026-10-20';
 const nrm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z]/g, '');
-type InjRow = { name: string; team: string; status: 'OUT' | 'GTD' | 'DOUBT' | 'PROB'; until: string | null; untilKind: 'return' | 'reeval' | null; src: string; updated: string };
+type InjRow = { name: string; team: string; status: 'OUT' | 'GTD' | 'QUEST' | 'DOUBT' | 'PROB'; until: string | null; untilKind: 'return' | 'reeval' | null; src: string; updated: string };
 type Stat = { l10: number | null; n: number; last: number | null; gp: number; tg: number; g: [string, number, number][] };
 const HDR = { 'Cache-Control': 'public, s-maxage=600, stale-while-revalidate=1800' };
 
@@ -62,12 +62,12 @@ export async function GET(req: NextRequest) {
       const s = st.by[nrm(p.name)]; const ti = tbl[nrm(p.name)];
       const tOut = !!ti && ti.status === 'OUT' && (!ti.until || night < ti.until);
       // Statut : OUT (Sorare ou tableau) > statut du tableau (injury report NBA : Doubtful / Questionable=GTD / Probable) > GTD Sorare
-      const status: 'OUT' | 'GTD' | 'DOUBT' | 'PROB' | null = (p.inj && p.inj !== 'GTD') || tOut ? 'OUT' : ti && (ti.status === 'PROB' || ti.status === 'DOUBT' || ti.status === 'GTD') ? ti.status : p.inj === 'GTD' ? 'GTD' : null;
-      const injEff = status === 'GTD' || status === 'DOUBT' ? 'GTD' : null; // malus 12 % : GTD et Doubtful ; Probable = aucune baisse
+      const status: 'OUT' | 'GTD' | 'QUEST' | 'DOUBT' | 'PROB' | null = (p.inj && p.inj !== 'GTD') || tOut ? 'OUT' : ti && (ti.status === 'PROB' || ti.status === 'DOUBT' || ti.status === 'QUEST' || ti.status === 'GTD') ? ti.status : p.inj === 'GTD' ? 'GTD' : null;
+      const malus = status === 'GTD' || status === 'QUEST' || status === 'DOUBT'; const injEff = malus ? 'GTD' : null; // malus 12 % : Questionable, Doubtful (et statut generique Sorare) ; Probable = aucune baisse
       return {
         name: p.name, slug: p.slug, team: p.team, opp: p.opp, home: p.home, time: p.time,
         est: status === 'OUT' ? 0 : +ttflEst(p.proj, p.l5, p.l10, injEff).toFixed(1), proj: status === 'OUT' ? 0 : +myProj(p.proj, p.l5, p.l10, injEff).toFixed(1), // absent : pas de projection
-        estFull: status === 'GTD' || status === 'DOUBT' ? +ttflEst(p.proj, p.l5, p.l10, null).toFixed(1) : null, // projection s'il joue (sans malus GTD)
+        estFull: malus ? +ttflEst(p.proj, p.l5, p.l10, null).toFixed(1) : null, // projection s'il joue (sans malus GTD)
         l10: s?.l10 ?? null, n: s?.n ?? 0, g: s?.g ?? [], last: s?.last ?? null, gp: s?.gp ?? 0, tg: s?.tg ?? 0,
         status, until: tOut ? ti.until : null,
       };
