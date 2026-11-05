@@ -141,7 +141,7 @@ export default function TtflPublic() {
                   {(() => { const sp = r.name.indexOf(' '); const fn = sp > 0 ? r.name.slice(0, sp) : '', ln = sp > 0 ? r.name.slice(sp + 1) : r.name;
                     return <>
                       <div style={{ fontSize: 12, color: c.dim, minHeight: 30, lineHeight: '15px', display: 'flex', gap: 6 }}><span style={{ flex: '0 0 auto', color: c.gold, fontWeight: 700 }}>#{i + 1}</span><span>{r.team}</span></div>
-                      <div style={{ minHeight: 14, lineHeight: '14px', fontSize: 12, color: c.dim, marginTop: 4 }}>{fn || '\u00A0'}</div>
+                      <div style={{ minHeight: 14, lineHeight: '14px', fontSize: 12, color: c.dim, marginTop: 12 }}>{fn || '\u00A0'}</div>
                       <div style={{ minHeight: 40, lineHeight: '20px', fontSize: 16, fontWeight: 700 }}>{ln}</div>
                       <div style={{ height: 20, marginTop: 4, display: 'flex', alignItems: 'center' }}>{r.status && r.status !== 'OUT' && <span style={{ marginLeft: -8 }}>{badge(r.status, tr(SL[r.status]))}</span>}</div>
                       <div style={{ fontSize: 30, fontWeight: 800, color: c.cy, lineHeight: 1, marginTop: 6 }}>{r.est.toFixed(1)}</div>
