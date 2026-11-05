@@ -145,14 +145,15 @@ export default function TtflPublic() {
           {top.length > 0 && !q && (
             <div style={narrow ? { display: 'flex', gap: 8, marginBottom: 12, overflowX: 'auto', paddingBottom: 4, scrollbarWidth: 'none' } : { display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(170px,1fr))', gap: 10, marginBottom: 18 }}>
               {top.map((r, i) => (
-                <a key={r.name} href={`/ttfl/joueur/${r.slug || 'n-' + r.name.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`} style={{ display: 'block', color: '#fff', textDecoration: 'none', background: c.card, border: `1px solid ${c.line}`, borderRadius: 14, padding: narrow ? 10 : 14, backdropFilter: 'blur(6px)', ...(narrow ? { flex: '0 0 150px' } : {}) }}>
+                <a key={r.name} href={`/ttfl/joueur/${r.slug || 'n-' + r.name.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`} style={{ display: 'block', color: '#fff', textDecoration: 'none', background: `radial-gradient(120% 80% at 50% 0%, ${tierC(r.est)}24, rgba(8,12,28,0) 70%), ${c.card}`, border: `1px solid ${tierC(r.est)}${i === 0 ? '99' : '44'}`, boxShadow: i === 0 ? `0 0 26px ${tierC(r.est)}33` : 'none', borderRadius: 14, padding: narrow ? 10 : 14, backdropFilter: 'blur(6px)', ...(narrow ? { flex: '0 0 150px' } : {}) }}>
                   {(() => { const sp = r.name.indexOf(' '); const fn = sp > 0 ? r.name.slice(0, sp) : '', ln = sp > 0 ? r.name.slice(sp + 1) : r.name;
                     return <>
                       <div style={{ fontSize: 12, color: c.dim, minHeight: need2.team ? 30 : 15, lineHeight: '15px', display: 'flex', gap: 6 }}><span style={{ flex: '0 0 auto', color: c.gold, fontWeight: 700 }}>#{i + 1}</span><span>{r.team}</span></div>
                       <div style={{ minHeight: 14, lineHeight: '14px', fontSize: 12, color: c.dim, marginTop: 12 }}>{fn || '\u00A0'}</div>
                       <div style={{ minHeight: need2.name ? 40 : 20, lineHeight: '20px', fontSize: 16, fontWeight: 700 }}>{ln}</div>
                       <div style={{ height: 20, marginTop: 4, display: 'flex', alignItems: 'center' }}>{r.status && r.status !== 'OUT' && <span style={{ marginLeft: -8 }}>{badge(r.status, tr(SL[r.status]))}</span>}</div>
-                      <div style={{ fontSize: 30, fontWeight: 800, color: c.cy, lineHeight: 1, marginTop: 6 }}>{r.est.toFixed(1)}</div>
+                      <div style={{ fontSize: 30, fontWeight: 800, color: tierC(r.est), textShadow: `0 0 16px ${tierC(r.est)}66`, lineHeight: 1, marginTop: 6 }}>{r.est.toFixed(1)}</div>
+                      <div aria-hidden style={{ height: 5, marginTop: 8, borderRadius: 99, background: 'rgba(255,255,255,.08)', overflow: 'hidden' }}><div style={{ height: '100%', width: Math.max(4, Math.min(100, 100 * r.est / 60)) + '%', borderRadius: 99, background: `linear-gradient(90deg, ${tierC(r.est)}55, ${tierC(r.est)})`, boxShadow: `0 0 10px ${tierC(r.est)}77` }} /></div>
                       <div style={{ fontSize: 12, color: c.dim, marginTop: 8, minHeight: need2.match ? 30 : 15, lineHeight: '15px' }}>{r.home ? 'vs' : '@'} {nk(r.opp)} · {r.time}</div>
                     </>; })()}
                 </a>
@@ -207,7 +208,7 @@ export default function TtflPublic() {
                 <tr key={r.name} style={{ borderTop: `1px solid ${c.line}` }}>
                   <td style={{ padding: pd }}>{(() => { const sl = rows?.find(x => norm(x.name) === norm(r.name))?.slug || 'n-' + r.name.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''); return <a href={`/ttfl/joueur/${sl}`} style={{ color: '#fff', textDecoration: 'none', borderBottom: `1px dashed ${c.cy}` }}>{r.name} →</a>; })()}{narrow && <div style={{ fontSize: 11, color: c.dim }}>{r.team || '–'}</div>}</td>
                   {!narrow && <td style={{ padding: pd, color: c.dim }}>{r.team || '–'}</td>}
-                  <td style={{ padding: pd, color: r.status === 'OUT' ? '#ff7b7b' : r.status === 'PROB' ? '#4ade80' : r.status === 'DOUBT' ? '#ff9f43' : r.status === 'QUEST' ? '#e5c07b' : c.gold, fontWeight: 700 }}>{tr(SL[r.status])}</td>
+                  <td style={{ padding: pd }}>{(() => { const sc = r.status === 'OUT' ? '255,107,107' : r.status === 'PROB' ? '74,222,128' : r.status === 'DOUBT' ? '255,159,67' : '229,185,78'; return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap', fontWeight: 700, fontSize: narrow ? 11.5 : 12.5, color: `rgb(${sc})`, background: `rgba(${sc},.12)`, border: `1px solid rgba(${sc},.5)`, borderRadius: 999, padding: '3px 9px', boxShadow: `0 0 12px rgba(${sc},.22)` }}><span style={{ width: 6, height: 6, borderRadius: 99, background: `rgb(${sc})`, boxShadow: `0 0 8px rgb(${sc})` }} />{tr(SL[r.status])}</span>; })()}</td>
                   <td style={{ padding: pd }}>{r.until ? (narrow ? <>{dm(r.until)}<div style={{ fontSize: 11, color: c.dim }}>{r.untilKind === 'reeval' ? tr('réévaluation') : tr('retour')}</div></> : `${dm(r.until)} (${r.untilKind === 'reeval' ? tr('réévaluation') : tr('retour')})`) : '–'}</td>
                   <td style={{ padding: pd, textAlign: 'right' }}>{r.l10 == null ? '–' : r.l10.toFixed(1)}</td>
                 </tr>))}</tbody>
