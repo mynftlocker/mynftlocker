@@ -18,7 +18,9 @@ export async function getDayFull(date: string): Promise<FullRow[] | null> {
   await Promise.all(events.map(async e => {
     const cs: any[] = e.competitions?.[0]?.competitors || [];
     const home = cs.find(c => c.homeAway === 'home')?.team?.abbreviation, away = cs.find(c => c.homeAway === 'away')?.team?.abbreviation;
-    const sum = await getJson(`${ESPN}/summary?event=${e.id}`, 3600);
+    let sum: any = null;
+    for (let i = 0; i < 3 && !sum; i++) sum = await getJson(`${ESPN}/summary?event=${e.id}`, 3600).catch(() => null);
+    if (!sum) throw new Error('summary ' + e.id); // jour incomplet : non mis en cache, reessaye au prochain appel
     for (const team of sum?.boxscore?.players || []) {
       const st = team?.statistics?.[0]; if (!st) continue;
       const L: string[] = st.labels || []; const ix = (l: string) => L.indexOf(l);
@@ -37,10 +39,11 @@ export async function getDayFull(date: string): Promise<FullRow[] | null> {
   return rows;
 }
 
-export async function allFull(): Promise<FullRow[]> {
+export async function allFull(): Promise<{ rows: FullRow[]; failed: number }> {
   const dates: string[] = [];
   const end = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/New_York' }));
   for (let d = new Date(START + 'T12:00:00'); d <= end; d.setDate(d.getDate() + 1)) dates.push(ymdLocal(d));
-  const all = await Promise.all(dates.map(d => getDayFull(d).catch(() => null)));
-  return all.flatMap(r => r || []);
+  let failed = 0;
+  const all = await Promise.all(dates.map(d => getDayFull(d).catch(() => { failed++; return null; })));
+  return { rows: all.flatMap(r => r || []), failed };
 }

@@ -33,7 +33,8 @@ export async function GET(req: NextRequest) {
       const cs: any[] = (c.tokens?.allCards?.nodes || []).filter((x: any) => x.pictureUrl).sort((a: any, b: any) => (Number(b.inSeasonEligible) - Number(a.inSeasonEligible)) || (Number(b.seasonYear) - Number(a.seasonYear)));
       if (cs[0]) card = { slug: cs[0].slug, pic: cs[0].pictureUrl, year: Number(cs[0].seasonYear) };
     } catch { /* pas de carte */ }
-    const all = (await allFull()).filter(r => nrm(r.n) === nrm(p.displayName)).sort((a, b) => (a.d < b.d ? -1 : 1));
+    const full = await allFull();
+    const all = full.rows.filter(r => nrm(r.n) === nrm(p.displayName)).sort((a, b) => (a.d < b.d ? -1 : 1));
     const best = all.length ? all.reduce((m, x) => (x.t > m.t ? x : m)) : null; const worst = all.length ? all.reduce((m, x) => (x.t < m.t ? x : m)) : null;
     const byOpp: Record<string, FullRow[]> = {}; all.forEach(r => (byOpp[r.opp] ||= []).push(r));
     const opps = Object.entries(byOpp).map(([opp, g]) => ({ opp, n: g.length, avg: avg(g.map(x => x.t)) as number })).sort((a, b) => b.avg - a.avg);
@@ -47,7 +48,7 @@ export async function GET(req: NextRequest) {
       avg: { season: lines(all), l10: lines(all.slice(-10)), l5: lines(all.slice(-5)), home: lines(all.filter(r => r.home)), away: lines(all.filter(r => !r.home)) },
       best: best && { t: best.t, opp: best.opp, d: best.d, gid: best.gid }, worst: worst && { t: worst.t, opp: worst.opp, d: worst.d, gid: worst.gid }, opps, sd,
     };
-    await redis.set(key, out, { ex: 600 }).catch(() => {});
-    return NextResponse.json(out, { headers: H });
+    if (!full.failed) await redis.set(key, out, { ex: 600 }).catch(() => {});
+    return NextResponse.json(out, { headers: full.failed ? { 'Cache-Control': 'no-store' } : H });
   } catch (e) { return NextResponse.json({ ok: false, error: String(e).slice(0, 200) }, { status: 502 }); }
 }
