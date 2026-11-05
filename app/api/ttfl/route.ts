@@ -56,7 +56,9 @@ export async function GET(req: NextRequest) {
     ]);
     if (cupR.error) return NextResponse.json({ ok: false, error: cupR.error }, { status: 502 });
     const tbl: Record<string, InjRow> = {}; for (const r of tb.rows) tbl[nrm(r.name)] = r;
-    const rows = (cupR.players || []).filter((p: any) => p.proj >= 5).map((p: any) => {
+    // Les absents (OUT) restent dans la liste meme avec une projection Sorare nulle : la case « Masquer les absents » doit pouvoir les montrer.
+    const isOut = (p: any) => { const ti = tbl[nrm(p.name)]; return (p.inj && p.inj !== 'GTD') || (!!ti && ti.status === 'OUT' && (!ti.until || night < ti.until)); };
+    const rows = (cupR.players || []).filter((p: any) => p.proj >= 5 || isOut(p)).map((p: any) => {
       const s = st.by[nrm(p.name)]; const ti = tbl[nrm(p.name)];
       const tOut = !!ti && ti.status === 'OUT' && (!ti.until || night < ti.until);
       const status: 'OUT' | 'GTD' | null = (p.inj && p.inj !== 'GTD') || tOut ? 'OUT' : p.inj === 'GTD' ? 'GTD' : null;
