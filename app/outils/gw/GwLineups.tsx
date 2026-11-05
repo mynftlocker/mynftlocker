@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
-import { best, vary, BONUS_IS, CAPS, MAX_PER_TEAM, type Cand, type GP, type MCard } from '../../../lib/gwLineup';
+import { best, bestPair, vary, BONUS_IS, CAPS, MAX_PER_TEAM, type Cand, type GP, type MCard } from '../../../lib/gwLineup';
 import StarBg from './StarBg';
 import { GwRow } from './GwCard';
 
@@ -100,9 +100,7 @@ export default function GwLineups() {
       all.push({ id: c.slug, p, v: p.proj * pw * gtd(p), cost: Math.round(p.stars * 2), pw, is, pic: c.pictureUrl || p.pic, real: !!c.pictureUrl });
     }
     const mx = isOnly ? 1 : 5; // compo In-Season : 4 cartes IS minimum, 1 carte classic autorisee
-    const a = best(all, Math.round(CAPS.champ * 2), perTeam, mx);
-    const ids = new Set(a.map(x => x.id));
-    return [a, best(all.filter(x => !ids.has(x.id)), Math.round(CAPS.cont * 2), perTeam, mx)];
+    return bestPair(all, perTeam, mx);
   }, [players, cards, used, noInj, isOnly]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const lab: React.CSSProperties = { fontSize: 13, color: '#dfe', display: 'flex', alignItems: 'center', gap: 6 };
