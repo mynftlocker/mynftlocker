@@ -11,6 +11,18 @@ const age = (b: string) => Math.floor((Date.now() - new Date(b).getTime()) / 315
 const ddmm = (d: string) => d.slice(8) + '/' + d.slice(5, 7);
 const parisNight = (us: string) => { const d = new Date(us + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + 1); return d.toISOString().slice(0, 10); };
 export const matchHref = (us: string, gid: string) => `/ttfl?v=live&night=${parisNight(us)}&game=${gid}`;
+const seasonOf = (d: string) => { const y = +d.slice(0, 4), m = +d.slice(5, 7); return m >= 9 ? `${y}-${String((y + 1) % 100).padStart(2, '0')}` : `${y - 1}-${String(y % 100).padStart(2, '0')}`; };
+const av = (a: number[]) => (a.length ? +(a.reduce((s, x) => s + x, 0) / a.length).toFixed(1) : null);
+const lines = (g: G[]): L => ({ n: g.length, ttfl: av(g.map(x => x.t)), min: av(g.map(x => x.m)), pts: av(g.map(x => x.pts)), reb: av(g.map(x => x.reb)), ast: av(g.map(x => x.ast)), stl: av(g.map(x => x.stl)), blk: av(g.map(x => x.blk)), to: av(g.map(x => x.to)),
+  fgm: av(g.map(x => x.fgm)), fgmiss: av(g.map(x => x.fga - x.fgm)), tpm: av(g.map(x => x.tpm)), tpmiss: av(g.map(x => x.tpa - x.tpm)), ftm: av(g.map(x => x.ftm)), ftmiss: av(g.map(x => x.fta - x.ftm)) });
+const bundle = (rows: G[]): B => {
+  const best = rows.length ? rows.reduce((m, x) => (x.t > m.t ? x : m)) : null; const worst = rows.length ? rows.reduce((m, x) => (x.t < m.t ? x : m)) : null;
+  const byOpp: Record<string, G[]> = {}; rows.forEach(r => (byOpp[r.opp] ||= []).push(r));
+  const opps = Object.entries(byOpp).map(([opp, g]) => ({ opp, n: g.length, avg: av(g.map(x => x.t)) as number })).sort((a, b) => b.avg - a.avg);
+  const mean = av(rows.map(x => x.t)) as number; const sd = rows.length > 1 ? +Math.sqrt(rows.reduce((s, x) => s + (x.t - mean) ** 2, 0) / rows.length).toFixed(1) : null;
+  return { avg: { season: lines(rows), l10: lines(rows.slice(-10)), l5: lines(rows.slice(-5)), home: lines(rows.filter(r => r.home)), away: lines(rows.filter(r => !r.home)), b2b: lines(rows.filter(r => r.b2b)), rest: lines(rows.filter(r => !r.b2b)) },
+    best: best && { t: best.t, opp: best.opp, d: best.d, gid: best.gid }, worst: worst && { t: worst.t, opp: worst.opp, d: worst.d, gid: worst.gid }, opps, sd };
+};
 const fx = (v: number | null) => (v == null ? '–' : v.toFixed(1));
 
 function Bars({ g }: { g: G[] }) {
@@ -33,14 +45,17 @@ function Bars({ g }: { g: G[] }) {
 }
 
 export default function PlayerSheet({ slug }: { slug: string }) {
-  const [d, setD] = useState<D | null>(null); const [err, setErr] = useState(''); const [w, setW] = useState<'l5' | 'l10' | 'season'>('l10'); const [scope, setScope] = useState<'cur' | 'ext'>('cur');
+  const [d, setD] = useState<D | null>(null); const [err, setErr] = useState(''); const [w, setW] = useState<'l5' | 'l10' | 'season'>('l10'); const [sel, setSel] = useState<string>(''); const [po, setPo] = useState(true);
   useEffect(() => { fetch('/api/ttfl/player?slug=' + slug).then(r => r.json()).then(j => j.ok ? setD(j) : setErr(j.error || 'Indisponible')).catch(e => setErr(String(e))); }, [slug]);
   const box: React.CSSProperties = { background: c.card, border: `1px solid ${c.line}`, borderRadius: 14, padding: 14, backdropFilter: 'blur(6px)' };
   const btn = (on: boolean): React.CSSProperties => ({ background: c.card, border: `1px solid ${on ? c.cy : c.line}`, color: on ? c.cy : '#fff', borderRadius: 10, padding: '6px 12px', cursor: 'pointer', fontSize: 13 });
-  const S: B | null = d ? (scope === 'ext' && d.ext ? d.ext : d) : null;
+  const everyGame = d ? [...d.pastGames, ...d.games] : [];
+  const cur = sel || (d?.seasons[0]?.season ?? 'all');
+  const hasPo = everyGame.some(g => g.ps);
+  const recent = everyGame.filter(g => (cur === 'all' || seasonOf(g.d) === cur) && (po || !g.ps));
+  const shown = recent;
+  const S: B | null = d ? bundle(recent) : null;
   const A = S?.avg[w];
-  const recent = d ? [...d.pastGames, ...d.games] : [];
-  const shown = d ? (scope === 'ext' ? recent : d.games) : [];
   const tile = (k: string, v: string, sub?: string, col = '#fff') => <div style={{ ...box, flex: '1 1 120px', minWidth: 110 }}><div style={{ fontSize: 12, color: c.dim }}>{k}</div><div style={{ fontSize: 26, fontWeight: 800, color: col, margin: '2px 0' }}>{v}</div>{sub && <div style={{ fontSize: 12, color: c.dim }}>{sub}</div>}</div>;
   const mlink = (g: { d: string; gid: string }, t: number, strong = false) => <a href={matchHref(g.d, g.gid)} style={{ color: c.cy, fontWeight: strong ? 800 : 700, textDecoration: 'none', borderBottom: `1px dashed ${c.cy}` }}>{t}</a>;
 
@@ -67,22 +82,24 @@ export default function PlayerSheet({ slug }: { slug: string }) {
               {/* eslint-disable-next-line @next/next/no-img-element */}<img src={d.card.pic} alt={`Carte Sorare ${d.player.name}`} style={{ height: 120, width: 'auto', borderRadius: 8, display: 'block', margin: '0 auto 4px' }} />Carte Sorare {d.card.year} →</a>}
           </div>
 
-          {d.ext && <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 12, flexWrap: 'wrap' }}><span style={{ color: c.dim, fontSize: 13 }}>Période</span>
-            <button style={btn(scope === 'cur')} onClick={() => setScope('cur')}>Saison en cours</button><button style={btn(scope === 'ext')} onClick={() => setScope('ext')}>3 dernières saisons + actuelle</button></div>}
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 12, flexWrap: 'wrap' }}><span style={{ color: c.dim, fontSize: 13 }}>Saison</span>
+            {d.seasons.map(x => <button key={x.season} style={btn(cur === x.season)} onClick={() => setSel(x.season)}>{x.season}</button>)}
+            {d.seasons.length > 1 && <button style={btn(cur === 'all')} onClick={() => setSel('all')}>Toutes</button>}
+            {hasPo && <label style={{ marginLeft: 8, fontSize: 13, color: c.dim, display: 'inline-flex', gap: 5, alignItems: 'center', cursor: 'pointer' }}><input type="checkbox" checked={po} onChange={e => setPo(e.target.checked)} />Playoffs inclus</label>}</div>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 16 }}>
-            {tile('Moy. 5 matchs', fx(S!.avg.l5.ttfl), `${S!.avg.l5.n} match(s)`, c.cy)}{tile('Moy. 10 matchs', fx(S!.avg.l10.ttfl), `${S!.avg.l10.n} match(s)`, c.cy)}{tile('Moy. saison', fx(S!.avg.season.ttfl), `${S!.avg.season.n} match(s)`)}
+            {tile('Moy. 5 matchs', fx(S!.avg.l5.ttfl), `${S!.avg.l5.n} match(s)`, c.cy)}{tile('Moy. 10 matchs', fx(S!.avg.l10.ttfl), `${S!.avg.l10.n} match(s)`, c.cy)}{tile(cur === 'all' ? 'Moy. période' : 'Moy. saison', fx(S!.avg.season.ttfl), `${S!.avg.season.n} match(s)`)}
             {tile('Score max', S!.best ? String(S!.best.t) : '–', S!.best ? `vs ${S!.best.opp} · ${ddmm(S!.best.d)}` : undefined, '#4ade80')}{tile('Score min', S!.worst ? String(S!.worst.t) : '–', S!.worst ? `vs ${S!.worst.opp} · ${ddmm(S!.worst.d)}` : undefined, '#ff7b7b')}
             {tile('Régularité', S!.sd == null ? '–' : '±' + S!.sd, 'écart-type des scores')}
           </div>
 
           <div style={{ ...box, marginBottom: 16 }}>
             <div style={{ fontWeight: 700, marginBottom: 6 }}>10 derniers matchs <span style={{ color: c.dim, fontWeight: 400, fontSize: 12 }}>· clique sur un score pour ouvrir la fiche du match</span></div>
-            {recent.length ? <Bars g={recent} /> : <p style={{ color: c.dim }}>Aucun match joué cette saison.</p>}
+            {recent.length ? <Bars g={recent} /> : <p style={{ color: c.dim }}>Aucun match sur cette période.</p>}
           </div>
 
           <div style={{ ...box, marginBottom: 16 }}>
             <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', marginBottom: 10 }}><b style={{ marginRight: 6 }}>Moyennes par match</b>
-              {([['l5', '5 matchs'], ['l10', '10 matchs'], ['season', 'Saison']] as ['l5' | 'l10' | 'season', string][]).map(([k, l]) => <button key={k} style={btn(w === k)} onClick={() => setW(k)}>{l}</button>)}</div>
+              {([['l5', '5 matchs'], ['l10', '10 matchs'], ['season', cur === 'all' ? 'Tout' : 'Saison']] as ['l5' | 'l10' | 'season', string][]).map(([k, l]) => <button key={k} style={btn(w === k)} onClick={() => setW(k)}>{l}</button>)}</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(130px,1fr))', gap: 8 }}>
               {([['Minutes', A.min, ''], ['Points', A.pts, '+'], ['Rebonds', A.reb, '+'], ['Passes', A.ast, '+'], ['Interceptions', A.stl, '+'], ['Contres', A.blk, '+'], ['Tirs réussis', A.fgm, '+'], ['3 pts réussis', A.tpm, '+'], ['LF réussis', A.ftm, '+'], ['Tirs manqués', A.fgmiss, '−'], ['3 pts manqués', A.tpmiss, '−'], ['LF manqués', A.ftmiss, '−'], ['Balles perdues', A.to, '−']] as [string, number | null, string][]).map(([k, v, s]) => (
                 <div key={k} style={{ border: `1px solid ${c.line}`, borderRadius: 10, padding: '8px 10px' }}><div style={{ fontSize: 11, color: c.dim }}>{k}</div><div style={{ fontSize: 20, fontWeight: 800, color: s === '−' ? '#ff9b9b' : s === '+' ? '#fff' : c.dim }}>{s === '−' && v ? '−' : ''}{fx(v)}</div></div>))}
@@ -119,8 +136,8 @@ export default function PlayerSheet({ slug }: { slug: string }) {
           {d.seasons.length > 1 && <div style={{ ...box, marginTop: 16, overflowX: 'auto' }}>
             <div style={{ fontWeight: 700, marginBottom: 8 }}>Saison par saison</div>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 360 }}><thead><tr style={{ color: c.dim }}>{['Saison', 'Matchs', 'Moy. TTFL', 'Max', 'Min', 'Minutes'].map((h, i) => <th key={h} style={{ padding: '6px 8px', fontWeight: 500, textAlign: i ? 'right' : 'left' }}>{h}</th>)}</tr></thead>
-              <tbody>{d.seasons.map(x => <tr key={x.season} style={{ borderTop: `1px solid ${c.line}` }}><td style={{ padding: '7px 8px' }}>{x.season}</td><td style={{ padding: '7px 8px', textAlign: 'right' }}>{x.n}</td><td style={{ padding: '7px 8px', textAlign: 'right', color: c.cy, fontWeight: 700 }}>{fx(x.ttfl)}</td><td style={{ padding: '7px 8px', textAlign: 'right' }}>{x.max}</td><td style={{ padding: '7px 8px', textAlign: 'right' }}>{x.min}</td><td style={{ padding: '7px 8px', textAlign: 'right', color: c.dim }}>{fx(x.min_m)}</td></tr>)}</tbody></table></div>}
-          <p style={{ color: c.dim, fontSize: 12, marginTop: 14 }}>Scores TTFL calculés depuis les box scores officiels de la saison 2026-27 (depuis le 20/10). La carte affichée est la Limited In-Season de la saison la plus récente.</p>
+              <tbody>{d.seasons.map(x => <tr key={x.season} onClick={() => setSel(x.season)} style={{ cursor: 'pointer', background: cur === x.season ? 'rgba(0,255,255,.07)' : 'none', borderTop: `1px solid ${c.line}` }}><td style={{ padding: '7px 8px' }}>{x.season}</td><td style={{ padding: '7px 8px', textAlign: 'right' }}>{x.n}</td><td style={{ padding: '7px 8px', textAlign: 'right', color: c.cy, fontWeight: 700 }}>{fx(x.ttfl)}</td><td style={{ padding: '7px 8px', textAlign: 'right' }}>{x.max}</td><td style={{ padding: '7px 8px', textAlign: 'right' }}>{x.min}</td><td style={{ padding: '7px 8px', textAlign: 'right', color: c.dim }}>{fx(x.min_m)}</td></tr>)}</tbody></table></div>}
+          <p style={{ color: c.dim, fontSize: 12, marginTop: 14 }}>Scores TTFL calculés depuis les box scores officiels (saison en cours depuis le 20/10, 3 saisons précédentes comprises). La carte affichée est la Limited In-Season de la saison la plus récente.</p>
         </>}
       </div>
     </main>
