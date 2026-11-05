@@ -55,7 +55,7 @@ export default function LiveTab({ night, proj, slugs, initialGame }: { night: st
         const win = g.state === 'post' && t.score > (i ? g.away.score : g.home.score);
         return <div key={t.abbr} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '2px 0', fontWeight: win ? 800 : 500, opacity: g.state === 'post' && !win ? 0.6 : 1 }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>{/* eslint-disable-next-line @next/next/no-img-element */}<img src={t.logo} alt="" width={22} height={22} />{t.name}</span>
-          <span style={{ fontSize: 18 }}>{g.state === 'pre' ? '' : t.score}</span></div>;
+          <span style={{ fontSize: 24, fontWeight: 800, fontVariantNumeric: 'tabular-nums', minWidth: 40, textAlign: 'right', color: g.state === 'pre' ? c.dim : g.state === 'in' && t.score > (i ? g.away.score : g.home.score) ? c.cy : '#fff' }}>{g.state === 'pre' ? '–' : t.score}</span></div>;
       })}
     </button>
   );
