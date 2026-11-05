@@ -16,7 +16,11 @@ type Table = { updated: string; rows: InjRow[] };
 
 async function load(): Promise<Table> { return (await redis.get<Table>(KEY).catch(() => null)) || { updated: '', rows: [] }; }
 // Une ligne non-ESPN disparait une fois sa date de retour passee ; une ligne ESPN disparait quand ESPN ne la liste plus.
-function prune(rows: InjRow[]) { const t = today(); return rows.filter(r => !(r.src !== 'espn' && r.until && r.until < t)); }
+function prune(rows: InjRow[]) {
+  const t = today(); const old = Date.now() - 2 * 86400000;
+  // Une ligne Rotowire sans date de fin non re-confirmee depuis 2 jours est perimee (les lignes a date future restent jusqu'a leur date)
+  return rows.filter(r => !(r.src !== 'espn' && r.until && r.until < t) && !(r.src === 'rotowire' && !r.until && new Date(r.updated).getTime() < old));
+}
 
 async function refreshEspn(): Promise<number> {
   const t = await load();
