@@ -4,20 +4,20 @@ export type Cand = { id: string; p: GP; v: number; cost: number; pw: number; is:
 export const BONUS_IS = 1.05; // bonus par defaut d'une carte In-Season pour la compo du builder
 export const CAPS = { champ: 16, cont: 11 } as const; // etoiles max : Champion 16, Contender 11
 
-export function best(cands: Cand[], cap: number, perTeam: number): Cand[] {
+export function best(cands: Cand[], cap: number, perTeam: number, maxNonIs = 5): Cand[] {
   const pool = [...cands].sort((a, b) => b.v - a.v).slice(0, 80);
   let bestV = -1, bestSet: Cand[] = [];
-  const cur: Cand[] = []; const cnt: Record<string, number> = {};
+  const cur: Cand[] = []; const cnt: Record<string, number> = {}; let nonIs = 0;
   const rec = (i: number, cost: number, v: number) => {
     if (cur.length === 5) { if (v > bestV) { bestV = v; bestSet = [...cur]; } return; }
     const need = 5 - cur.length;
     if (pool.length - i < need) return;
     if (v + pool[i].v * need <= bestV) return;
     const c = pool[i];
-    if (cost + c.cost <= cap && (cnt[c.p.team] || 0) < perTeam && !cur.some(x => x.p.slug === c.p.slug)) {
-      cur.push(c); cnt[c.p.team] = (cnt[c.p.team] || 0) + 1;
+    if (cost + c.cost <= cap && (cnt[c.p.team] || 0) < perTeam && (c.is || nonIs < maxNonIs) && !cur.some(x => x.p.slug === c.p.slug)) {
+      cur.push(c); cnt[c.p.team] = (cnt[c.p.team] || 0) + 1; if (!c.is) nonIs++;
       rec(i + 1, cost + c.cost, v + c.v);
-      cur.pop(); cnt[c.p.team]--;
+      cur.pop(); cnt[c.p.team]--; if (!c.is) nonIs--;
     }
     rec(i + 1, cost, v);
   };
