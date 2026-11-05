@@ -68,6 +68,7 @@ export default function TtflPublic() {
   const lv = list.map(r => avg(r, win)).filter((x): x is number => x != null); const lLo = Math.min(...lv), lHi = Math.max(...lv);
   const toggle = (k: SK) => setSort(s => s.k === k ? { k, dir: (s.dir * -1) as 1 | -1 } : { k, dir: k === 'name' || k === 'match' ? 1 : -1 });
   const projMap = useMemo(() => { const m: Record<string, number> = {}; (rows || []).forEach(r => { m[norm(r.name)] = r.est; }); return m; }, [rows]);
+  const slugMap = useMemo(() => { const m: Record<string, string> = {}; (rows || []).forEach(r => { if (r.slug) m[norm(r.name)] = r.slug; }); return m; }, [rows]);
   const top = (rows || []).filter(r => r.status !== 'OUT').slice(0, 5);
   const injVal = (r: I, k: IK): number | string => k === 'name' ? fam(r.name) + ' ' + norm(r.name) : k === 'team' ? r.team : k === 'until' ? r.until || '9999' : k === 'l10' ? r.l10 ?? -1 : (r.status === 'OUT' ? 0 : r.status === 'GTD' ? 1 : 2) + (r.until || '9999');
   const injList = (inj || []).filter(r => !q || norm(r.name + r.team).includes(norm(q))).slice().sort((a, b) => { const x = injVal(a, isort.k), y = injVal(b, isort.k); return (typeof x === 'string' ? x.localeCompare(y as string) : (x as number) - (y as number)) * isort.dir || fam(a.name).localeCompare(fam(b.name)); });
@@ -154,7 +155,7 @@ export default function TtflPublic() {
           <p style={{ color: c.dim, fontSize: 12, marginTop: 14, lineHeight: 1.5 }}>Projection myNFTlocker = score TTFL attendu, calculé depuis la projection Sorare lissée avec la forme récente (joueurs incertains GTD pondérés à la baisse). Calibrage en cours sur les scores réels. « Présence » = matchs joués / matchs de l&apos;équipe cette saison. Heures de Paris.</p>
         </>}
 
-        {view === 'live' && <LiveTab night={night} proj={projMap} initialGame={initGame} />}
+        {view === 'live' && <LiveTab night={night} proj={projMap} slugs={slugMap} initialGame={initGame} />}
 
         {view === 'inj' && (
           <div style={{ background: c.card, border: `1px solid ${c.line}`, borderRadius: 14, overflowX: 'auto' }}>

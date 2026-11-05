@@ -28,7 +28,7 @@ function Curve({ p, proj }: { p: P; proj: number | null }) {
   );
 }
 
-export default function LiveTab({ night, proj, initialGame }: { night: string; proj: Record<string, number>; initialGame?: string | null }) {
+export default function LiveTab({ night, proj, slugs, initialGame }: { night: string; proj: Record<string, number>; slugs: Record<string, string>; initialGame?: string | null }) {
   const [games, setGames] = useState<G[] | null>(null);
   const [err, setErr] = useState('');
   const [sel, setSel] = useState<string | null>(null);
@@ -78,9 +78,10 @@ export default function LiveTab({ night, proj, initialGame }: { night: string; p
               </tr>,
               open && <tr key={p.id + 'x'}><td colSpan={7} style={{ padding: '8px 10px 14px', background: 'rgba(0,255,255,.04)' }}>
                 <Curve p={p} proj={pj ?? null} />
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8, fontSize: 12 }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8, fontSize: 14, alignItems: 'center' }}>
                   {([['PTS', p.pts], ['REB', p.reb], ['PD', p.ast], ['INT', p.stl], ['CT', p.blk], ['Tirs', `${p.fgm}/${p.fga}`], ['3 pts', `${p.tpm}/${p.tpa}`], ['LF', `${p.ftm}/${p.fta}`], ['BP', p.to]] as [string, string | number][]).map(([k, v]) => (
-                    <span key={k} style={{ border: `1px solid ${c.line}`, borderRadius: 8, padding: '3px 8px' }}><span style={{ color: c.dim }}>{k}</span> <b>{v}</b></span>))}
+                    <span key={k} style={{ border: `1px solid ${c.line}`, borderRadius: 10, padding: '5px 10px', background: 'rgba(255,255,255,.05)' }}><span style={{ color: c.dim, fontSize: 12 }}>{k}</span> <b style={{ fontSize: 16 }}>{v}</b></span>))}
+                  {slugs[norm(p.name)] && <a href={`/ttfl/joueur/${slugs[norm(p.name)]}`} style={{ marginLeft: 'auto', background: c.cy, color: '#001018', fontWeight: 700, padding: '7px 14px', borderRadius: 10, textDecoration: 'none', fontSize: 14 }}>Fiche joueur →</a>}
                 </div>
               </td></tr>,
             ];
