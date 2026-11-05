@@ -37,6 +37,7 @@ export default function LiveTab({ night, proj, slugs, initialGame, onSelect }: {
   const [sel, setSel] = useState<string | null>(null);
   const [nw, setNw] = useState(false); // telephone : tableau resserre (sans MIN) pour que TTFL et Proj. restent visibles sans defilement
   useEffect(() => { const m = window.matchMedia('(max-width: 640px)'); const f = () => setNw(m.matches); f(); m.addEventListener('change', f); return () => m.removeEventListener('change', f); }, []);
+  useEffect(() => { if (!sel) return; const o = document.body.style.overflow; document.body.style.overflow = 'hidden'; const k = (e: KeyboardEvent) => { if (e.key === 'Escape') setSel(null); }; window.addEventListener('keydown', k); return () => { document.body.style.overflow = o; window.removeEventListener('keydown', k); }; }, [sel]);
   const [det, setDet] = useState<{ game: G; players: P[] } | null>(null);
   const [pid, setPid] = useState<string | null>(null);
 
@@ -68,23 +69,23 @@ export default function LiveTab({ night, proj, slugs, initialGame, onSelect }: {
   const tbl = (abbr: string) => {
     const ps = (det?.players || []).filter(p => p.team === abbr && !p.dnp).sort((a, b) => Number(b.starter) - Number(a.starter) || b.ttfl - a.ttfl);
     const dnp = (det?.players || []).filter(p => p.team === abbr && p.dnp);
-    const th = (h: string, r = true) => <th key={h} style={{ padding: nw ? '6px 5px' : '6px 8px', fontWeight: 500, textAlign: r ? 'right' : 'left', color: c.dim, whiteSpace: 'nowrap' }}>{h}</th>;
+    const th = (h: string, r = true) => <th key={h} style={{ padding: nw ? '6px 4px' : '6px 8px', fontWeight: 500, textAlign: r ? 'right' : 'left', color: c.dim, whiteSpace: 'nowrap' }}>{h}</th>;
     return (
       <div style={{ background: c.card, border: `1px solid ${c.line}`, borderRadius: 14, overflowX: 'auto' }}>
         <div style={{ padding: '10px 12px', fontWeight: 700 }}>{abbr}</div>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: nw ? 0 : 380 }}>
-          <thead><tr>{th(tr('Joueur'), false)}{!nw && th('MIN')}{th('PTS')}{th('REB')}{th(tr('PD'))}{th('TTFL')}{th(tr('Proj.'))}</tr></thead>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: nw ? 12 : 13, minWidth: nw ? 0 : 380 }}>
+          <thead><tr>{th(tr('Joueur'), false)}{th('MIN')}{th('PTS')}{th('REB')}{th(tr('PD'))}{th('TTFL')}{th(tr('Proj.'))}</tr></thead>
           <tbody>{ps.map((p, i) => {
             const pj = proj[norm(p.name)]; const open = pid === p.id;
             return [
               <tr key={p.id} onClick={() => setPid(open ? null : p.id)} style={{ borderTop: `1px solid ${c.line}`, cursor: 'pointer', background: open ? 'rgba(0,255,255,.07)' : 'transparent' }}>
-                <td style={{ padding: nw ? '7px 5px' : '7px 8px', whiteSpace: nw ? 'normal' : 'nowrap' }}>{p.name}{p.starter && <span title={tr('Cinq majeur')} style={{ marginLeft: 6, fontSize: 10, color: c.gold, border: `1px solid ${c.gold}`, borderRadius: 4, padding: '0 4px' }}>5M</span>}</td>
-                {!nw && <td style={{ padding: '7px 8px', textAlign: 'right', color: c.dim }}>{Math.round(p.min)}</td>}
-                <td style={{ padding: nw ? '7px 5px' : '7px 8px', textAlign: 'right' }}>{p.pts}</td><td style={{ padding: nw ? '7px 5px' : '7px 8px', textAlign: 'right' }}>{p.reb}</td><td style={{ padding: nw ? '7px 5px' : '7px 8px', textAlign: 'right' }}>{p.ast}</td>
-                <td style={{ padding: nw ? '7px 5px' : '7px 8px', textAlign: 'right', fontWeight: 800, color: pj != null && p.ttfl >= pj ? c.cy : '#fff' }}>{p.ttfl}</td>
-                <td style={{ padding: nw ? '7px 5px' : '7px 8px', textAlign: 'right', color: c.gold }}>{pj != null ? pj.toFixed(1) : '–'}</td>
+                <td style={{ padding: nw ? '7px 4px' : '7px 8px', whiteSpace: nw ? 'normal' : 'nowrap' }}>{p.name}{p.starter && <span title={tr('Cinq majeur')} style={{ marginLeft: 6, fontSize: 10, color: c.gold, border: `1px solid ${c.gold}`, borderRadius: 4, padding: '0 4px' }}>5M</span>}</td>
+                <td style={{ padding: nw ? '7px 4px' : '7px 8px', textAlign: 'right', color: c.dim }}>{Math.round(p.min)}</td>
+                <td style={{ padding: nw ? '7px 4px' : '7px 8px', textAlign: 'right' }}>{p.pts}</td><td style={{ padding: nw ? '7px 4px' : '7px 8px', textAlign: 'right' }}>{p.reb}</td><td style={{ padding: nw ? '7px 4px' : '7px 8px', textAlign: 'right' }}>{p.ast}</td>
+                <td style={{ padding: nw ? '7px 4px' : '7px 8px', textAlign: 'right', fontWeight: 800, color: pj != null && p.ttfl >= pj ? c.cy : '#fff' }}>{p.ttfl}</td>
+                <td style={{ padding: nw ? '7px 4px' : '7px 8px', textAlign: 'right', color: c.gold }}>{pj != null ? pj.toFixed(1) : '–'}</td>
               </tr>,
-              open && <tr key={p.id + 'x'}><td colSpan={nw ? 6 : 7} style={{ padding: '8px 10px 14px', background: 'rgba(0,255,255,.04)' }}>
+              open && <tr key={p.id + 'x'}><td colSpan={7} style={{ padding: '8px 10px 14px', background: 'rgba(0,255,255,.04)' }}>
                 <Curve p={p} proj={pj ?? null} />
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8, fontSize: 14, alignItems: 'center' }}>
                   {([['PTS', p.pts], ['REB', p.reb], [tr('PD'), p.ast], [tr('INT'), p.stl], [tr('CT'), p.blk], [tr('Tirs'), `${p.fgm}/${p.fga}`], [tr('3 pts'), `${p.tpm}/${p.tpa}`], [tr('LF'), `${p.ftm}/${p.fta}`], [tr('BP'), p.to]] as [string, string | number][]).map(([k, v]) => (
@@ -106,16 +107,24 @@ export default function LiveTab({ night, proj, slugs, initialGame, onSelect }: {
       {!games && !err && <p style={{ color: c.dim }}>{tr('Chargement…')}</p>}
       {games && !games.length && <p style={{ color: c.dim }}>{tr('Aucun match NBA cette nuit.')}</p>}
       {games && games.length > 0 && <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(240px,1fr))', gap: 10, marginBottom: 16 }}>{games.map(card)}</div>}
-      {sel && !det && <p style={{ color: c.dim }}>{tr('Chargement du match…')}</p>}
-      {det && <>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 8, margin: '4px 0 10px' }}>
-          <h2 style={{ fontSize: 18, margin: 0 }}>{det.game.away.name} {det.game.away.score} – {det.game.home.score} {det.game.home.name}</h2>
-          <span style={{ color: live ? c.red : c.dim, fontSize: 13 }}>{live ? tr('● EN DIRECT · ') : ''}{stat(det.game)}{live && tr(' · mise à jour auto')}</span>
+      {sel && <div role="dialog" aria-modal="true" onClick={e => { if (e.target === e.currentTarget) setSel(null); }} style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(3,6,18,.86)', backdropFilter: 'blur(6px)', overflowY: 'auto', padding: nw ? 0 : '24px 16px' }}>
+        <div style={{ maxWidth: 1100, margin: '0 auto', background: '#070b1c', border: nw ? 'none' : `1px solid ${c.line}`, borderRadius: nw ? 0 : 16, minHeight: nw ? '100%' : undefined, paddingBottom: 14 }}>
+          <div style={{ position: 'sticky', top: 0, zIndex: 2, background: '#070b1c', borderBottom: `1px solid ${c.line}`, borderRadius: nw ? 0 : '16px 16px 0 0', padding: '10px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+            <div style={{ minWidth: 0 }}>
+              {det ? <>
+                <h2 style={{ fontSize: 17, margin: 0, lineHeight: 1.25 }}>{det.game.away.name} {det.game.away.score} – {det.game.home.score} {det.game.home.name}</h2>
+                <div style={{ color: live ? c.red : c.dim, fontSize: 12, marginTop: 2 }}>{live ? tr('● EN DIRECT · ') : ''}{stat(det.game)}{live && tr(' · mise à jour auto')}</div>
+              </> : <span style={{ color: c.dim }}>{tr('Chargement du match…')}</span>}
+            </div>
+            <button onClick={() => setSel(null)} aria-label={tr('Fermer')} style={{ flex: '0 0 auto', background: 'rgba(255,255,255,.08)', border: `1px solid ${c.line}`, color: '#fff', borderRadius: 10, padding: '8px 14px', fontSize: 14, cursor: 'pointer', whiteSpace: 'nowrap' }}>✕ {tr('Fermer')}</button>
+          </div>
+          {det && <div style={{ padding: '12px 12px 0' }}>
+            {det.game.state === 'pre' ? <p style={{ color: c.dim }}>{tr('Le match n’a pas commencé : le 5 majeur et les scores TTFL apparaissent dès la mise en jeu.')}</p> :
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,420px),1fr))', gap: 12 }}>{tbl(det.game.away.abbr)}{tbl(det.game.home.abbr)}</div>}
+            <p style={{ color: c.dim, fontSize: 12, marginTop: 10 }}>{tr('Clique sur un joueur pour voir l’évolution de son score TTFL (courbe) et les stats prises en compte. Ligne pointillée = projection myNFTlocker.')}</p>
+          </div>}
         </div>
-        {det.game.state === 'pre' ? <p style={{ color: c.dim }}>{tr('Le match n’a pas commencé : le 5 majeur et les scores TTFL apparaissent dès la mise en jeu.')}</p> :
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,420px),1fr))', gap: 12 }}>{tbl(det.game.away.abbr)}{tbl(det.game.home.abbr)}</div>}
-        <p style={{ color: c.dim, fontSize: 12, marginTop: 10 }}>{tr('Clique sur un joueur pour voir l’évolution de son score TTFL (courbe) et les stats prises en compte. Ligne pointillée = projection myNFTlocker.')}</p>
-      </>}
+      </div>}
     </div>
   );
 }
