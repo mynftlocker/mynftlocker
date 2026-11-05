@@ -1,6 +1,7 @@
 // Calcul pur des compos de GW NBA (utilise cote serveur et cote navigateur) : 5 joueurs, plafond d'etoiles, max N joueurs par equipe.
 export type GP = { slug: string; name: string; team: string; teamName: string; games: number; opp: string[]; stars: number; proj: number; l10: number | null; inj: string | null; pic: string | null };
 export type Cand = { id: string; p: GP; v: number; cost: number; pw: number; is: boolean; pic: string | null; real: boolean };
+export const BONUS_IS = 1.05; // bonus par defaut d'une carte In-Season pour la compo du builder
 export const CAPS = { champ: 16, cont: 11 } as const; // etoiles max : Champion 16, Contender 11
 
 export function best(cands: Cand[], cap: number, perTeam: number): Cand[] {
@@ -24,15 +25,13 @@ export function best(cands: Cand[], cap: number, perTeam: number): Cand[] {
   return bestSet.sort((a, b) => b.v - a.v);
 }
 
-// Vraies cartes Limited du marche par joueur (une par edition/saison) et choix d'editions variees dans une compo (rendu plus realiste)
+// Vraies cartes Limited du marche par joueur et choix d'une carte In-Season (variee d'un joueur a l'autre) pour le rendu
 export type MCard = { pic: string; year: number; is: boolean };
 export function vary(set: Cand[], cards: Record<string, MCard[]>): Cand[] {
-  const used: Record<number, number> = {};
-  return set.map(c => {
-    const opts = cards[c.p.slug];
-    if (!opts?.length) return c;
-    const pick = [...opts].sort((a, b) => (used[a.year] || 0) - (used[b.year] || 0) || Number(b.is) - Number(a.is))[0];
-    used[pick.year] = (used[pick.year] || 0) + 1;
-    return { ...c, pic: pick.pic, real: true };
+  return set.map((c, i) => {
+    const all = cards[c.p.slug] || [];
+    const opts = all.some(x => x.is) ? all.filter(x => x.is) : all;
+    if (!opts.length) return c;
+    return { ...c, pic: opts[i % opts.length].pic, real: true };
   });
 }

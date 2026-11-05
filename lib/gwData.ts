@@ -17,10 +17,10 @@ export async function marketPics(slugs: string[]): Promise<Record<string, { pic:
     out[s] = [];
     try {
       const d = await gql(`{ tokens{ liveSingleSaleOffers(sport:NBA first:25 playerSlug:"${s}"){ nodes{ senderSide{ anyCards{ pictureUrl rarityTyped seasonYear inSeasonEligible } } } } } }`);
-      const seen = new Set<number>();
+      const seen = new Set<string>();
       const cs = (d.tokens?.liveSingleSaleOffers?.nodes || []).map((n: any) => n.senderSide?.anyCards?.[0]).filter((c: any) => c && c.pictureUrl && String(c.rarityTyped).toLowerCase() === 'limited');
       cs.sort((a: any, b: any) => Number(!!b.inSeasonEligible) - Number(!!a.inSeasonEligible));
-      for (const c of cs) { if (seen.has(c.seasonYear)) continue; seen.add(c.seasonYear); out[s].push({ pic: c.pictureUrl, year: Number(c.seasonYear), is: !!c.inSeasonEligible }); }
+      for (const c of cs) { if (seen.has(c.pictureUrl) || out[s].length >= 6) continue; seen.add(c.pictureUrl); out[s].push({ pic: c.pictureUrl, year: Number(c.seasonYear), is: !!c.inSeasonEligible }); }
     } catch { /* pas de carte : photo du joueur */ }
   }));
   return out;
