@@ -1,7 +1,7 @@
 // Lecture des news publiques Rotowire NBA (pages serveur) -> etat de disponibilite par joueur (le plus recent gagne).
 // Le rapport complet de Rotowire est reserve aux abonnes : seules les news publiques et leurs delais (« 4-6 weeks », « re-evaluated in two weeks »...) sont exploitables.
 export type RwItem = { name: string; team: string; headline: string; inj: string; date: string; text: string };
-export type RwState = { name: string; team: string; status: 'OUT' | 'GTD' | 'PROB' | 'OK'; until: string | null; untilKind: 'return' | 'reeval' | null; detail: string };
+export type RwState = { name: string; team: string; status: 'OUT' | 'GTD' | 'QUEST' | 'DOUBT' | 'PROB' | 'OK'; until: string | null; untilKind: 'return' | 'reeval' | null; detail: string };
 
 export const TEAMS: Record<string, string> = { ATL: 'Atlanta Hawks', BKN: 'Brooklyn Nets', BOS: 'Boston Celtics', CHA: 'Charlotte Hornets', CHI: 'Chicago Bulls', CLE: 'Cleveland Cavaliers', DAL: 'Dallas Mavericks', DEN: 'Denver Nuggets', DET: 'Detroit Pistons', GSW: 'Golden State Warriors', HOU: 'Houston Rockets', IND: 'Indiana Pacers', LAC: 'LA Clippers', LAL: 'Los Angeles Lakers', MEM: 'Memphis Grizzlies', MIA: 'Miami Heat', MIL: 'Milwaukee Bucks', MIN: 'Minnesota Timberwolves', NOP: 'New Orleans Pelicans', NYK: 'New York Knicks', OKC: 'Oklahoma City Thunder', ORL: 'Orlando Magic', PHI: 'Philadelphia 76ers', PHX: 'Phoenix Suns', POR: 'Portland Trail Blazers', SAC: 'Sacramento Kings', SAS: 'San Antonio Spurs', TOR: 'Toronto Raptors', UTA: 'Utah Jazz', WAS: 'Washington Wizards' };
 const MONTHS = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
@@ -47,6 +47,8 @@ export function toState(it: RwItem, today: string): RwState | null {
   if (age > 1) return null; // statut d'un seul match trop ancien : on ne le garde pas
   if (/(not listed|removed from (the )?injury report|good to go|cleared to play|available|will play|expected to play|probable|upgraded)/i.test(t) && !/(out|doubtful|ruled out|won't play|will not play)/i.test(it.headline)) return { ...base, status: /probable/i.test(t) ? 'PROB' : 'OK', until: null, untilKind: null };
   if (/(out|ruled out|won't play|will not play|sidelined|inactive|miss)/i.test(it.headline) || /(listed as out|is out|ruled out|will miss|won't play)/i.test(it.text)) return { ...base, status: 'OUT', until: addDays(it.date, 1), untilKind: 'reeval' };
-  if (/(questionable|game-time decision|doubtful|iffy|downgraded|uncertain)/i.test(t)) return { ...base, status: 'GTD', until: null, untilKind: null };
+  if (/doubtful/i.test(t) && !/questionable/i.test(t)) return { ...base, status: 'DOUBT', until: null, untilKind: null };
+  if (/questionable/i.test(t)) return { ...base, status: 'QUEST', until: null, untilKind: null };
+  if (/(game-time decision|iffy|downgraded|uncertain)/i.test(t)) return { ...base, status: 'GTD', until: null, untilKind: null };
   return null;
 }
