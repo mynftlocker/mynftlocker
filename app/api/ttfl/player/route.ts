@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { redis } from '../../../../lib/redis';
-import { allFull, type FullRow } from '../../../../lib/ttflFull';
+import { allFull, NBA_TEAMS, type FullRow } from '../../../../lib/ttflFull';
 
 type FR = FullRow & { ps?: number };
 const seasonOf = (d: string) => { const y = +d.slice(0, 4), m = +d.slice(5, 7); const a = m >= 9 ? y : y - 1; return `${a}-${String(a + 1).slice(2)}`; };
@@ -45,7 +45,7 @@ export async function GET(req: NextRequest) {
     const past: FR[] = [];
     if (pid) {
       const h = await redis.hgetall<Record<string, (string | number)[]>>('ttfl:ph:' + pid).catch(() => null);
-      for (const r of Object.values(h || {})) past.push({ id: pid, n: p.displayName, d: String(r[0]), tm: String(r[1]), opp: String(r[2]), home: r[3] === 1, m: +r[4], t: +r[5], pts: +r[6], reb: +r[7], ast: +r[8], stl: +r[9], blk: +r[10], to: +r[11], fgm: +r[12], fga: +r[13], tpm: +r[14], tpa: +r[15], ftm: +r[16], fta: +r[17], gid: String(r[18]), ps: +r[19] });
+      for (const r of Object.values(h || {})) if (NBA_TEAMS.has(String(r[1])) && NBA_TEAMS.has(String(r[2]))) past.push({ id: pid, n: p.displayName, d: String(r[0]), tm: String(r[1]), opp: String(r[2]), home: r[3] === 1, m: +r[4], t: +r[5], pts: +r[6], reb: +r[7], ast: +r[8], stl: +r[9], blk: +r[10], to: +r[11], fgm: +r[12], fga: +r[13], tpm: +r[14], tpa: +r[15], ftm: +r[16], fta: +r[17], gid: String(r[18]), ps: +r[19] });
       past.sort((a, b) => (a.d < b.d ? -1 : 1));
     }
     const prevDay = (d: string) => { const x = new Date(d + 'T12:00:00Z'); x.setUTCDate(x.getUTCDate() - 1); return x.toISOString().slice(0, 10); };
