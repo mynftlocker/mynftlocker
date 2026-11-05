@@ -121,7 +121,7 @@ export default function PlayerSheet({ slug }: { slug: string }) {
             </div>
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 10, fontSize: 13, color: c.dim }}>
               <span>{tr('Domicile : ')}<b style={{ color: '#fff' }}>{fx(S!.avg.home.ttfl)}</b> ({S!.avg.home.n})</span><span>{tr('Extérieur : ')}<b style={{ color: '#fff' }}>{fx(S!.avg.away.ttfl)}</b> ({S!.avg.away.n})</span>
-              <span title={tr('Équipe ayant déjà joué la veille')}>{tr('2e soir de back-to-back : ')}<b style={{ color: c.gold }}>{fx(S!.avg.b2b.ttfl)}</b> ({S!.avg.b2b.n})</span><span>{tr('Avec repos : ')}<b style={{ color: '#fff' }}>{fx(S!.avg.rest.ttfl)}</b> ({S!.avg.rest.n})</span><span title={tr('Matchs dont le coup d’envoi est au plus tard à 23 h, heure de Paris (saison en cours)')}>{tr('Match jusqu’à 23 h (FR) : ')}<b style={{ color: c.cy }}>{fx(S!.avg.early.ttfl)}</b> ({S!.avg.early.n})</span>
+              <span title={tr('Équipe ayant déjà joué la veille')}>{tr('2e soir de back-to-back : ')}<b style={{ color: c.gold }}>{fx(S!.avg.b2b.ttfl)}</b> ({S!.avg.b2b.n})</span><span>{tr('Avec repos : ')}<b style={{ color: '#fff' }}>{fx(S!.avg.rest.ttfl)}</b> ({S!.avg.rest.n})</span><span title={tr('Matchs dont le coup d’envoi est au plus tard à 23 h, heure de Paris ')}>{tr('Match jusqu’à 23 h (FR) : ')}<b style={{ color: c.cy }}>{fx(S!.avg.early.ttfl)}</b> ({S!.avg.early.n})</span>
             </div>
           </div>
 
