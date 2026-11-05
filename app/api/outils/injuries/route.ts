@@ -85,7 +85,7 @@ async function history() {
 export async function GET(req: NextRequest) {
   try {
     if (req.nextUrl.searchParams.get('run')) {
-      if (!(await redis.set('inj:lock', 1, { nx: true, ex: 3000 }))) return NextResponse.json({ ok: true, skipped: 'recent' });
+      if (!(await redis.set('inj:lock', 1, { nx: true, ex: 600 }))) return NextResponse.json({ ok: true, skipped: 'recent' });
       const espn = await refreshEspn();
       const rw = await refreshRotowire().catch((e: any) => ({ error: String(e).slice(0, 120) }));
       await logToday().catch(() => {});

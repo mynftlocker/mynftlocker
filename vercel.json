@@ -1,6 +1,28 @@
 {
   "crons": [
-    { "path": "/api/keepalive", "schedule": "0 6 * * *" },
-    { "path": "/api/calendrier/warm", "schedule": "0 7 * * *" }
+    {
+      "path": "/api/keepalive",
+      "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/calendrier/warm",
+      "schedule": "0 7 * * *"
+    },
+    {
+      "path": "/api/outils/injuries?run=1",
+      "schedule": "0 16 * * *"
+    },
+    {
+      "path": "/api/outils/injuries?run=1",
+      "schedule": "0 19 * * *"
+    },
+    {
+      "path": "/api/outils/injuries?run=1",
+      "schedule": "0 22 * * *"
+    },
+    {
+      "path": "/api/outils/injuries?run=1",
+      "schedule": "45 22 * * *"
+    }
   ]
 }
