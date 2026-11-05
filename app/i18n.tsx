@@ -47,7 +47,7 @@ const EN: Record<string, string> = {
   'cartes': 'cards', 'Aucune carte': 'No cards', 'Taille': 'Size',
   // --- Compte ---
   'Mon compte': 'My account', 'Changer de galerie consultée': 'Switch viewed gallery', 'Valider': 'Confirm',
-  'Confidentialité & données': 'Privacy & data', 'Se déconnecter': 'Log out', "Retour à l'accueil": 'Back to home',
+  'Confidentialité & données': 'Privacy & data', 'Se déconnecter': 'Log out', 'Projections TTFL NBA': 'NBA TTFL projections', 'NOUVEAU': 'NEW', "Retour à l'accueil": 'Back to home',
   'Adresse email': 'Email address', 'Mot de passe': 'Password', 'Pseudo': 'Username', 'Slug Sorare': 'Sorare slug',
   'La modification de ces informations arrive prochainement.': 'Editing this information is coming soon.',
   "Tu n'es pas connecté à un compte myNFTlocker.": "You're not logged in to a myNFTlocker account.",
