@@ -48,6 +48,9 @@ function Bars({ g }: { g: G[] }) {
 
 export default function PlayerSheet({ slug }: { slug: string }) {
   const lang = useLang(); const en = lang === 'en'; useEffect(() => { initLang(); }, []);
+  // Telephone : la carte Sorare remplace la photo (elle montre deja le joueur) au lieu de la doubler.
+  const [narrow, setNarrow] = useState(false);
+  useEffect(() => { const m = window.matchMedia('(max-width: 640px)'); const f = () => setNarrow(m.matches); f(); m.addEventListener('change', f); return () => m.removeEventListener('change', f); }, []);
   const [d, setD] = useState<D | null>(null); const [err, setErr] = useState(''); const [w, setW] = useState<'l5' | 'l10' | 'season'>('l10'); const [sel, setSel] = useState<string>(''); const [po, setPo] = useState(true);
   useEffect(() => { fetch('/api/ttfl/player?slug=' + slug).then(r => r.json()).then(j => j.ok ? setD(j) : setErr(j.error || tr('Indisponible'))).catch(e => setErr(String(e))); }, [slug]);
   const box: React.CSSProperties = { background: c.card, border: `1px solid ${c.line}`, borderRadius: 14, padding: 14, backdropFilter: 'blur(6px)' };
@@ -71,17 +74,18 @@ export default function PlayerSheet({ slug }: { slug: string }) {
         {!d && !err && <p style={{ color: c.dim, marginTop: 20 }}>{tr('Chargement de la fiche…')}</p>}
         {d && A && <>
           <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap', margin: '16px 0 18px' }}>
-            {d.player.pic && /* eslint-disable-next-line @next/next/no-img-element */ <img src={d.player.pic} alt={d.player.name} width={96} height={96} style={{ borderRadius: 18, border: `1px solid ${c.line}`, objectFit: 'cover' }} />}
+            {narrow && d.card ? <a href={`https://sorare.com/nba/cards/${d.card.slug}`} target="_blank" rel="noopener noreferrer" aria-label={tr('Carte Sorare ') + d.player.name} style={{ flex: '0 0 auto' }}>{/* eslint-disable-next-line @next/next/no-img-element */}<img src={d.card.pic} alt={tr('Carte Sorare ') + d.player.name} style={{ height: 132, width: 'auto', borderRadius: 8, display: 'block', filter: 'drop-shadow(0 6px 16px rgba(229,185,78,.25))' }} /></a> : d.player.pic && /* eslint-disable-next-line @next/next/no-img-element */ <img src={d.player.pic} alt={d.player.name} width={96} height={96} style={{ borderRadius: 18, border: `1px solid ${c.line}`, objectFit: 'cover' }} />}
             <div style={{ flex: '1 1 260px' }}>
-              <h1 style={{ fontSize: 'clamp(26px,5vw,40px)', margin: 0 }}>{d.player.name}</h1>
+              <h1 style={{ fontSize: narrow ? 24 : 'clamp(26px,5vw,40px)', margin: 0, lineHeight: 1.15 }}>{d.player.name}</h1>
               <div style={{ color: c.dim, marginTop: 6, fontSize: 15, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                 {d.player.team && <span>{d.player.team}</span>}
                 {d.player.country && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>{/* eslint-disable-next-line @next/next/no-img-element */}<img src={`https://flagcdn.com/w40/${d.player.country.code.toLowerCase()}.png`} alt={d.player.country.code} width={22} height={15} style={{ borderRadius: 2 }} />{d.player.country.name}</span>}
                 {d.player.birthDay && <span>{new Date(d.player.birthDay).toLocaleDateString(en ? 'en-GB' : 'fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })} ({age(d.player.birthDay)} {tr('ans')})</span>}
                 {d.player.stars != null && <span style={{ color: c.gold }}>{d.player.stars} ★ Sorare</span>}
+                {narrow && d.card && <a href={`https://sorare.com/nba/cards/${d.card.slug}`} target="_blank" rel="noopener noreferrer" style={{ color: c.cy, textDecoration: 'none' }}>{tr('Carte Sorare ')}{d.card.year} →</a>}
               </div>
             </div>
-            {d.card && <a href={`https://sorare.com/nba/cards/${d.card.slug}`} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', color: '#fff', textAlign: 'center', fontSize: 12 }}>
+            {d.card && !narrow && <a href={`https://sorare.com/nba/cards/${d.card.slug}`} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', color: '#fff', textAlign: 'center', fontSize: 12 }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}<img src={d.card.pic} alt={tr('Carte Sorare ') + d.player.name} style={{ height: 120, width: 'auto', borderRadius: 8, display: 'block', margin: '0 auto 4px' }} />{tr('Carte Sorare ')}{d.card.year} →</a>}
           </div>
 
