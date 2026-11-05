@@ -100,6 +100,7 @@ async function history() {
 export async function GET(req: NextRequest) {
   try {
     if (req.nextUrl.searchParams.get('run')) {
+      if (req.nextUrl.searchParams.get('only') === 'nba') return NextResponse.json({ ok: true, nba: await refreshNba().catch((e: any) => ({ error: String(e).slice(0, 200) })) }); // rafraichissement seul de l'injury report officiel (sans verrou)
       if (!(await redis.set('inj:lock', 1, { nx: true, ex: 600 }))) return NextResponse.json({ ok: true, skipped: 'recent' });
       const espn = await refreshEspn();
       const nba = await refreshNba().catch((e: any) => ({ error: String(e).slice(0, 120) }));
