@@ -62,7 +62,12 @@ export default function GwBuilder() {
   useEffect(() => { try { const p = localStorage.getItem(LSP); if (p) setPseudo(p); } catch {} }, []);
   const players = useMemo(() => (gw?.players || []) as GP[], [gw]);
   // Projection myNFTlocker = projection Sorare par match (60 %) + forme sur les 10 derniers matchs (40 %), x nombre de matchs
-  const playersP = useMemo(() => players.map(p => (src === 'mnl' && p.l10 != null && p.games > 0 ? { ...p, proj: ((p.proj / p.games) * 0.6 + p.l10 * 0.4) * p.games } : p)), [players, src]);
+  const playersP = useMemo(() => players.map(p => {
+    // projection de la GW = somme des projections de CHAQUE match (le champ proj de l'API ne vaut que pour un match)
+    const per = p.opp.map(o => o.pj ?? p.proj), sum = per.reduce((x, y) => x + y, 0), g = Math.max(1, p.games);
+    const sor = p.games > 0 ? sum : 0;
+    return { ...p, proj: src === 'mnl' && p.l10 != null && p.games > 0 ? ((sor / g) * 0.6 + p.l10 * 0.4) * g : sor };
+  }), [players, src]);
   const nights = useMemo(() => [...new Set(players.flatMap(p => p.opp.map(o => parisDay(o.d))))].sort(), [players]);
   const fxSlug: string = gw?.fixture?.slug || '';
 
