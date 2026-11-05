@@ -112,8 +112,9 @@ export default function LiveTab({ night, proj, slugs, initialGame, onSelect }: {
               <span style={{ fontWeight: 700, fontSize: 15 }}>{p.name}{p.starter && <span title={tr('Cinq majeur')} style={{ marginLeft: 6, fontSize: 10, color: c.gold, border: `1px solid ${c.gold}`, borderRadius: 4, padding: '0 4px', verticalAlign: 'middle' }}>5M</span>}</span>
               <span style={{ fontSize: 24, fontWeight: 800, color: col, textShadow: `0 0 14px ${col}55`, fontVariantNumeric: 'tabular-nums' }}>{p.ttfl}</span>
             </span>
-            <span style={{ display: 'flex', justifyContent: 'space-between', gap: 10, color: c.dim, fontSize: 12.5, marginTop: 3 }}>
-              <span>{p.pts} pts · {p.reb} reb · {p.ast} {tr('pd')} · <b style={{ color: '#fff', fontWeight: 600 }}>{Math.round(p.min)} min</b></span>
+            <span style={{ display: 'block', color: c.dim, fontSize: 12.5, marginTop: 3 }}>{p.pts} pts · {p.reb} reb · {p.ast} {tr('pd')} · {p.to} {tr('bp')}</span>
+            <span style={{ display: 'flex', justifyContent: 'space-between', gap: 10, color: c.dim, fontSize: 12.5, marginTop: 2 }}>
+              <span><b style={{ color: '#fff', fontWeight: 600 }}>{Math.round(p.min)} min</b> · +/- <b style={{ fontWeight: 700, color: p.pm > 0 ? '#4ade80' : p.pm < 0 ? '#ff6b6b' : '#fff' }}>{p.pm > 0 ? '+' + p.pm : p.pm}</b></span>
               {pj != null && <span style={{ color: c.gold, whiteSpace: 'nowrap' }}>{tr('Proj.')} {pj.toFixed(1)}</span>}
             </span>
             <span style={{ display: 'block', position: 'relative', height: 6, borderRadius: 99, background: 'rgba(255,255,255,.08)', marginTop: 8 }}>
