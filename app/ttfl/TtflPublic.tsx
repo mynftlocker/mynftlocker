@@ -77,7 +77,9 @@ export default function TtflPublic() {
   useEffect(() => { try { const q = new URLSearchParams(); if (view === 'live') { q.set('v', 'live'); q.set('night', night); if (selGame) q.set('game', selGame); } window.history.replaceState(null, '', window.location.pathname + (q.toString() ? '?' + q.toString() : '')); } catch {} }, [view, night, selGame]);
   useEffect(() => {
     setRows(null); setErr('');
-    fetch('/api/ttfl?night=' + night).then(r => r.json()).then(j => j.ok ? setRows(j.rows) : setErr(j.error || tr('Indisponible'))).catch(e => setErr(String(e)));
+    let stale = false; // une reponse tardive d'une autre nuit ne doit jamais ecraser la nuit affichee
+    fetch('/api/ttfl?night=' + night).then(r => r.json()).then(j => { if (stale) return; j.ok ? setRows(j.rows) : setErr(j.error || tr('Indisponible')); }).catch(e => { if (!stale) setErr(String(e)); });
+    return () => { stale = true; };
   }, [night]);
   useEffect(() => { if (view === 'inj' && !inj) fetch('/api/ttfl?inj=1').then(r => r.json()).then(j => j.ok && setInj(j.rows)).catch(() => {}); }, [view, inj]);
 

@@ -1,5 +1,5 @@
 'use client';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { t as tr, useLang, getLang, initLang } from '../i18n';
 import './i18nTtfl';
 
@@ -40,13 +40,15 @@ export default function LiveTab({ night, proj, slugs, initialGame, onSelect }: {
   const [det, setDet] = useState<{ game: G; players: P[] } | null>(null);
   const [pid, setPid] = useState<string | null>(null);
 
-  const loadGames = useCallback(() => fetch('/api/ttfl/live?night=' + night).then(r => r.json()).then(j => j.ok ? (setGames(j.games), setErr('')) : setErr(j.error || tr('Indisponible'))).catch(e => setErr(String(e))), [night]);
+  const nightRef = useRef(night); nightRef.current = night; // reponses tardives d'une autre nuit / d'un autre match ignorees
+  const loadGames = useCallback(() => fetch('/api/ttfl/live?night=' + night).then(r => r.json()).then(j => { if (nightRef.current !== night) return; j.ok ? (setGames(j.games), setErr('')) : setErr(j.error || tr('Indisponible')); }).catch(e => { if (nightRef.current === night) setErr(String(e)); }), [night]);
   useEffect(() => { onSelect?.(sel); }, [sel, onSelect]);
   useEffect(() => { setGames(null); setSel(initialGame || null); setDet(null); loadGames(); }, [night, loadGames, initialGame]);
   const anyLive = !!games?.some(g => g.state === 'in');
   useEffect(() => { const t = setInterval(loadGames, anyLive ? 15000 : 60000); return () => clearInterval(t); }, [loadGames, anyLive]);
 
-  const loadDet = useCallback(() => sel ? fetch('/api/ttfl/live?game=' + sel).then(r => r.json()).then(j => j.ok && setDet({ game: j.game, players: j.players })).catch(() => {}) : Promise.resolve(), [sel]);
+  const selRef = useRef(sel); selRef.current = sel;
+  const loadDet = useCallback(() => sel ? fetch('/api/ttfl/live?game=' + sel).then(r => r.json()).then(j => j.ok && selRef.current === sel && setDet({ game: j.game, players: j.players })).catch(() => {}) : Promise.resolve(), [sel]);
   useEffect(() => { setDet(null); setPid(null); loadDet(); }, [sel, loadDet]);
   const live = det?.game.state === 'in';
   useEffect(() => { if (!sel) return; const t = setInterval(loadDet, live ? 15000 : 120000); return () => clearInterval(t); }, [sel, loadDet, live]);
