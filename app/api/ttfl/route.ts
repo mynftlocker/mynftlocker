@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { espnPlayer } from '../../../lib/ttflPlayer';
 import { redis } from '../../../lib/redis';
 import { getDayRows, ymdLocal } from '../../../lib/ttfl';
 import { ttflEst, myProj } from '../../../lib/ttflEst';
@@ -43,7 +44,9 @@ export async function GET(req: NextRequest) {
     const sp = req.nextUrl.searchParams;
     if (sp.get('inj')) {
       const [t, st] = await Promise.all([injTable(), stats()]);
-      return NextResponse.json({ ok: true, updated: t.updated, rows: t.rows.map(({ name, team, status, until, untilKind, src, updated }) => { const s = st.by[nrm(name)]; return { name, team, status, until, untilKind, src, updated, l10: s?.l10 ?? null, n: s?.n ?? 0 }; }) }, { headers: HDR });
+      const fix: Record<string, string> = {};
+      await Promise.all(t.rows.filter(r => !r.team).map(async r => { const k = nrm(r.name); const hit = await redis.hget<string>('ttfl:teamfix', k).catch(() => null); if (hit) { fix[k] = String(hit); return; } const ep = await espnPlayer(r.name).catch(() => null); if (ep?.team) { fix[k] = ep.team; await redis.hset('ttfl:teamfix', { [k]: ep.team }).catch(() => {}); } }));
+      return NextResponse.json({ ok: true, updated: t.updated, rows: t.rows.map(({ name, team, status, until, untilKind, src, updated }) => { const s = st.by[nrm(name)]; return { name, team: team || fix[nrm(name)] || '', status, until, untilKind, src, updated, l10: s?.l10 ?? null, n: s?.n ?? 0 }; }) }, { headers: HDR });
     }
     const night = (sp.get('night') || '').trim();
     if (!/^\d{4}-\d{2}-\d{2}$/.test(night)) return NextResponse.json({ ok: false, error: 'night=YYYY-MM-DD requis' }, { status: 400 });

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { redis } from '../../../../lib/redis';
-import { getJson } from '../../../../lib/ttfl';
+import { espnPlayer } from '../../../../lib/ttflPlayer';
 import { allFull, NBA_TEAMS, type FullRow } from '../../../../lib/ttflFull';
 
 type FR = FullRow & { ps?: number };
@@ -29,12 +29,9 @@ export async function GET(req: NextRequest) {
       const nm = slug.slice(2); const known = await redis.hget<string>('ttfl:slugmap', nm).catch(() => null);
       if (known) slug = String(known);
       else {
-        let pid = String((await redis.hget<string>('ttfl:pidx', nm).catch(() => '')) || '').split(',').filter(Boolean).pop() || '';
-        if (!pid) pid = (await allFull()).rows.find(r => nrm(r.n) === nm)?.id || '';
-        if (!pid) return NextResponse.json({ ok: false, error: 'Joueur introuvable' }, { status: 404 });
-        const a: any = await getJson(`https://site.web.api.espn.com/apis/common/v3/sports/basketball/nba/athletes/${pid}`, 86400).catch(() => null);
-        const dob = String(a?.athlete?.dateOfBirth || '').slice(0, 10).replace(/-/g, ''); const dn = String(a?.athlete?.displayName || '');
-        if (!dob || !dn) return NextResponse.json({ ok: false, error: 'Joueur introuvable' }, { status: 404 });
+        const ep = await espnPlayer(nm.replace(/-/g, ' '));
+        if (!ep || !ep.dob || !ep.name) return NextResponse.json({ ok: false, error: 'Joueur introuvable' }, { status: 404 });
+        const dn = ep.name, dob = ep.dob;
         const cand = dn.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') + '-' + dob;
         const chk = await gql(`{ players(slugs:["${cand}"]){ slug } }`).catch(() => null);
         if (!chk?.players?.[0]) return NextResponse.json({ ok: false, error: 'Joueur introuvable chez Sorare' }, { status: 404 });
