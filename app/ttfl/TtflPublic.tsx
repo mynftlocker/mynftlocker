@@ -12,7 +12,9 @@ const lbl = (day: string) => new Date(day + 'T12:00:00Z').toLocaleDateString('fr
 const dm = (d: string) => d.slice(5).split('-').reverse().join('/');
 
 type R = { name: string; team: string; opp: string; home: boolean; time: string; est: number; proj: number; l10: number | null; n: number; last: number | null; gp: number; tg: number; g: [string, number, number][]; status: 'OUT' | 'GTD' | null; until: string | null };
-type I = { name: string; team: string; status: 'OUT' | 'GTD' | 'PROB'; until: string | null; untilKind: 'return' | 'reeval' | null; src: string; updated: string };
+type I = { name: string; team: string; status: 'OUT' | 'GTD' | 'PROB'; until: string | null; untilKind: 'return' | 'reeval' | null; src: string; updated: string; l10: number | null; n: number };
+const fam = (n: string) => { const w = n.replace(/\s+(Jr\.?|Sr\.?|II|III|IV)$/i, '').split(' '); return norm(w[w.length - 1]); };
+type IK = 'status' | 'name' | 'team' | 'until' | 'l10';
 type SK = 'name' | 'match' | 'est' | 'l10' | 'last' | 'pres';
 type W = 5 | 10 | 0;
 const avg = (r: R, w: W) => { const g = w ? r.g.slice(-w) : r.g; return g.length ? g.reduce((s, x) => s + x[1], 0) / g.length : null; };
@@ -43,6 +45,7 @@ export default function TtflPublic() {
   const [hideOut, setHideOut] = useState(true);
   const [view, setView] = useState<'night' | 'live' | 'inj'>('night');
   const [inj, setInj] = useState<I[] | null>(null);
+  const [isort, setIsort] = useState<{ k: IK; dir: 1 | -1 }>({ k: 'status', dir: 1 });
   const [win, setWin] = useState<W>(10);
   const [open, setOpen] = useState<string | null>(null);
   const [sort, setSort] = useState<{ k: SK; dir: 1 | -1 }>({ k: 'est', dir: -1 });
@@ -63,7 +66,9 @@ export default function TtflPublic() {
   const toggle = (k: SK) => setSort(s => s.k === k ? { k, dir: (s.dir * -1) as 1 | -1 } : { k, dir: k === 'name' || k === 'match' ? 1 : -1 });
   const projMap = useMemo(() => { const m: Record<string, number> = {}; (rows || []).forEach(r => { m[norm(r.name)] = r.est; }); return m; }, [rows]);
   const top = (rows || []).filter(r => r.status !== 'OUT').slice(0, 5);
-  const injList = (inj || []).filter(r => !q || norm(r.name + r.team).includes(norm(q))).sort((a, b) => (a.status === b.status ? ((a.until || '9') < (b.until || '9') ? -1 : 1) : a.status === 'OUT' ? -1 : 1));
+  const injVal = (r: I, k: IK): number | string => k === 'name' ? fam(r.name) + ' ' + norm(r.name) : k === 'team' ? r.team : k === 'until' ? r.until || '9999' : k === 'l10' ? r.l10 ?? -1 : (r.status === 'OUT' ? 0 : r.status === 'GTD' ? 1 : 2) + (r.until || '9999');
+  const injList = (inj || []).filter(r => !q || norm(r.name + r.team).includes(norm(q))).slice().sort((a, b) => { const x = injVal(a, isort.k), y = injVal(b, isort.k); return (typeof x === 'string' ? x.localeCompare(y as string) : (x as number) - (y as number)) * isort.dir || fam(a.name).localeCompare(fam(b.name)); });
+  const itoggle = (k: IK) => setIsort(s => s.k === k ? { k, dir: (s.dir * -1) as 1 | -1 } : { k, dir: k === 'l10' ? -1 : 1 });
 
   const btn = (on = false): React.CSSProperties => ({ background: c.card, border: `1px solid ${on ? c.cy : c.line}`, color: on ? c.cy : '#fff', borderRadius: 10, padding: '8px 14px', cursor: 'pointer', fontSize: 14 });
   const badge = (s: 'OUT' | 'GTD' | 'PROB', t: string) => <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 700, padding: '2px 7px', borderRadius: 999, background: s === 'OUT' ? 'rgba(255,90,90,.18)' : 'rgba(229,185,78,.18)', color: s === 'OUT' ? '#ff7b7b' : c.gold }}>{t}</span>;
@@ -150,14 +155,15 @@ export default function TtflPublic() {
         {view === 'inj' && (
           <div style={{ background: c.card, border: `1px solid ${c.line}`, borderRadius: 14, overflowX: 'auto' }}>
             {!inj && <p style={{ padding: 14, color: c.dim, margin: 0 }}>Chargement…</p>}
-            {inj && <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, minWidth: 520 }}>
-              <thead><tr style={{ color: c.dim, textAlign: 'left' }}>{['Joueur', 'Équipe', 'Statut', 'Retour / réévaluation'].map(h => <th key={h} style={{ padding: '10px 12px', fontWeight: 500 }}>{h}</th>)}</tr></thead>
+            {inj && <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, minWidth: 600 }}>
+              <thead><tr style={{ color: c.dim, textAlign: 'left' }}>{([['name', 'Joueur (nom de famille)'], ['team', 'Équipe'], ['status', 'Statut'], ['until', 'Retour / réévaluation'], ['l10', 'Moy. 10']] as [IK, string][]).map(([k, h]) => <th key={k} onClick={() => itoggle(k)} style={{ padding: '10px 12px', fontWeight: 500, cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap', color: isort.k === k ? c.cy : c.dim }}>{h} {isort.k === k ? (isort.dir === 1 ? '▲' : '▼') : <span style={{ opacity: .35 }}>↕</span>}</th>)}</tr></thead>
               <tbody>{injList.map(r => (
                 <tr key={r.name} style={{ borderTop: `1px solid ${c.line}` }}>
                   <td style={{ padding: '8px 12px' }}>{r.name}</td>
                   <td style={{ padding: '8px 12px', color: c.dim }}>{r.team}</td>
                   <td style={{ padding: '8px 12px', color: r.status === 'OUT' ? '#ff7b7b' : c.gold, fontWeight: 700 }}>{r.status}</td>
                   <td style={{ padding: '8px 12px' }}>{r.until ? `${dm(r.until)} (${r.untilKind === 'reeval' ? 'réévaluation' : 'retour'})` : '–'}</td>
+                  <td style={{ padding: '8px 12px', textAlign: 'right' }}>{r.l10 == null ? '–' : r.l10.toFixed(1)}</td>
                 </tr>))}</tbody>
             </table>}
           </div>
