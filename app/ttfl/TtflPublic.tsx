@@ -55,6 +55,9 @@ export default function TtflPublic() {
   // A l'ouverture d'un joueur : historique etendu (saisons precedentes comprises) pour toujours afficher 10 matchs
   const openRow = (r: R) => { setOpen(o => (o === r.name ? null : r.name)); if (r.slug && !hx[r.slug]) fetch('/api/ttfl/player?slug=' + r.slug).then(x => x.json()).then(j => j.ok && setHx(h => ({ ...h, [r.slug]: [...(j.pastGames || []), ...(j.games || [])].map((x: any) => [x.d, x.t, x.m] as [string, number, number]) }))).catch(() => {}); };
   const [sort, setSort] = useState<{ k: SK; dir: 1 | -1 }>({ k: 'est', dir: -1 });
+  // Telephone : tableau recompose (joueur + match sur 2 lignes), en-tete compact, top 5 defilant.
+  const [narrow, setNarrow] = useState(false); const pd = narrow ? '7px 6px' : '8px 12px';
+  useEffect(() => { const m = window.matchMedia('(max-width: 640px)'); const f = () => setNarrow(m.matches); f(); m.addEventListener('change', f); return () => m.removeEventListener('change', f); }, []);
 
   // Lien direct vers un match : /ttfl?v=live&night=AAAA-MM-JJ&game=ID
   useEffect(() => { const sp = new URLSearchParams(window.location.search); const n = sp.get('night'); if (n && /^\d{4}-\d{2}-\d{2}$/.test(n)) setNight(n); if (sp.get('v') === 'live') setView('live'); const g = sp.get('game'); if (g && /^\d+$/.test(g)) setInitGame(g); }, []);
@@ -83,24 +86,24 @@ export default function TtflPublic() {
   const badge = (s: 'OUT' | 'GTD' | 'PROB', t: string) => <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 700, padding: '2px 7px', borderRadius: 999, background: s === 'OUT' ? 'rgba(255,90,90,.18)' : 'rgba(229,185,78,.18)', color: s === 'OUT' ? '#ff7b7b' : c.gold }}>{t}</span>;
 
   return (
-    <main style={{ minHeight: '100vh', color: '#fff', fontFamily: 'system-ui,sans-serif', padding: '28px 16px 60px', position: 'relative' }}>
+    <main style={{ minHeight: '100vh', color: '#fff', fontFamily: 'system-ui,sans-serif', padding: narrow ? '16px 12px 50px' : '28px 16px 60px', position: 'relative' }}>
       <StarBg />
       <div style={{ maxWidth: 1000, margin: '0 auto', position: 'relative' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20, flexWrap: 'wrap' }}>
-          <div style={{ flex: '1 1 420px', minWidth: 0 }}>
-        <h1 style={{ fontSize: 'clamp(26px,5vw,42px)', margin: '0 0 4px', letterSpacing: '.01em' }}>Remplis ton deck de <span style={{ color: c.cy }}>best picks</span> TTFL</h1>
-        <p style={{ color: c.dim, margin: '0 0 18px', maxWidth: 700, lineHeight: 1.5, fontSize: 15 }}>Les <b style={{ color: '#fff' }}>projections myNFTlocker</b> : le score TTFL attendu de chaque joueur NBA pour la nuit, selon la forme, le match, les blessures et les retours. Mises à jour en continu.</p>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: narrow ? 10 : 20, flexWrap: narrow ? 'nowrap' : 'wrap' }}>
+          <div style={{ flex: narrow ? '1 1 0' : '1 1 420px', minWidth: 0 }}>
+        <h1 style={{ fontSize: narrow ? 24 : 'clamp(26px,5vw,42px)', margin: '0 0 4px', letterSpacing: '.01em', lineHeight: 1.15 }}>Remplis ton deck de <span style={{ color: c.cy }}>best picks</span> TTFL</h1>
+        <p style={{ color: c.dim, margin: narrow ? '0 0 10px' : '0 0 18px', maxWidth: 700, lineHeight: 1.45, fontSize: narrow ? 13 : 15 }}>Les <b style={{ color: '#fff' }}>projections myNFTlocker</b> : le score TTFL attendu de chaque joueur NBA pour la nuit, selon la forme, le match, les blessures et les retours. Mises à jour en continu.</p>
           </div>
           <a href="/" title="Retour à l'accueil myNFTlocker" style={{ flex: '0 0 auto', margin: '0 auto' }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo-pack.png" alt="myNFTlocker" style={{ height: 'clamp(84px,18vw,170px)', width: 'auto', display: 'block', filter: 'drop-shadow(0 8px 22px rgba(0,255,255,.25))' }} />
+            <img src="/logo-pack.png" alt="myNFTlocker" style={{ height: narrow ? 78 : 'clamp(84px,18vw,170px)', width: 'auto', display: 'block', filter: 'drop-shadow(0 8px 22px rgba(0,255,255,.25))' }} />
           </a>
         </div>
 
-        <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-          <button style={btn(view === 'night')} onClick={() => setView('night')}>Projections de la nuit</button>
-          <button style={btn(view === 'live')} onClick={() => setView('live')}>En direct</button>
-          <button style={btn(view === 'inj')} onClick={() => setView('inj')}>Blessures et retours</button>
+        <div style={{ display: 'flex', gap: narrow ? 6 : 8, marginBottom: narrow ? 10 : 16, overflowX: 'auto' }}>
+          <button style={{ ...btn(view === 'night'), whiteSpace: 'nowrap', padding: narrow ? '8px 10px' : undefined }} onClick={() => setView('night')}>{narrow ? 'Projections' : 'Projections de la nuit'}</button>
+          <button style={{ ...btn(view === 'live'), whiteSpace: 'nowrap', padding: narrow ? '8px 10px' : undefined }} onClick={() => setView('live')}>En direct</button>
+          <button style={{ ...btn(view === 'inj'), whiteSpace: 'nowrap', padding: narrow ? '8px 10px' : undefined }} onClick={() => setView('inj')}>{narrow ? 'Blessures' : 'Blessures et retours'}</button>
         </div>
 
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 16 }}>
@@ -118,9 +121,9 @@ export default function TtflPublic() {
           {!rows && !err && <p style={{ color: c.dim }}>Chargement…</p>}
           {rows && !rows.length && <p style={{ color: c.dim }}>Aucun match NBA cette nuit.</p>}
           {top.length > 0 && !q && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(170px,1fr))', gap: 10, marginBottom: 18 }}>
+            <div style={narrow ? { display: 'flex', gap: 8, marginBottom: 12, overflowX: 'auto', paddingBottom: 4 } : { display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(170px,1fr))', gap: 10, marginBottom: 18 }}>
               {top.map((r, i) => (
-                <div key={r.name} style={{ background: c.card, border: `1px solid ${i === 0 ? c.cy : c.line}`, borderRadius: 14, padding: 14, backdropFilter: 'blur(6px)' }}>
+                <div key={r.name} style={{ background: c.card, border: `1px solid ${i === 0 ? c.cy : c.line}`, borderRadius: 14, padding: narrow ? 10 : 14, backdropFilter: 'blur(6px)', ...(narrow ? { flex: '0 0 150px' } : {}) }}>
                   <div style={{ fontSize: 12, color: c.dim }}>#{i + 1} · {r.team}</div>
                   <div style={{ fontWeight: 700, margin: '4px 0 8px' }}>{r.name}{r.status === 'GTD' && badge('GTD', 'GTD')}</div>
                   <div style={{ fontSize: 30, fontWeight: 800, color: c.cy, lineHeight: 1 }}>{r.est.toFixed(1)}</div>
@@ -131,28 +134,28 @@ export default function TtflPublic() {
           )}
           {rows && list.length > 0 && <div style={{ display: 'flex', gap: 6, alignItems: 'center', margin: '0 0 8px', fontSize: 13, color: c.dim }}>Forme sur
             {([[5, '5 matchs'], [10, '10 matchs'], [0, 'Saison']] as [W, string][]).map(([w, l]) => <button key={w} onClick={() => setWin(w)} style={{ ...btn(win === w), padding: '4px 10px', fontSize: 13 }}>{l}</button>)}
-            <span style={{ marginLeft: 'auto', fontSize: 12 }}>Clique sur un joueur pour voir ses scores match par match</span></div>}
+            {!narrow && <span style={{ marginLeft: 'auto', fontSize: 12 }}>Clique sur un joueur pour voir ses scores match par match</span>}</div>}
           {rows && list.length > 0 && (
             <div style={{ background: c.card, border: `1px solid ${c.line}`, borderRadius: 14, overflowX: 'auto', backdropFilter: 'blur(6px)' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, minWidth: 640 }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: narrow ? 13 : 14, minWidth: narrow ? 0 : 640 }}>
                 <thead><tr style={{ color: c.dim, textAlign: 'left' }}>
-                  <th style={{ padding: '10px 12px', fontWeight: 500 }}>#</th>
-                  {([['name', 'Joueur'], ['match', 'Match'], ['est', 'Projection'], ['l10', win ? 'Moy. ' + win : 'Moy. saison'], ['reg', 'Régularité'], ['last', 'Dernier'], ['pres', 'Présence']] as [SK, string][]).map(([k, h], i) => (
-                    <th key={k} onClick={() => toggle(k)} aria-sort={sort.k === k ? (sort.dir === 1 ? 'ascending' : 'descending') : 'none'} style={{ padding: '10px 12px', fontWeight: 500, textAlign: i > 1 ? 'right' : 'left', whiteSpace: 'nowrap', cursor: 'pointer', userSelect: 'none', color: sort.k === k ? c.cy : c.dim }}>{h} {sort.k === k ? (sort.dir === 1 ? '▲' : '▼') : <span style={{ opacity: .35 }}>↕</span>}</th>
+                  <th style={{ padding: narrow ? '8px 6px' : '10px 12px', fontWeight: 500 }}>#</th>
+                  {([['name', 'Joueur'], ['match', 'Match'], ['est', narrow ? 'Proj.' : 'Projection'], ['l10', win ? 'Moy. ' + win : narrow ? 'Moy.' : 'Moy. saison'], ['reg', narrow ? 'Régul.' : 'Régularité'], ['last', 'Dernier'], ['pres', 'Présence']] as [SK, string][]).filter(([k]) => !narrow || k !== 'match' && k !== 'last' && k !== 'pres').map(([k, h], i) => (
+                    <th key={k} onClick={() => toggle(k)} aria-sort={sort.k === k ? (sort.dir === 1 ? 'ascending' : 'descending') : 'none'} style={{ padding: narrow ? '8px 6px' : '10px 12px', fontWeight: 500, textAlign: i > 1 ? 'right' : 'left', whiteSpace: 'nowrap', cursor: 'pointer', userSelect: 'none', color: sort.k === k ? c.cy : c.dim }}>{h} {sort.k === k ? (sort.dir === 1 ? '▲' : '▼') : <span style={{ opacity: .35 }}>↕</span>}</th>
                   ))}
                 </tr></thead>
                 <tbody>{list.map(r => { const a = avg(r, win), tr = trend(r), o = open === r.name; return [
                   <tr key={r.name} onClick={() => openRow(r)} style={{ borderTop: `1px solid ${c.line}`, opacity: r.status === 'OUT' ? 0.45 : 1, cursor: 'pointer', background: o ? 'rgba(0,255,255,.07)' : 'transparent' }}>
-                    <td style={{ padding: '8px 12px', color: c.dim }}>{rank[r.name]}</td>
-                    <td style={{ padding: '8px 12px', whiteSpace: 'nowrap' }}>{r.name}{r.status && badge(r.status, r.status === 'OUT' && r.until ? `OUT → ${dm(r.until)}` : r.status)}</td>
-                    <td style={{ padding: '8px 12px', color: c.dim, whiteSpace: 'nowrap' }}>{r.home ? 'vs' : '@'} {r.opp} · {r.time}</td>
-                    <td style={{ padding: '8px 12px', textAlign: 'right', color: heat(r.est, eLo, eHi), fontWeight: 700 }}>{r.est.toFixed(1)}</td>
-                    <td style={{ padding: '8px 12px', textAlign: 'right', color: heat(a, lLo, lHi) }}>{a == null ? '–' : a.toFixed(1)}{tr !== 0 && <span title={tr > 0 ? 'En hausse (5 derniers vs 10)' : 'En baisse (5 derniers vs 10)'} style={{ marginLeft: 4, fontSize: 10, color: tr > 0 ? '#4ade80' : '#ff7b7b' }}>{tr > 0 ? '▲' : '▼'}</span>}</td>
-                    {(() => { const q = reg(r, win); const m = avg(r, win); const lab = !q ? null : q.cv < 0.25 ? ['Très régulier', '#4ade80'] : q.cv < 0.35 ? ['Régulier', '#a3e635'] : q.cv < 0.45 ? ['Moyen', '#e5b94e'] : ['Irrégulier', '#ff9f43']; return <td title={q && m != null ? `Il score le plus souvent entre ${Math.max(0, Math.round(m - q.sd))} et ${Math.round(m + q.sd)}` : 'Pas assez de matchs'} style={{ padding: '8px 12px', textAlign: 'right', whiteSpace: 'nowrap', color: lab ? lab[1] : c.dim }}>{lab ? lab[0] : '–'}</td>; })()}
-                    <td style={{ padding: '8px 12px', textAlign: 'right' }}>{r.last ?? '–'}</td>
-                    <td style={{ padding: '8px 12px', textAlign: 'right', color: r.tg && r.gp < r.tg - 1 ? '#ff9f43' : c.dim }}>{r.tg ? `${r.gp}/${r.tg}` : '–'}</td>
+                    <td style={{ padding: pd, color: c.dim }}>{rank[r.name]}</td>
+                    <td style={{ padding: pd, whiteSpace: narrow ? 'normal' : 'nowrap' }}>{r.name}{r.status && badge(r.status, r.status === 'OUT' && r.until ? `OUT → ${dm(r.until)}` : r.status)}{narrow && <div style={{ fontSize: 11, color: c.dim }}>{r.home ? 'vs' : '@'} {r.opp} · {r.time}{r.tg && r.gp < r.tg - 1 ? <span style={{ color: '#ff9f43' }}> · {r.gp}/{r.tg} matchs</span> : null}</div>}</td>
+                    {!narrow && <td style={{ padding: pd, color: c.dim, whiteSpace: 'nowrap' }}>{r.home ? 'vs' : '@'} {r.opp} · {r.time}</td>}
+                    <td style={{ padding: pd, textAlign: 'right', color: heat(r.est, eLo, eHi), fontWeight: 700 }}>{r.est.toFixed(1)}</td>
+                    <td style={{ padding: pd, textAlign: 'right', color: heat(a, lLo, lHi) }}>{a == null ? '–' : a.toFixed(1)}{tr !== 0 && <span title={tr > 0 ? 'En hausse (5 derniers vs 10)' : 'En baisse (5 derniers vs 10)'} style={{ marginLeft: 4, fontSize: 10, color: tr > 0 ? '#4ade80' : '#ff7b7b' }}>{tr > 0 ? '▲' : '▼'}</span>}</td>
+                    {(() => { const q = reg(r, win); const m = avg(r, win); const lab = !q ? null : q.cv < 0.25 ? ['Très régulier', '#4ade80'] : q.cv < 0.35 ? ['Régulier', '#a3e635'] : q.cv < 0.45 ? ['Moyen', '#e5b94e'] : ['Irrégulier', '#ff9f43']; return <td title={q && m != null ? `Il score le plus souvent entre ${Math.max(0, Math.round(m - q.sd))} et ${Math.round(m + q.sd)}` : 'Pas assez de matchs'} style={{ padding: pd, textAlign: 'right', whiteSpace: 'nowrap', color: lab ? lab[1] : c.dim }}>{lab ? lab[0] : '–'}</td>; })()}
+                    {!narrow && <td style={{ padding: pd, textAlign: 'right' }}>{r.last ?? '–'}</td>}
+                    {!narrow && <td style={{ padding: pd, textAlign: 'right', color: r.tg && r.gp < r.tg - 1 ? '#ff9f43' : c.dim }}>{r.tg ? `${r.gp}/${r.tg}` : '–'}</td>}
                   </tr>,
-                  o && (() => { const rr = hx[r.slug] ? { ...r, g: hx[r.slug] } : r; return <tr key={r.name + 'x'}><td colSpan={8} style={{ padding: '10px 12px 14px', background: 'rgba(0,255,255,.04)' }}>
+                  o && (() => { const rr = hx[r.slug] ? { ...r, g: hx[r.slug] } : r; return <tr key={r.name + 'x'}><td colSpan={narrow ? 5 : 8} style={{ padding: '10px 12px 14px', background: 'rgba(0,255,255,.04)' }}>
                     {rr.g.length ? <Bars r={rr} /> : <span style={{ color: c.dim }}>Pas encore de match joué cette saison.</span>}
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10, fontSize: 15, alignItems: 'center' }}>
                       {([['Moy. 5', avg(rr, 5)], ['Moy. 10', avg(rr, 10)], ['Moy. ' + rr.g.length + ' matchs', avg(rr, 0)], ['Max', rr.g.length ? Math.max(...rr.g.map(x => x[1])) : null], ['Min', rr.g.length ? Math.min(...rr.g.map(x => x[1])) : null]] as [string, number | null][]).map(([k, v]) => (
@@ -172,14 +175,14 @@ export default function TtflPublic() {
           <div style={{ background: c.card, border: `1px solid ${c.line}`, borderRadius: 14, overflowX: 'auto' }}>
             {!inj && <p style={{ padding: 14, color: c.dim, margin: 0 }}>Chargement…</p>}
             {inj && <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, minWidth: 600 }}>
-              <thead><tr style={{ color: c.dim, textAlign: 'left' }}>{([['name', 'Joueur (nom de famille)'], ['team', 'Équipe'], ['status', 'Statut'], ['until', 'Retour / réévaluation'], ['l10', 'Moy. 10']] as [IK, string][]).map(([k, h]) => <th key={k} onClick={() => itoggle(k)} style={{ padding: '10px 12px', fontWeight: 500, cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap', color: isort.k === k ? c.cy : c.dim }}>{h} {isort.k === k ? (isort.dir === 1 ? '▲' : '▼') : <span style={{ opacity: .35 }}>↕</span>}</th>)}</tr></thead>
+              <thead><tr style={{ color: c.dim, textAlign: 'left' }}>{([['name', 'Joueur (nom de famille)'], ['team', 'Équipe'], ['status', 'Statut'], ['until', 'Retour / réévaluation'], ['l10', 'Moy. 10']] as [IK, string][]).map(([k, h]) => <th key={k} onClick={() => itoggle(k)} style={{ padding: narrow ? '8px 6px' : '10px 12px', fontWeight: 500, cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap', color: isort.k === k ? c.cy : c.dim }}>{h} {isort.k === k ? (isort.dir === 1 ? '▲' : '▼') : <span style={{ opacity: .35 }}>↕</span>}</th>)}</tr></thead>
               <tbody>{injList.map(r => (
                 <tr key={r.name} style={{ borderTop: `1px solid ${c.line}` }}>
-                  <td style={{ padding: '8px 12px' }}>{(() => { const sl = rows?.find(x => norm(x.name) === norm(r.name))?.slug || 'n-' + r.name.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''); return <a href={`/ttfl/joueur/${sl}`} style={{ color: '#fff', textDecoration: 'none', borderBottom: `1px dashed ${c.cy}` }}>{r.name} →</a>; })()}</td>
-                  <td style={{ padding: '8px 12px', color: c.dim }}>{r.team}</td>
-                  <td style={{ padding: '8px 12px', color: r.status === 'OUT' ? '#ff7b7b' : c.gold, fontWeight: 700 }}>{r.status}</td>
-                  <td style={{ padding: '8px 12px' }}>{r.until ? `${dm(r.until)} (${r.untilKind === 'reeval' ? 'réévaluation' : 'retour'})` : '–'}</td>
-                  <td style={{ padding: '8px 12px', textAlign: 'right' }}>{r.l10 == null ? '–' : r.l10.toFixed(1)}</td>
+                  <td style={{ padding: pd }}>{(() => { const sl = rows?.find(x => norm(x.name) === norm(r.name))?.slug || 'n-' + r.name.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''); return <a href={`/ttfl/joueur/${sl}`} style={{ color: '#fff', textDecoration: 'none', borderBottom: `1px dashed ${c.cy}` }}>{r.name} →</a>; })()}</td>
+                  <td style={{ padding: pd, color: c.dim }}>{r.team}</td>
+                  <td style={{ padding: pd, color: r.status === 'OUT' ? '#ff7b7b' : c.gold, fontWeight: 700 }}>{r.status}</td>
+                  <td style={{ padding: pd }}>{r.until ? `${dm(r.until)} (${r.untilKind === 'reeval' ? 'réévaluation' : 'retour'})` : '–'}</td>
+                  <td style={{ padding: pd, textAlign: 'right' }}>{r.l10 == null ? '–' : r.l10.toFixed(1)}</td>
                 </tr>))}</tbody>
             </table>}
           </div>
