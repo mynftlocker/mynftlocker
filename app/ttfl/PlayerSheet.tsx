@@ -30,11 +30,13 @@ const fx = (v: number | null) => (v == null ? '–' : v.toFixed(1));
 function Bars({ g, narrow }: { g: G[]; narrow?: boolean }) {
   // Telephone : 5 bougies visibles (les plus recentes), le reste en faisant glisser vers la droite.
   const s = g.slice(-10); const H = 210, Lm = 8, B = 36, T = 16; const slots = narrow ? Math.max(5, s.length) : 10; const W = narrow ? Lm * 2 + slots * 96 : 640; const bw = (W - Lm * 2) / slots;
-  const box = useRef<HTMLDivElement>(null); useEffect(() => { const e = box.current; if (e) e.scrollLeft = e.scrollWidth; }, [s.length, narrow]);
+  const box = useRef<HTMLDivElement>(null); const [more, setMore] = useState(false); const upd = () => { const e = box.current; setMore(!!e && e.scrollLeft > 6); }; useEffect(() => { const e = box.current; if (e) { e.scrollLeft = e.scrollWidth; upd(); } }, [s.length, narrow]);
   const hi = Math.max(10, ...s.map(x => x.t)) + 4; const lo = Math.min(0, ...s.map(x => x.t)); const y = (v: number) => T + (1 - (v - lo) / (hi - lo)) * (H - T - B);
   const mean = s.length ? s.reduce((a, x) => a + x.t, 0) / s.length : 0;
   return (
-    <div ref={box} style={{ overflowX: narrow ? 'auto' : 'visible', WebkitOverflowScrolling: 'touch' }}>
+    <div style={{ position: 'relative' }}>
+    {narrow && slots > 5 && more && <div aria-hidden style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 34, zIndex: 1, pointerEvents: 'none', background: 'linear-gradient(90deg, rgba(5,8,24,.95), rgba(5,8,24,0))', display: 'flex', alignItems: 'center', color: c.cy, fontSize: 22, fontWeight: 700 }}>‹</div>}
+    <div ref={box} onScroll={upd} style={{ overflowX: narrow ? 'auto' : 'visible', WebkitOverflowScrolling: 'touch' }}>
     <svg viewBox={`0 0 ${W} ${H}`} style={{ width: narrow ? `${slots / 5 * 100}%` : '100%', height: 'auto', display: 'block' }} role="img" aria-label={tr('10 derniers matchs')}>
       <line x1={Lm} x2={W - Lm} y1={y(0)} y2={y(0)} stroke={c.line} />
       {s.map((x, i) => { const cx = Lm + (slots - s.length + i) * bw + bw / 2; return (
@@ -46,6 +48,7 @@ function Bars({ g, narrow }: { g: G[]; narrow?: boolean }) {
         </g></a>); })}
       {s.length > 0 && <><line x1={Lm} x2={W - Lm} y1={y(mean)} y2={y(mean)} stroke="rgba(255,255,255,.5)" strokeDasharray="2 4" /><text x={W - Lm} y={y(mean) - 4} fill="rgba(255,255,255,.8)" fontSize="11" textAnchor="end" stroke="#050818" strokeWidth="3" paintOrder="stroke">{tr('Moyenne ')}{mean.toFixed(1)}</text></>}
     </svg>
+    </div>
     </div>
   );
 }
