@@ -126,55 +126,63 @@ export default function LiveTab({ night, proj, slugs, initialGame, onSelect }: {
     );
   };
 
-  // Feuille du joueur : badge TTFL, courbe, puis toutes les stats en petits blocs colores (vert = apporte des points, rouge = en retire).
+  // Fiche joueur : anneau TTFL vs projection, puis "ce qui rapporte / ce qui coute" en barres, et l'adresse au tir en trois anneaux.
   const sheet = (p: P) => {
     const pj = proj[norm(p.name)]; const gm = games?.find(g => g.id === sel); const logo = gm && (gm.away.abbr === p.team ? gm.away.logo : gm.home.logo); // le logo vient de la liste de la nuit (la fiche du match ne le donne pas)
-    const pct = (m: number, a: number) => (a ? +(100 * m / a).toFixed(1) : null);
     const miss = (p.fga - p.fgm) + (p.tpa - p.tpm) + (p.fta - p.ftm);
     const bonus = p.pts + p.reb + p.ast + p.stl + p.blk + p.fgm + p.tpm + p.ftm; const malus = miss + p.to;
-    type K = 'pos' | 'neg' | 'neu' | 'pm' | { good: number; bad: number };
-    const tiles: [string, string | number, K][] = [
-      ['PTS', p.pts, 'pos'], ['REB', p.reb, 'pos'], [tr('PD'), p.ast, 'pos'], [tr('INT'), p.stl, 'pos'],
-      ['FGM', p.fgm, 'pos'], ['FGA', p.fga, 'neu'], ['FG%', pct(p.fgm, p.fga) ?? '–', { good: 50, bad: 40 }], [tr('CT'), p.blk, 'pos'],
-      ['3PM', p.tpm, 'pos'], ['3PA', p.tpa, 'neu'], ['3P%', pct(p.tpm, p.tpa) ?? '–', { good: 38, bad: 30 }], [tr('BP'), p.to, 'neg'],
-      ['FTM', p.ftm, 'pos'], ['FTA', p.fta, 'neu'], ['FT%', pct(p.ftm, p.fta) ?? '–', { good: 80, bad: 65 }], ['+/-', p.pm > 0 ? '+' + p.pm : p.pm, 'pm'],
-      [tr('Fautes'), p.pf, 'neu'], ['OREB', p.oreb, 'neu'], ['DREB', p.dreb, 'neu'], [tr('Tirs manqués'), miss, 'neg'],
-    ];
-    const GR = '74,222,128', RD = '255,107,107', YL = '229,185,78';
-    const pill = (v: string | number, k: K) => {
-      const n = typeof v === 'number' ? v : parseFloat(String(v)); let rgb = '';
-      if (k === 'pos' && n > 0) rgb = GR; else if (k === 'neg' && n > 0) rgb = RD; else if (k === 'pm' && !isNaN(n) && n !== 0) rgb = n > 0 ? GR : RD;
-      else if (typeof k === 'object' && !isNaN(n)) rgb = n >= k.good ? GR : n < k.bad ? RD : YL;
-      return <span style={{ display: 'inline-block', minWidth: 46, textAlign: 'center', fontWeight: 800, fontSize: 18, padding: '4px 8px', borderRadius: 10, background: rgb ? `rgba(${rgb},.15)` : 'transparent', color: rgb ? `rgb(${rgb})` : '#fff', border: `1px solid ${rgb ? `rgba(${rgb},.55)` : c.line}`, textShadow: rgb ? `0 0 12px rgba(${rgb},.45)` : 'none' }}>{v}</span>;
-    };
+    const col = tier(p.ttfl);
+    // Anneau : arc = score / 60, petit trait doré = projection
+    const R = 52, C = 2 * Math.PI * R; const frac = Math.max(0.02, Math.min(1, p.ttfl / 60));
+    const tick = pj != null ? (() => { const a = (-90 + 360 * Math.max(0, Math.min(1, pj / 60))) * Math.PI / 180; return { x1: 70 + (R - 9) * Math.cos(a), y1: 70 + (R - 9) * Math.sin(a), x2: 70 + (R + 9) * Math.cos(a), y2: 70 + (R + 9) * Math.sin(a) }; })() : null;
+    const ring = (
+      <svg viewBox="0 0 140 140" width={132} height={132} style={{ flex: '0 0 auto', filter: `drop-shadow(0 0 14px ${col}66)` }} role="img" aria-label={`TTFL ${p.ttfl}`}>
+        <circle cx="70" cy="70" r={R} fill="none" stroke="rgba(255,255,255,.09)" strokeWidth="10" />
+        <circle cx="70" cy="70" r={R} fill="none" stroke={col} strokeWidth="10" strokeLinecap="round" strokeDasharray={`${C * frac} ${C}`} transform="rotate(-90 70 70)" />
+        {tick && <line {...tick} stroke={c.gold} strokeWidth="3" strokeLinecap="round" />}
+        <text x="70" y="78" textAnchor="middle" fontSize="40" fontWeight="800" fill="#fff" style={{ fontVariantNumeric: 'tabular-nums' }}>{p.ttfl}</text>
+        <text x="70" y="98" textAnchor="middle" fontSize="11" fill="rgba(255,255,255,.6)" letterSpacing="1">TTFL</text>
+      </svg>
+    );
+    const rows = (items: [string, number][], rgb: string) => { const mx = Math.max(1, ...items.map(i => i[1])); return items.map(([k, v]) => (
+      <div key={k} style={{ display: 'grid', gridTemplateColumns: '64px 1fr 30px', alignItems: 'center', gap: 10, padding: '5px 0', opacity: v ? 1 : .45 }}>
+        <span style={{ fontSize: 13, color: c.dim }}>{k}</span>
+        <span style={{ height: 8, borderRadius: 99, background: 'rgba(255,255,255,.07)', overflow: 'hidden' }}><span style={{ display: 'block', height: '100%', width: (100 * v / mx) + '%', borderRadius: 99, background: `linear-gradient(90deg, rgba(${rgb},.3), rgb(${rgb}))`, boxShadow: `0 0 10px rgba(${rgb},.5)` }} /></span>
+        <b style={{ textAlign: 'right', fontSize: 16, fontVariantNumeric: 'tabular-nums' }}>{v}</b>
+      </div>)); };
+    const box = (rgb: string): React.CSSProperties => ({ marginTop: 12, padding: '12px 14px', borderRadius: 16, border: `1px solid rgba(${rgb},.35)`, background: `linear-gradient(180deg, rgba(${rgb},.08), rgba(255,255,255,.01))` });
+    const head = (label: string, total: string, rgb: string) => <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}><span style={{ fontSize: 12, letterSpacing: 1, textTransform: 'uppercase', color: `rgb(${rgb})` }}>{label}</span><span style={{ fontSize: 26, fontWeight: 800, color: `rgb(${rgb})`, textShadow: `0 0 14px rgba(${rgb},.5)` }}>{total}</span></div>;
+    const shoot = (label: string, m: number, a: number) => { const f = a ? m / a : 0; const pc = a ? Math.round(1000 * f) / 10 : null; const sc = pc == null ? 'rgba(255,255,255,.3)' : label === '3P' ? (pc >= 38 ? '#4ade80' : pc < 30 ? '#ff6b6b' : '#e5b94e') : label === 'FG' ? (pc >= 50 ? '#4ade80' : pc < 40 ? '#ff6b6b' : '#e5b94e') : (pc >= 80 ? '#4ade80' : pc < 65 ? '#ff6b6b' : '#e5b94e'); const r = 30, cc = 2 * Math.PI * r;
+      return <div key={label} style={{ textAlign: 'center' }}>
+        <svg viewBox="0 0 80 80" width={86} height={86} style={{ filter: `drop-shadow(0 0 8px ${sc}55)` }}><circle cx="40" cy="40" r={r} fill="none" stroke="rgba(255,255,255,.09)" strokeWidth="7" /><circle cx="40" cy="40" r={r} fill="none" stroke={sc} strokeWidth="7" strokeLinecap="round" strokeDasharray={`${cc * f} ${cc}`} transform="rotate(-90 40 40)" /><text x="40" y="45" textAnchor="middle" fontSize="15" fontWeight="800" fill="#fff">{pc == null ? '–' : pc + '%'}</text></svg>
+        <div style={{ fontSize: 12, color: c.dim, marginTop: 2 }}>{label === 'FT' ? tr('LF') : label}</div><div style={{ fontWeight: 700, fontSize: 14 }}>{m}/{a}</div>
+      </div>; };
+    const chip = (k: string, v: string | number, rgb?: string) => <div key={k} style={{ flex: 1, textAlign: 'center', padding: '8px 4px', borderRadius: 12, border: `1px solid ${rgb ? `rgba(${rgb},.5)` : c.line}`, background: rgb ? `rgba(${rgb},.12)` : 'rgba(255,255,255,.03)' }}><div style={{ fontSize: 11.5, color: c.dim }}>{k}</div><div style={{ fontWeight: 800, fontSize: 18, color: rgb ? `rgb(${rgb})` : '#fff' }}>{v}</div></div>;
     return (
       <div role="dialog" aria-modal="true" style={{ position: 'fixed', inset: 0, zIndex: 70, background: '#070b1c', overflowY: 'auto' }}>
         <div style={{ maxWidth: 760, margin: '0 auto', paddingBottom: 24 }}>
-          <div style={{ position: 'sticky', top: 0, zIndex: 2, background: '#070b1c', borderBottom: `1px solid ${c.line}`, padding: '10px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+          <div style={{ position: 'sticky', top: 0, zIndex: 2, background: 'rgba(7,11,28,.92)', backdropFilter: 'blur(8px)', borderBottom: `1px solid ${c.line}`, padding: '10px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
             <button onClick={() => setPid(null)} style={{ background: 'rgba(255,255,255,.08)', border: `1px solid ${c.line}`, color: c.cy, borderRadius: 10, padding: '8px 14px', fontSize: 14, cursor: 'pointer', whiteSpace: 'nowrap' }}>← {tr('Retour au match')}</button>
             <button onClick={() => { setPid(null); setSel(null); }} aria-label={tr('Fermer')} style={{ background: 'rgba(255,255,255,.08)', border: `1px solid ${c.line}`, color: '#fff', borderRadius: 10, padding: '8px 14px', fontSize: 14, cursor: 'pointer', whiteSpace: 'nowrap' }}>✕ {tr('Fermer')}</button>
           </div>
           <div style={{ padding: '14px 12px 0' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
-                {logo && /* eslint-disable-next-line @next/next/no-img-element */ <img src={logo} alt="" width={54} height={54} style={{ flex: '0 0 auto' }} />}
-                <div style={{ minWidth: 0 }}><div style={{ fontSize: 22, fontWeight: 800, lineHeight: 1.2 }}>{p.name}</div>
-                  <div style={{ color: c.dim, fontSize: 13, marginTop: 3 }}>{p.starter ? tr('Cinq majeur') + ' · ' : ''}<b style={{ color: '#fff' }}>{Math.round(p.min)} min</b></div>
-                  {pj != null && <div style={{ fontSize: 13, marginTop: 3, color: c.gold }}>{tr('Projection')} {pj.toFixed(1)} <span style={{ color: p.ttfl >= pj ? '#4ade80' : '#ff7b7b', fontWeight: 700 }}>({p.ttfl >= pj ? '+' : ''}{(p.ttfl - pj).toFixed(1)})</span></div>}
-                </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px 14px', borderRadius: 18, border: `1px solid ${col}55`, background: `radial-gradient(110% 130% at 100% 0%, ${col}26, rgba(7,11,28,0) 60%), linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.01))` }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                {logo && /* eslint-disable-next-line @next/next/no-img-element */ <img src={logo} alt="" width={40} height={40} style={{ display: 'block', marginBottom: 6 }} />}
+                <div style={{ fontSize: 22, fontWeight: 800, lineHeight: 1.2 }}>{p.name}</div>
+                <div style={{ color: c.dim, fontSize: 13, marginTop: 4 }}>{p.starter ? tr('Cinq majeur') + ' · ' : ''}<b style={{ color: '#fff' }}>{Math.round(p.min)} min</b></div>
+                {pj != null && <div style={{ marginTop: 8, display: 'inline-block', fontSize: 13, color: c.gold, border: `1px solid ${c.gold}66`, borderRadius: 999, padding: '3px 10px' }}>{tr('Projection')} {pj.toFixed(1)} <b style={{ color: p.ttfl >= pj ? '#4ade80' : '#ff7b7b' }}>({p.ttfl >= pj ? '+' : ''}{(p.ttfl - pj).toFixed(1)})</b></div>}
               </div>
-              {badge(p.ttfl, true)}
+              {ring}
             </div>
-            <details open style={{ marginTop: 16, background: c.card, border: `1px solid ${c.line}`, borderRadius: 14, padding: '10px 12px' }}>
+            <details open style={{ marginTop: 12, background: c.card, border: `1px solid ${c.line}`, borderRadius: 14, padding: '10px 12px' }}>
               <summary style={{ cursor: 'pointer', fontWeight: 700, fontSize: 15 }}>{tr('Évolution de son score')}</summary>
               <div style={{ marginTop: 8 }}><Curve p={p} proj={pj ?? null} /></div>
             </details>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 8, marginTop: 14 }}>
-              {tiles.map(([k, v, kind]) => <div key={k} style={{ border: `1px solid ${c.line}`, borderRadius: 12, padding: '8px 4px 10px', textAlign: 'center', background: 'rgba(255,255,255,.03)' }}><div style={{ fontSize: 11.5, color: c.dim, marginBottom: 6, lineHeight: 1.15, minHeight: 27, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{k}</div>{pill(v, kind)}</div>)}
-            </div>
-            <div style={{ display: 'flex', alignItems: 'stretch', justifyContent: 'center', gap: 6, marginTop: 14, padding: '12px 8px', borderRadius: 16, border: `1px solid ${c.line}`, background: 'linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.01))' }}>
-              {([[tr('Bonus'), '+' + bonus, '74,222,128'], ['−', '', ''], [tr('Malus'), String(malus), '255,107,107'], ['=', '', ''], ['TTFL', String(p.ttfl), '0,255,255']] as [string, string, string][]).map(([k, v, rgb], x) => v === '' ? <div key={x} style={{ alignSelf: 'center', color: c.dim, fontSize: 22 }}>{k}</div> : <div key={x} style={{ flex: 1, textAlign: 'center' }}><div style={{ fontSize: 12, color: c.dim, marginBottom: 4 }}>{k}</div><div style={{ fontSize: 28, fontWeight: 800, color: `rgb(${rgb})`, textShadow: `0 0 16px rgba(${rgb},.5)` }}>{v}</div></div>)}
-            </div>
+            <div style={box('74,222,128')}>{head(tr('Ce qui rapporte'), '+' + bonus, '74,222,128')}{rows([['PTS', p.pts], ['REB', p.reb], [tr('PD'), p.ast], [tr('INT'), p.stl], [tr('CT'), p.blk], ['FGM', p.fgm], ['3PM', p.tpm], ['FTM', p.ftm]], '74,222,128')}</div>
+            <div style={box('255,107,107')}>{head(tr('Ce qui coûte'), '−' + malus, '255,107,107')}{rows([[tr('Tirs manqués'), miss], [tr('BP'), p.to]], '255,107,107')}</div>
+            <div style={{ ...box('0,255,255'), display: 'flex', justifyContent: 'space-around', gap: 4 }}>{shoot('FG', p.fgm, p.fga)}{shoot('3P', p.tpm, p.tpa)}{shoot('FT', p.ftm, p.fta)}</div>
+            <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>{chip('+/-', p.pm > 0 ? '+' + p.pm : p.pm, p.pm > 0 ? '74,222,128' : p.pm < 0 ? '255,107,107' : undefined)}{chip(tr('Fautes'), p.pf)}{chip('OREB', p.oreb)}{chip('DREB', p.dreb)}</div>
             {slugs[norm(p.name)] && <a href={`/ttfl/joueur/${slugs[norm(p.name)]}`} style={{ display: 'block', textAlign: 'center', marginTop: 16, background: c.cy, color: '#001018', fontWeight: 700, padding: '12px 14px', borderRadius: 12, textDecoration: 'none', fontSize: 15 }}>{tr('Fiche joueur →')}</a>}
           </div>
         </div>
