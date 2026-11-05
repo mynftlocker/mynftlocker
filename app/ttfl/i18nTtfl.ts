@@ -18,6 +18,8 @@ addEn({
   'Malus': 'Penalty',
   'Bonus': 'Bonus',
   'Fautes': 'Fouls',
+  'Ce qui rapporte': 'What adds points',
+  'Ce qui coûte': 'What costs points',
   'pd': 'ast',
   'Évolution de son score': 'Score evolution',
   'Retour au match': 'Back to match',
