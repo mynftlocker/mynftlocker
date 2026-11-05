@@ -16,12 +16,13 @@ async function gql(query: string) {
 export async function GET(req: NextRequest) {
   const deny = await ownerOnly(req); if (deny) return deny;
   const night = (req.nextUrl.searchParams.get('night') || '').trim();
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(night)) return NextResponse.json({ error: 'night=YYYY-MM-DD requis' }, { status: 400 });
+  const fixSlug = (req.nextUrl.searchParams.get('fixture') || '').trim(); // alternative a night : GW donnee directement (page Compos GW)
+  if (!fixSlug && !/^\d{4}-\d{2}-\d{2}$/.test(night)) return NextResponse.json({ error: 'night=YYYY-MM-DD ou fixture=slug requis' }, { status: 400 });
   try {
     // GW qui contient la nuit (les matchs de la nuit d'une date Paris se jouent entre 00:00 et 05:00 UTC ce jour-la)
-    const t = new Date(night + 'T02:00:00Z').getTime();
+    const t = new Date((night || '2000-01-01') + 'T02:00:00Z').getTime();
     const fx = await gql('{ so5{ so5Fixtures(first:6, sport:NBA){ nodes{ slug startDate endDate } } } }');
-    const f = (fx?.data?.so5?.so5Fixtures?.nodes || []).find((n: any) => new Date(n.startDate).getTime() <= t && t <= new Date(n.endDate).getTime());
+    const f = (fx?.data?.so5?.so5Fixtures?.nodes || []).find((n: any) => fixSlug ? n.slug === fixSlug : new Date(n.startDate).getTime() <= t && t <= new Date(n.endDate).getTime());
     if (!f) return NextResponse.json({ fixture: null, used: {} });
     const used: Record<string, string[]> = {};
     let after = '', pages = 0, n = 0;
