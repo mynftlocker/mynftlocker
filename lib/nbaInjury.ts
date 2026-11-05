@@ -34,10 +34,11 @@ export function parseNbaReport(text: string): NbaInj[] {
   return rows;
 }
 
-export async function fetchNbaReport(): Promise<{ file: string; rows: NbaInj[] } | null> {
+export async function fetchNbaReport(dbg?: string[]): Promise<{ file: string; rows: NbaInj[] } | null> {
   for (const s of slots()) {
     const file = `Injury-Report_${s}.pdf`;
     const r = await fetch('https://ak-static.cms.nba.com/referee/injury/' + file, { cache: 'no-store', signal: AbortSignal.timeout(15000) }).catch(() => null);
+    if (dbg && dbg.length < 4) dbg.push(file + ':' + (r ? r.status : 'err'));
     if (!r || !r.ok) continue;
     const pdf = await getDocumentProxy(new Uint8Array(await r.arrayBuffer()));
     const { text } = await extractText(pdf, { mergePages: true });

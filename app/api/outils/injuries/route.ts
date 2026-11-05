@@ -40,7 +40,7 @@ async function refreshEspn(): Promise<number> {
 
 // Injury report officiel NBA (PDF) : source de reference des statuts Out / Doubtful / Questionable (= GTD) / Probable. Remplace les lignes ESPN des joueurs listes ; Rotowire/Underdog/manuel restent prioritaires (plus frais).
 async function refreshNba(): Promise<any> {
-  const rep = await fetchNbaReport(); if (!rep) return { file: null };
+  const dbg: string[] = []; const rep = await fetchNbaReport(dbg); if (!rep) return { file: null, tried: dbg };
   const t = await load(); const now = new Date().toISOString();
   const keep = prune(t.rows).filter(r => r.src !== 'nba');
   const byK = new Map(keep.map(r => [nrm(r.name), r]));
