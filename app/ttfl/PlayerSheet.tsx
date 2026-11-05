@@ -108,7 +108,7 @@ export default function PlayerSheet({ slug }: { slug: string }) {
           </div>
 
           <div style={{ ...box, marginBottom: 16 }}>
-            <div style={{ fontWeight: 700, marginBottom: 6 }}>{tr('10 derniers matchs')} <span style={{ color: c.dim, fontWeight: 400, fontSize: 12 }}>{tr('· clique sur un score pour ouvrir la fiche du match')}</span></div>
+            <div style={{ fontWeight: 700, marginBottom: 6 }}>{narrow ? tr('Derniers matchs') : tr('10 derniers matchs')} <span style={{ color: c.dim, fontWeight: 400, fontSize: 12 }}>{tr('· clique sur un score pour ouvrir la fiche du match')}</span></div>
             {recent.length ? <Bars g={recent} narrow={narrow} /> : <p style={{ color: c.dim }}>{tr('Aucun match sur cette période.')}</p>}
           </div>
 
