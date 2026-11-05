@@ -47,7 +47,7 @@ function Bars({ g, narrow }: { g: G[]; narrow?: boolean }) {
           <text x={cx} y={H - 19} fill={c.dim} fontSize="9" textAnchor="middle">{ddmm(x.d)}</text>
           {x.b2b && <text x={cx} y={H - 7} fill={c.gold} fontSize="9" fontWeight="700" textAnchor="middle">b2b</text>}
         </g></a>); })}
-      {s.length > 0 && <><line x1={Lm} x2={W - Lm} y1={y(mean)} y2={y(mean)} stroke="rgba(255,255,255,.5)" strokeDasharray="2 4" /><text x={W - Lm} y={y(mean) - 4} fill="rgba(255,255,255,.8)" fontSize="11" textAnchor="end" stroke="#050818" strokeWidth="3" paintOrder="stroke">{tr('Moyenne ')}{mean.toFixed(1)}</text></>}
+      {s.length > 0 && <><line x1={Lm} x2={W - Lm} y1={y(mean)} y2={y(mean)} stroke="rgba(255,255,255,.5)" strokeDasharray="2 4" /><text x={slots - s.length >= 2 ? Lm + 4 : W - Lm} y={y(mean) - 4} fill="rgba(255,255,255,.8)" fontSize="11" textAnchor={slots - s.length >= 2 ? 'start' : 'end'} stroke="#050818" strokeWidth="3" paintOrder="stroke">{tr('Moyenne ')}{mean.toFixed(1)}</text></>}
     </svg>
     </div>
     </div>
