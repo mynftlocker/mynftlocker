@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import StarBg from '../components/StarBg';
 import LiveTab from './LiveTab';
 import { t as tr, useLang, initLang, LangSwitch } from '../i18n';
@@ -26,16 +26,20 @@ const trend = (r: R) => { const a = avg(r, 5), b = avg(r, 10); return a == null 
 const seasonOf = (d: string) => { const y = +d.slice(0, 4), m = +d.slice(5, 7); return m >= 9 ? y : y - 1; };
 const ddmm = (d: string) => d.slice(8) + '/' + d.slice(5, 7);
 // Scores TTFL match par match (barres) avec la projection de la nuit et la moyenne en reperes.
-function Bars({ r, a }: { r: R; a: number | null }) {
-  const g = r.g.slice(-10); const W = 640, H = 224, L = 30, B = 36, T = 14; const hi = Math.max(10, ...g.map(x => x[1]), r.est) + 4; const lo = Math.min(0, ...g.map(x => x[1]));
-  const bw = (W - L - 8) / 10; const off = 10 - g.length; const y = (v: number) => T + (1 - (v - lo) / (hi - lo)) * (H - T - B); 
+function Bars({ r, a, narrow }: { r: R; a: number | null; narrow?: boolean }) {
+  // Telephone : 5 bougies visibles (les plus recentes), le reste se decouvre en faisant glisser le graphique vers la droite.
+  const g = r.g.slice(-10); const slots = narrow ? Math.max(5, g.length) : 10; const L = 30, H = 224, B = 36, T = 14; const W = narrow ? L + 8 + slots * 96 : 640;
+  const box = useRef<HTMLDivElement>(null); useEffect(() => { const e = box.current; if (e) e.scrollLeft = e.scrollWidth; }, [g.length, narrow]); const hi = Math.max(10, ...g.map(x => x[1]), r.est) + 4; const lo = Math.min(0, ...g.map(x => x[1]));
+  const bw = (W - L - 8) / slots; const off = slots - g.length; const y = (v: number) => T + (1 - (v - lo) / (hi - lo)) * (H - T - B); 
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block' }} role="img" aria-label={tr('Scores TTFL de ') + r.name}>
+    <div ref={box} style={{ overflowX: narrow ? 'auto' : 'visible', WebkitOverflowScrolling: 'touch' }}>
+    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: narrow ? `${slots / 5 * 100}%` : '100%', height: 'auto', display: 'block' }} role="img" aria-label={tr('Scores TTFL de ') + r.name}>
       <line x1={L} x2={W - 8} y1={y(0)} y2={y(0)} stroke={c.line} />
       {g.map((x, i) => <g key={x[0]}><rect x={L + (i + off) * bw + bw / 2 - 16} y={Math.min(y(x[1]), y(0))} width={32} height={Math.abs(y(x[1]) - y(0))} rx="3" fill={x[1] >= r.est ? c.cy : 'rgba(0,255,255,.4)'} /><text x={L + (i + off) * bw + bw / 2} y={y(Math.max(x[1], 0)) - 4} fill="#fff" fontSize="12" fontWeight="700" textAnchor="middle">{x[1]}</text>{x[3] && <text x={L + (i + off) * bw + bw / 2} y={H - 20} fill={c.dim} fontSize="10" textAnchor="middle">{x[4] ? 'vs' : '@'} {x[3]}{x[5] ? ' · b2b' : ''}</text>}<text x={L + (i + off) * bw + bw / 2} y={H - 7} fill={c.dim} fontSize="9" textAnchor="middle">{ddmm(x[0])}</text></g>)}
       <line x1={L} x2={W - 8} y1={y(r.est)} y2={y(r.est)} stroke={c.gold} strokeDasharray="5 4" /><text x={W - 10} y={y(r.est) + 14} fill={c.gold} textAnchor="end" fontSize="11" stroke="#050818" strokeWidth="3" paintOrder="stroke">{tr('Projection')} {r.est.toFixed(1)}</text>
       {a != null && <><line x1={L} x2={W - 8} y1={y(a)} y2={y(a)} stroke="rgba(255,255,255,.5)" strokeDasharray="2 4" /><text x={W - 10} y={y(a) - 4} fill="rgba(255,255,255,.7)" fontSize="11" textAnchor="end" stroke="#050818" strokeWidth="3" paintOrder="stroke">{tr('Moyenne ')}{a.toFixed(1)}</text></>}
     </svg>
+    </div>
   );
 }
 let W_CUR: W = 10;
@@ -161,7 +165,7 @@ export default function TtflPublic() {
                     {!narrow && <td style={{ padding: pd, textAlign: 'right', color: r.tg && r.gp < r.tg - 1 ? '#ff9f43' : c.dim }}>{r.tg ? `${r.gp}/${r.tg}` : '–'}</td>}
                   </tr>,
                   o && (() => { const rr = hx[r.slug] ? { ...r, g: hx[r.slug] } : r; const cs = seasonOf(night); const sr = { ...rr, g: rr.g.filter(x => seasonOf(x[0]) === cs) }; return <tr key={r.name + 'x'}><td colSpan={narrow ? 5 : 8} style={{ padding: '10px 12px 14px', background: 'rgba(0,255,255,.04)' }}>
-                    {rr.g.length ? <Bars r={rr} a={avg(sr, 0)} /> : <span style={{ color: c.dim }}>{tr('Pas encore de match joué cette saison.')}</span>}
+                    {rr.g.length ? <Bars r={rr} a={avg(sr, 0)} narrow={narrow} /> : <span style={{ color: c.dim }}>{tr('Pas encore de match joué cette saison.')}</span>}
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10, fontSize: 15, alignItems: 'center' }}>
                       {([[tr('Moy. 5'), avg(sr, 5)], [tr('Moy. 10'), avg(sr, 10)], [tr('Moy. saison') + ' (' + sr.g.length + ')', avg(sr, 0)], [tr('Max'), sr.g.length ? Math.max(...sr.g.map(x => x[1])) : null], [tr('Min'), sr.g.length ? Math.min(...sr.g.map(x => x[1])) : null]] as [string, number | null][]).map(([k, v]) => (
                         <span key={k} style={{ border: `1px solid ${c.line}`, borderRadius: 10, padding: '6px 12px', background: 'rgba(255,255,255,.05)' }}><span style={{ color: c.dim, fontSize: 13 }}>{k}</span> <b style={{ fontSize: 18 }}>{v == null ? '–' : v.toFixed(1)}</b></span>))}

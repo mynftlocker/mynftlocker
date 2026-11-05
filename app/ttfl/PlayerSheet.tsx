@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import StarBg from '../components/StarBg';
 import { t as tr, useLang, initLang, LangSwitch } from '../i18n';
 import './i18nTtfl';
@@ -27,12 +27,15 @@ const bundle = (rows: G[]): B => {
 };
 const fx = (v: number | null) => (v == null ? '–' : v.toFixed(1));
 
-function Bars({ g }: { g: G[] }) {
-  const s = g.slice(-10); const W = 640, H = 210, Lm = 8, B = 36, T = 16; const slots = 10; const bw = (W - Lm * 2) / slots;
+function Bars({ g, narrow }: { g: G[]; narrow?: boolean }) {
+  // Telephone : 5 bougies visibles (les plus recentes), le reste en faisant glisser vers la droite.
+  const s = g.slice(-10); const H = 210, Lm = 8, B = 36, T = 16; const slots = narrow ? Math.max(5, s.length) : 10; const W = narrow ? Lm * 2 + slots * 96 : 640; const bw = (W - Lm * 2) / slots;
+  const box = useRef<HTMLDivElement>(null); useEffect(() => { const e = box.current; if (e) e.scrollLeft = e.scrollWidth; }, [s.length, narrow]);
   const hi = Math.max(10, ...s.map(x => x.t)) + 4; const lo = Math.min(0, ...s.map(x => x.t)); const y = (v: number) => T + (1 - (v - lo) / (hi - lo)) * (H - T - B);
   const mean = s.length ? s.reduce((a, x) => a + x.t, 0) / s.length : 0;
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block' }} role="img" aria-label={tr('10 derniers matchs')}>
+    <div ref={box} style={{ overflowX: narrow ? 'auto' : 'visible', WebkitOverflowScrolling: 'touch' }}>
+    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: narrow ? `${slots / 5 * 100}%` : '100%', height: 'auto', display: 'block' }} role="img" aria-label={tr('10 derniers matchs')}>
       <line x1={Lm} x2={W - Lm} y1={y(0)} y2={y(0)} stroke={c.line} />
       {s.map((x, i) => { const cx = Lm + (slots - s.length + i) * bw + bw / 2; return (
         <a key={x.gid} href={matchHref(x.d, x.gid)}><g style={{ cursor: 'pointer' }}>
@@ -43,6 +46,7 @@ function Bars({ g }: { g: G[] }) {
         </g></a>); })}
       {s.length > 0 && <><line x1={Lm} x2={W - Lm} y1={y(mean)} y2={y(mean)} stroke="rgba(255,255,255,.5)" strokeDasharray="2 4" /><text x={W - Lm} y={y(mean) - 4} fill="rgba(255,255,255,.8)" fontSize="11" textAnchor="end" stroke="#050818" strokeWidth="3" paintOrder="stroke">{tr('Moyenne ')}{mean.toFixed(1)}</text></>}
     </svg>
+    </div>
   );
 }
 
@@ -102,7 +106,7 @@ export default function PlayerSheet({ slug }: { slug: string }) {
 
           <div style={{ ...box, marginBottom: 16 }}>
             <div style={{ fontWeight: 700, marginBottom: 6 }}>{tr('10 derniers matchs')} <span style={{ color: c.dim, fontWeight: 400, fontSize: 12 }}>{tr('· clique sur un score pour ouvrir la fiche du match')}</span></div>
-            {recent.length ? <Bars g={recent} /> : <p style={{ color: c.dim }}>{tr('Aucun match sur cette période.')}</p>}
+            {recent.length ? <Bars g={recent} narrow={narrow} /> : <p style={{ color: c.dim }}>{tr('Aucun match sur cette période.')}</p>}
           </div>
 
           <div style={{ ...box, marginBottom: 16 }}>
