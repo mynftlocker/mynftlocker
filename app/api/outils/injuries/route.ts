@@ -40,13 +40,15 @@ async function refreshRotowire(debug = false): Promise<any> {
   const items = pages.flatMap(parseNews);
   if (debug) return { pages: pages.map(p => p.length), items: items.length, sample: items.slice(0, 3) };
   if (!items.length) return { items: 0 };
-  const latest = new Map<string, (typeof items)[number]>();
-  for (const it of items) { const k = nrm(it.name); const c = latest.get(k); if (!c || it.date > c.date) latest.set(k, it); }
+  // Par joueur : la news la plus recente qui dit quelque chose de la disponibilite (une news de match sans blessure ne masque pas une blessure longue)
   const tday = today(); const t = await load(); const map = new Map(t.rows.map(r => [nrm(r.name), r]));
+  const byP = new Map<string, typeof items>();
+  for (const it of items) { const k = nrm(it.name); (byP.get(k) || byP.set(k, []).get(k)!).push(it); }
+  const latest = new Map<string, { it: (typeof items)[number]; st: NonNullable<ReturnType<typeof toState>> }>();
+  for (const [k, list] of byP) { list.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0)); for (const it of list) { const st = toState(it, tday); if (st) { latest.set(k, { it, st }); break; } } }
   let upserts = 0, clears = 0;
-  for (const [k, it] of latest) {
-    const st = toState(it, tday); const cur = map.get(k);
-    if (!st) continue;
+  for (const [k, { it, st }] of latest) {
+    const cur = map.get(k);
     // Ne jamais ecraser une ligne Underdog/manuelle plus recente que la news Rotowire
     if (cur && (cur.src === 'underdog' || cur.src === 'manual') && cur.updated.slice(0, 10) >= it.date) continue;
     if (st.status === 'OK') { if (cur && cur.src === 'rotowire') { map.delete(k); clears++; } continue; } // disponible : on retire seulement une ligne Rotowire perimee
@@ -54,7 +56,26 @@ async function refreshRotowire(debug = false): Promise<any> {
     upserts++;
   }
   await redis.set(KEY, { updated: new Date().toISOString(), rows: [...map.values()] } as Table);
-  return { items: items.length, players: latest.size, upserts, clears };
+  return { items: items.length, players: byP.size, upserts, clears };
+}
+
+// Journal quotidien (un instantane par jour, 400 jours) : sert a mesurer les joueurs souvent blesses (nombre de jours listes, nombre d'episodes).
+async function logToday() {
+  const t = await load();
+  await redis.set('inj:log:' + today(), t.rows.map(r => [r.name, r.status, r.until]), { ex: 400 * 86400 });
+}
+async function history() {
+  const days: string[] = []; for (let k = 0; k < 120; k++) days.push(new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris' }).format(new Date(Date.now() - k * 86400000)));
+  const snaps = await Promise.all(days.map(d => redis.get<[string, string, string | null][]>('inj:log:' + d).catch(() => null)));
+  const agg: Record<string, { jours: number; out: number; episodes: number; dernier: string }> = {};
+  const prev = new Set<string>();
+  // du plus ancien au plus recent : un episode = passage de « pas OUT » a « OUT »
+  for (let i = days.length - 1; i >= 0; i--) {
+    const sn = snaps[i]; if (!sn) continue; const cur = new Set<string>();
+    for (const [name, st] of sn) { const a = (agg[name] ||= { jours: 0, out: 0, episodes: 0, dernier: '' }); a.jours++; a.dernier = days[i]; if (st === 'OUT') { a.out++; cur.add(name); if (!prev.has(name)) a.episodes++; } }
+    prev.clear(); cur.forEach(n => prev.add(n));
+  }
+  return { jours: snaps.filter(Boolean).length, joueurs: Object.entries(agg).map(([name, a]) => ({ name, ...a })).sort((x, y) => y.out - x.out).slice(0, 80) };
 }
 
 export async function GET(req: NextRequest) {
@@ -63,9 +84,11 @@ export async function GET(req: NextRequest) {
       if (!(await redis.set('inj:lock', 1, { nx: true, ex: 3000 }))) return NextResponse.json({ ok: true, skipped: 'recent' });
       const espn = await refreshEspn();
       const rw = await refreshRotowire().catch((e: any) => ({ error: String(e).slice(0, 120) }));
+      await logToday().catch(() => {});
       return NextResponse.json({ ok: true, espn, rotowire: rw });
     }
     const deny = await ownerOnly(req); if (deny) return deny;
+    if (req.nextUrl.searchParams.get('hist')) return NextResponse.json({ ok: true, ...(await history()) });
     if (req.nextUrl.searchParams.get('debug') === 'rw') return NextResponse.json(await refreshRotowire(true));
     const t = await load();
     return NextResponse.json({ ok: true, updated: t.updated, rows: prune(t.rows) }, { headers: { 'Cache-Control': 'no-store' } });

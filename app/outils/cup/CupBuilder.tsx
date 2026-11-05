@@ -12,6 +12,7 @@ type Goal = 'proba' | 'pts'; // objectif des compos automatiques : meilleure pro
 const EMPTY_OWNED: Record<string, 0 | 1 | 2> = {}; // plus de correction manuelle : tout vient de Sorare
 const LSP = 'mnl_cup_pseudo_v1';
 
+const nk = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z]/g, '');
 const ymd = (d: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris' }).format(d);
 const lab = (s: string) => new Intl.DateTimeFormat('fr-FR', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }).format(new Date(s + 'T12:00:00Z'));
 const erf = (x: number) => { const t = 1 / (1 + 0.3275911 * Math.abs(x)); const y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x); return x >= 0 ? y : -y; };
@@ -72,6 +73,9 @@ export default function CupBuilder() {
   const [colInfo, setColInfo] = useState('');
   const [locked, setLocked] = useState<Record<string, true>>({}); // joueurs dont toutes les cartes Limited+ sont deja alignees
   const [usedInfo, setUsedInfo] = useState('');
+  // Tableau des blessures partagé (Rotowire / Underdog / ESPN) : complète le statut Sorare (absence longue ou date de retour connue)
+  const [tbl, setTbl] = useState<Record<string, { until: string | null }>>({});
+  useEffect(() => { fetch('/api/outils/injuries').then(r => r.json()).then(j => { if (j.ok) { const m: Record<string, { until: string | null }> = {}; for (const r of j.rows) if (r.status === 'OUT') m[nk(r.name)] = { until: r.until }; setTbl(m); } }).catch(() => {}); }, []);
 
   useEffect(() => { try { const p = localStorage.getItem(LSP); if (p) setPseudo(p); } catch {} }, []);
   const loadGallery = async (pp: string, nt: string = night) => {
@@ -128,7 +132,8 @@ export default function CupBuilder() {
     const b = metric === 'proj' ? p.proj : 0.7 * p.proj + 0.1 * l5 + 0.2 * l10;
     return p.inj === 'GTD' ? b * 0.88 : b;
   };
-  const pool = useMemo(() => data.filter(p => !(noOut && p.inj && p.inj !== 'GTD')).map((p, i) => ({ p, v: val(p), c: Math.round(p.stars * 2), i })), [data, metric, noOut]); // eslint-disable-line react-hooks/exhaustive-deps
+  const tblOut = (p: P) => { const t = tbl[nk(p.name)]; if (!t) return false; const lim = ymd(new Date(Date.now() + 86400000)); return t.until ? night < t.until : night <= lim; };
+  const pool = useMemo(() => data.filter(p => !(noOut && ((p.inj && p.inj !== 'GTD') || tblOut(p)))).map((p, i) => ({ p, v: val(p), c: Math.round(p.stars * 2), i })), [data, metric, noOut, tbl, night]); // eslint-disable-line react-hooks/exhaustive-deps
   const own = (slug: string): 0 | 1 | 2 => (owned[slug] !== undefined ? (owned[slug] as number) : (col[slug] || 0)) as 0 | 1 | 2;
   const ownedPool = useMemo(() => pool.filter(x => own(x.p.slug)), [pool, owned, col]); // eslint-disable-line react-hooks/exhaustive-deps
   // options par joueur possede : une par type de carte libre (Classic / In-Season), avec le bonus (power) reel de la carte

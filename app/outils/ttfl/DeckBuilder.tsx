@@ -14,7 +14,7 @@ const fmt = (d: string) => new Date(d + 'T12:00:00Z').toLocaleDateString('fr-FR'
 type Pick = { d: string; n: string };
 type Picks = { updated: string; history: (Pick & { s: number | null })[]; planned: Pick[] };
 type Cand = { name: string; team: string; opp: string; home: boolean; est: number; inj: string | null; src: 'S' | 'L' };
-type Night = { us: string; games: number; close: string | null; closed: boolean; cands: Cand[] };
+type Night = { us: string; games: number; close: string | null; closeIso: string | null; closed: boolean; cands: Cand[] };
 type Hist = Record<string, { d: string; t: number; m: number; tm: string }[]>;
 type Sched = Record<string, { first: string | null; games: { h: string; a: string }[] }>;
 type Inj = Record<string, { s: 'OUT' | 'DTD'; long: boolean; until?: string | null; kind?: string | null }>;
@@ -108,7 +108,7 @@ export default function DeckBuilder() {
           }
         }
         const close = sc?.first ? new Date(sc.first).toLocaleString('fr-FR', { timeZone: 'Europe/Paris', weekday: 'short', hour: '2-digit', minute: '2-digit' }) : null;
-        out.push({ us, games: sc?.games.length ?? Math.round(teams.size / 2), close, closed: !!sc?.first && new Date(sc.first).getTime() <= Date.now(), cands });
+        out.push({ us, games: sc?.games.length ?? Math.round(teams.size / 2), close, closeIso: sc?.first || null, closed: !!sc?.first && new Date(sc.first).getTime() <= Date.now(), cands });
       }
       if (!dead) setNights(out);
     })();
@@ -152,7 +152,8 @@ export default function DeckBuilder() {
     const curTotal = rows.reduce((s, r) => s + (r.curC?.est || 0), 0);
     const curCount = rows.filter(r => r.curC).length;
     const best = rows.reduce((b, r) => (r.pick && (!b || r.pick.est > b.pick!.est) ? r : b), null as (typeof rows)[number] | null);
-    return { rows, total, curTotal, curCount, best };
+    const next = rows.find(r => !r.n.closed && r.pick && r.n.closeIso) || null;
+    return { rows, total, curTotal, curCount, best, next };
   }, [nights, picks, keep, start]);
 
   const c = { card: 'rgba(255,255,255,.04)', line: 'rgba(255,255,255,.1)', cy: '#00ffff', gold: '#e5b94e', dim: 'rgba(255,255,255,.55)' };
@@ -167,7 +168,12 @@ export default function DeckBuilder() {
         <button onClick={() => setTick(t => t + 1)} style={btn}>↻ Recalculer</button>
         <label style={{ fontSize: 13, color: c.dim }}><input type="checkbox" checked={keep} onChange={e => setKeep(e.target.checked)} /> Garder mes picks déjà posés</label>
       </div>
-      <div style={{ fontSize: 12, color: c.dim, marginBottom: 10 }}>{picks ? `Picks lus sur TTFL : ${picks.history.length} joués, ${picks.planned.length} posés à l'avance${upd ? ' · mis à jour le ' + upd : ''}` : 'Picks…'}</div>
+      {plan?.next?.pick && (() => { const ms = new Date(plan.next.n.closeIso!).getTime() - Date.now(); const h = Math.floor(ms / 3600000), m = Math.floor((ms % 3600000) / 60000); return (
+        <div style={{ ...btn, padding: '12px 16px', marginBottom: 12, borderColor: c.cy }}>
+          <div style={{ color: c.dim, fontSize: 12 }}>Prochaine clôture · {fmt(plan.next.n.us)} · dans {h} h {String(m).padStart(2, '0')} ({plan.next.n.close})</div>
+          <div style={{ fontSize: 18, fontWeight: 700 }}><span style={{ color: c.cy }}>{plan.next.pick.name}</span> <span style={{ color: c.dim, fontSize: 14, fontWeight: 400 }}>{plan.next.pick.home ? 'vs' : '@'} {plan.next.pick.opp.split(' ').pop()} · {plan.next.pick.est.toFixed(1)} pts estimés{plan.next.cur && plan.next.cur.n !== plan.next.pick.name ? ` · ton pick posé : ${plan.next.cur.n}` : ''}</span></div>
+        </div>); })()}
+      <div style={{ fontSize: 12, color: picks && Date.now() - new Date(picks.updated).getTime() > 86400000 ? '#ff9f43' : c.dim, marginBottom: 10 }}>{picks && Date.now() - new Date(picks.updated).getTime() > 86400000 ? '⚠ Picks vieux de plus de 24 h : demande à Claude de relire ton historique TTFL. ' : ''}{picks ? `Picks lus sur TTFL : ${picks.history.length} joués, ${picks.planned.length} posés à l'avance${upd ? ' · mis à jour le ' + upd : ''}` : 'Picks…'}</div>
       {err && <div style={{ color: '#ff6b6b', marginBottom: 10 }}>{err}</div>}
       {!nights && !err && <div style={{ color: c.dim }}>{prog || 'Chargement…'}</div>}
       {plan && (
