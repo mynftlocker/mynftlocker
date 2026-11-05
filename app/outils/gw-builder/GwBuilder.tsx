@@ -127,11 +127,10 @@ export default function GwBuilder() {
   const pickerRes = results.find(r => r.room.id === picker);
   const pickerList = useMemo(() => {
     if (!pickerRoom || !pickerRes) return [];
-    const mine = pickerRes.lineup, ql = q.toLowerCase();
-    const others = new Set(results.filter(r => r.room.id !== picker).flatMap(r => r.lineup.map(x => x.id)));
+    const mine = pickerRes.lineup.filter(x => pickerRoom.pins.includes(x.id)), ql = q.toLowerCase(); // seules les cartes imposees comptent : le moteur complete autour
     const pinnedElsewhere = new Set((rooms || []).filter(r => r.id !== picker).flatMap(r => r.pins));
     const cost = mine.reduce((s, x) => s + x.cost, 0), cnt: Record<string, number> = {}; mine.forEach(x => { cnt[x.p.team] = (cnt[x.p.team] || 0) + 1; });
-    return cards.filter(x => !others.has(x.id) && !pinnedElsewhere.has(x.id) && !mine.some(m => m.id === x.id) && !mine.some(m => m.p.slug === x.p.slug)
+    return cards.filter(x => !pinnedElsewhere.has(x.id) && !mine.some(m => m.id === x.id) && !mine.some(m => m.p.slug === x.p.slug)
       && cost + Math.round(x.p.stars * 2) <= pickerRoom.cap * 2 && (cnt[x.p.team] || 0) < pickerRoom.perTeam && (!ql || (x.p.name + x.p.teamName).toLowerCase().includes(ql)))
       .map(x => ({ x, v: cardValue(x, pickerRoom) })).filter(z => z.v > 0).sort((a, b) => b.v - a.v).slice(0, 60);
   }, [pickerRoom, pickerRes, cards, results, rooms, picker, q]);
@@ -233,10 +232,10 @@ export default function GwBuilder() {
               <button onClick={() => setPicker(null)} style={btn()}>✕ Fermer</button>
             </div>
             <input value={q} onChange={e => setQ(e.target.value)} placeholder="Joueur ou équipe" style={{ ...inp, width: '100%', boxSizing: 'border-box', marginBottom: 8 }} />
-            <div style={{ fontSize: 12, color: c.dim, marginBottom: 6 }}>Cartes libres qui respectent le plafond, l’équipe et le joueur unique, de la plus forte à la plus faible.</div>
+            <div style={{ fontSize: 12, color: c.dim, marginBottom: 6 }}>Cartes qui respectent le plafond, l’équipe et le joueur unique avec tes cartes imposées, de la plus forte à la plus faible. Si la carte est déjà utilisée dans une autre compo, elle passe dans celle-ci et l’autre se réorganise.</div>
             {pickerList.map(({ x, v }) => (
               <button key={x.id} onClick={() => { patch(pickerRoom.id, r => ({ ...r, pins: [...r.pins, x.id].slice(0, 5) })); setPicker(null); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left', color: '#fff', background: 'transparent', border: 'none', borderTop: `1px solid ${c.line}`, padding: '9px 4px', cursor: 'pointer' }}>
-                <span style={{ flex: 1, minWidth: 0 }}><b>{x.p.name}</b><span style={{ display: 'block', color: c.dim, fontSize: 12.5 }}>{x.p.teamName} · {x.p.stars}★ · {x.is ? 'In-Season' : 'Classic'}{x.pw !== 1 ? ` · +${Math.round((x.pw - 1) * 100)} %` : ''} · {x.p.games} match{x.p.games > 1 ? 's' : ''}{x.p.inj ? ' · ' + x.p.inj : ''}</span></span>
+                <span style={{ flex: 1, minWidth: 0 }}><b>{x.p.name}</b><span style={{ display: 'block', color: c.dim, fontSize: 12.5 }}>{x.p.teamName} · {x.p.stars}★ · {x.is ? 'In-Season' : 'Classic'}{x.pw !== 1 ? ` · +${Math.round((x.pw - 1) * 100)} %` : ''} · {x.p.games} match{x.p.games > 1 ? 's' : ''}{x.p.inj ? ' · ' + x.p.inj : ''}{(() => { const k = results.findIndex(r => r.lineup.some(l => l.id === x.id)); return k >= 0 ? ` · utilisée en compo ${k + 1}` : ''; })()}</span></span>
                 <span style={{ fontWeight: 800, fontSize: 20, color: c.cy }}>{v.toFixed(1)}</span>
               </button>
             ))}
