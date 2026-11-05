@@ -29,7 +29,7 @@ const fx = (v: number | null) => (v == null ? '–' : v.toFixed(1));
 
 function Bars({ g, narrow }: { g: G[]; narrow?: boolean }) {
   // Telephone : 5 bougies visibles (les plus recentes), le reste en faisant glisser vers la droite.
-  const s = g.slice(-10); const H = 210, Lm = 8, B = 36, T = 16; const slots = narrow ? Math.max(5, s.length) : 10; const W = narrow ? Lm * 2 + slots * 96 : 640; const bw = (W - Lm * 2) / slots;
+  const s = g.slice(narrow ? -25 : -10); const H = 210, Lm = 8, B = 36, T = 16; const slots = narrow ? Math.max(5, s.length) : 10; const W = narrow ? Lm * 2 + slots * 96 : 640; const bw = (W - Lm * 2) / slots;
   const box = useRef<HTMLDivElement>(null); const [more, setMore] = useState(false); const upd = () => { const e = box.current; setMore(!!e && e.scrollLeft > 6); }; useEffect(() => { const e = box.current; if (e) { e.scrollLeft = e.scrollWidth; upd(); } }, [s.length, narrow]);
   const hi = Math.max(10, ...s.map(x => x.t)) + 4; const lo = Math.min(0, ...s.map(x => x.t)); const y = (v: number) => T + (1 - (v - lo) / (hi - lo)) * (H - T - B);
   const mean = s.length ? s.reduce((a, x) => a + x.t, 0) / s.length : 0;
