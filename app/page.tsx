@@ -432,6 +432,7 @@ export default function Home() {
     setCurrentUser(null);
     setAcctOpen(false);
     setAcctMenuSection(null);
+    try{ window.location.href='/'; }catch(e){}
   };
   useEffect(()=>{if(!acctMenuSection)return;const h=(e:KeyboardEvent)=>{if(e.key==='Escape')setAcctMenuSection(null);};window.addEventListener('keydown',h);return()=>window.removeEventListener('keydown',h);},[acctMenuSection]); // Echap : retour a la galerie / au vestiaire
   useEffect(()=>{if(showFlash&&error){setShowFlash(false);setOpenPhase(0);}},[showFlash,error]);
@@ -1229,6 +1230,7 @@ export default function Home() {
               </div>
             )}
           </div>
+          <a href='/ttfl' style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'0.4rem',margin:'0.2rem 0 0.7rem',padding:'0.7rem 0.8rem',border:'1px solid rgba(245,215,110,0.6)',background:'linear-gradient(135deg,rgba(245,215,110,0.16),rgba(245,215,110,0.04))',color:'#f5d76e',textDecoration:'none',fontSize:'0.9rem',fontWeight:700,letterSpacing:'0.04em',clipPath:'polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px)'}}><span>{tr('Projections TTFL NBA')}</span><span style={{fontSize:'0.62rem',letterSpacing:'0.1em',color:'#1a0d00',background:'#f5d76e',padding:'0.08rem 0.35rem'}}>{tr('NOUVEAU')}</span></a>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'0.4rem'}}>
             <span style={{color:'#f5d76e',fontWeight:800,fontSize:'1rem',letterSpacing:'0.05em'}}>{tr('FILTRES')}</span>
             <button onClick={()=>setFiltersOpen(false)} style={{background:'transparent',border:'1px solid rgba(64,232,255,0.4)',color:'#40e8ff',borderRadius:'0.4rem',padding:'0.3rem 0.7rem',cursor:'pointer',fontSize:'0.8rem'}}>{tr('Fermer')}</button>
