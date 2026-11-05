@@ -175,7 +175,7 @@ export default function TtflPublic() {
               <thead><tr style={{ color: c.dim, textAlign: 'left' }}>{([['name', 'Joueur (nom de famille)'], ['team', 'Équipe'], ['status', 'Statut'], ['until', 'Retour / réévaluation'], ['l10', 'Moy. 10']] as [IK, string][]).map(([k, h]) => <th key={k} onClick={() => itoggle(k)} style={{ padding: '10px 12px', fontWeight: 500, cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap', color: isort.k === k ? c.cy : c.dim }}>{h} {isort.k === k ? (isort.dir === 1 ? '▲' : '▼') : <span style={{ opacity: .35 }}>↕</span>}</th>)}</tr></thead>
               <tbody>{injList.map(r => (
                 <tr key={r.name} style={{ borderTop: `1px solid ${c.line}` }}>
-                  <td style={{ padding: '8px 12px' }}>{(() => { const sl = rows?.find(x => norm(x.name) === norm(r.name))?.slug; return sl ? <a href={`/ttfl/joueur/${sl}`} style={{ color: '#fff', textDecoration: 'none', borderBottom: `1px dashed ${c.cy}` }}>{r.name} →</a> : r.name; })()}</td>
+                  <td style={{ padding: '8px 12px' }}>{(() => { const sl = rows?.find(x => norm(x.name) === norm(r.name))?.slug || 'n-' + norm(r.name); return <a href={`/ttfl/joueur/${sl}`} style={{ color: '#fff', textDecoration: 'none', borderBottom: `1px dashed ${c.cy}` }}>{r.name} →</a>; })()}</td>
                   <td style={{ padding: '8px 12px', color: c.dim }}>{r.team}</td>
                   <td style={{ padding: '8px 12px', color: r.status === 'OUT' ? '#ff7b7b' : c.gold, fontWeight: 700 }}>{r.status}</td>
                   <td style={{ padding: '8px 12px' }}>{r.until ? `${dm(r.until)} (${r.untilKind === 'reeval' ? 'réévaluation' : 'retour'})` : '–'}</td>

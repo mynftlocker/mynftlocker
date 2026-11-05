@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import PlayerSheet from '../../PlayerSheet';
 
 type Props = { params: Promise<{ slug: string }> };
-const nameOf = (slug: string) => slug.replace(/-\d{8}$/, '').split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+const nameOf = (slug: string) => slug.startsWith('n-') ? 'Joueur NBA' : slug.replace(/-\d{8}$/, '').split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params; const n = nameOf(slug);
