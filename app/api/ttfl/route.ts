@@ -6,7 +6,7 @@ import { ttflEst, myProj } from '../../../lib/ttflEst';
 // API publique des projections TTFL : estimation du score TTFL de chaque joueur pour une nuit (jour Paris du coup d'envoi).
 // GET ?night=YYYY-MM-DD -> joueurs ; GET ?inj=1 -> blessures et retours (sans le texte des news). Aucune donnee privee.
 export const maxDuration = 60;
-const START = '2026-10-21';
+const START = '2026-10-20';
 const nrm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z]/g, '');
 type InjRow = { name: string; team: string; status: 'OUT' | 'GTD' | 'PROB'; until: string | null; untilKind: 'return' | 'reeval' | null; src: string; updated: string };
 type Stat = { l10: number | null; n: number; last: number | null; gp: number; tg: number; g: [string, number, number][] };

@@ -6,7 +6,7 @@ import { ttflEst } from '../../../../lib/ttflEst';
 
 // Historique TTFL par joueur depuis le debut de saison (nuits terminees, date americaine). Outil prive.
 export const maxDuration = 60;
-const START = '2026-10-21';
+const START = '2026-10-20';
 export async function GET(req: NextRequest) {
   const deny = await ownerOnly(req); if (deny) return deny;
   try {

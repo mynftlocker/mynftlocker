@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
   const slug = (req.nextUrl.searchParams.get('slug') || '').trim();
   if (!/^[a-z0-9-]{3,80}$/.test(slug)) return NextResponse.json({ ok: false, error: 'slug invalide' }, { status: 400 });
   try {
-    const key = 'ttfl:pub:player:' + slug;
+    const key = 'ttfl:pub:player2:' + slug;
     const hit = await redis.get<any>(key).catch(() => null);
     const H = { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=900' };
     if (hit) return NextResponse.json(hit, { headers: H });
@@ -35,6 +35,10 @@ export async function GET(req: NextRequest) {
     } catch { /* pas de carte */ }
     const full = await allFull();
     const all = full.rows.filter(r => nrm(r.n) === nrm(p.displayName)).sort((a, b) => (a.d < b.d ? -1 : 1));
+    // Back-to-back : le soir d'un match ou son equipe a deja joue la veille (jour americain).
+    const teamDays = new Set(full.rows.map(r => r.tm + '|' + r.d));
+    const prevDay = (d: string) => { const x = new Date(d + 'T12:00:00Z'); x.setUTCDate(x.getUTCDate() - 1); return x.toISOString().slice(0, 10); };
+    const isB2b = (r: FullRow) => teamDays.has(r.tm + '|' + prevDay(r.d));
     const best = all.length ? all.reduce((m, x) => (x.t > m.t ? x : m)) : null; const worst = all.length ? all.reduce((m, x) => (x.t < m.t ? x : m)) : null;
     const byOpp: Record<string, FullRow[]> = {}; all.forEach(r => (byOpp[r.opp] ||= []).push(r));
     const opps = Object.entries(byOpp).map(([opp, g]) => ({ opp, n: g.length, avg: avg(g.map(x => x.t)) as number })).sort((a, b) => b.avg - a.avg);
@@ -44,8 +48,8 @@ export async function GET(req: NextRequest) {
       ok: true,
       player: { slug: p.slug, name: p.displayName, birthDay: p.birthDay || null, country: p.country || null, stars: p.gameplayTierStars ?? null, pic: p.squaredPictureUrl || null, team: all.length ? all[all.length - 1].tm : null },
       card,
-      games: all.map(r => ({ d: r.d, opp: r.opp, home: r.home, gid: r.gid, t: r.t, m: Math.round(r.m), pts: r.pts, reb: r.reb, ast: r.ast, stl: r.stl, blk: r.blk, to: r.to, fgm: r.fgm, fga: r.fga, tpm: r.tpm, tpa: r.tpa, ftm: r.ftm, fta: r.fta })),
-      avg: { season: lines(all), l10: lines(all.slice(-10)), l5: lines(all.slice(-5)), home: lines(all.filter(r => r.home)), away: lines(all.filter(r => !r.home)) },
+      games: all.map(r => ({ b2b: isB2b(r), d: r.d, opp: r.opp, home: r.home, gid: r.gid, t: r.t, m: Math.round(r.m), pts: r.pts, reb: r.reb, ast: r.ast, stl: r.stl, blk: r.blk, to: r.to, fgm: r.fgm, fga: r.fga, tpm: r.tpm, tpa: r.tpa, ftm: r.ftm, fta: r.fta })),
+      avg: { season: lines(all), l10: lines(all.slice(-10)), l5: lines(all.slice(-5)), home: lines(all.filter(r => r.home)), away: lines(all.filter(r => !r.home)), b2b: lines(all.filter(isB2b)), rest: lines(all.filter(r => !isB2b(r))) },
       best: best && { t: best.t, opp: best.opp, d: best.d, gid: best.gid }, worst: worst && { t: worst.t, opp: worst.opp, d: worst.d, gid: worst.gid }, opps, sd,
     };
     if (!full.failed) await redis.set(key, out, { ex: 600 }).catch(() => {});
