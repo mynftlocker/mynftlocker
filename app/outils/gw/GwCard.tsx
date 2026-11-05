@@ -11,7 +11,7 @@ export function GwCard({ c }: { c: Cand }) {
         {c.p.inj && <div style={{ position: 'absolute', top: 6, left: 6, background: '#d35400', color: '#fff', fontSize: 11, fontWeight: 700, borderRadius: 6, padding: '2px 6px' }}>{c.p.inj}</div>}
         <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: '28px 6px 8px', textAlign: 'center', background: 'linear-gradient(transparent,#000e 55%)' }}>
           <div style={{ fontSize: 'clamp(22px,4vw,32px)', fontWeight: 800, color: '#fff', lineHeight: 1, letterSpacing: -0.5 }}>{c.v.toFixed(1)}</div>
-          <div style={{ fontSize: 11, color: '#9fe' , marginTop: 2 }}>projection{c.pw !== 1 ? ` (+${Math.round((c.pw - 1) * 100)} %)` : ''}</div>
+          <div style={{ fontSize: 11, color: '#9fe' , marginTop: 2 }}>{c.pw !== 1 ? `bonus +${Math.round((c.pw - 1) * 100)} %` : 'projection'}</div>
         </div>
       </div>
       <div style={{ marginTop: 6, fontSize: 13, fontWeight: 700, color: '#fff', lineHeight: 1.2, wordBreak: 'break-word' }}>{c.p.name}</div>
