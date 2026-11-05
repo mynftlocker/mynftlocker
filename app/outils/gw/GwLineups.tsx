@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
-import { best, CAPS, type Cand, type GP } from '../../../lib/gwLineup';
+import { best, vary, CAPS, type Cand, type GP, type MCard } from '../../../lib/gwLineup';
 import { GwRow } from './GwCard';
 
 // Compos de Game Week : TES cartes face a la compo IDEALE du builder (toutes cartes). Une carte = une seule compo.
@@ -36,7 +36,7 @@ export default function GwLineups() {
   const [isOnly, setIsOnly] = useState(true);
   const [perTeam, setPerTeam] = useState(1);
   const [noInj, setNoInj] = useState(true);
-  const [pics, setPics] = useState<Record<string, string | null>>({});
+  const [pics, setPics] = useState<Record<string, MCard[]>>({});
 
   useEffect(() => { fetch('/api/outils/gw').then(r => r.json()).then(j => j.error ? setErr(j.error) : setGw(j)).catch(e => setErr(String(e))); }, []);
   const loadCol = async (pp: string, fx: string) => {
@@ -65,9 +65,9 @@ export default function GwLineups() {
   const gtd = (p: GP) => (p.inj === 'GTD' ? 0.88 : 1);
 
   // Compos ideales (toutes cartes, une par palier)
-  const idealOf = (cap: number) => best(players.filter(okP).map(p => ({ id: 'i-' + p.slug, p, v: p.proj * gtd(p), cost: Math.round(p.stars * 2), pw: 1, is: isOnly, pic: pics[p.slug] || p.pic, real: !!pics[p.slug] })), Math.round(cap * 2), perTeam);
-  const idealChamp = useMemo(() => idealOf(CAPS.champ), [players, perTeam, noInj, isOnly, pics]); // eslint-disable-line react-hooks/exhaustive-deps
-  const idealCont = useMemo(() => idealOf(CAPS.cont), [players, perTeam, noInj, isOnly, pics]); // eslint-disable-line react-hooks/exhaustive-deps
+  const idealOf = (cap: number) => best(players.filter(okP).map(p => ({ id: 'i-' + p.slug, p, v: p.proj * gtd(p), cost: Math.round(p.stars * 2), pw: 1, is: isOnly, pic: p.pic, real: false })), Math.round(cap * 2), perTeam);
+  const idealChamp = useMemo(() => vary(idealOf(CAPS.champ), pics), [players, perTeam, noInj, isOnly, pics]); // eslint-disable-line react-hooks/exhaustive-deps
+  const idealCont = useMemo(() => vary(idealOf(CAPS.cont), pics), [players, perTeam, noInj, isOnly, pics]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     const need = [...new Set([...idealChamp, ...idealCont].map(c => c.p.slug))].filter(s => pics[s] === undefined);
     if (!need.length) return;
@@ -79,7 +79,7 @@ export default function GwLineups() {
     const by: Record<string, GP> = {}; players.forEach(p => { by[p.slug] = p; });
     const all: Cand[] = [];
     for (const c of cards) {
-      const rar = String(c.rarityTyped || '').toLowerCase(); if (!rar || rar === 'common') continue;
+      const rar = String(c.rarityTyped || '').toLowerCase(); if (!rar || rar !== 'limited') continue; // Limited uniquement
       const p = by[c.anyPlayer?.slug]; if (!p || !okP(p)) continue;
       if (used[c.slug]) continue; // deja alignee dans une compo de cette GW
       const is = !!c.inSeasonEligible; if (isOnly && !is) continue;

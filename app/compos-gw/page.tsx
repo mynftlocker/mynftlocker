@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getGw, marketPics } from '../../lib/gwData';
-import { best, CAPS, type Cand } from '../../lib/gwLineup';
+import { best, vary, CAPS, type Cand } from '../../lib/gwLineup';
 import { GwRow } from '../outils/gw/GwCard';
 
 // Page publique a partager dans les posts : compos idealees de la GW NBA (Champion / Contender) en vraies cartes Sorare avec projection.
@@ -20,7 +20,7 @@ export default async function Page() {
     const mk = (cap: number): Cand[] => best(ok.map(p => ({ id: p.slug, p, v: p.proj * (p.inj === 'GTD' ? 0.88 : 1), cost: Math.round(p.stars * 2), pw: 1, is: true, pic: p.pic, real: false })), cap * 2, 1);
     const lc = mk(CAPS.champ), lk = mk(CAPS.cont);
     const pics = await marketPics([...new Set([...lc, ...lk].map(c => c.p.slug))]);
-    const withPic = (s: Cand[]) => s.map(c => ({ ...c, pic: pics[c.p.slug] || c.pic, real: !!pics[c.p.slug] }));
+    const withPic = (s: Cand[]) => vary(s, pics);
     const tot = (s: Cand[]) => s.reduce((t, c) => t + c.v, 0).toFixed(1);
     const when = new Date(gw.fixture.start).toLocaleString('fr-FR', { timeZone: 'Europe/Paris', weekday: 'long', day: 'numeric', month: 'long' });
     const Sec = ({ t, cap, s }: { t: string; cap: number; s: Cand[] }) => (

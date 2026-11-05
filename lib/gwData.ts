@@ -10,10 +10,18 @@ async function gql(query: string) {
 }
 const chunk = <T,>(a: T[], n: number) => Array.from({ length: Math.ceil(a.length / n) }, (_, i) => a.slice(i * n, i * n + n));
 
-export async function marketPics(slugs: string[]): Promise<Record<string, string | null>> {
-  const out: Record<string, string | null> = {};
+// Cartes LIMITED en vente par joueur (une par saison d'edition) : sert a varier les editions dans les compos
+export async function marketPics(slugs: string[]): Promise<Record<string, { pic: string; year: number; is: boolean }[]>> {
+  const out: Record<string, { pic: string; year: number; is: boolean }[]> = {};
   await Promise.all(slugs.filter(s => /^[a-z0-9-]{3,80}$/.test(s)).slice(0, 20).map(async s => {
-    try { const d = await gql(`{ tokens{ liveSingleSaleOffers(sport:NBA first:1 playerSlug:"${s}"){ nodes{ senderSide{ anyCards{ pictureUrl } } } } } }`); out[s] = d.tokens?.liveSingleSaleOffers?.nodes?.[0]?.senderSide?.anyCards?.[0]?.pictureUrl || null; } catch { out[s] = null; }
+    out[s] = [];
+    try {
+      const d = await gql(`{ tokens{ liveSingleSaleOffers(sport:NBA first:25 playerSlug:"${s}"){ nodes{ senderSide{ anyCards{ pictureUrl rarityTyped seasonYear inSeasonEligible } } } } } }`);
+      const seen = new Set<number>();
+      const cs = (d.tokens?.liveSingleSaleOffers?.nodes || []).map((n: any) => n.senderSide?.anyCards?.[0]).filter((c: any) => c && c.pictureUrl && String(c.rarityTyped).toLowerCase() === 'limited');
+      cs.sort((a: any, b: any) => Number(!!b.inSeasonEligible) - Number(!!a.inSeasonEligible));
+      for (const c of cs) { if (seen.has(c.seasonYear)) continue; seen.add(c.seasonYear); out[s].push({ pic: c.pictureUrl, year: Number(c.seasonYear), is: !!c.inSeasonEligible }); }
+    } catch { /* pas de carte : photo du joueur */ }
   }));
   return out;
 }
