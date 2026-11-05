@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
 import { best, bestPair, vary, BONUS_IS, CAPS, MAX_PER_TEAM, type Cand, type GP, type MCard } from '../../../lib/gwLineup';
-import StarBg from './StarBg';
+import StarBg from '../../components/StarBg';
 import { GwRow } from './GwCard';
 
 // Compos de Game Week : TES cartes face a la compo IDEALE du builder (toutes cartes). Une carte = une seule compo.
