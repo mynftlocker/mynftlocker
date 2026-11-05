@@ -15,9 +15,11 @@ type R = { name: string; team: string; opp: string; home: boolean; time: string;
 type I = { name: string; team: string; status: 'OUT' | 'GTD' | 'PROB'; until: string | null; untilKind: 'return' | 'reeval' | null; src: string; updated: string; l10: number | null; n: number };
 const fam = (n: string) => { const w = n.replace(/\s+(Jr\.?|Sr\.?|II|III|IV)$/i, '').split(' '); return norm(w[w.length - 1]); };
 type IK = 'status' | 'name' | 'team' | 'until' | 'l10';
-type SK = 'name' | 'match' | 'est' | 'l10' | 'last' | 'pres';
+type SK = 'name' | 'match' | 'est' | 'l10' | 'reg' | 'last' | 'pres';
 type W = 5 | 10 | 0;
 const avg = (r: R, w: W) => { const g = w ? r.g.slice(-w) : r.g; return g.length ? g.reduce((s, x) => s + x[1], 0) / g.length : null; };
+// Régularité : écart-type des scores de la fenêtre et part de la moyenne (plus bas = plus fiable). Minimum 3 matchs.
+const reg = (r: R, w: W): { sd: number; cv: number } | null => { const g = (w ? r.g.slice(-w) : r.g).map(x => x[1]); if (g.length < 3) return null; const m = g.reduce((s, x) => s + x, 0) / g.length; const sd = Math.sqrt(g.reduce((s, x) => s + (x - m) ** 2, 0) / g.length); return { sd, cv: m > 0 ? sd / m : 9 }; };
 const trend = (r: R) => { const a = avg(r, 5), b = avg(r, 10); return a == null || b == null || r.g.length < 6 ? 0 : a - b >= 3 ? 1 : a - b <= -3 ? -1 : 0; };
 const ddmm = (d: string) => d.slice(8) + '/' + d.slice(5, 7);
 // Scores TTFL match par match (barres) avec la projection de la nuit et la moyenne en reperes.
@@ -34,7 +36,7 @@ function Bars({ r }: { r: R }) {
   );
 }
 let W_CUR: W = 10;
-const val = (r: R, k: SK): number | string => k === 'name' ? r.name : k === 'match' ? r.opp : k === 'est' ? r.est : k === 'l10' ? avg(r, W_CUR) ?? -1 : k === 'last' ? r.last ?? -1 : r.tg ? r.gp / r.tg : -1;
+const val = (r: R, k: SK): number | string => k === 'name' ? r.name : k === 'match' ? r.opp : k === 'est' ? r.est : k === 'l10' ? avg(r, W_CUR) ?? -1 : k === 'reg' ? reg(r, W_CUR)?.cv ?? 99 : k === 'last' ? r.last ?? -1 : r.tg ? r.gp / r.tg : -1;
 const c = { cy: '#00ffff', gold: '#e5b94e', dim: 'rgba(255,255,255,.6)', line: 'rgba(255,255,255,.12)', card: 'rgba(8,12,28,.72)' };
 
 export default function TtflPublic() {
@@ -69,7 +71,7 @@ export default function TtflPublic() {
   const heat = (v: number | null, lo: number, hi: number) => v == null ? c.dim : hi <= lo ? '#fff' : (v - lo) / (hi - lo) > 0.75 ? c.cy : (v - lo) / (hi - lo) > 0.4 ? '#fff' : 'rgba(255,255,255,.6)';
   const eLo = Math.min(...list.map(r => r.est)), eHi = Math.max(...list.map(r => r.est));
   const lv = list.map(r => avg(r, win)).filter((x): x is number => x != null); const lLo = Math.min(...lv), lHi = Math.max(...lv);
-  const toggle = (k: SK) => setSort(s => s.k === k ? { k, dir: (s.dir * -1) as 1 | -1 } : { k, dir: k === 'name' || k === 'match' ? 1 : -1 });
+  const toggle = (k: SK) => setSort(s => s.k === k ? { k, dir: (s.dir * -1) as 1 | -1 } : { k, dir: k === 'name' || k === 'match' || k === 'reg' ? 1 : -1 });
   const projMap = useMemo(() => { const m: Record<string, number> = {}; (rows || []).forEach(r => { m[norm(r.name)] = r.est; }); return m; }, [rows]);
   const slugMap = useMemo(() => { const m: Record<string, string> = {}; (rows || []).forEach(r => { if (r.slug) m[norm(r.name)] = r.slug; }); return m; }, [rows]);
   const top = (rows || []).filter(r => r.status !== 'OUT').slice(0, 5);
@@ -135,7 +137,7 @@ export default function TtflPublic() {
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, minWidth: 640 }}>
                 <thead><tr style={{ color: c.dim, textAlign: 'left' }}>
                   <th style={{ padding: '10px 12px', fontWeight: 500 }}>#</th>
-                  {([['name', 'Joueur'], ['match', 'Match'], ['est', 'Projection'], ['l10', win ? 'Moy. ' + win : 'Moy. saison'], ['last', 'Dernier'], ['pres', 'Présence']] as [SK, string][]).map(([k, h], i) => (
+                  {([['name', 'Joueur'], ['match', 'Match'], ['est', 'Projection'], ['l10', win ? 'Moy. ' + win : 'Moy. saison'], ['reg', 'Régularité'], ['last', 'Dernier'], ['pres', 'Présence']] as [SK, string][]).map(([k, h], i) => (
                     <th key={k} onClick={() => toggle(k)} aria-sort={sort.k === k ? (sort.dir === 1 ? 'ascending' : 'descending') : 'none'} style={{ padding: '10px 12px', fontWeight: 500, textAlign: i > 1 ? 'right' : 'left', whiteSpace: 'nowrap', cursor: 'pointer', userSelect: 'none', color: sort.k === k ? c.cy : c.dim }}>{h} {sort.k === k ? (sort.dir === 1 ? '▲' : '▼') : <span style={{ opacity: .35 }}>↕</span>}</th>
                   ))}
                 </tr></thead>
@@ -146,10 +148,11 @@ export default function TtflPublic() {
                     <td style={{ padding: '8px 12px', color: c.dim, whiteSpace: 'nowrap' }}>{r.home ? 'vs' : '@'} {r.opp} · {r.time}</td>
                     <td style={{ padding: '8px 12px', textAlign: 'right', color: heat(r.est, eLo, eHi), fontWeight: 700 }}>{r.est.toFixed(1)}</td>
                     <td style={{ padding: '8px 12px', textAlign: 'right', color: heat(a, lLo, lHi) }}>{a == null ? '–' : a.toFixed(1)}{tr !== 0 && <span title={tr > 0 ? 'En hausse (5 derniers vs 10)' : 'En baisse (5 derniers vs 10)'} style={{ marginLeft: 4, fontSize: 10, color: tr > 0 ? '#4ade80' : '#ff7b7b' }}>{tr > 0 ? '▲' : '▼'}</span>}</td>
+                    {(() => { const q = reg(r, win); return <td title="Écart-type des scores sur la fenêtre choisie (plus bas = plus régulier)" style={{ padding: '8px 12px', textAlign: 'right', color: q ? (q.cv < 0.25 ? '#4ade80' : q.cv > 0.4 ? '#ff9f43' : '#fff') : c.dim }}>{q ? '±' + q.sd.toFixed(0) : '–'}</td>; })()}
                     <td style={{ padding: '8px 12px', textAlign: 'right' }}>{r.last ?? '–'}</td>
                     <td style={{ padding: '8px 12px', textAlign: 'right', color: r.tg && r.gp < r.tg - 1 ? '#ff9f43' : c.dim }}>{r.tg ? `${r.gp}/${r.tg}` : '–'}</td>
                   </tr>,
-                  o && (() => { const rr = hx[r.slug] ? { ...r, g: hx[r.slug] } : r; return <tr key={r.name + 'x'}><td colSpan={7} style={{ padding: '10px 12px 14px', background: 'rgba(0,255,255,.04)' }}>
+                  o && (() => { const rr = hx[r.slug] ? { ...r, g: hx[r.slug] } : r; return <tr key={r.name + 'x'}><td colSpan={8} style={{ padding: '10px 12px 14px', background: 'rgba(0,255,255,.04)' }}>
                     {rr.g.length ? <Bars r={rr} /> : <span style={{ color: c.dim }}>Pas encore de match joué cette saison.</span>}
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10, fontSize: 15, alignItems: 'center' }}>
                       {([['Moy. 5', avg(rr, 5)], ['Moy. 10', avg(rr, 10)], ['Moy. ' + rr.g.length + ' matchs', avg(rr, 0)], ['Max', rr.g.length ? Math.max(...rr.g.map(x => x[1])) : null], ['Min', rr.g.length ? Math.min(...rr.g.map(x => x[1])) : null]] as [string, number | null][]).map(([k, v]) => (
@@ -172,7 +175,7 @@ export default function TtflPublic() {
               <thead><tr style={{ color: c.dim, textAlign: 'left' }}>{([['name', 'Joueur (nom de famille)'], ['team', 'Équipe'], ['status', 'Statut'], ['until', 'Retour / réévaluation'], ['l10', 'Moy. 10']] as [IK, string][]).map(([k, h]) => <th key={k} onClick={() => itoggle(k)} style={{ padding: '10px 12px', fontWeight: 500, cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap', color: isort.k === k ? c.cy : c.dim }}>{h} {isort.k === k ? (isort.dir === 1 ? '▲' : '▼') : <span style={{ opacity: .35 }}>↕</span>}</th>)}</tr></thead>
               <tbody>{injList.map(r => (
                 <tr key={r.name} style={{ borderTop: `1px solid ${c.line}` }}>
-                  <td style={{ padding: '8px 12px' }}>{r.name}</td>
+                  <td style={{ padding: '8px 12px' }}>{(() => { const sl = rows?.find(x => norm(x.name) === norm(r.name))?.slug; return sl ? <a href={`/ttfl/joueur/${sl}`} style={{ color: '#fff', textDecoration: 'none', borderBottom: `1px dashed ${c.cy}` }}>{r.name} →</a> : r.name; })()}</td>
                   <td style={{ padding: '8px 12px', color: c.dim }}>{r.team}</td>
                   <td style={{ padding: '8px 12px', color: r.status === 'OUT' ? '#ff7b7b' : c.gold, fontWeight: 700 }}>{r.status}</td>
                   <td style={{ padding: '8px 12px' }}>{r.until ? `${dm(r.until)} (${r.untilKind === 'reeval' ? 'réévaluation' : 'retour'})` : '–'}</td>
