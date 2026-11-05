@@ -14,8 +14,8 @@ addEn({
   'Moyenne ': 'Average ', 'Scores TTFL de ': 'TTFL scores of ',
   'INCERTAIN': 'UNCERTAIN',
   'Les Questionable / Doubtful ont un malus de 12 % sur la projection. Valeur affichée en dessous : projection réelle s’il joue.': 'GTD players get a 12% penalty on the projection. Value shown below: real projection if he plays.',
-  'Projection myNFTlocker = score TTFL attendu, calculé depuis la projection Sorare lissée avec la forme récente (statuts de l’injury report officiel NBA : les joueurs Questionable / Doubtful subissent un malus de 12 %, les Probable aucun ; leur projection réelle s’ils jouent est indiquée en dessous, précédée de ↑, en doré). Calibrage en cours sur les scores réels. « Présence » = matchs joués / matchs de l’équipe cette saison. Heures de Paris.':
-    'myNFTlocker projection = expected TTFL score, computed from the Sorare projection smoothed with recent form (statuses from the official NBA injury report: Questionable / Doubtful players get a 12% penalty, Probable players none; their real projection if they play is shown below, preceded by ↑, in gold). Calibration against real scores is ongoing. “Played” = games played / team games this season. Paris time.',
+  'Projection myNFTlocker = score TTFL attendu, calculé à partir de l’actualité, de la forme du joueur et de son équipe, et de l’adversaire. ↑ = projection du joueur s’il joue (statut incertain). « Présence » = matchs joués / matchs de l’équipe cette saison. Heures de Paris.':
+    'myNFTlocker projection = expected TTFL score, based on the latest news, the form of the player and his team, and the opponent. ↑ = the player’s projection if he plays (uncertain status). “Played” = games played / team games this season. Paris time.',
   'Joueur (nom de famille)': 'Player (by last name)', 'Équipe': 'Team', 'Statut': 'Status', 'Retour': 'Return', 'Retour / réévaluation': 'Return / re-evaluation', 'réévaluation': 're-evaluation', 'retour': 'return',
   'Découvrir myNFTlocker': 'Discover myNFTlocker', 'Projections TTFL © myNFTlocker.com': 'TTFL projections © myNFTlocker.com', 'CGU et mentions légales': 'Terms & legal notice',
   // Direct
