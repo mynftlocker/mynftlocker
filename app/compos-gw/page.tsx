@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { getGw, marketPics } from '../../lib/gwData';
-import { best, vary, BONUS_IS, CAPS, MAX_PER_TEAM, type Cand } from '../../lib/gwLineup';
+import { getGw, idealLineup } from '../../lib/gwData';
+import { CAPS, type Cand } from '../../lib/gwLineup';
 import StarBg from '../outils/gw/StarBg';
 import { GwRow } from '../outils/gw/GwCard';
 
@@ -17,11 +17,8 @@ export default async function Page() {
   let content: React.ReactNode;
   try {
     const gw = await getGw();
-    const ok = gw.players.filter(p => !(p.inj && p.inj !== 'GTD') && p.games > 0);
-    const mk = (cap: number): Cand[] => best(ok.map(p => ({ id: p.slug, p, v: p.proj * BONUS_IS * (p.inj === 'GTD' ? 0.88 : 1), cost: Math.round(p.stars * 2), pw: BONUS_IS, is: true, pic: p.pic, real: false })), cap * 2, MAX_PER_TEAM);
-    const lc = mk(CAPS.champ), lk = mk(CAPS.cont);
-    const pics = await marketPics([...new Set([...lc, ...lk].map(c => c.p.slug))]);
-    const withPic = (s: Cand[]) => vary(s, pics);
+    const lc = await idealLineup(gw.players, CAPS.champ), lk = await idealLineup(gw.players, CAPS.cont);
+    const withPic = (s: Cand[]) => s;
     const tot = (s: Cand[]) => s.reduce((t, c) => t + c.v, 0).toFixed(1);
     const when = new Date(gw.fixture.start).toLocaleString('fr-FR', { timeZone: 'Europe/Paris', weekday: 'long', day: 'numeric', month: 'long' });
     const Sec = ({ t, cap, s }: { t: string; cap: number; s: Cand[] }) => (

@@ -31,7 +31,7 @@ export type MCard = { pic: string; year: number; is: boolean };
 export function vary(set: Cand[], cards: Record<string, MCard[]>): Cand[] {
   return set.map((c, i) => {
     const all = cards[c.p.slug] || [];
-    const opts = all.some(x => x.is) ? all.filter(x => x.is) : all;
+    const opts = all.filter(x => x.is); // builder : cartes In-Season uniquement
     if (!opts.length) return c;
     return { ...c, pic: opts[i % opts.length].pic, real: true };
   });
