@@ -35,6 +35,8 @@ export default function LiveTab({ night, proj, slugs, initialGame, onSelect }: {
   const [games, setGames] = useState<G[] | null>(null);
   const [err, setErr] = useState('');
   const [sel, setSel] = useState<string | null>(null);
+  const [nw, setNw] = useState(false); // telephone : tableau resserre (sans MIN) pour que TTFL et Proj. restent visibles sans defilement
+  useEffect(() => { const m = window.matchMedia('(max-width: 640px)'); const f = () => setNw(m.matches); f(); m.addEventListener('change', f); return () => m.removeEventListener('change', f); }, []);
   const [det, setDet] = useState<{ game: G; players: P[] } | null>(null);
   const [pid, setPid] = useState<string | null>(null);
 
@@ -64,23 +66,23 @@ export default function LiveTab({ night, proj, slugs, initialGame, onSelect }: {
   const tbl = (abbr: string) => {
     const ps = (det?.players || []).filter(p => p.team === abbr && !p.dnp).sort((a, b) => Number(b.starter) - Number(a.starter) || b.ttfl - a.ttfl);
     const dnp = (det?.players || []).filter(p => p.team === abbr && p.dnp);
-    const th = (h: string, r = true) => <th key={h} style={{ padding: '6px 8px', fontWeight: 500, textAlign: r ? 'right' : 'left', color: c.dim, whiteSpace: 'nowrap' }}>{h}</th>;
+    const th = (h: string, r = true) => <th key={h} style={{ padding: nw ? '6px 5px' : '6px 8px', fontWeight: 500, textAlign: r ? 'right' : 'left', color: c.dim, whiteSpace: 'nowrap' }}>{h}</th>;
     return (
       <div style={{ background: c.card, border: `1px solid ${c.line}`, borderRadius: 14, overflowX: 'auto' }}>
         <div style={{ padding: '10px 12px', fontWeight: 700 }}>{abbr}</div>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 380 }}>
-          <thead><tr>{th(tr('Joueur'), false)}{th('MIN')}{th('PTS')}{th('REB')}{th(tr('PD'))}{th('TTFL')}{th(tr('Proj.'))}</tr></thead>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: nw ? 0 : 380 }}>
+          <thead><tr>{th(tr('Joueur'), false)}{!nw && th('MIN')}{th('PTS')}{th('REB')}{th(tr('PD'))}{th('TTFL')}{th(tr('Proj.'))}</tr></thead>
           <tbody>{ps.map((p, i) => {
             const pj = proj[norm(p.name)]; const open = pid === p.id;
             return [
               <tr key={p.id} onClick={() => setPid(open ? null : p.id)} style={{ borderTop: `1px solid ${c.line}`, cursor: 'pointer', background: open ? 'rgba(0,255,255,.07)' : 'transparent' }}>
-                <td style={{ padding: '7px 8px', whiteSpace: 'nowrap' }}>{p.name}{p.starter && <span title={tr('Cinq majeur')} style={{ marginLeft: 6, fontSize: 10, color: c.gold, border: `1px solid ${c.gold}`, borderRadius: 4, padding: '0 4px' }}>5M</span>}</td>
-                <td style={{ padding: '7px 8px', textAlign: 'right', color: c.dim }}>{Math.round(p.min)}</td>
-                <td style={{ padding: '7px 8px', textAlign: 'right' }}>{p.pts}</td><td style={{ padding: '7px 8px', textAlign: 'right' }}>{p.reb}</td><td style={{ padding: '7px 8px', textAlign: 'right' }}>{p.ast}</td>
-                <td style={{ padding: '7px 8px', textAlign: 'right', fontWeight: 800, color: pj != null && p.ttfl >= pj ? c.cy : '#fff' }}>{p.ttfl}</td>
-                <td style={{ padding: '7px 8px', textAlign: 'right', color: c.gold }}>{pj != null ? pj.toFixed(1) : '–'}</td>
+                <td style={{ padding: nw ? '7px 5px' : '7px 8px', whiteSpace: nw ? 'normal' : 'nowrap' }}>{p.name}{p.starter && <span title={tr('Cinq majeur')} style={{ marginLeft: 6, fontSize: 10, color: c.gold, border: `1px solid ${c.gold}`, borderRadius: 4, padding: '0 4px' }}>5M</span>}</td>
+                {!nw && <td style={{ padding: '7px 8px', textAlign: 'right', color: c.dim }}>{Math.round(p.min)}</td>}
+                <td style={{ padding: nw ? '7px 5px' : '7px 8px', textAlign: 'right' }}>{p.pts}</td><td style={{ padding: nw ? '7px 5px' : '7px 8px', textAlign: 'right' }}>{p.reb}</td><td style={{ padding: nw ? '7px 5px' : '7px 8px', textAlign: 'right' }}>{p.ast}</td>
+                <td style={{ padding: nw ? '7px 5px' : '7px 8px', textAlign: 'right', fontWeight: 800, color: pj != null && p.ttfl >= pj ? c.cy : '#fff' }}>{p.ttfl}</td>
+                <td style={{ padding: nw ? '7px 5px' : '7px 8px', textAlign: 'right', color: c.gold }}>{pj != null ? pj.toFixed(1) : '–'}</td>
               </tr>,
-              open && <tr key={p.id + 'x'}><td colSpan={7} style={{ padding: '8px 10px 14px', background: 'rgba(0,255,255,.04)' }}>
+              open && <tr key={p.id + 'x'}><td colSpan={nw ? 6 : 7} style={{ padding: '8px 10px 14px', background: 'rgba(0,255,255,.04)' }}>
                 <Curve p={p} proj={pj ?? null} />
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8, fontSize: 14, alignItems: 'center' }}>
                   {([['PTS', p.pts], ['REB', p.reb], [tr('PD'), p.ast], [tr('INT'), p.stl], [tr('CT'), p.blk], [tr('Tirs'), `${p.fgm}/${p.fga}`], [tr('3 pts'), `${p.tpm}/${p.tpa}`], [tr('LF'), `${p.ftm}/${p.fta}`], [tr('BP'), p.to]] as [string, string | number][]).map(([k, v]) => (
