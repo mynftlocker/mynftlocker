@@ -145,7 +145,7 @@ export default function TtflPublic() {
                       <div style={{ minHeight: 22, lineHeight: '22px', fontSize: fs, fontWeight: 700 }}>{ln}</div>
                       <div style={{ height: 20, marginTop: 4, display: 'flex', alignItems: 'center' }}>{r.status && r.status !== 'OUT' && <span style={{ marginLeft: -8 }}>{badge(r.status, tr(SL[r.status]))}</span>}</div>
                       <div style={{ fontSize: 30, fontWeight: 800, color: c.cy, lineHeight: 1, marginTop: 6 }}>{r.est.toFixed(1)}</div>
-                      <div style={{ fontSize: 12, color: c.dim, marginTop: 8, minHeight: 30, lineHeight: '15px' }}>{r.home ? 'vs' : '@'} {r.opp} · {r.time}</div>
+                      <div style={{ fontSize: 12, color: c.dim, marginTop: 8, minHeight: 30, lineHeight: '15px' }}>{r.home ? 'vs' : '@'} {/Trail Blazers$/.test(r.opp) ? 'Trail Blazers' : r.opp.split(' ').pop()} · {r.time}</div>
                     </>; })()}
                 </a>
               ))}
