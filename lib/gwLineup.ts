@@ -23,3 +23,16 @@ export function best(cands: Cand[], cap: number, perTeam: number): Cand[] {
   rec(0, 0, 0);
   return bestSet.sort((a, b) => b.v - a.v);
 }
+
+// Vraies cartes Limited du marche par joueur (une par edition/saison) et choix d'editions variees dans une compo (rendu plus realiste)
+export type MCard = { pic: string; year: number; is: boolean };
+export function vary(set: Cand[], cards: Record<string, MCard[]>): Cand[] {
+  const used: Record<number, number> = {};
+  return set.map(c => {
+    const opts = cards[c.p.slug];
+    if (!opts?.length) return c;
+    const pick = [...opts].sort((a, b) => (used[a.year] || 0) - (used[b.year] || 0) || Number(b.is) - Number(a.is))[0];
+    used[pick.year] = (used[pick.year] || 0) + 1;
+    return { ...c, pic: pick.pic, real: true };
+  });
+}
