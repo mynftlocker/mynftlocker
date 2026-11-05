@@ -14,6 +14,13 @@ addEn({
   'Moyenne ': 'Average ', 'Scores TTFL de ': 'TTFL scores of ',
   'INCERTAIN': 'UNCERTAIN',
   'Fermer': 'Close',
+  'Clique sur un joueur pour ouvrir sa feuille : évolution du score TTFL, stats prises en compte et projection myNFTlocker.': 'Tap a player to open his sheet: TTFL score evolution, stats counted and myNFTlocker projection.',
+  'Malus': 'Penalty',
+  'Bonus': 'Bonus',
+  'Fautes': 'Fouls',
+  'pd': 'ast',
+  'Évolution de son score': 'Score evolution',
+  'Retour au match': 'Back to match',
   'Les Questionable / Doubtful ont un malus de 12 % sur la projection. Valeur affichée en dessous : projection réelle s’il joue.': 'GTD players get a 12% penalty on the projection. Value shown below: real projection if he plays.',
   'Projection myNFTlocker = score TTFL attendu, calculé à partir de l’actualité, de la forme du joueur et de son équipe, et de l’adversaire. Statuts : injury report officiel de la NBA croisé avec l’actualité. ↑ = projection du joueur s’il joue (statut incertain). « Présence » = matchs joués / matchs de l’équipe cette saison. Heures de Paris.':
     'myNFTlocker projection = expected TTFL score, based on the latest news, the form of the player and his team, and the opponent. Statuses: official NBA injury report cross-checked with the latest news. ↑ = the player’s projection if he plays (uncertain status). “Played” = games played / team games this season. Paris time.',

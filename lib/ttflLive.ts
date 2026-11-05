@@ -13,6 +13,7 @@ export type LivePlayer = {
   id: string; name: string; team: string; starter: boolean; dnp: boolean; min: number;
   pts: number; reb: number; ast: number; stl: number; blk: number; to: number;
   fgm: number; fga: number; tpm: number; tpa: number; ftm: number; fta: number; ttfl: number;
+  pf: number; pm: number; oreb: number; dreb: number;
   curve: [number, number][]; // [minute ecoulee du match, score TTFL]
 };
 
@@ -54,7 +55,7 @@ export async function liveGame(id: string): Promise<{ game: LiveGame; players: L
       const played = !a.didNotPlay && !!a.stats?.length;
       by[String(a.athlete?.id)] = {
         id: String(a.athlete?.id), name: a.athlete?.displayName || '', team: team.team?.abbreviation || '', starter: !!a.starter, dnp: !played, min: g('MIN'),
-        pts: g('PTS'), reb: g('REB'), ast: g('AST'), stl: g('STL'), blk: g('BLK'), to: g('TO'), fgm, fga, tpm, tpa, ftm, fta,
+        pts: g('PTS'), reb: g('REB'), ast: g('AST'), stl: g('STL'), blk: g('BLK'), to: g('TO'), fgm, fga, tpm, tpa, ftm, fta, pf: g('PF'), pm: g('+/-'), oreb: g('OREB'), dreb: g('DREB'),
         ttfl: played ? g('PTS') + g('REB') + g('AST') + g('STL') + g('BLK') + fgm + tpm + ftm - (fga - fgm) - (tpa - tpm) - (fta - ftm) - g('TO') : 0, curve: [],
       };
     }
