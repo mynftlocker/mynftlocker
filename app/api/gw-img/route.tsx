@@ -34,18 +34,18 @@ export async function GET(req: NextRequest) {
     }
   } catch { return new Response('bad request', { status: 400 }); }
   const imgs = await Promise.all(items.map(i => dataUrl(i.real ? i.pic : null)));
-  const W = 208;
+  const W = 224;
   const orbs = Array.from({ length: 26 }, (_, i) => ({ x: (i * 463 + 91) % 1200, y: (i * 271 + 40) % 675, r: 3 + (i % 4) * 1.6, o: 0.5 + (i % 3) * 0.2 }));
   const dots = Array.from({ length: 70 }, (_, i) => ({ x: (i * 977) % 1200, y: (i * 613) % 675, r: 0.8 + (i % 3) * 0.5, o: 0.25 + (i % 5) * 0.12 }));
   return new ImageResponse((
-    <div style={{ width: 1200, height: 675, display: 'flex', flexDirection: 'column', background: 'linear-gradient(180deg,#030510,#050a1a)', position: 'relative', color: '#fff', padding: '26px 40px' }}>
+    <div style={{ width: 1200, height: 675, display: 'flex', flexDirection: 'column', background: 'linear-gradient(180deg,#030510,#050a1a)', position: 'relative', color: '#fff', padding: '26px 28px' }}>
       {dots.map((s, i) => <div key={'d' + i} style={{ position: 'absolute', left: s.x, top: s.y, width: s.r * 2, height: s.r * 2, borderRadius: 99, background: '#e1f0ff', opacity: s.o }} />)}
       {orbs.map((s, i) => <div key={'o' + i} style={{ position: 'absolute', left: s.x - s.r * 3, top: s.y - s.r * 3, width: s.r * 6, height: s.r * 6, borderRadius: 99, background: `radial-gradient(circle,rgba(200,250,255,${s.o}) 0%,rgba(64,232,255,${s.o * 0.5}) 30%,rgba(64,232,255,0) 70%)` }} />)}
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 14 }}>
         <div style={{ display: 'flex', fontSize: 38, fontWeight: 700 }}>{title}</div>
         <div style={{ display: 'flex', fontSize: 26, color: '#40e8ff' }}>{sub}</div>
       </div>
-      <div style={{ display: 'flex', gap: 16, flex: 1 }}>
+      <div style={{ display: 'flex', gap: 10, flex: 1, alignItems: 'center' }}>
         {items.map((it, i) => <div key={i} style={{ display: 'flex', width: W }}><Slab c={it} u={n => `${((n * W) / 100).toFixed(2)}px`} art={imgs[i]} /></div>)}
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 19, color: '#9ab' }}>
