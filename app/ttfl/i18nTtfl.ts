@@ -12,8 +12,10 @@ addEn({
   'En hausse (5 derniers vs 10)': 'Trending up (last 5 vs 10)', 'En baisse (5 derniers vs 10)': 'Trending down (last 5 vs 10)',
   'Pas encore de match joué cette saison.': 'No game played yet this season.', 'Max': 'Max', 'Min': 'Min', 'Fiche joueur →': 'Player sheet →',
   'Moyenne ': 'Average ', 'Scores TTFL de ': 'TTFL scores of ',
-  'Projection myNFTlocker = score TTFL attendu, calculé depuis la projection Sorare lissée avec la forme récente (joueurs incertains GTD pondérés à la baisse). Calibrage en cours sur les scores réels. « Présence » = matchs joués / matchs de l’équipe cette saison. Heures de Paris.':
-    'myNFTlocker projection = expected TTFL score, computed from the Sorare projection smoothed with recent form (questionable GTD players weighted down). Calibration against real scores is ongoing. “Played” = games played / team games this season. Paris time.',
+  'Les GTD ont un malus de 12 % sur la projection. Valeur affichée en dessous : projection réelle s’il joue.': 'GTD players get a 12% penalty on the projection. Value shown below: real projection if he plays.',
+  's’il joue': 'if he plays',
+  'Projection myNFTlocker = score TTFL attendu, calculé depuis la projection Sorare lissée avec la forme récente (les joueurs GTD subissent un malus de 12 % ; leur projection réelle s’ils jouent est indiquée en dessous en doré). Calibrage en cours sur les scores réels. « Présence » = matchs joués / matchs de l’équipe cette saison. Heures de Paris.':
+    'myNFTlocker projection = expected TTFL score, computed from the Sorare projection smoothed with recent form (GTD players get a 12% penalty; their real projection if they play is shown below in gold). Calibration against real scores is ongoing. “Played” = games played / team games this season. Paris time.',
   'Joueur (nom de famille)': 'Player (by last name)', 'Équipe': 'Team', 'Statut': 'Status', 'Retour': 'Return', 'Retour / réévaluation': 'Return / re-evaluation', 'réévaluation': 're-evaluation', 'retour': 'return',
   'Découvrir myNFTlocker': 'Discover myNFTlocker', 'Projections TTFL © myNFTlocker.com': 'TTFL projections © myNFTlocker.com', 'CGU et mentions légales': 'Terms & legal notice',
   // Direct

@@ -13,7 +13,7 @@ const defaultNight = () => { const h = Number(new Intl.DateTimeFormat('en-GB', {
 const lbl = (day: string, en = false) => new Date(day + 'T12:00:00Z').toLocaleDateString(en ? 'en-GB' : 'fr-FR', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
 const dm = (d: string) => d.slice(5).split('-').reverse().join('/');
 
-type R = { name: string; team: string; opp: string; home: boolean; time: string; est: number; proj: number; l10: number | null; n: number; last: number | null; gp: number; tg: number; g: [string, number, number, string?, boolean?, boolean?][]; slug: string; status: 'OUT' | 'GTD' | null; until: string | null };
+type R = { name: string; team: string; opp: string; home: boolean; time: string; est: number; estFull?: number | null; proj: number; l10: number | null; n: number; last: number | null; gp: number; tg: number; g: [string, number, number, string?, boolean?, boolean?][]; slug: string; status: 'OUT' | 'GTD' | null; until: string | null };
 type I = { name: string; team: string; status: 'OUT' | 'GTD' | 'PROB'; until: string | null; untilKind: 'return' | 'reeval' | null; src: string; updated: string; l10: number | null; n: number };
 const fam = (n: string) => { const w = n.replace(/\s+(Jr\.?|Sr\.?|II|III|IV)$/i, '').split(' '); return norm(w[w.length - 1]); };
 type IK = 'status' | 'name' | 'team' | 'until' | 'l10';
@@ -159,7 +159,7 @@ export default function TtflPublic() {
                     <td style={{ padding: pd, color: c.dim }}>{rank[r.name]}</td>
                     <td style={{ padding: pd, whiteSpace: narrow ? 'normal' : 'nowrap' }}>{r.name}{r.status && badge(r.status, r.status === 'OUT' && r.until ? `OUT → ${dm(r.until)}` : r.status)}{narrow && <div style={{ fontSize: 11, color: c.dim }}>{r.home ? 'vs' : '@'} {r.opp.split(' ').pop()} · {r.time}{r.tg && r.gp < r.tg - 1 ? <span style={{ color: '#ff9f43' }}> · {r.gp}/{r.tg} {tr('matchs')}</span> : null}</div>}</td>
                     {!narrow && <td style={{ padding: pd, color: c.dim, whiteSpace: 'nowrap' }}>{r.home ? 'vs' : '@'} {r.opp} · {r.time}</td>}
-                    <td style={{ padding: pd, textAlign: 'right', color: r.status === 'OUT' ? c.dim : heat(r.est, eLo, eHi), fontWeight: 700 }}>{r.status === 'OUT' ? '–' : r.est.toFixed(1)}</td>
+                    <td style={{ padding: pd, textAlign: 'right', color: r.status === 'OUT' ? c.dim : heat(r.est, eLo, eHi), fontWeight: 700 }}>{r.status === 'OUT' ? '–' : r.est.toFixed(1)}{r.status === 'GTD' && r.estFull != null && <div title={tr('Les GTD ont un malus de 12 % sur la projection. Valeur affichée en dessous : projection réelle s’il joue.')} style={{ fontSize: 10, fontWeight: 600, color: '#e5c07b' }}>{tr('s’il joue')} {r.estFull.toFixed(1)}</div>}</td>
                     <td style={{ padding: pd, textAlign: 'right', color: heat(a, lLo, lHi) }}>{a == null ? '–' : a.toFixed(1)}{trd !== 0 && <span title={trd > 0 ? tr('En hausse (5 derniers vs 10)') : tr('En baisse (5 derniers vs 10)')} style={{ marginLeft: 4, fontSize: 10, color: trd > 0 ? '#4ade80' : '#ff7b7b' }}>{trd > 0 ? '▲' : '▼'}</span>}</td>
                     {(() => { const q = reg(r, win); const m = avg(r, win); const gw = (win ? r.g.slice(-win) : r.g).map(x => x[1]); const lo = q && m != null ? Math.max(0, Math.round(m - q.sd)) : 0, hi = q && m != null ? Math.round(m + q.sd) : 0; const pc = gw.length ? Math.round(100 * gw.filter(v => v >= lo && v <= hi).length / gw.length) : 0; const lab = !q ? null : q.cv < 0.25 ? [tr('Très régulier'), '#4ade80'] : q.cv < 0.35 ? [tr('Régulier'), '#a3e635'] : q.cv < 0.45 ? [tr('Moyen'), '#e5b94e'] : [tr('Irrégulier'), '#ff9f43']; return <td title={q && m != null ? `${en ? 'Usually scores between' : 'Il score le plus souvent entre'} ${lo} ${tr(' et ').trim()} ${hi} (${pc} % ${tr('des matchs')})` : tr('pas assez de matchs')} style={{ padding: pd, textAlign: 'right', whiteSpace: 'nowrap', color: lab ? lab[1] : c.dim }}>{lab ? lab[0] : '–'}</td>; })()}
                     {!narrow && <td style={{ padding: pd, textAlign: 'right' }}>{r.last ?? '–'}</td>}
@@ -176,7 +176,7 @@ export default function TtflPublic() {
               </table>
             </div>
           )}
-          <p style={{ color: c.dim, fontSize: 12, marginTop: 14, lineHeight: 1.5 }}>{tr('Projection myNFTlocker = score TTFL attendu, calculé depuis la projection Sorare lissée avec la forme récente (joueurs incertains GTD pondérés à la baisse). Calibrage en cours sur les scores réels. « Présence » = matchs joués / matchs de l’équipe cette saison. Heures de Paris.')}</p>
+          <p style={{ color: c.dim, fontSize: 12, marginTop: 14, lineHeight: 1.5 }}>{tr('Projection myNFTlocker = score TTFL attendu, calculé depuis la projection Sorare lissée avec la forme récente (les joueurs GTD subissent un malus de 12 % ; leur projection réelle s’ils jouent est indiquée en dessous en doré). Calibrage en cours sur les scores réels. « Présence » = matchs joués / matchs de l’équipe cette saison. Heures de Paris.')}</p>
         </>}
 
         {view === 'live' && <LiveTab night={night} proj={projMap} slugs={slugMap} initialGame={initGame} />}
