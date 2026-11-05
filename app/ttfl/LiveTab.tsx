@@ -50,7 +50,7 @@ export default function LiveTab({ night, proj, slugs, initialGame, onSelect }: {
   useEffect(() => { if (!sel) return; const t = setInterval(loadDet, live ? 15000 : 120000); return () => clearInterval(t); }, [sel, loadDet, live]);
 
   const card = (g: G) => (
-    <button key={g.id} onClick={() => setSel(g.id)} style={{ textAlign: 'left', color: '#fff', cursor: 'pointer', background: c.card, border: `1px solid ${sel === g.id ? c.cy : c.line}`, borderRadius: 14, padding: 12, backdropFilter: 'blur(6px)' }}>
+    <button key={g.id} onClick={() => setSel(g.id)} style={{ textAlign: 'left', color: '#fff', cursor: 'pointer', background: c.card, border: `1px solid ${sel === g.id ? c.cy : c.line}`, borderRadius: 14, padding: 12, backdropFilter: 'blur(6px)', height: '100%' }}>
       <div style={{ fontSize: 12, marginBottom: 8, color: g.state === 'in' ? c.red : c.dim, fontWeight: g.state === 'in' ? 700 : 400 }}>{g.state === 'in' ? tr('● EN DIRECT · ') : ''}{stat(g)}</div>
       {[g.away, g.home].map((t, i) => {
         const win = g.state === 'post' && t.score > (i ? g.away.score : g.home.score);
