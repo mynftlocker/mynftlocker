@@ -53,10 +53,16 @@ export default function GwBuilder() {
   const [picker, setPicker] = useState<string | null>(null);
   const [q, setQ] = useState('');
   const [copied, setCopied] = useState(false);
+  const [src, setSrc] = useState<'sorare' | 'mnl'>('sorare');   // source de projection
+  const [view, setView] = useState<'build' | 'teams'>('build');
+  const [plan, setPlan] = useState({ isc: 4, isk: 3, clc: 3, clk: 3, ar: 2 });
+  const [shareMsg, setShareMsg] = useState('');
 
   useEffect(() => { fetch('/api/outils/gw').then(r => r.json()).then(j => j.error ? setErr(j.error) : setGw(j)).catch(e => setErr(String(e))); }, []);
   useEffect(() => { try { const p = localStorage.getItem(LSP); if (p) setPseudo(p); } catch {} }, []);
   const players = useMemo(() => (gw?.players || []) as GP[], [gw]);
+  // Projection myNFTlocker = projection Sorare par match (60 %) + forme sur les 10 derniers matchs (40 %), x nombre de matchs
+  const playersP = useMemo(() => players.map(p => (src === 'mnl' && p.l10 != null && p.games > 0 ? { ...p, proj: ((p.proj / p.games) * 0.6 + p.l10 * 0.4) * p.games } : p)), [players, src]);
   const nights = useMemo(() => [...new Set(players.flatMap(p => p.opp.map(o => parisDay(o.d))))].sort(), [players]);
   const fxSlug: string = gw?.fixture?.slug || '';
 
@@ -90,7 +96,7 @@ export default function GwBuilder() {
   useEffect(() => { if (fxSlug) loadCol(typeof window !== 'undefined' && localStorage.getItem(LSP) || 'memejacquet1998'); }, [fxSlug]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const cards: Card[] = useMemo(() => {
-    const by: Record<string, GP> = {}; players.forEach(p => { by[p.slug] = p; });
+    const by: Record<string, GP> = {}; playersP.forEach(p => { by[p.slug] = p; });
     const out: Card[] = [];
     for (const x of rawCards) {
       const rar = String(x.rarityTyped || '').toLowerCase(); if (!['limited', 'rare', 'super_rare'].includes(rar)) continue;
@@ -100,12 +106,37 @@ export default function GwBuilder() {
       out.push({ id: x.slug, p, is: !!x.inSeasonEligible, pw: Number(x.power) || 1, pic: x.pictureUrl || p.pic, rar });
     }
     return out;
-  }, [rawCards, players, used, noInj]);
+  }, [rawCards, playersP, used, noInj]);
 
   const results = useMemo(() => (rooms ? allocate(rooms, cards) : []), [rooms, cards]);
   const patch = (id: string, f: (r: Room) => Room) => setRooms(rs => (rs || []).map(r => (r.id === id ? f(r) : r)));
   const move = (i: number, d: -1 | 1) => setRooms(rs => { const a = [...(rs || [])]; const j = i + d; if (j < 0 || j >= a.length) return a; [a[i], a[j]] = [a[j], a[i]]; return a; });
+  const MAXCL = 3; // Classic : 3 Champion + 3 Contender maximum
+  const count = (kind: RoomKind) => (rooms || []).filter(r => r.kind === kind).length;
+  const addArena = (label: string, cap: number) => setRooms(rs => [...(rs || []), makeRoom('arena', { label: `Arena ${label} ${(rs || []).filter(r => r.kind === 'arena').length + 1}`, cap })]);
+  // Plan complet : genere toutes les compos dans l'ordre de preference (IS en alternance, puis Classic, puis Arena), en gardant la Cup
+  const genPlan = () => setRooms(rs => {
+    const keep = (rs || []).filter(r => r.kind === 'cup').map(r => ({ ...r, pins: [] }));
+    const out: Room[] = []; let a = plan.isc, b = plan.isk, n1 = 0, n2 = 0;
+    while (a > 0 || b > 0) { if (a > 0) { out.push(makeRoom('is-champ', { label: `In-Season Champion ${++n1}` })); a--; } if (b > 0) { out.push(makeRoom('is-cont', { label: `In-Season Contender ${++n2}` })); b--; } }
+    let c1 = Math.min(MAXCL, plan.clc), c2 = Math.min(MAXCL, plan.clk), m1 = 0, m2 = 0;
+    while (c1 > 0 || c2 > 0) { if (c1 > 0) { out.push(makeRoom('cl-champ', { label: `Classic Champion ${++m1}` })); c1--; } if (c2 > 0) { out.push(makeRoom('cl-cont', { label: `Classic Contender ${++m2}` })); c2--; } }
+    for (let i = 1; i <= plan.ar; i++) out.push(makeRoom('arena', { label: `Arena ${i}` }));
+    return [...out.slice(0, 1), ...keep, ...out.slice(1)];
+  });
+  const shareTeam = async (res: typeof results[number], i: number) => {
+    try {
+      const title = `${res.room.label}`;
+      const d = btoa(unescape(encodeURIComponent(JSON.stringify({ t: `${title} · GW ${gw?.fixture?.gw ?? ''}`, u: `${res.total.toFixed(1)} pts`, c: res.lineup.map(x => ({ n: x.p.name, tn: x.p.teamName, v: Number(x.v.toFixed(1)), p: x.real ? x.pic : null, s: x.p.stars, b: Math.round((x.pw - 1) * 100), i: x.p.inj, g: x.p.opp })) })))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+      const r = await fetch('/api/gw-img?d=' + d); if (!r.ok) throw new Error('image ' + r.status);
+      const blob = await r.blob(); const file = new File([blob], `compo-${i + 1}-gw${gw?.fixture?.gw ?? ''}.png`, { type: 'image/png' });
+      const nav: any = navigator;
+      if (nav.canShare?.({ files: [file] })) { try { await nav.share({ files: [file], text: title }); return; } catch {} }
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = file.name; a.click();
+    } catch (e: any) { setShareMsg('Partage impossible : ' + String(e?.message || e)); setTimeout(() => setShareMsg(''), 3000); }
+  };
   const add = (kind: RoomKind) => setRooms(rs => {
+    if ((kind === 'cl-champ' || kind === 'cl-cont') && (rs || []).filter(r => r.kind === kind).length >= MAXCL) return rs || [];
     const n = (rs || []).filter(r => r.kind === kind).length + 1; const p = PRESETS.find(x => x.kind === kind)!;
     return [...(rs || []), makeRoom(kind, { label: kind === 'cup' ? 'Emirates NBA Cup · palier 2' : `${p.label} ${n}`, ...(kind === 'cup' ? { minIS: 1, night: nights[0] } : {}) })];
   });
@@ -157,9 +188,38 @@ export default function GwBuilder() {
             <button onClick={recap} style={btn(copied)}>{copied ? 'Copié ✓' : 'Copier le récap'}</button>
           </div>
         </div>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14 }}>
+          <button onClick={() => setView('build')} style={btn(view === 'build')}>Construire</button>
+          <button onClick={() => setView('teams')} style={btn(view === 'teams')}>Mes équipes ({results.filter(r => r.lineup.length === 5).length})</button>
+          <span style={{ marginLeft: 'auto', fontSize: 12, color: c.dim }}>Projection :</span>
+          <button onClick={() => setSrc('sorare')} style={btn(src === 'sorare')}>Sorare (Rotowire)</button>
+          <button onClick={() => setSrc('mnl')} style={btn(src === 'mnl')}>myNFTlocker</button>
+        </div>
+        {shareMsg && <p style={{ color: c.red, fontSize: 13 }}>{shareMsg}</p>}
         {loadMsg && <p style={{ color: c.gold, fontSize: 13 }}>{loadMsg}</p>}
         {loading && <p style={{ color: c.dim, fontSize: 13 }}>Chargement de ta collection…</p>}
 
+        {view === 'teams' && (
+          <div>
+            {results.filter(r => r.lineup.length === 5).map((res, i) => (
+              <section key={res.room.id} style={{ ...glass, padding: 14, marginBottom: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 8 }}>
+                  <div style={{ flex: '1 1 160px', minWidth: 0 }}><div style={{ fontSize: 17, fontWeight: 700 }}>{res.room.label}</div><div style={{ fontSize: 12, color: c.dim }}>{res.stars}/{res.room.cap}★ · {res.nIS} In-Season</div></div>
+                  <div style={{ textAlign: 'right' }}><div style={{ fontSize: 11, color: c.dim, letterSpacing: 1 }}>TOTAL</div><div style={{ fontSize: 28, fontWeight: 800, color: c.cy, textShadow: '0 0 14px rgba(0,255,255,.5)', lineHeight: 1 }}>{res.total.toFixed(1)}</div></div>
+                  <button onClick={() => shareTeam(res, i)} style={btn()}>Partager</button>
+                </div>
+                {res.lineup.map(x => (
+                  <div key={x.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', borderTop: `1px solid ${c.line}` }}>
+                    <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontWeight: 600, fontSize: 14 }}>{x.p.name}</div><div style={{ fontSize: 12, color: c.dim }}>{x.p.teamName} · {x.p.stars}★ · {x.p.games} match{x.p.games > 1 ? 's' : ''}{x.p.inj ? ` · ${x.p.inj}` : ''}{x.pw > 1 ? ` · +${Math.round((x.pw - 1) * 100)} %` : ''}</div></div>
+                    <div style={{ fontWeight: 800, fontSize: 18, color: c.gold }}>{x.v.toFixed(1)}</div>
+                  </div>
+                ))}
+              </section>
+            ))}
+            {!results.some(r => r.lineup.length === 5) && <p style={{ color: c.dim }}>Aucune équipe complète pour l’instant.</p>}
+          </div>
+        )}
+        <div style={{ display: view === 'build' ? 'block' : 'none' }}>
         {/* Compos dans l'ordre */}
         {results.map((res, i) => {
           const r = res.room; const full = res.lineup.length === 5; const cupT = r.kind === 'cup' ? CUP_TIERS.find(t => r.label.includes('palier ' + t.n)) : null;
@@ -219,7 +279,17 @@ export default function GwBuilder() {
         {/* Ajouter une compo */}
         <div style={{ ...glass, padding: 14 }}>
           <div style={{ fontSize: 12, color: c.dim, letterSpacing: 1, marginBottom: 8 }}>AJOUTER UNE COMPO À LA FIN DE L’ORDRE</div>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{PRESETS.map(p => <button key={p.kind} onClick={() => add(p.kind)} style={btn()}>+ {p.label}</button>)}<button onClick={() => setRooms(defaultRooms(nights[0]))} style={{ ...btn(), marginLeft: 'auto' }}>Ordre par défaut</button></div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{PRESETS.map(p => <button key={p.kind} disabled={(p.kind === 'cl-champ' || p.kind === 'cl-cont') && count(p.kind) >= MAXCL} onClick={() => add(p.kind)} style={{ ...btn(), opacity: (p.kind === 'cl-champ' || p.kind === 'cl-cont') && count(p.kind) >= MAXCL ? 0.4 : 1 }}>+ {p.label}{p.kind === 'cl-champ' || p.kind === 'cl-cont' ? ` (${count(p.kind)}/${MAXCL})` : ''}</button>)}<button onClick={() => addArena('Contender', 11)} style={btn()}>+ Arena Contender</button><button onClick={() => addArena('Uncapped', 99)} style={btn()}>+ Arena Uncapped</button><button onClick={() => setRooms(defaultRooms(nights[0]))} style={{ ...btn(), marginLeft: 'auto' }}>Ordre par défaut</button></div>
+        </div>
+        <div style={{ ...glass, padding: 14, marginTop: 14 }}>
+          <div style={{ fontSize: 12, color: c.dim, letterSpacing: 1, marginBottom: 8 }}>GÉNÉRER TOUT LE PLAN (REMPLACE L’ORDRE ACTUEL, GARDE LA CUP)</div>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+            {([['isc', 'IS Champion', 99], ['isk', 'IS Contender', 99], ['clc', 'Classic Champ.', 3], ['clk', 'Classic Cont.', 3], ['ar', 'Arena', 20]] as const).map(([k, l, mx]) => (
+              <label key={k} style={{ fontSize: 13, color: c.dim, display: 'flex', alignItems: 'center', gap: 6 }}>{l} <input type="number" min={0} max={mx} value={plan[k]} onChange={e => setPlan(pl => ({ ...pl, [k]: Math.max(0, Math.min(mx, +e.target.value || 0)) }))} style={{ ...inp, width: 58 }} /></label>
+            ))}
+            <button onClick={genPlan} style={{ ...btn(true), marginLeft: 'auto' }}>Générer</button>
+          </div>
+        </div>
         </div>
         <p style={{ color: c.dim, fontSize: 12, margin: '14px 2px 0', lineHeight: 1.5 }}>Valeur affichée = projection Sorare de la GW (de la nuit choisie pour la Cup) × bonus de la carte × 0,88 si GTD ; sans bonus en Arena. Raretés au choix par compo (Limited par défaut), cartes déjà alignées sur Sorare exclues. Règles : 5 joueurs différents, plafond d’étoiles, max 4 joueurs d’une même équipe, minimum In-Season selon la compo. Tu envoies toi-même les compos sur Sorare.</p>
       </main>
