@@ -121,7 +121,7 @@ export default function TtflPublic() {
           {!rows && !err && <p style={{ color: c.dim }}>Chargement…</p>}
           {rows && !rows.length && <p style={{ color: c.dim }}>Aucun match NBA cette nuit.</p>}
           {top.length > 0 && !q && (
-            <div style={narrow ? { display: 'flex', gap: 8, marginBottom: 12, overflowX: 'auto', paddingBottom: 4 } : { display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(170px,1fr))', gap: 10, marginBottom: 18 }}>
+            <div style={narrow ? { display: 'flex', gap: 8, marginBottom: 12, overflowX: 'auto', paddingBottom: 4, scrollbarWidth: 'none' } : { display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(170px,1fr))', gap: 10, marginBottom: 18 }}>
               {top.map((r, i) => (
                 <div key={r.name} style={{ background: c.card, border: `1px solid ${i === 0 ? c.cy : c.line}`, borderRadius: 14, padding: narrow ? 10 : 14, backdropFilter: 'blur(6px)', ...(narrow ? { flex: '0 0 150px' } : {}) }}>
                   <div style={{ fontSize: 12, color: c.dim }}>#{i + 1} · {r.team}</div>
@@ -147,7 +147,7 @@ export default function TtflPublic() {
                 <tbody>{list.map(r => { const a = avg(r, win), tr = trend(r), o = open === r.name; return [
                   <tr key={r.name} onClick={() => openRow(r)} style={{ borderTop: `1px solid ${c.line}`, opacity: r.status === 'OUT' ? 0.45 : 1, cursor: 'pointer', background: o ? 'rgba(0,255,255,.07)' : 'transparent' }}>
                     <td style={{ padding: pd, color: c.dim }}>{rank[r.name]}</td>
-                    <td style={{ padding: pd, whiteSpace: narrow ? 'normal' : 'nowrap' }}>{r.name}{r.status && badge(r.status, r.status === 'OUT' && r.until ? `OUT → ${dm(r.until)}` : r.status)}{narrow && <div style={{ fontSize: 11, color: c.dim }}>{r.home ? 'vs' : '@'} {r.opp} · {r.time}{r.tg && r.gp < r.tg - 1 ? <span style={{ color: '#ff9f43' }}> · {r.gp}/{r.tg} matchs</span> : null}</div>}</td>
+                    <td style={{ padding: pd, whiteSpace: narrow ? 'normal' : 'nowrap' }}>{r.name}{r.status && badge(r.status, r.status === 'OUT' && r.until ? `OUT → ${dm(r.until)}` : r.status)}{narrow && <div style={{ fontSize: 11, color: c.dim }}>{r.home ? 'vs' : '@'} {r.opp.split(' ').pop()} · {r.time}{r.tg && r.gp < r.tg - 1 ? <span style={{ color: '#ff9f43' }}> · {r.gp}/{r.tg} matchs</span> : null}</div>}</td>
                     {!narrow && <td style={{ padding: pd, color: c.dim, whiteSpace: 'nowrap' }}>{r.home ? 'vs' : '@'} {r.opp} · {r.time}</td>}
                     <td style={{ padding: pd, textAlign: 'right', color: heat(r.est, eLo, eHi), fontWeight: 700 }}>{r.est.toFixed(1)}</td>
                     <td style={{ padding: pd, textAlign: 'right', color: heat(a, lLo, lHi) }}>{a == null ? '–' : a.toFixed(1)}{tr !== 0 && <span title={tr > 0 ? 'En hausse (5 derniers vs 10)' : 'En baisse (5 derniers vs 10)'} style={{ marginLeft: 4, fontSize: 10, color: tr > 0 ? '#4ade80' : '#ff7b7b' }}>{tr > 0 ? '▲' : '▼'}</span>}</td>
@@ -174,14 +174,14 @@ export default function TtflPublic() {
         {view === 'inj' && (
           <div style={{ background: c.card, border: `1px solid ${c.line}`, borderRadius: 14, overflowX: 'auto' }}>
             {!inj && <p style={{ padding: 14, color: c.dim, margin: 0 }}>Chargement…</p>}
-            {inj && <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, minWidth: 600 }}>
-              <thead><tr style={{ color: c.dim, textAlign: 'left' }}>{([['name', 'Joueur (nom de famille)'], ['team', 'Équipe'], ['status', 'Statut'], ['until', 'Retour / réévaluation'], ['l10', 'Moy. 10']] as [IK, string][]).map(([k, h]) => <th key={k} onClick={() => itoggle(k)} style={{ padding: narrow ? '8px 6px' : '10px 12px', fontWeight: 500, cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap', color: isort.k === k ? c.cy : c.dim }}>{h} {isort.k === k ? (isort.dir === 1 ? '▲' : '▼') : <span style={{ opacity: .35 }}>↕</span>}</th>)}</tr></thead>
+            {inj && <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: narrow ? 13 : 14, minWidth: narrow ? 0 : 600 }}>
+              <thead><tr style={{ color: c.dim, textAlign: 'left' }}>{([['name', 'Joueur (nom de famille)'], ['team', 'Équipe'], ['status', 'Statut'], ['until', narrow ? 'Retour' : 'Retour / réévaluation'], ['l10', 'Moy. 10']] as [IK, string][]).filter(([k]) => !narrow || k !== 'team').map(([k, h]) => <th key={k} onClick={() => itoggle(k)} style={{ padding: narrow ? '8px 6px' : '10px 12px', fontWeight: 500, cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap', color: isort.k === k ? c.cy : c.dim }}>{h} {isort.k === k ? (isort.dir === 1 ? '▲' : '▼') : <span style={{ opacity: .35 }}>↕</span>}</th>)}</tr></thead>
               <tbody>{injList.map(r => (
                 <tr key={r.name} style={{ borderTop: `1px solid ${c.line}` }}>
-                  <td style={{ padding: pd }}>{(() => { const sl = rows?.find(x => norm(x.name) === norm(r.name))?.slug || 'n-' + r.name.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''); return <a href={`/ttfl/joueur/${sl}`} style={{ color: '#fff', textDecoration: 'none', borderBottom: `1px dashed ${c.cy}` }}>{r.name} →</a>; })()}</td>
-                  <td style={{ padding: pd, color: c.dim }}>{r.team}</td>
+                  <td style={{ padding: pd }}>{(() => { const sl = rows?.find(x => norm(x.name) === norm(r.name))?.slug || 'n-' + r.name.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''); return <a href={`/ttfl/joueur/${sl}`} style={{ color: '#fff', textDecoration: 'none', borderBottom: `1px dashed ${c.cy}` }}>{r.name} →</a>; })()}{narrow && <div style={{ fontSize: 11, color: c.dim }}>{r.team || '–'}</div>}</td>
+                  {!narrow && <td style={{ padding: pd, color: c.dim }}>{r.team || '–'}</td>}
                   <td style={{ padding: pd, color: r.status === 'OUT' ? '#ff7b7b' : c.gold, fontWeight: 700 }}>{r.status}</td>
-                  <td style={{ padding: pd }}>{r.until ? `${dm(r.until)} (${r.untilKind === 'reeval' ? 'réévaluation' : 'retour'})` : '–'}</td>
+                  <td style={{ padding: pd }}>{r.until ? `${dm(r.until)} (${r.untilKind === 'reeval' ? (narrow ? 'réévaluation' : 'réévaluation') : 'retour'})` : '–'}</td>
                   <td style={{ padding: pd, textAlign: 'right' }}>{r.l10 == null ? '–' : r.l10.toFixed(1)}</td>
                 </tr>))}</tbody>
             </table>}

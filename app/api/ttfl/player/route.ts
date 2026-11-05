@@ -84,7 +84,7 @@ export async function GET(req: NextRequest) {
     const slim = (r: FR) => ({ b2b: isB2b(r), d: r.d, opp: r.opp, home: r.home, gid: r.gid, t: r.t, m: Math.round(r.m), pts: r.pts, reb: r.reb, ast: r.ast, stl: r.stl, blk: r.blk, to: r.to, fgm: r.fgm, fga: r.fga, tpm: r.tpm, tpa: r.tpa, ftm: r.ftm, fta: r.fta, ps: r.ps ? 1 : 0 });
     const out = {
       ok: true,
-      player: { slug: p.slug, name: p.displayName, birthDay: p.birthDay || null, country: p.country || null, stars: p.gameplayTierStars ?? null, pic: p.squaredPictureUrl || null, team: all.length ? all[all.length - 1].tm : (past.length ? past[past.length - 1].tm : null) },
+      player: { slug: p.slug, name: p.displayName, birthDay: p.birthDay || null, country: p.country || null, stars: p.gameplayTierStars ?? null, pic: p.squaredPictureUrl || null, team: (await espnPlayer(p.displayName).catch(() => null))?.team || (all.length ? all[all.length - 1].tm : (past.length ? past[past.length - 1].tm : null)) },
       card,
       games: all.map(slim), pastGames: past.map(slim),
       ...cur,

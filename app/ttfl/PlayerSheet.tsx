@@ -91,7 +91,6 @@ export default function PlayerSheet({ slug }: { slug: string }) {
             {(() => { const m = S!.avg.season.ttfl; const k = m == null ? 0 : recent.filter(g => g.t > m).length; return tile('Au-dessus de sa moyenne', recent.length ? Math.round(100 * k / recent.length) + ' %' : '–', recent.length ? `${k} match${k > 1 ? 's' : ''} sur ${recent.length} > ${fx(m)}` : undefined, c.gold); })()}
             {(() => { const m = S!.avg.season.ttfl, sd = S!.sd; if (sd == null || !m) return tile('Régularité', '–', 'pas assez de matchs'); const cv = sd / m; const lab = cv < 0.25 ? ['Très régulier', '#4ade80'] : cv < 0.35 ? ['Régulier', '#a3e635'] : cv < 0.45 ? ['Moyen', '#e5b94e'] : ['Irrégulier', '#ff9f43']; return tile('Régularité', lab[0], `il score le plus souvent entre ${Math.max(0, Math.round(m - sd))} et ${Math.round(m + sd)}`, lab[1]); })()}
             {tile('Score max', S!.best ? String(S!.best.t) : '–', S!.best ? `vs ${S!.best.opp} · ${ddmm(S!.best.d)}` : undefined, '#4ade80')}{tile('Score min', S!.worst ? String(S!.worst.t) : '–', S!.worst ? `vs ${S!.worst.opp} · ${ddmm(S!.worst.d)}` : undefined, '#ff7b7b')}
-            {(() => { const m = S!.avg.season.ttfl; const k = m == null ? 0 : recent.filter(g => g.t > m).length; return tile('Au-dessus de sa moyenne', recent.length ? Math.round(100 * k / recent.length) + ' %' : '–', recent.length ? `${k} match${k > 1 ? 's' : ''} sur ${recent.length} > ${fx(m)}` : undefined, c.gold); })()}
           </div>
 
           <div style={{ ...box, marginBottom: 16 }}>
