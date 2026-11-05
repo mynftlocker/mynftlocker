@@ -2,9 +2,9 @@
 import { useEffect, useState } from 'react';
 import StarBg from '../components/StarBg';
 
-type G = { d: string; opp: string; home: boolean; gid: string; t: number; m: number; pts: number; reb: number; ast: number; stl: number; blk: number; to: number; fgm: number; fga: number; tpm: number; tpa: number; ftm: number; fta: number };
+type G = { b2b?: boolean; d: string; opp: string; home: boolean; gid: string; t: number; m: number; pts: number; reb: number; ast: number; stl: number; blk: number; to: number; fgm: number; fga: number; tpm: number; tpa: number; ftm: number; fta: number };
 type L = { n: number; ttfl: number | null; min: number | null; pts: number | null; reb: number | null; ast: number | null; stl: number | null; blk: number | null; to: number | null; fgm: number | null; fgmiss: number | null; tpm: number | null; tpmiss: number | null; ftm: number | null; ftmiss: number | null };
-type D = { player: { slug: string; name: string; birthDay: string | null; country: { name: string; code: string } | null; stars: number | null; pic: string | null; team: string | null }; card: { slug: string; pic: string; year: number } | null; games: G[]; avg: { season: L; l10: L; l5: L; home: L; away: L }; best: { t: number; opp: string; d: string; gid: string } | null; worst: { t: number; opp: string; d: string; gid: string } | null; opps: { opp: string; n: number; avg: number }[]; sd: number | null };
+type D = { player: { slug: string; name: string; birthDay: string | null; country: { name: string; code: string } | null; stars: number | null; pic: string | null; team: string | null }; card: { slug: string; pic: string; year: number } | null; games: G[]; avg: { season: L; l10: L; l5: L; home: L; away: L; b2b: L; rest: L }; best: { t: number; opp: string; d: string; gid: string } | null; worst: { t: number; opp: string; d: string; gid: string } | null; opps: { opp: string; n: number; avg: number }[]; sd: number | null };
 const c = { cy: '#00ffff', gold: '#e5b94e', dim: 'rgba(255,255,255,.6)', line: 'rgba(255,255,255,.12)', card: 'rgba(8,12,28,.72)' };
 const age = (b: string) => Math.floor((Date.now() - new Date(b).getTime()) / 31557600000);
 const ddmm = (d: string) => d.slice(8) + '/' + d.slice(5, 7);
@@ -83,6 +83,7 @@ export default function PlayerSheet({ slug }: { slug: string }) {
             </div>
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 10, fontSize: 13, color: c.dim }}>
               <span>Domicile : <b style={{ color: '#fff' }}>{fx(d.avg.home.ttfl)}</b> ({d.avg.home.n})</span><span>Extérieur : <b style={{ color: '#fff' }}>{fx(d.avg.away.ttfl)}</b> ({d.avg.away.n})</span>
+              <span title="Équipe ayant déjà joué la veille">2e soir de back-to-back : <b style={{ color: c.gold }}>{fx(d.avg.b2b.ttfl)}</b> ({d.avg.b2b.n})</span><span>Avec repos : <b style={{ color: '#fff' }}>{fx(d.avg.rest.ttfl)}</b> ({d.avg.rest.n})</span>
             </div>
           </div>
 
@@ -93,7 +94,7 @@ export default function PlayerSheet({ slug }: { slug: string }) {
                 <thead><tr style={{ color: c.dim, textAlign: 'right' }}>{['Date', 'Adversaire', 'TTFL', 'MIN', 'PTS', 'REB', 'PD', 'INT', 'CT', 'BP'].map((h, i) => <th key={h} style={{ padding: '6px 8px', fontWeight: 500, textAlign: i < 2 ? 'left' : 'right' }}>{h}</th>)}</tr></thead>
                 <tbody>{d.games.slice().reverse().map(g => (
                   <tr key={g.gid} style={{ borderTop: `1px solid ${c.line}` }}>
-                    <td style={{ padding: '7px 8px', color: c.dim }}>{ddmm(g.d)}</td><td style={{ padding: '7px 8px' }}>{g.home ? 'vs' : '@'} {g.opp}</td>
+                    <td style={{ padding: '7px 8px', color: c.dim }}>{ddmm(g.d)}{g.b2b && <span title="2e soir de back-to-back" style={{ marginLeft: 6, fontSize: 9, color: c.gold, border: `1px solid ${c.gold}`, borderRadius: 4, padding: '0 3px' }}>B2B</span>}</td><td style={{ padding: '7px 8px' }}>{g.home ? 'vs' : '@'} {g.opp}</td>
                     <td style={{ padding: '7px 8px', textAlign: 'right' }}>{mlink(g, g.t, true)}</td>
                     <td style={{ padding: '7px 8px', textAlign: 'right', color: c.dim }}>{g.m}</td><td style={{ padding: '7px 8px', textAlign: 'right' }}>{g.pts}</td><td style={{ padding: '7px 8px', textAlign: 'right' }}>{g.reb}</td><td style={{ padding: '7px 8px', textAlign: 'right' }}>{g.ast}</td><td style={{ padding: '7px 8px', textAlign: 'right' }}>{g.stl}</td><td style={{ padding: '7px 8px', textAlign: 'right' }}>{g.blk}</td><td style={{ padding: '7px 8px', textAlign: 'right' }}>{g.to}</td>
                   </tr>))}</tbody>

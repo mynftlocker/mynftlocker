@@ -3,7 +3,7 @@ import { getJson, ymdLocal } from './ttfl';
 
 // Lignes de stats completes par joueur et par match (box scores ESPN), nuits terminees. Cache 60 jours. Sert aux fiches joueur TTFL.
 const ESPN = 'https://site.api.espn.com/apis/site/v2/sports/basketball/nba';
-export const START = '2026-10-21';
+export const START = '2026-10-20';
 export type FullRow = { id: string; n: string; tm: string; opp: string; home: boolean; gid: string; d: string; m: number; t: number; pts: number; reb: number; ast: number; stl: number; blk: number; to: number; fgm: number; fga: number; tpm: number; tpa: number; ftm: number; fta: number };
 const pair = (v: any): [number, number] => { const m = String(v ?? '').match(/^(\d+)-(\d+)$/); return m ? [+m[1], +m[2]] : [0, 0]; };
 
