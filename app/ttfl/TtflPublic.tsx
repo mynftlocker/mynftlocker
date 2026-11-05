@@ -50,7 +50,7 @@ const c = { cy: '#00ffff', gold: '#e5b94e', dim: 'rgba(255,255,255,.6)', line: '
 
 export default function TtflPublic() {
   const [night, setNight] = useState(defaultNight);
-  const [initGame, setInitGame] = useState<string | null>(null);
+  const [initGame, setInitGame] = useState<{ g: string; n: string } | null>(null);
   const [rows, setRows] = useState<R[] | null>(null);
   const [err, setErr] = useState('');
   const [q, setQ] = useState('');
@@ -70,7 +70,10 @@ export default function TtflPublic() {
   useEffect(() => { const m = window.matchMedia('(max-width: 640px)'); const f = () => setNarrow(m.matches); f(); m.addEventListener('change', f); return () => m.removeEventListener('change', f); }, []);
 
   // Lien direct vers un match : /ttfl?v=live&night=AAAA-MM-JJ&game=ID
-  useEffect(() => { const sp = new URLSearchParams(window.location.search); const n = sp.get('night'); if (n && /^\d{4}-\d{2}-\d{2}$/.test(n)) setNight(n); if (sp.get('v') === 'live') setView('live'); const g = sp.get('game'); if (g && /^\d+$/.test(g)) setInitGame(g); }, []);
+  useEffect(() => { const sp = new URLSearchParams(window.location.search); const n = sp.get('night'); if (n && /^\d{4}-\d{2}-\d{2}$/.test(n)) setNight(n); if (sp.get('v') === 'live') setView('live'); const g = sp.get('game'); if (g && /^\d+$/.test(g)) setInitGame({ g, n: n && /^\d{4}-\d{2}-\d{2}$/.test(n) ? n : '' }); }, []);
+  // URL toujours synchronisée avec l'écran (onglet / date / match) : un refresh retombe sur ce qu'on voit, pas sur le lien d'arrivée.
+  const [selGame, setSelGame] = useState<string | null>(null);
+  useEffect(() => { try { const q = new URLSearchParams(); if (view === 'live') { q.set('v', 'live'); q.set('night', night); if (selGame) q.set('game', selGame); } window.history.replaceState(null, '', window.location.pathname + (q.toString() ? '?' + q.toString() : '')); } catch {} }, [view, night, selGame]);
   useEffect(() => {
     setRows(null); setErr('');
     fetch('/api/ttfl?night=' + night).then(r => r.json()).then(j => j.ok ? setRows(j.rows) : setErr(j.error || tr('Indisponible'))).catch(e => setErr(String(e)));
@@ -179,7 +182,7 @@ export default function TtflPublic() {
           <p style={{ color: c.dim, fontSize: 12, marginTop: 14, lineHeight: 1.5 }}>{tr('Projection myNFTlocker = score TTFL attendu, calculé depuis la projection Sorare lissée avec la forme récente (les joueurs GTD subissent un malus de 12 % ; leur projection réelle s’ils jouent est indiquée en dessous, précédée de ↑, en doré). Calibrage en cours sur les scores réels. « Présence » = matchs joués / matchs de l’équipe cette saison. Heures de Paris.')}</p>
         </>}
 
-        {view === 'live' && <LiveTab night={night} proj={projMap} slugs={slugMap} initialGame={initGame} />}
+        {view === 'live' && <LiveTab night={night} proj={projMap} slugs={slugMap} initialGame={initGame && (initGame.n === night || !initGame.n) ? initGame.g : null} onSelect={setSelGame} />}
 
         {view === 'inj' && (
           <div style={{ background: c.card, border: `1px solid ${c.line}`, borderRadius: 14, overflowX: 'auto' }}>
