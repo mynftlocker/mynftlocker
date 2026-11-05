@@ -6,7 +6,6 @@ type G = { d: string; opp: string; home: boolean; gid: string; t: number; m: num
 type L = { n: number; ttfl: number | null; min: number | null; pts: number | null; reb: number | null; ast: number | null; stl: number | null; blk: number | null; to: number | null; fgm: number | null; fgmiss: number | null; tpm: number | null; tpmiss: number | null; ftm: number | null; ftmiss: number | null };
 type D = { player: { slug: string; name: string; birthDay: string | null; country: { name: string; code: string } | null; stars: number | null; pic: string | null; team: string | null }; card: { slug: string; pic: string; year: number } | null; games: G[]; avg: { season: L; l10: L; l5: L; home: L; away: L }; best: { t: number; opp: string; d: string; gid: string } | null; worst: { t: number; opp: string; d: string; gid: string } | null; opps: { opp: string; n: number; avg: number }[]; sd: number | null };
 const c = { cy: '#00ffff', gold: '#e5b94e', dim: 'rgba(255,255,255,.6)', line: 'rgba(255,255,255,.12)', card: 'rgba(8,12,28,.72)' };
-const flag = (code: string) => String.fromCodePoint(...[...code.toUpperCase()].map(ch => 127397 + ch.charCodeAt(0)));
 const age = (b: string) => Math.floor((Date.now() - new Date(b).getTime()) / 31557600000);
 const ddmm = (d: string) => d.slice(8) + '/' + d.slice(5, 7);
 const parisNight = (us: string) => { const d = new Date(us + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + 1); return d.toISOString().slice(0, 10); };
@@ -55,7 +54,7 @@ export default function PlayerSheet({ slug }: { slug: string }) {
               <h1 style={{ fontSize: 'clamp(26px,5vw,40px)', margin: 0 }}>{d.player.name}</h1>
               <div style={{ color: c.dim, marginTop: 6, fontSize: 15, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                 {d.player.team && <span>{d.player.team}</span>}
-                {d.player.country && <span>{flag(d.player.country.code)} {d.player.country.name}</span>}
+                {d.player.country && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>{/* eslint-disable-next-line @next/next/no-img-element */}<img src={`https://flagcdn.com/w40/${d.player.country.code.toLowerCase()}.png`} alt={d.player.country.code} width={22} height={15} style={{ borderRadius: 2 }} />{d.player.country.name}</span>}
                 {d.player.birthDay && <span>{new Date(d.player.birthDay).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })} ({age(d.player.birthDay)} ans)</span>}
                 {d.player.stars != null && <span style={{ color: c.gold }}>{d.player.stars} ★ Sorare</span>}
               </div>
