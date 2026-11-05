@@ -94,7 +94,7 @@ export default function LiveTab({ night, proj, slugs, initialGame, onSelect }: {
 
   // Feuille du joueur : badge TTFL, courbe, puis toutes les stats en petits blocs colores (vert = apporte des points, rouge = en retire).
   const sheet = (p: P) => {
-    const pj = proj[norm(p.name)]; const logo = det && (det.game.away.abbr === p.team ? det.game.away.logo : det.game.home.logo);
+    const pj = proj[norm(p.name)]; const gm = games?.find(g => g.id === sel); const logo = gm && (gm.away.abbr === p.team ? gm.away.logo : gm.home.logo); // le logo vient de la liste de la nuit (la fiche du match ne le donne pas)
     const pct = (m: number, a: number) => (a ? +(100 * m / a).toFixed(1) : null);
     const miss = (p.fga - p.fgm) + (p.tpa - p.tpm) + (p.fta - p.ftm);
     const bonus = p.pts + p.reb + p.ast + p.stl + p.blk + p.fgm + p.tpm + p.ftm; const malus = miss + p.to;
