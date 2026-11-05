@@ -21,6 +21,7 @@ addEn({
   'Ce qui rapporte': 'What adds points',
   'Ce qui coûte': 'What costs points',
   'pd': 'ast',
+  'bp': 'to',
   'Évolution de son score': 'Score evolution',
   'Retour au match': 'Back to match',
   'Les Questionable / Doubtful ont un malus de 12 % sur la projection. Valeur affichée en dessous : projection réelle s’il joue.': 'GTD players get a 12% penalty on the projection. Value shown below: real projection if he plays.',
