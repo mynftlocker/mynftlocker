@@ -81,7 +81,7 @@ export async function GET(req: NextRequest) {
       days += batch.length; d = prev(batch[batch.length - 1]);
       await redis.set(CUR, d);
     }
-    if (missing.length) await redis.sadd('ttfl:bf:missing', ...missing).catch(() => {});
+    if (missing.length) await redis.sadd('ttfl:bf:missing', missing[0], ...missing.slice(1)).catch(() => {});
     return NextResponse.json({ ok: true, cursor: d, done: d < BOTTOM, days, games, rows, missing: missing.length, ms: Date.now() - t0 });
   } catch (e) {
     return NextResponse.json({ ok: false, error: String(e).slice(0, 200), cursor: d, days, games, rows }, { status: 502 });
