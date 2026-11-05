@@ -84,7 +84,7 @@ export default function PlayerSheet({ slug }: { slug: string }) {
 
           <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 12, flexWrap: 'wrap' }}><span style={{ color: c.dim, fontSize: 13 }}>Saison</span>
             {d.seasons.map(x => <button key={x.season} style={btn(cur === x.season)} onClick={() => setSel(x.season)}>{x.season}</button>)}
-            {d.seasons.length > 1 && <button style={btn(cur === 'all')} onClick={() => setSel('all')}>Toutes</button>}
+            {d.seasons.length > 1 && <button style={btn(cur === 'all')} onClick={() => setSel('all')}>Toutes les saisons</button>}
             {hasPo && <label style={{ marginLeft: 8, fontSize: 13, color: c.dim, display: 'inline-flex', gap: 5, alignItems: 'center', cursor: 'pointer' }}><input type="checkbox" checked={po} onChange={e => setPo(e.target.checked)} />Playoffs inclus</label>}</div>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 16 }}>
             {tile('Moy. 5 matchs', fx(S!.avg.l5.ttfl), `${S!.avg.l5.n} match(s)`, c.cy)}{tile('Moy. 10 matchs', fx(S!.avg.l10.ttfl), `${S!.avg.l10.n} match(s)`, c.cy)}{tile(cur === 'all' ? 'Moy. période' : 'Moy. saison', fx(S!.avg.season.ttfl), `${S!.avg.season.n} match(s)`)}
