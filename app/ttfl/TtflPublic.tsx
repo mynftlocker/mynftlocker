@@ -28,7 +28,7 @@ const ddmm = (d: string) => d.slice(8) + '/' + d.slice(5, 7);
 // Scores TTFL match par match (barres) avec la projection de la nuit et la moyenne en reperes.
 function Bars({ r, a, narrow }: { r: R; a: number | null; narrow?: boolean }) {
   // Telephone : 5 bougies visibles (les plus recentes), le reste se decouvre en faisant glisser le graphique vers la droite.
-  const g = r.g.slice(-10); const slots = narrow ? Math.max(5, g.length) : 10; const L = 30, H = 224, B = 36, T = 14; const W = narrow ? L + 8 + slots * 96 : 640;
+  const g = r.g.slice(narrow ? -25 : -10); const slots = narrow ? Math.max(5, g.length) : 10; const L = 30, H = 224, B = 36, T = 14; const W = narrow ? L + 8 + slots * 96 : 640;
   const box = useRef<HTMLDivElement>(null); const [more, setMore] = useState(false); const upd = () => { const e = box.current; setMore(!!e && e.scrollLeft > 6); }; useEffect(() => { const e = box.current; if (e) { e.scrollLeft = e.scrollWidth; upd(); } }, [g.length, narrow]); const hi = Math.max(10, ...g.map(x => x[1]), r.est) + 4; const lo = Math.min(0, ...g.map(x => x[1]));
   const bw = (W - L - 8) / slots; const off = slots - g.length; const y = (v: number) => T + (1 - (v - lo) / (hi - lo)) * (H - T - B); 
   return (
