@@ -9,7 +9,7 @@ export const maxDuration = 60;
 const START = '2026-10-21';
 const nrm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z]/g, '');
 type InjRow = { name: string; team: string; status: 'OUT' | 'GTD' | 'PROB'; until: string | null; untilKind: 'return' | 'reeval' | null; src: string; updated: string };
-type Stat = { l10: number | null; n: number; last: number | null; gp: number; tg: number };
+type Stat = { l10: number | null; n: number; last: number | null; gp: number; tg: number; g: [string, number, number][] };
 const HDR = { 'Cache-Control': 'public, s-maxage=600, stale-while-revalidate=1800' };
 
 async function injTable(): Promise<{ updated: string; rows: InjRow[] }> {
@@ -18,23 +18,23 @@ async function injTable(): Promise<{ updated: string; rows: InjRow[] }> {
 
 // Historique TTFL depuis le debut de saison : moyenne des 10 derniers, dernier score, presence. Mis en cache 15 min.
 async function stats(): Promise<{ nights: number; by: Record<string, Stat> }> {
-  const hit = await redis.get<{ nights: number; by: Record<string, Stat> }>('ttfl:pub:stats').catch(() => null);
+  const hit = await redis.get<{ nights: number; by: Record<string, Stat> }>('ttfl:pub:stats2').catch(() => null);
   if (hit) return hit;
   const dates: string[] = [];
   const end = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/New_York' }));
   for (let d = new Date(START + 'T12:00:00'); d <= end; d.setDate(d.getDate() + 1)) dates.push(ymdLocal(d));
   const days = await Promise.all(dates.map(async d => ({ d, rows: await getDayRows(d).catch(() => null) })));
-  const hist: Record<string, { d: string; t: number; tm: string }[]> = {};
+  const hist: Record<string, { d: string; t: number; m: number; tm: string }[]> = {};
   const teamDays: Record<string, Set<string>> = {};
-  for (const { d, rows } of days) for (const r of rows || []) { (hist[nrm(r.n)] ||= []).push({ d, t: r.t, tm: r.tm }); if (r.tm) (teamDays[r.tm] ||= new Set()).add(d); }
+  for (const { d, rows } of days) for (const r of rows || []) { (hist[nrm(r.n)] ||= []).push({ d, t: r.t, m: r.m, tm: r.tm }); if (r.tm) (teamDays[r.tm] ||= new Set()).add(d); }
   const by: Record<string, Stat> = {};
   for (const [k, g0] of Object.entries(hist)) {
     const g = g0.sort((a, b) => (a.d < b.d ? -1 : 1)); const l = g.slice(-10);
     const tm = g[g.length - 1].tm;
-    by[k] = { l10: l.length ? +(l.reduce((s, x) => s + x.t, 0) / l.length).toFixed(1) : null, n: l.length, last: l.length ? l[l.length - 1].t : null, gp: g.length, tg: tm ? teamDays[tm]?.size ?? 0 : 0 };
+    by[k] = { l10: l.length ? +(l.reduce((s, x) => s + x.t, 0) / l.length).toFixed(1) : null, n: l.length, last: l.length ? l[l.length - 1].t : null, gp: g.length, tg: tm ? teamDays[tm]?.size ?? 0 : 0, g: g.slice(-40).map(x => [x.d, x.t, Math.round(x.m)] as [string, number, number]) };
   }
   const out = { nights: days.filter(x => x.rows).length, by };
-  await redis.set('ttfl:pub:stats', out, { ex: 900 }).catch(() => {});
+  await redis.set('ttfl:pub:stats2', out, { ex: 900 }).catch(() => {});
   return out;
 }
 
@@ -60,7 +60,7 @@ export async function GET(req: NextRequest) {
       return {
         name: p.name, team: p.team, opp: p.opp, home: p.home, time: p.time,
         est: +ttflEst(p.proj, p.l5, p.l10, p.inj).toFixed(1), proj: +myProj(p.proj, p.l5, p.l10, p.inj).toFixed(1),
-        l10: s?.l10 ?? null, n: s?.n ?? 0, last: s?.last ?? null, gp: s?.gp ?? 0, tg: s?.tg ?? 0,
+        l10: s?.l10 ?? null, n: s?.n ?? 0, g: s?.g ?? [], last: s?.last ?? null, gp: s?.gp ?? 0, tg: s?.tg ?? 0,
         status, until: tOut ? ti.until : null,
       };
     }).sort((a: any, b: any) => b.est - a.est);
