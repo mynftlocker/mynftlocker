@@ -50,8 +50,7 @@ export default function TtflPublic() {
       <StarBg />
       <div style={{ maxWidth: 1000, margin: '0 auto', position: 'relative' }}>
         <a href="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo-pack.png" alt="myNFTlocker" style={{ height: 56, width: 'auto', filter: 'drop-shadow(0 4px 14px rgba(0,0,0,.6))' }} />
+          <span style={{ fontSize: 26, fontWeight: 800, letterSpacing: '.02em', color: '#fff' }}>my<span style={{ color: c.cy }}>NFT</span>locker</span>
         </a>
         <h1 style={{ fontSize: 'clamp(26px,5vw,42px)', margin: '10px 0 4px', letterSpacing: '.01em' }}>Remplis ton deck de <span style={{ color: c.cy }}>best picks</span> TTFL</h1>
         <p style={{ color: c.dim, margin: '0 0 18px', maxWidth: 700, lineHeight: 1.5, fontSize: 15 }}>Les <b style={{ color: '#fff' }}>projections myNFTlocker</b> : le score TTFL attendu de chaque joueur NBA pour la nuit, selon la forme, le match, les blessures et les retours. Mises à jour en continu.</p>
