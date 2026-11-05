@@ -2,13 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { redis } from '../../../../lib/redis';
 import { ownerOnly } from '../../../../lib/owner';
 import { getJson } from '../../../../lib/ttfl';
+import { fetchNbaReport } from '../../../../lib/nbaInjury';
 import { parseNews, toState, TEAMS } from '../../../../lib/rotowire';
 
 // Tableau des blessures NBA partage (site + fil SORARE 2) : une ligne par joueur avec statut, date de retour OU de reevaluation, source et date de mise a jour.
 // Sources par ordre de fiabilite : rotowire / underdog / manual (saisis par Claude) > espn (releve automatique quotidien via le cron, sert de base).
 // GET (prive) : lit le tableau.  POST (prive) : { rows:[...] } upsert par nom, { remove:[noms] } suppression.  GET ?run=1 (cron) : met a jour la base ESPN.
 export const maxDuration = 30;
-export type InjRow = { name: string; team: string; status: 'OUT' | 'GTD' | 'PROB'; until: string | null; untilKind: 'return' | 'reeval' | null; detail: string; src: 'espn' | 'rotowire' | 'underdog' | 'manual'; updated: string };
+export type InjRow = { name: string; team: string; status: 'OUT' | 'GTD' | 'DOUBT' | 'PROB'; until: string | null; untilKind: 'return' | 'reeval' | null; detail: string; src: 'espn' | 'nba' | 'rotowire' | 'underdog' | 'manual'; updated: string };
 const KEY = 'inj:table';
 const nrm = (x: string) => x.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z]/g, '');
 const today = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris' }).format(new Date());
@@ -35,6 +36,20 @@ async function refreshEspn(): Promise<number> {
   const rows = [...keep, ...fresh.filter(r => !kept.has(nrm(r.name)))];
   await redis.set(KEY, { updated: new Date().toISOString(), rows } as Table);
   return fresh.length;
+}
+
+// Injury report officiel NBA (PDF) : source de reference des statuts Out / Doubtful / Questionable (= GTD) / Probable. Remplace les lignes ESPN des joueurs listes ; Rotowire/Underdog/manuel restent prioritaires (plus frais).
+async function refreshNba(): Promise<any> {
+  const rep = await fetchNbaReport(); if (!rep) return { file: null };
+  const t = await load(); const now = new Date().toISOString();
+  const keep = prune(t.rows).filter(r => r.src !== 'nba');
+  const byK = new Map(keep.map(r => [nrm(r.name), r]));
+  const nbaK = new Set<string>();
+  const add: InjRow[] = [];
+  for (const r of rep.rows) { const k = nrm(r.name); nbaK.add(k); const cur = byK.get(k); if (cur && cur.src !== 'espn') continue; add.push({ name: r.name, team: r.team, status: r.status, until: null, untilKind: null, detail: r.detail, src: 'nba', updated: now }); }
+  const rows = [...keep.filter(r => !(r.src === 'espn' && nbaK.has(nrm(r.name)))), ...add];
+  await redis.set(KEY, { updated: now, rows } as Table);
+  return { file: rep.file, players: rep.rows.length, added: add.length };
 }
 
 // News publiques Rotowire (page generale + une page par equipe) : la news la plus recente de chaque joueur donne son etat ; les delais (« 4-6 weeks ») donnent la date de retour / reevaluation.
@@ -87,9 +102,10 @@ export async function GET(req: NextRequest) {
     if (req.nextUrl.searchParams.get('run')) {
       if (!(await redis.set('inj:lock', 1, { nx: true, ex: 600 }))) return NextResponse.json({ ok: true, skipped: 'recent' });
       const espn = await refreshEspn();
+      const nba = await refreshNba().catch((e: any) => ({ error: String(e).slice(0, 120) }));
       const rw = await refreshRotowire().catch((e: any) => ({ error: String(e).slice(0, 120) }));
       await logToday().catch(() => {});
-      return NextResponse.json({ ok: true, espn, rotowire: rw });
+      return NextResponse.json({ ok: true, espn, nba, rotowire: rw });
     }
     const deny = await ownerOnly(req); if (deny) return deny;
     if (req.nextUrl.searchParams.get('hist')) return NextResponse.json({ ok: true, ...(await history()) });
@@ -105,7 +121,7 @@ export async function POST(req: NextRequest) {
     const b = await req.json(); const t = await load(); const map = new Map(t.rows.map(r => [nrm(r.name), r]));
     for (const n of b.remove || []) map.delete(nrm(String(n)));
     for (const r of b.rows || []) {
-      if (typeof r?.name !== 'string' || !['OUT', 'GTD', 'PROB'].includes(r.status)) continue;
+      if (typeof r?.name !== 'string' || !['OUT', 'GTD', 'DOUBT', 'PROB'].includes(r.status)) continue;
       const until = /^\d{4}-\d{2}-\d{2}$/.test(r.until || '') ? r.until : null;
       map.set(nrm(r.name), { name: r.name.slice(0, 80), team: String(r.team || '').slice(0, 60), status: r.status, until, untilKind: until ? (r.untilKind === 'reeval' ? 'reeval' : 'return') : null, detail: String(r.detail || '').slice(0, 220), src: ['rotowire', 'underdog', 'manual'].includes(r.src) ? r.src : 'manual', updated: new Date().toISOString() });
     }
