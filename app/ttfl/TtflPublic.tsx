@@ -138,10 +138,15 @@ export default function TtflPublic() {
             <div style={narrow ? { display: 'flex', gap: 8, marginBottom: 12, overflowX: 'auto', paddingBottom: 4, scrollbarWidth: 'none' } : { display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(170px,1fr))', gap: 10, marginBottom: 18 }}>
               {top.map((r, i) => (
                 <a key={r.name} href={`/ttfl/joueur/${r.slug || 'n-' + r.name.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`} style={{ display: 'block', color: '#fff', textDecoration: 'none', background: c.card, border: `1px solid ${c.line}`, borderRadius: 14, padding: narrow ? 10 : 14, backdropFilter: 'blur(6px)', ...(narrow ? { flex: '0 0 150px' } : {}) }}>
-                  <div style={{ fontSize: 12, color: c.dim }}>#{i + 1} · {r.team}</div>
-                  <div style={{ fontWeight: 700, margin: '4px 0 8px' }}>{r.name}{r.status && r.status !== 'OUT' && badge(r.status, tr(SL[r.status]))}</div>
-                  <div style={{ fontSize: 30, fontWeight: 800, color: c.cy, lineHeight: 1 }}>{r.est.toFixed(1)}</div>
-                  <div style={{ fontSize: 12, color: c.dim, marginTop: 6 }}>{r.home ? 'vs' : '@'} {r.opp} · {r.time}</div>
+                  {(() => { const nk = (t: string) => /Trail Blazers$/.test(t) ? 'Trail Blazers' : t.split(' ').pop() || t; const sp = r.name.indexOf(' '); const fn = sp > 0 ? r.name.slice(0, sp) : '', ln = sp > 0 ? r.name.slice(sp + 1) : r.name; const one = { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } as const;
+                    return <>
+                      <div style={{ fontSize: 12, color: c.dim, height: 16, lineHeight: '16px', ...one }}>#{i + 1} · {nk(r.team)}</div>
+                      <div style={{ height: 14, lineHeight: '14px', fontSize: 12, color: c.dim, marginTop: 6, ...one }}>{fn || '\u00A0'}</div>
+                      <div style={{ height: 22, lineHeight: '22px', fontSize: ln.length > 13 ? 14 : 17, fontWeight: 700, ...one }}>{ln}</div>
+                      <div style={{ height: 20, marginTop: 4, display: 'flex', alignItems: 'center' }}>{r.status && r.status !== 'OUT' && <span style={{ marginLeft: -8 }}>{badge(r.status, tr(SL[r.status]))}</span>}</div>
+                      <div style={{ fontSize: 30, fontWeight: 800, color: c.cy, lineHeight: 1, marginTop: 6 }}>{r.est.toFixed(1)}</div>
+                      <div style={{ fontSize: 12, color: c.dim, marginTop: 8, height: 16, lineHeight: '16px', ...one }}>{r.home ? 'vs' : '@'} {nk(r.opp)} · {r.time}</div>
+                    </>; })()}
                 </a>
               ))}
             </div>
