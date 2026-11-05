@@ -11,7 +11,7 @@ const stars = (s: Cand[]) => s.reduce((t, c) => t + c.cost, 0) / 2;
 
 // Image de la compo (1200x675, pour X) : generee cote serveur, partagee ou telechargee
 async function shareLineup(title: string, set: Cand[], gwNum: number) {
-  const d = btoa(unescape(encodeURIComponent(JSON.stringify({ t: `${title} · GW ${gwNum}`, u: `${set.reduce((t, c) => t + c.v, 0).toFixed(1)} pts`, c: set.map(c => ({ n: c.p.name, v: Number(c.v.toFixed(1)), p: c.real ? c.pic : null, s: c.p.stars, b: Math.round((c.pw - 1) * 100) })) })))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  const d = btoa(unescape(encodeURIComponent(JSON.stringify({ t: `${title} · GW ${gwNum}`, u: `${set.reduce((t, c) => t + c.v, 0).toFixed(1)} pts`, c: set.map(c => ({ n: c.p.name, tn: c.p.teamName, v: Number(c.v.toFixed(1)), p: c.real ? c.pic : null, s: c.p.stars, b: Math.round((c.pw - 1) * 100), i: c.p.inj, g: c.p.opp })) })))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
   const r = await fetch('/api/gw-img?d=' + d); if (!r.ok) throw new Error('image ' + r.status);
   const blob = await r.blob(); const file = new File([blob], `compo-${title.toLowerCase().replace(/[^a-z]+/g, '-')}-gw${gwNum}.png`, { type: 'image/png' });
   const nav: any = navigator;

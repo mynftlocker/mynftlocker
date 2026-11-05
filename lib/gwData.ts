@@ -32,11 +32,11 @@ export async function getGw(want = '') {
   const fixture = (want && nodes.find(n => n.slug === want)) || nodes.filter(n => n.aasmState === 'opened').sort((a, b) => (a.startDate < b.startDate ? -1 : 1))[0] || nodes[0];
   const f = await gql(`{ so5{ so5Fixture(slug:"${fixture.slug}"){ games{ id date homeTeam{ ... on TeamInterface{ name slug } } awayTeam{ ... on TeamInterface{ name slug } } } } } }`);
   const games: any[] = f.so5.so5Fixture?.games || [];
-  const teams: Record<string, { name: string; n: number; opp: string[] }> = {};
+  const teams: Record<string, { name: string; n: number; opp: { d: string; o: string; h: boolean; gid: string }[] }> = {};
   for (const g of games) {
     const h = g.homeTeam, a = g.awayTeam;
-    (teams[h.slug] ||= { name: h.name, n: 0, opp: [] }).n++; teams[h.slug].opp.push('vs ' + a.name.split(' ').pop());
-    (teams[a.slug] ||= { name: a.name, n: 0, opp: [] }).n++; teams[a.slug].opp.push('@ ' + h.name.split(' ').pop());
+    (teams[h.slug] ||= { name: h.name, n: 0, opp: [] }).n++; teams[h.slug].opp.push({ d: g.date, o: a.name, h: true, gid: g.id });
+    (teams[a.slug] ||= { name: a.name, n: 0, opp: [] }).n++; teams[a.slug].opp.push({ d: g.date, o: h.name, h: false, gid: g.id });
   }
   const by: Record<string, string> = {};
   await Promise.all(Object.keys(teams).map(async s => {
@@ -44,12 +44,17 @@ export async function getGw(want = '') {
   }));
   const F = 'slug displayName ... on NBAPlayer{ gameplayTierStars nextClassicFixtureProjectedScore squaredPictureUrl injuries{ status expectedEndDate } playerGameScores(last:10){ score } }';
   const parts = await Promise.all(chunk(Object.keys(by), 12).map(c => gql(`{ players(slugs:${JSON.stringify(c)}){ ${F} } }`).catch(() => ({ players: [] }))));
+  // projection Sorare de chaque match (comme sur la fiche joueur) : une requete par match
+  const pmap: Record<string, number> = {};
+  await Promise.all(games.map(async (g: any) => {
+    try { const d = await gql(`{ anyGame(id:"${g.id}"){ ... on GameOfBasketball{ playerGameScores{ projectedScore anyPlayer{ slug } } } } }`); for (const x of d.anyGame?.playerGameScores || []) if (x?.anyPlayer?.slug && x.projectedScore != null) pmap[g.id + '|' + x.anyPlayer.slug] = Number(x.projectedScore); } catch { /* pas de projection match */ }
+  }));
   const now = Date.now();
   const players: GP[] = parts.flatMap(p => p.players || []).filter((p: any) => p.gameplayTierStars != null && p.nextClassicFixtureProjectedScore != null && p.nextClassicFixtureProjectedScore > 0).map((p: any) => {
     const sc: number[] = (p.playerGameScores || []).map((x: any) => Number(x.score)).filter((x: number) => !isNaN(x));
     const t = teams[by[p.slug]];
     const inj = (p.injuries || []).find((i: any) => !i.expectedEndDate || new Date(i.expectedEndDate).getTime() > now);
-    return { slug: p.slug, name: p.displayName, team: by[p.slug], teamName: t.name, games: t.n, opp: t.opp, stars: p.gameplayTierStars, proj: p.nextClassicFixtureProjectedScore, l10: sc.length ? sc.reduce((a, b) => a + b, 0) / sc.length : null, inj: inj?.status || null, pic: p.squaredPictureUrl || null };
+    return { slug: p.slug, name: p.displayName, team: by[p.slug], teamName: t.name, games: t.n, opp: t.opp.slice().sort((a, b) => (a.d < b.d ? -1 : 1)).map(x => ({ d: x.d, o: x.o, h: x.h, pj: pmap[x.gid + '|' + p.slug] ?? null })), stars: p.gameplayTierStars, proj: p.nextClassicFixtureProjectedScore, l10: sc.length ? sc.reduce((a, b) => a + b, 0) / sc.length : null, inj: inj?.status || null, pic: p.squaredPictureUrl || null };
   });
   const first = games.map(g => g.date as string).sort()[0] || fixture.startDate;
   return { fixture: { slug: fixture.slug, state: fixture.aasmState as string, gw: fixture.gameWeek as number, start: first, end: fixture.endDate as string, games: games.length }, players };
