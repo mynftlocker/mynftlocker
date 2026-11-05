@@ -4,9 +4,9 @@ import StarBg from '../components/StarBg';
 import { t as tr, useLang, initLang, LangSwitch } from '../i18n';
 import './i18nTtfl';
 
-type G = { ps?: number; b2b?: boolean; d: string; opp: string; home: boolean; gid: string; t: number; m: number; pts: number; reb: number; ast: number; stl: number; blk: number; to: number; fgm: number; fga: number; tpm: number; tpa: number; ftm: number; fta: number };
+type G = { ps?: number; b2b?: boolean; e?: boolean; d: string; opp: string; home: boolean; gid: string; t: number; m: number; pts: number; reb: number; ast: number; stl: number; blk: number; to: number; fgm: number; fga: number; tpm: number; tpa: number; ftm: number; fta: number };
 type L = { n: number; ttfl: number | null; min: number | null; pts: number | null; reb: number | null; ast: number | null; stl: number | null; blk: number | null; to: number | null; fgm: number | null; fgmiss: number | null; tpm: number | null; tpmiss: number | null; ftm: number | null; ftmiss: number | null };
-type B = { avg: { season: L; l10: L; l5: L; home: L; away: L; b2b: L; rest: L }; best: { t: number; opp: string; d: string; gid: string } | null; worst: { t: number; opp: string; d: string; gid: string } | null; opps: { opp: string; n: number; avg: number }[]; sd: number | null };
+type B = { avg: { season: L; l10: L; l5: L; home: L; away: L; b2b: L; rest: L; early: L }; best: { t: number; opp: string; d: string; gid: string } | null; worst: { t: number; opp: string; d: string; gid: string } | null; opps: { opp: string; n: number; avg: number }[]; sd: number | null };
 type D = B & { pastGames: G[]; ext: B | null; seasons: { season: string; n: number; ttfl: number | null; max: number; min: number; min_m: number | null }[]; player: { slug: string; name: string; birthDay: string | null; country: { name: string; code: string } | null; stars: number | null; pic: string | null; team: string | null }; card: { slug: string; pic: string; year: number } | null; games: G[] };
 const c = { cy: '#00ffff', gold: '#e5b94e', dim: 'rgba(255,255,255,.6)', line: 'rgba(255,255,255,.12)', card: 'rgba(8,12,28,.72)' };
 const age = (b: string) => Math.floor((Date.now() - new Date(b).getTime()) / 31557600000);
@@ -22,7 +22,7 @@ const bundle = (rows: G[]): B => {
   const byOpp: Record<string, G[]> = {}; rows.forEach(r => (byOpp[r.opp] ||= []).push(r));
   const opps = Object.entries(byOpp).map(([opp, g]) => ({ opp, n: g.length, avg: av(g.map(x => x.t)) as number })).sort((a, b) => b.avg - a.avg);
   const mean = av(rows.map(x => x.t)) as number; const sd = rows.length > 1 ? +Math.sqrt(rows.reduce((s, x) => s + (x.t - mean) ** 2, 0) / rows.length).toFixed(1) : null;
-  return { avg: { season: lines(rows), l10: lines(rows.slice(-10)), l5: lines(rows.slice(-5)), home: lines(rows.filter(r => r.home)), away: lines(rows.filter(r => !r.home)), b2b: lines(rows.filter(r => r.b2b)), rest: lines(rows.filter(r => !r.b2b)) },
+  return { avg: { season: lines(rows), l10: lines(rows.slice(-10)), l5: lines(rows.slice(-5)), home: lines(rows.filter(r => r.home)), away: lines(rows.filter(r => !r.home)), b2b: lines(rows.filter(r => r.b2b)), rest: lines(rows.filter(r => !r.b2b)), early: lines(rows.filter(r => r.e === true)) },
     best: best && { t: best.t, opp: best.opp, d: best.d, gid: best.gid }, worst: worst && { t: worst.t, opp: worst.opp, d: worst.d, gid: worst.gid }, opps, sd };
 };
 const fx = (v: number | null) => (v == null ? '–' : v.toFixed(1));
@@ -121,7 +121,7 @@ export default function PlayerSheet({ slug }: { slug: string }) {
             </div>
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 10, fontSize: 13, color: c.dim }}>
               <span>{tr('Domicile : ')}<b style={{ color: '#fff' }}>{fx(S!.avg.home.ttfl)}</b> ({S!.avg.home.n})</span><span>{tr('Extérieur : ')}<b style={{ color: '#fff' }}>{fx(S!.avg.away.ttfl)}</b> ({S!.avg.away.n})</span>
-              <span title={tr('Équipe ayant déjà joué la veille')}>{tr('2e soir de back-to-back : ')}<b style={{ color: c.gold }}>{fx(S!.avg.b2b.ttfl)}</b> ({S!.avg.b2b.n})</span><span>{tr('Avec repos : ')}<b style={{ color: '#fff' }}>{fx(S!.avg.rest.ttfl)}</b> ({S!.avg.rest.n})</span>
+              <span title={tr('Équipe ayant déjà joué la veille')}>{tr('2e soir de back-to-back : ')}<b style={{ color: c.gold }}>{fx(S!.avg.b2b.ttfl)}</b> ({S!.avg.b2b.n})</span><span>{tr('Avec repos : ')}<b style={{ color: '#fff' }}>{fx(S!.avg.rest.ttfl)}</b> ({S!.avg.rest.n})</span><span title={tr('Matchs dont le coup d’envoi est au plus tard à 23 h, heure de Paris (saison en cours)')}>{tr('Match jusqu’à 23 h (FR) : ')}<b style={{ color: c.cy }}>{fx(S!.avg.early.ttfl)}</b> ({S!.avg.early.n})</span>
             </div>
           </div>
 

@@ -1,3 +1,4 @@
+import { startsFor, isEarlyFR } from '../../../../lib/ttflStart';
 import { NextRequest, NextResponse } from 'next/server';
 import { redis } from '../../../../lib/redis';
 import { espnPlayer } from '../../../../lib/ttflPlayer';
@@ -74,6 +75,9 @@ export async function GET(req: NextRequest) {
     const td: Record<string, string[]> = {};
     if (prevDates.length) { const vals = await redis.mget<(string[] | null)[]>(...prevDates.map(d => 'ttfl:td:' + d)).catch(() => []); prevDates.forEach((d, i) => { td[d] = vals?.[i] || []; }); }
     const teamDays = new Set(full.rows.map(r => r.tm + '|' + r.d));
+    // Matchs "europeens" (coup d'envoi a 23 h Paris au plus tard) : saison en cours uniquement
+    const starts = await startsFor(all.map(r => r.d)).catch(() => ({} as Record<string, Record<string, string>>));
+    const isEarly = (r: FR) => isEarlyFR(starts[r.d]?.[r.tm]);
     const isB2b = (r: FR) => (td[prevDay(r.d)] ? td[prevDay(r.d)].includes(r.tm) : teamDays.has(r.tm + '|' + prevDay(r.d)));
     const bundle = (rows: FR[]) => {
       const best = rows.length ? rows.reduce((m, x) => (x.t > m.t ? x : m)) : null; const worst = rows.length ? rows.reduce((m, x) => (x.t < m.t ? x : m)) : null;
@@ -81,13 +85,13 @@ export async function GET(req: NextRequest) {
       const opps = Object.entries(byOpp).map(([opp, g]) => ({ opp, n: g.length, avg: avg(g.map(x => x.t)) as number })).sort((a, b) => b.avg - a.avg);
       const mean = avg(rows.map(x => x.t)) as number;
       const sd = rows.length > 1 ? +Math.sqrt(rows.reduce((s, x) => s + (x.t - mean) ** 2, 0) / rows.length).toFixed(1) : null;
-      return { avg: { season: lines(rows), l10: lines(rows.slice(-10)), l5: lines(rows.slice(-5)), home: lines(rows.filter(r => r.home)), away: lines(rows.filter(r => !r.home)), b2b: lines(rows.filter(isB2b)), rest: lines(rows.filter(r => !isB2b(r))) },
+      return { avg: { season: lines(rows), l10: lines(rows.slice(-10)), l5: lines(rows.slice(-5)), home: lines(rows.filter(r => r.home)), away: lines(rows.filter(r => !r.home)), b2b: lines(rows.filter(isB2b)), rest: lines(rows.filter(r => !isB2b(r))), early: lines(rows.filter(r => isEarly(r) === true)) },
         best: best && { t: best.t, opp: best.opp, d: best.d, gid: best.gid }, worst: worst && { t: worst.t, opp: worst.opp, d: worst.d, gid: worst.gid }, opps, sd };
     };
     const cur = bundle(all); const everything = [...past, ...all];
     const bySeason: Record<string, FR[]> = {}; everything.forEach(r => (bySeason[seasonOf(r.d)] ||= []).push(r));
     const seasons = Object.entries(bySeason).sort((a, b) => (a[0] < b[0] ? 1 : -1)).map(([season, g]) => ({ season, n: g.length, ttfl: avg(g.map(x => x.t)), max: Math.max(...g.map(x => x.t)), min: Math.min(...g.map(x => x.t)), min_m: avg(g.map(x => x.m)) }));
-    const slim = (r: FR) => ({ b2b: isB2b(r), d: r.d, opp: r.opp, home: r.home, gid: r.gid, t: r.t, m: Math.round(r.m), pts: r.pts, reb: r.reb, ast: r.ast, stl: r.stl, blk: r.blk, to: r.to, fgm: r.fgm, fga: r.fga, tpm: r.tpm, tpa: r.tpa, ftm: r.ftm, fta: r.fta, ps: r.ps ? 1 : 0 });
+    const slim = (r: FR) => ({ e: isEarly(r), b2b: isB2b(r), d: r.d, opp: r.opp, home: r.home, gid: r.gid, t: r.t, m: Math.round(r.m), pts: r.pts, reb: r.reb, ast: r.ast, stl: r.stl, blk: r.blk, to: r.to, fgm: r.fgm, fga: r.fga, tpm: r.tpm, tpa: r.tpa, ftm: r.ftm, fta: r.fta, ps: r.ps ? 1 : 0 });
     const out = {
       ok: true,
       player: { slug: p.slug, name: p.displayName, birthDay: p.birthDay || null, country: p.country || null, stars: p.gameplayTierStars ?? null, pic: p.squaredPictureUrl || null, team: (await espnPlayer(p.displayName).catch(() => null))?.team || (all.length ? all[all.length - 1].tm : (past.length ? past[past.length - 1].tm : null)) },
