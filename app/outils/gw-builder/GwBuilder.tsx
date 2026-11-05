@@ -203,9 +203,9 @@ export default function GwBuilder() {
                   {res.lineup.map(cd => {
                     const pinned = r.pins.includes(cd.id);
                     return (
-                      <div key={cd.id} className="gwb-cell" style={{ position: 'relative' }}>
+                      <div key={cd.id} className="gwb-cell">
+                        <button onClick={() => patch(r.id, x => ({ ...x, pins: pinned ? x.pins.filter(y => y !== cd.id) : [...x.pins, cd.id] }))} title={pinned ? 'Retirer de mes choix' : 'Imposer cette carte dans cette compo'} style={{ display: 'block', width: '100%', marginBottom: 6, padding: '4px 0', borderRadius: 8, border: `1px solid ${pinned ? c.gold + 'aa' : c.line}`, background: pinned ? 'rgba(229,185,78,.16)' : 'rgba(255,255,255,.04)', color: pinned ? c.gold : c.dim, cursor: 'pointer', fontSize: 12 }}>{pinned ? '📌 Imposée · retirer' : '📌 Imposer'}</button>
                         <Slab c={cd} u={n => `${n}cqw`} art={cd.real ? cd.pic : null} />
-                        <button onClick={() => patch(r.id, x => ({ ...x, pins: pinned ? x.pins.filter(y => y !== cd.id) : [...x.pins, cd.id] }))} title={pinned ? 'Retirer de mes choix' : 'Imposer cette carte'} style={{ position: 'absolute', top: 6, right: 6, width: 28, height: 28, borderRadius: 99, border: `1px solid ${pinned ? c.gold : c.line}`, background: pinned ? 'rgba(229,185,78,.25)' : 'rgba(0,0,0,.55)', color: pinned ? c.gold : '#fff', cursor: 'pointer', fontSize: 13 }}>{pinned ? '✕' : '📌'}</button>
                       </div>
                     );
                   })}
