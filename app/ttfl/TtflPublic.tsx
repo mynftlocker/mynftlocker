@@ -45,8 +45,7 @@ function Bars({ r, a, narrow }: { r: R; a: number | null; narrow?: boolean }) {
     </div>
   );
 }
-let W_CUR: W = 10;
-const val = (r: R, k: SK): number | string => k === 'name' ? r.name : k === 'match' ? r.opp : k === 'est' ? r.est : k === 'l10' ? avg(r, W_CUR) ?? -1 : k === 'reg' ? reg(r, W_CUR)?.cv ?? 99 : k === 'last' ? r.last ?? -1 : r.tg ? r.gp / r.tg : -1;
+const val = (r: R, k: SK, W_CUR: W): number | string => k === 'name' ? r.name : k === 'match' ? r.opp : k === 'est' ? r.est : k === 'l10' ? avg(r, W_CUR) ?? -1 : k === 'reg' ? reg(r, W_CUR)?.cv ?? 99 : k === 'last' ? r.last ?? -1 : r.tg ? r.gp / r.tg : -1;
 const c = { cy: '#00ffff', gold: '#e5b94e', dim: 'rgba(255,255,255,.6)', line: 'rgba(255,255,255,.12)', card: 'rgba(8,12,28,.72)' };
 
 export default function TtflPublic() {
@@ -78,9 +77,8 @@ export default function TtflPublic() {
   }, [night]);
   useEffect(() => { if (view === 'inj' && !inj) fetch('/api/ttfl?inj=1').then(r => r.json()).then(j => j.ok && setInj(j.rows)).catch(() => {}); }, [view, inj]);
 
-  W_CUR = win;
   const list = useMemo(() => (rows || []).filter(r => !(hideOut && r.status === 'OUT') && (!q || norm(r.name).includes(norm(q)) || norm(r.team).includes(norm(q))))
-    .slice().sort((a, b) => { const x = val(a, sort.k), y = val(b, sort.k); const d = typeof x === 'string' ? x.localeCompare(y as string) : (x as number) - (y as number); return d * sort.dir || b.est - a.est; }), [rows, hideOut, q, sort, win]);
+    .slice().sort((a, b) => { const x = val(a, sort.k, win), y = val(b, sort.k, win); const d = typeof x === 'string' ? x.localeCompare(y as string) : (x as number) - (y as number); return d * sort.dir || b.est - a.est; }), [rows, hideOut, q, sort, win]);
   const rank = useMemo(() => { const m: Record<string, number> = {}; (rows || []).forEach((r, i) => { m[r.name] = i + 1; }); return m; }, [rows]);
   const heat = (v: number | null, lo: number, hi: number) => v == null ? c.dim : hi <= lo ? '#fff' : (v - lo) / (hi - lo) > 0.75 ? c.cy : (v - lo) / (hi - lo) > 0.4 ? '#fff' : 'rgba(255,255,255,.6)';
   const eLo = Math.min(...list.map(r => r.est)), eHi = Math.max(...list.map(r => r.est));
