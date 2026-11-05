@@ -29,7 +29,7 @@ async function refreshEspn(): Promise<number> {
   const fresh: InjRow[] = [];
   for (const tm of ij?.injuries || []) for (const i of tm.injuries || []) {
     const name = i.athlete?.displayName; if (!name) continue;
-    fresh.push({ name, team: tm.displayName || '', status: i.status === 'Out' ? 'OUT' : 'GTD', until: null, untilKind: null, detail: String(i.shortComment || i.longComment || '').slice(0, 220), src: 'espn', updated: new Date().toISOString() });
+    fresh.push({ name, team: tm.displayName || '', status: i.status === 'Out' ? 'OUT' : (() => { const tx = String(i.shortComment || i.longComment || ''); return /probable/i.test(tx) ? 'PROB' : /doubtful/i.test(tx) ? 'DOUBT' : /questionable|game[- ]time/i.test(tx) ? 'QUEST' : 'GTD'; })(), until: null, untilKind: null, detail: String(i.shortComment || i.longComment || '').slice(0, 220), src: 'espn', updated: new Date().toISOString() });
   }
   const keep = prune(t.rows).filter(r => r.src !== 'espn');
   const kept = new Set(keep.map(r => nrm(r.name)));
