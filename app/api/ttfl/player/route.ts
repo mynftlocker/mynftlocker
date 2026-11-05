@@ -45,7 +45,7 @@ export async function GET(req: NextRequest) {
         slug = cand; await redis.hset('ttfl:slugmap', { [nm]: cand }).catch(() => {});
       }
     }
-    const key = 'ttfl:pub:player3:' + slug;
+    const key = 'ttfl:pub:player4:' + slug;
     const hit = await redis.get<any>(key).catch(() => null);
     const H = { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=900' };
     if (hit) return NextResponse.json(hit, { headers: H });
