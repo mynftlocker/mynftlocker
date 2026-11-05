@@ -75,8 +75,8 @@ export async function GET(req: NextRequest) {
     const td: Record<string, string[]> = {};
     if (prevDates.length) { const vals = await redis.mget<(string[] | null)[]>(...prevDates.map(d => 'ttfl:td:' + d)).catch(() => []); prevDates.forEach((d, i) => { td[d] = vals?.[i] || []; }); }
     const teamDays = new Set(full.rows.map(r => r.tm + '|' + r.d));
-    // Matchs "europeens" (coup d'envoi a 23 h Paris au plus tard) : saison en cours uniquement
-    const starts = await startsFor(all.map(r => r.d)).catch(() => ({} as Record<string, Record<string, string>>));
+    // Matchs "europeens" (coup d'envoi a 23 h Paris au plus tard) : trois saisons (premier appel plus long : les horaires sont ensuite gardes en memoire)
+    const starts = await startsFor([...past, ...all].map(r => r.d)).catch(() => ({} as Record<string, Record<string, string>>));
     const isEarly = (r: FR) => isEarlyFR(starts[r.d]?.[r.tm]);
     const isB2b = (r: FR) => (td[prevDay(r.d)] ? td[prevDay(r.d)].includes(r.tm) : teamDays.has(r.tm + '|' + prevDay(r.d)));
     const bundle = (rows: FR[]) => {
