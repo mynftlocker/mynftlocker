@@ -94,13 +94,14 @@ export default function GwLineups() {
       const rar = String(c.rarityTyped || '').toLowerCase(); if (!rar || rar !== 'limited') continue; // Limited uniquement
       const p = by[c.anyPlayer?.slug]; if (!p || !okP(p)) continue;
       if (used[c.slug]) continue; // deja alignee dans une compo de cette GW
-      const is = !!c.inSeasonEligible; if (isOnly && !is) continue;
+      const is = !!c.inSeasonEligible;
       const pw = Number(c.power) || 1;
       all.push({ id: c.slug, p, v: p.proj * pw * gtd(p), cost: Math.round(p.stars * 2), pw, is, pic: c.pictureUrl || p.pic, real: !!c.pictureUrl });
     }
-    const a = best(all, Math.round(CAPS.champ * 2), perTeam);
+    const mx = isOnly ? 1 : 5; // compo In-Season : 4 cartes IS minimum, 1 carte classic autorisee
+    const a = best(all, Math.round(CAPS.champ * 2), perTeam, mx);
     const ids = new Set(a.map(x => x.id));
-    return [a, best(all.filter(x => !ids.has(x.id)), Math.round(CAPS.cont * 2), perTeam)];
+    return [a, best(all.filter(x => !ids.has(x.id)), Math.round(CAPS.cont * 2), perTeam, mx)];
   }, [players, cards, used, perTeam, noInj, isOnly]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const lab: React.CSSProperties = { fontSize: 13, color: '#dfe', display: 'flex', alignItems: 'center', gap: 6 };
@@ -112,7 +113,7 @@ export default function GwLineups() {
       <h1 style={{ fontSize: 26, margin: '0 0 4px' }}>Compos GW</h1>
       <p style={{ color: '#9ab', fontSize: 14, margin: '0 0 16px' }}>{gw ? `GW ${gw.fixture.gw} · ${gw.fixture.games} matchs · début ${new Date(gw.fixture.start).toLocaleString('fr-FR', { timeZone: 'Europe/Paris', weekday: 'long', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}` : err || 'Chargement de la GW…'}</p>
       <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14, padding: 12, border: '1px solid #ffffff1f', borderRadius: 12, background: '#0a1218e6' }}>
-        <label style={lab}><input type="checkbox" checked={isOnly} onChange={e => setIsOnly(e.target.checked)} /> In-Season uniquement</label>
+        <label style={lab}><input type="checkbox" checked={isOnly} onChange={e => setIsOnly(e.target.checked)} /> Compo In-Season (4 IS + 1 classic max)</label>
         <label style={lab}><input type="checkbox" checked={noInj} onChange={e => setNoInj(e.target.checked)} /> Exclure les blessés</label>
         <label style={lab}>Max par équipe <select value={perTeam} onChange={e => setPerTeam(Number(e.target.value))} style={inp}><option value={1}>1</option><option value={2}>2</option><option value={3}>3</option></select></label>
         <label style={lab}>Compte <input value={pseudo} onChange={e => setPseudo(e.target.value)} onKeyDown={e => e.key === 'Enter' && fxSlug && loadCol(pseudo, fxSlug)} style={{ ...inp, width: 160 }} /></label>
