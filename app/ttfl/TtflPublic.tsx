@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
 import StarBg from '../components/StarBg';
+import LiveTab from './LiveTab';
 
 const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z]/g, '');
 const parisDay = (d = new Date()) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris' }).format(d);
@@ -22,7 +23,7 @@ export default function TtflPublic() {
   const [err, setErr] = useState('');
   const [q, setQ] = useState('');
   const [hideOut, setHideOut] = useState(true);
-  const [view, setView] = useState<'night' | 'inj'>('night');
+  const [view, setView] = useState<'night' | 'live' | 'inj'>('night');
   const [inj, setInj] = useState<I[] | null>(null);
   const [sort, setSort] = useState<{ k: SK; dir: 1 | -1 }>({ k: 'est', dir: -1 });
 
@@ -39,6 +40,7 @@ export default function TtflPublic() {
   const eLo = Math.min(...list.map(r => r.est)), eHi = Math.max(...list.map(r => r.est));
   const lLo = Math.min(...list.filter(r => r.l10 != null).map(r => r.l10 as number)), lHi = Math.max(...list.filter(r => r.l10 != null).map(r => r.l10 as number));
   const toggle = (k: SK) => setSort(s => s.k === k ? { k, dir: (s.dir * -1) as 1 | -1 } : { k, dir: k === 'name' || k === 'match' ? 1 : -1 });
+  const projMap = useMemo(() => { const m: Record<string, number> = {}; (rows || []).forEach(r => { m[norm(r.name)] = r.est; }); return m; }, [rows]);
   const top = (rows || []).filter(r => r.status !== 'OUT').slice(0, 5);
   const injList = (inj || []).filter(r => !q || norm(r.name + r.team).includes(norm(q))).sort((a, b) => (a.status === b.status ? ((a.until || '9') < (b.until || '9') ? -1 : 1) : a.status === 'OUT' ? -1 : 1));
 
@@ -57,11 +59,12 @@ export default function TtflPublic() {
 
         <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
           <button style={btn(view === 'night')} onClick={() => setView('night')}>Projections de la nuit</button>
+          <button style={btn(view === 'live')} onClick={() => setView('live')}>En direct</button>
           <button style={btn(view === 'inj')} onClick={() => setView('inj')}>Blessures et retours</button>
         </div>
 
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 16 }}>
-          {view === 'night' && <>
+          {view !== 'inj' && <>
             <button style={btn()} onClick={() => setNight(shift(night, -1))} aria-label="Nuit précédente">◀</button>
             <div style={{ ...btn(), cursor: 'default', textTransform: 'capitalize', minWidth: 170, textAlign: 'center' }}>{lbl(night)}</div>
             <button style={btn()} onClick={() => setNight(shift(night, 1))} aria-label="Nuit suivante">▶</button>
@@ -110,6 +113,8 @@ export default function TtflPublic() {
           )}
           <p style={{ color: c.dim, fontSize: 12, marginTop: 14, lineHeight: 1.5 }}>Projection myNFTlocker = score TTFL attendu, calculé depuis la projection Sorare lissée avec la forme récente (joueurs incertains GTD pondérés à la baisse). Calibrage en cours sur les scores réels. « Présence » = matchs joués / matchs de l&apos;équipe cette saison. Heures de Paris.</p>
         </>}
+
+        {view === 'live' && <LiveTab night={night} proj={projMap} />}
 
         {view === 'inj' && (
           <div style={{ background: c.card, border: `1px solid ${c.line}`, borderRadius: 14, overflowX: 'auto' }}>
