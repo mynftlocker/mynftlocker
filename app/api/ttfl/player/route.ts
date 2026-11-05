@@ -8,6 +8,10 @@ type FR = FullRow & { ps?: number };
 const seasonOf = (d: string) => { const y = +d.slice(0, 4), m = +d.slice(5, 7); const a = m >= 9 ? y : y - 1; return `${a}-${String(a + 1).slice(2)}`; };
 
 // Fiche joueur TTFL publique : identite (Sorare), historique complet des scores TTFL et moyennes de stats, carte Sorare.
+import { TEAMS } from '../../../../lib/rotowire';
+// Equipe toujours en toutes lettres (ESPN donne des sigles : GS, NO, SA, NY, UTAH, WSH...)
+const AL: Record<string, string> = { GS: 'GSW', NO: 'NOP', SA: 'SAS', NY: 'NYK', UTAH: 'UTA', WSH: 'WAS', PHO: 'PHX', CHO: 'CHA', BRK: 'BKN' };
+const teamFull = (t: string | null) => (t ? TEAMS[AL[t] || t] || t : null);
 export const maxDuration = 60;
 const nrm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z]/g, '');
 const GQL = 'https://api.sorare.com/graphql';
@@ -94,7 +98,7 @@ export async function GET(req: NextRequest) {
     const slim = (r: FR) => ({ e: isEarly(r), b2b: isB2b(r), d: r.d, opp: r.opp, home: r.home, gid: r.gid, t: r.t, m: Math.round(r.m), pts: r.pts, reb: r.reb, ast: r.ast, stl: r.stl, blk: r.blk, to: r.to, fgm: r.fgm, fga: r.fga, tpm: r.tpm, tpa: r.tpa, ftm: r.ftm, fta: r.fta, ps: r.ps ? 1 : 0 });
     const out = {
       ok: true,
-      player: { slug: p.slug, name: p.displayName, birthDay: p.birthDay || null, country: p.country || null, stars: p.gameplayTierStars ?? null, pic: p.squaredPictureUrl || null, team: (await espnPlayer(p.displayName).catch(() => null))?.team || (all.length ? all[all.length - 1].tm : (past.length ? past[past.length - 1].tm : null)) },
+      player: { slug: p.slug, name: p.displayName, birthDay: p.birthDay || null, country: p.country || null, stars: p.gameplayTierStars ?? null, pic: p.squaredPictureUrl || null, team: teamFull((await espnPlayer(p.displayName).catch(() => null))?.team || (all.length ? all[all.length - 1].tm : (past.length ? past[past.length - 1].tm : null))) },
       card,
       games: all.map(slim), pastGames: past.map(slim),
       ...cur,
