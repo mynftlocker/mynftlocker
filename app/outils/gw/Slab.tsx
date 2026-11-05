@@ -39,7 +39,7 @@ export function Slab({ c, u, art }: { c: Cand; u: (n: number) => string; art: st
       <div style={{ display: 'flex', flexDirection: 'column', borderRadius: u(7), padding: u(4), background: 'linear-gradient(160deg,#101826,#070a11)', border: `1px solid ${gold}88`, boxShadow: `0 0 ${u(6)} ${gold}33` }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: u(2), height: u(15) }}>
           <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
-            <div style={{ display: 'flex', fontSize: u(long ? 5.6 : 7), fontWeight: 800, color: '#fff', lineHeight: 1.05, textTransform: 'uppercase' }}>{name}</div>
+            <div style={{ display: 'flex', fontSize: u(name.length > 20 ? 4.6 : long ? 5.6 : 7), fontWeight: 800, color: '#fff', lineHeight: 1.05, textTransform: 'uppercase' }}>{name}</div>
             <div style={{ display: 'flex', fontSize: u(4.8), color: '#cfd8e6', marginTop: u(1) }}>{c.p.teamName.split(' ').pop()}</div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: u(1.6), borderRadius: u(3.5), padding: `${u(1.6)} ${u(2.2)}`, border: '1px solid rgba(120,150,190,0.25)', background: 'rgba(53,230,255,0.08)' }}>
