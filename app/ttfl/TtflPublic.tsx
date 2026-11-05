@@ -91,6 +91,10 @@ export default function TtflPublic() {
   const projMap = useMemo(() => { const m: Record<string, number> = {}; (rows || []).forEach(r => { m[norm(r.name)] = r.est; }); return m; }, [rows]);
   const slugMap = useMemo(() => { const m: Record<string, string> = {}; (rows || []).forEach(r => { if (r.slug) m[norm(r.name)] = r.slug; }); return m; }, [rows]);
   const top = (rows || []).filter(r => r.status !== 'OUT').slice(0, 5);
+  // Cartes top 5 : on ne reserve une 2e ligne (nom, equipe, match) que si l'un des 5 en a besoin ; rien n'est jamais coupe.
+  const nk = (t: string) => /Trail Blazers$/.test(t) ? 'Trail Blazers' : t.split(' ').pop() || t;
+  const lnOf = (n: string) => { const i = n.indexOf(' '); return i > 0 ? n.slice(i + 1) : n; };
+  const need2 = { name: top.some(r => lnOf(r.name).length > 13), team: top.some(r => r.team.length > 15), match: top.some(r => `${r.home ? 'vs' : '@'} ${nk(r.opp)} · ${r.time}`.length > 21) };
   const injVal = (r: I, k: IK): number | string => k === 'name' ? fam(r.name) + ' ' + norm(r.name) : k === 'team' ? r.team : k === 'until' ? r.until || '9999' : k === 'l10' ? r.l10 ?? -1 : (r.status === 'OUT' ? 0 : r.status === 'GTD' ? 1 : 2) + (r.until || '9999');
   const injList = (inj || []).filter(r => !q || norm(r.name + r.team).includes(norm(q))).slice().sort((a, b) => { const x = injVal(a, isort.k), y = injVal(b, isort.k); return (typeof x === 'string' ? x.localeCompare(y as string) : (x as number) - (y as number)) * isort.dir || fam(a.name).localeCompare(fam(b.name)); });
   const itoggle = (k: IK) => setIsort(s => s.k === k ? { k, dir: (s.dir * -1) as 1 | -1 } : { k, dir: k === 'l10' ? -1 : 1 });
@@ -140,12 +144,12 @@ export default function TtflPublic() {
                 <a key={r.name} href={`/ttfl/joueur/${r.slug || 'n-' + r.name.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`} style={{ display: 'block', color: '#fff', textDecoration: 'none', background: c.card, border: `1px solid ${c.line}`, borderRadius: 14, padding: narrow ? 10 : 14, backdropFilter: 'blur(6px)', ...(narrow ? { flex: '0 0 150px' } : {}) }}>
                   {(() => { const sp = r.name.indexOf(' '); const fn = sp > 0 ? r.name.slice(0, sp) : '', ln = sp > 0 ? r.name.slice(sp + 1) : r.name;
                     return <>
-                      <div style={{ fontSize: 12, color: c.dim, minHeight: 30, lineHeight: '15px', display: 'flex', gap: 6 }}><span style={{ flex: '0 0 auto', color: c.gold, fontWeight: 700 }}>#{i + 1}</span><span>{r.team}</span></div>
+                      <div style={{ fontSize: 12, color: c.dim, minHeight: need2.team ? 30 : 15, lineHeight: '15px', display: 'flex', gap: 6 }}><span style={{ flex: '0 0 auto', color: c.gold, fontWeight: 700 }}>#{i + 1}</span><span>{r.team}</span></div>
                       <div style={{ minHeight: 14, lineHeight: '14px', fontSize: 12, color: c.dim, marginTop: 12 }}>{fn || '\u00A0'}</div>
-                      <div style={{ minHeight: 40, lineHeight: '20px', fontSize: 16, fontWeight: 700 }}>{ln}</div>
+                      <div style={{ minHeight: need2.name ? 40 : 20, lineHeight: '20px', fontSize: 16, fontWeight: 700 }}>{ln}</div>
                       <div style={{ height: 20, marginTop: 4, display: 'flex', alignItems: 'center' }}>{r.status && r.status !== 'OUT' && <span style={{ marginLeft: -8 }}>{badge(r.status, tr(SL[r.status]))}</span>}</div>
                       <div style={{ fontSize: 30, fontWeight: 800, color: c.cy, lineHeight: 1, marginTop: 6 }}>{r.est.toFixed(1)}</div>
-                      <div style={{ fontSize: 12, color: c.dim, marginTop: 8, minHeight: 30, lineHeight: '15px' }}>{r.home ? 'vs' : '@'} {/Trail Blazers$/.test(r.opp) ? 'Trail Blazers' : r.opp.split(' ').pop()} · {r.time}</div>
+                      <div style={{ fontSize: 12, color: c.dim, marginTop: 8, minHeight: need2.match ? 30 : 15, lineHeight: '15px' }}>{r.home ? 'vs' : '@'} {nk(r.opp)} · {r.time}</div>
                     </>; })()}
                 </a>
               ))}
@@ -200,7 +204,7 @@ export default function TtflPublic() {
                   <td style={{ padding: pd }}>{(() => { const sl = rows?.find(x => norm(x.name) === norm(r.name))?.slug || 'n-' + r.name.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''); return <a href={`/ttfl/joueur/${sl}`} style={{ color: '#fff', textDecoration: 'none', borderBottom: `1px dashed ${c.cy}` }}>{r.name} →</a>; })()}{narrow && <div style={{ fontSize: 11, color: c.dim }}>{r.team || '–'}</div>}</td>
                   {!narrow && <td style={{ padding: pd, color: c.dim }}>{r.team || '–'}</td>}
                   <td style={{ padding: pd, color: r.status === 'OUT' ? '#ff7b7b' : r.status === 'PROB' ? '#4ade80' : r.status === 'DOUBT' ? '#ff9f43' : r.status === 'QUEST' ? '#e5c07b' : c.gold, fontWeight: 700 }}>{tr(SL[r.status])}</td>
-                  <td style={{ padding: pd }}>{r.until ? `${dm(r.until)} (${r.untilKind === 'reeval' ? tr('réévaluation') : tr('retour')})` : '–'}</td>
+                  <td style={{ padding: pd }}>{r.until ? (narrow ? <>{dm(r.until)}<div style={{ fontSize: 11, color: c.dim }}>{r.untilKind === 'reeval' ? tr('réévaluation') : tr('retour')}</div></> : `${dm(r.until)} (${r.untilKind === 'reeval' ? tr('réévaluation') : tr('retour')})`) : '–'}</td>
                   <td style={{ padding: pd, textAlign: 'right' }}>{r.l10 == null ? '–' : r.l10.toFixed(1)}</td>
                 </tr>))}</tbody>
             </table>}
