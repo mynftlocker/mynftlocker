@@ -1,7 +1,7 @@
 import { ImageResponse } from 'next/og';
 import { NextRequest } from 'next/server';
 import { getGw, marketPics } from '../../../lib/gwData';
-import { best, vary, BONUS_IS, CAPS } from '../../../lib/gwLineup';
+import { best, vary, BONUS_IS, CAPS, MAX_PER_TEAM } from '../../../lib/gwLineup';
 
 // Image 16:9 d'une compo (post X / partage). ?c=champ|cont : compo idéale du builder ; ?d=<json base64url> : compo perso {t,c:[{n,v,p,s,b}]}.
 export const maxDuration = 30;
@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
       const kind = sp.get('c') === 'cont' ? 'cont' : 'champ';
       const gw = await getGw();
       const ok = gw.players.filter(p => !(p.inj && p.inj !== 'GTD') && p.games > 0);
-      const set = best(ok.map(p => ({ id: p.slug, p, v: p.proj * BONUS_IS * (p.inj === 'GTD' ? 0.88 : 1), cost: Math.round(p.stars * 2), pw: BONUS_IS, is: true, pic: p.pic, real: false })), CAPS[kind] * 2, 1);
+      const set = best(ok.map(p => ({ id: p.slug, p, v: p.proj * BONUS_IS * (p.inj === 'GTD' ? 0.88 : 1), cost: Math.round(p.stars * 2), pw: BONUS_IS, is: true, pic: p.pic, real: false })), CAPS[kind] * 2, MAX_PER_TEAM);
       const v = vary(set, await marketPics(set.map(c => c.p.slug)));
       title = `Compo ${kind === 'champ' ? 'Champion' : 'Contender'} · GW ${gw.fixture.gw}`;
       sub = `${v.reduce((t, c) => t + c.v, 0).toFixed(1)} pts · ${CAPS[kind]} étoiles max`;

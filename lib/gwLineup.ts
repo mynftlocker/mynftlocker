@@ -2,6 +2,7 @@
 export type GP = { slug: string; name: string; team: string; teamName: string; games: number; opp: string[]; stars: number; proj: number; l10: number | null; inj: string | null; pic: string | null };
 export type Cand = { id: string; p: GP; v: number; cost: number; pw: number; is: boolean; pic: string | null; real: boolean };
 export const BONUS_IS = 1.05; // bonus par defaut d'une carte In-Season pour la compo du builder
+export const MAX_PER_TEAM = 4; // regle Sorare Limited Champion / Contender : max 4 joueurs de chaque equipe
 export const CAPS = { champ: 16, cont: 11 } as const; // etoiles max : Champion 16, Contender 11
 
 export function best(cands: Cand[], cap: number, perTeam: number, maxNonIs = 5): Cand[] {

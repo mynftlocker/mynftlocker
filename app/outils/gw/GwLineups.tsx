@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
-import { best, vary, BONUS_IS, CAPS, type Cand, type GP, type MCard } from '../../../lib/gwLineup';
+import { best, vary, BONUS_IS, CAPS, MAX_PER_TEAM, type Cand, type GP, type MCard } from '../../../lib/gwLineup';
 import StarBg from './StarBg';
 import { GwRow } from './GwCard';
 
@@ -46,7 +46,7 @@ export default function GwLineups() {
   const [colMsg, setColMsg] = useState('');
   const [colLoading, setColLoading] = useState(true);
   const [isOnly, setIsOnly] = useState(true);
-  const [perTeam, setPerTeam] = useState(1);
+  const perTeam = MAX_PER_TEAM;
   const [noInj, setNoInj] = useState(true);
   const [pics, setPics] = useState<Record<string, MCard[]>>({});
 
@@ -78,8 +78,8 @@ export default function GwLineups() {
 
   // Compos ideales (toutes cartes, une par palier)
   const idealOf = (cap: number) => best(players.filter(okP).map(p => ({ id: 'i-' + p.slug, p, v: p.proj * BONUS_IS * gtd(p), cost: Math.round(p.stars * 2), pw: BONUS_IS, is: true, pic: p.pic, real: false })), Math.round(cap * 2), perTeam);
-  const idealChamp = useMemo(() => vary(idealOf(CAPS.champ), pics), [players, perTeam, noInj, pics]); // eslint-disable-line react-hooks/exhaustive-deps
-  const idealCont = useMemo(() => vary(idealOf(CAPS.cont), pics), [players, perTeam, noInj, pics]); // eslint-disable-line react-hooks/exhaustive-deps
+  const idealChamp = useMemo(() => vary(idealOf(CAPS.champ), pics), [players, noInj, pics]); // eslint-disable-line react-hooks/exhaustive-deps
+  const idealCont = useMemo(() => vary(idealOf(CAPS.cont), pics), [players, noInj, pics]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     const need = [...new Set([...idealChamp, ...idealCont].map(c => c.p.slug))].filter(s => pics[s] === undefined);
     if (!need.length) return;
@@ -102,7 +102,7 @@ export default function GwLineups() {
     const a = best(all, Math.round(CAPS.champ * 2), perTeam, mx);
     const ids = new Set(a.map(x => x.id));
     return [a, best(all.filter(x => !ids.has(x.id)), Math.round(CAPS.cont * 2), perTeam, mx)];
-  }, [players, cards, used, perTeam, noInj, isOnly]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [players, cards, used, noInj, isOnly]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const lab: React.CSSProperties = { fontSize: 13, color: '#dfe', display: 'flex', alignItems: 'center', gap: 6 };
   const inp: React.CSSProperties = { background: '#000', color: '#fff', border: '1px solid #ffffff33', borderRadius: 8, padding: '6px 8px', fontSize: 14 };
@@ -115,7 +115,6 @@ export default function GwLineups() {
       <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14, padding: 12, border: '1px solid #ffffff1f', borderRadius: 12, background: '#0a1218e6' }}>
         <label style={lab}><input type="checkbox" checked={isOnly} onChange={e => setIsOnly(e.target.checked)} /> Compo In-Season (4 IS + 1 classic max)</label>
         <label style={lab}><input type="checkbox" checked={noInj} onChange={e => setNoInj(e.target.checked)} /> Exclure les blessés</label>
-        <label style={lab}>Max par équipe <select value={perTeam} onChange={e => setPerTeam(Number(e.target.value))} style={inp}><option value={1}>1</option><option value={2}>2</option><option value={3}>3</option></select></label>
         <label style={lab}>Compte <input value={pseudo} onChange={e => setPseudo(e.target.value)} onKeyDown={e => e.key === 'Enter' && fxSlug && loadCol(pseudo, fxSlug)} style={{ ...inp, width: 160 }} /></label>
         <button onClick={() => fxSlug && loadCol(pseudo, fxSlug)} style={{ ...inp, cursor: 'pointer', borderColor: '#19d3e6' }}>Recharger</button>
       </div>

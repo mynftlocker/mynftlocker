@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getGw, marketPics } from '../../lib/gwData';
-import { best, vary, BONUS_IS, CAPS, type Cand } from '../../lib/gwLineup';
+import { best, vary, BONUS_IS, CAPS, MAX_PER_TEAM, type Cand } from '../../lib/gwLineup';
 import StarBg from '../outils/gw/StarBg';
 import { GwRow } from '../outils/gw/GwCard';
 
@@ -18,7 +18,7 @@ export default async function Page() {
   try {
     const gw = await getGw();
     const ok = gw.players.filter(p => !(p.inj && p.inj !== 'GTD') && p.games > 0);
-    const mk = (cap: number): Cand[] => best(ok.map(p => ({ id: p.slug, p, v: p.proj * BONUS_IS * (p.inj === 'GTD' ? 0.88 : 1), cost: Math.round(p.stars * 2), pw: BONUS_IS, is: true, pic: p.pic, real: false })), cap * 2, 1);
+    const mk = (cap: number): Cand[] => best(ok.map(p => ({ id: p.slug, p, v: p.proj * BONUS_IS * (p.inj === 'GTD' ? 0.88 : 1), cost: Math.round(p.stars * 2), pw: BONUS_IS, is: true, pic: p.pic, real: false })), cap * 2, MAX_PER_TEAM);
     const lc = mk(CAPS.champ), lk = mk(CAPS.cont);
     const pics = await marketPics([...new Set([...lc, ...lk].map(c => c.p.slug))]);
     const withPic = (s: Cand[]) => vary(s, pics);
@@ -48,7 +48,7 @@ export default async function Page() {
         <p style={{ margin: '0 0 12px', fontSize: 15 }}>Projections Sorare, blessures, calendrier : myNFTlocker construit la meilleure compo pour toi.</p>
         <Link href="/" style={{ display: 'inline-block', background: '#19d3e6', color: '#001', fontWeight: 800, padding: '10px 20px', borderRadius: 10, textDecoration: 'none' }}>Découvrir myNFTlocker</Link>
       </section>
-      <p style={{ color: '#789', fontSize: 11.5, marginTop: 14 }}>Valeur affichée = projection Sorare de la GW × bonus In-Season de +5 %. Un joueur par équipe, blessés exclus.</p>
+      <p style={{ color: '#789', fontSize: 11.5, marginTop: 14 }}>Valeur affichée = projection Sorare de la GW × bonus In-Season de +5 %. Maximum 4 joueurs par équipe, blessés exclus.</p>
     </main>
     </div>
   );
