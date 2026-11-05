@@ -21,13 +21,13 @@ const ddmm = (d: string) => d.slice(8) + '/' + d.slice(5, 7);
 // Scores TTFL match par match (barres) avec la projection de la nuit et la moyenne en reperes.
 function Bars({ r }: { r: R }) {
   const g = r.g.slice(-20); const W = 640, H = 200, L = 30, B = 22, T = 14; const hi = Math.max(10, ...g.map(x => x[1]), r.est) + 4; const lo = Math.min(0, ...g.map(x => x[1]));
-  const bw = (W - L - 8) / Math.max(g.length, 1); const y = (v: number) => T + (1 - (v - lo) / (hi - lo)) * (H - T - B); const a = avg(r, 0);
+  const bw = Math.min(46, (W - L - 8) / Math.max(g.length, 1)); const y = (v: number) => T + (1 - (v - lo) / (hi - lo)) * (H - T - B); const a = avg(r, 0);
   return (
     <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block' }} role="img" aria-label={`Scores TTFL de ${r.name}`}>
       <line x1={L} x2={W - 8} y1={y(0)} y2={y(0)} stroke={c.line} />
-      {g.map((x, i) => <g key={x[0]}><rect x={L + i * bw + 3} y={Math.min(y(x[1]), y(0))} width={Math.max(bw - 6, 2)} height={Math.abs(y(x[1]) - y(0))} rx="3" fill={x[1] >= r.est ? c.cy : 'rgba(0,255,255,.35)'} /><text x={L + i * bw + bw / 2} y={y(Math.max(x[1], 0)) - 4} fill="#fff" fontSize="10" textAnchor="middle">{x[1]}</text><text x={L + i * bw + bw / 2} y={H - 6} fill={c.dim} fontSize="9" textAnchor="middle">{ddmm(x[0])}</text></g>)}
-      <line x1={L} x2={W - 8} y1={y(r.est)} y2={y(r.est)} stroke={c.gold} strokeDasharray="5 4" /><text x={L + 2} y={y(r.est) - 4} fill={c.gold} fontSize="11">Projection {r.est.toFixed(1)}</text>
-      {a != null && <><line x1={L} x2={W - 8} y1={y(a)} y2={y(a)} stroke="rgba(255,255,255,.5)" strokeDasharray="2 4" /><text x={W - 10} y={y(a) - 4} fill="rgba(255,255,255,.7)" fontSize="11" textAnchor="end">Moyenne {a.toFixed(1)}</text></>}
+      {g.map((x, i) => <g key={x[0]}><rect x={L + i * bw + 3} y={Math.min(y(x[1]), y(0))} width={Math.max(bw - 6, 2)} height={Math.abs(y(x[1]) - y(0))} rx="3" fill={x[1] >= r.est ? c.cy : 'rgba(0,255,255,.4)'} /><text x={L + i * bw + bw / 2} y={y(Math.max(x[1], 0)) - 4} fill="#fff" fontSize="10" textAnchor="middle">{x[1]}</text><text x={L + i * bw + bw / 2} y={H - 6} fill={c.dim} fontSize="9" textAnchor="middle">{ddmm(x[0])}</text></g>)}
+      <line x1={L} x2={W - 8} y1={y(r.est)} y2={y(r.est)} stroke={c.gold} strokeDasharray="5 4" /><text x={W - 10} y={y(r.est) + 14} fill={c.gold} textAnchor="end" fontSize="11" stroke="#050818" strokeWidth="3" paintOrder="stroke">Projection {r.est.toFixed(1)}</text>
+      {a != null && <><line x1={L} x2={W - 8} y1={y(a)} y2={y(a)} stroke="rgba(255,255,255,.5)" strokeDasharray="2 4" /><text x={W - 10} y={y(a) - 4} fill="rgba(255,255,255,.7)" fontSize="11" textAnchor="end" stroke="#050818" strokeWidth="3" paintOrder="stroke">Moyenne {a.toFixed(1)}</text></>}
     </svg>
   );
 }
