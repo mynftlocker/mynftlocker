@@ -89,6 +89,7 @@ export default function PlayerSheet({ slug }: { slug: string }) {
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 16 }}>
             {tile('Moy. 5 matchs', fx(S!.avg.l5.ttfl), `${S!.avg.l5.n} match(s)`, c.cy)}{tile('Moy. 10 matchs', fx(S!.avg.l10.ttfl), `${S!.avg.l10.n} match(s)`, c.cy)}{tile(cur === 'all' ? 'Moy. période' : 'Moy. saison', fx(S!.avg.season.ttfl), `${S!.avg.season.n} match(s)`)}
             {tile('Score max', S!.best ? String(S!.best.t) : '–', S!.best ? `vs ${S!.best.opp} · ${ddmm(S!.best.d)}` : undefined, '#4ade80')}{tile('Score min', S!.worst ? String(S!.worst.t) : '–', S!.worst ? `vs ${S!.worst.opp} · ${ddmm(S!.worst.d)}` : undefined, '#ff7b7b')}
+            {(() => { const m = S!.avg.season.ttfl; const k = m == null ? 0 : recent.filter(g => g.t > m).length; return tile('Au-dessus de sa moyenne', recent.length ? Math.round(100 * k / recent.length) + ' %' : '–', recent.length ? `${k} match${k > 1 ? 's' : ''} sur ${recent.length} > ${fx(m)}` : undefined, c.gold); })()}
             {tile('Régularité', S!.sd == null ? '–' : '±' + S!.sd, 'écart-type des scores')}
           </div>
 
