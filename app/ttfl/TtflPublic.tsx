@@ -127,12 +127,12 @@ export default function TtflPublic() {
           {top.length > 0 && !q && (
             <div style={narrow ? { display: 'flex', gap: 8, marginBottom: 12, overflowX: 'auto', paddingBottom: 4, scrollbarWidth: 'none' } : { display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(170px,1fr))', gap: 10, marginBottom: 18 }}>
               {top.map((r, i) => (
-                <div key={r.name} style={{ background: c.card, border: `1px solid ${i === 0 ? c.cy : c.line}`, borderRadius: 14, padding: narrow ? 10 : 14, backdropFilter: 'blur(6px)', ...(narrow ? { flex: '0 0 150px' } : {}) }}>
+                <a key={r.name} href={`/ttfl/joueur/${r.slug || 'n-' + r.name.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`} style={{ display: 'block', color: '#fff', textDecoration: 'none', background: c.card, border: `1px solid ${c.line}`, borderRadius: 14, padding: narrow ? 10 : 14, backdropFilter: 'blur(6px)', ...(narrow ? { flex: '0 0 150px' } : {}) }}>
                   <div style={{ fontSize: 12, color: c.dim }}>#{i + 1} · {r.team}</div>
                   <div style={{ fontWeight: 700, margin: '4px 0 8px' }}>{r.name}{r.status === 'GTD' && badge('GTD', 'GTD')}</div>
                   <div style={{ fontSize: 30, fontWeight: 800, color: c.cy, lineHeight: 1 }}>{r.est.toFixed(1)}</div>
                   <div style={{ fontSize: 12, color: c.dim, marginTop: 6 }}>{r.home ? 'vs' : '@'} {r.opp} · {r.time}</div>
-                </div>
+                </a>
               ))}
             </div>
           )}

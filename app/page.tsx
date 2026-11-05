@@ -906,6 +906,7 @@ export default function Home() {
               @keyframes packGlint{0%,62%{transform:translateX(-200%);opacity:0}72%{opacity:1}88%{transform:translateX(250%);opacity:0}100%{opacity:0}}
               @keyframes packHover{0%,100%{transform:translateY(-3px)scale(1.05)rotate(-0.2deg)}50%{transform:translateY(-20px)scale(1.05)rotate(0.2deg)}}
               @keyframes scannerLaser{from{stroke-dashoffset:0}to{stroke-dashoffset:-1000}}
+              @keyframes goldGlow{0%,100%{box-shadow:0 0 10px rgba(245,215,110,0.25);filter:brightness(1)}50%{box-shadow:0 0 26px rgba(245,215,110,0.6);filter:brightness(1.18)}}
               @keyframes cyanPulse{0%,100%{opacity:0.6;text-shadow:0 0 10px rgba(0,255,255,0.3)}50%{opacity:1;text-shadow:0 0 25px rgba(0,255,255,1),0 0 50px rgba(0,255,255,0.5)}}
               @keyframes introFlash{0%{opacity:0;background:rgb(1,3,10)}20%{opacity:1}80%{opacity:1}100%{opacity:0}}
               @keyframes introInputGlow{0%,100%{box-shadow:0 1px 0 rgba(64,232,255,0.3)}50%{box-shadow:0 2px 18px rgba(64,232,255,0.55)}}
@@ -974,13 +975,13 @@ export default function Home() {
                 {error&&<p style={{color:'#fca5a5',fontSize:'0.7rem',marginTop:'1rem',fontFamily:'Courier New,monospace'}}>{error}</p>}
                 {currentUser&&(
                   <>
-                    <span onClick={()=>{if(loading)return;setSlug('memejacquet1998');setJustLoggedIn(true);}} style={{marginTop:'1.1rem',color:'#f5d76e',cursor:loading?'default':'pointer',fontFamily:'Courier New,monospace',fontSize:'0.62rem',letterSpacing:'0.16em',textTransform:'uppercase',textShadow:'0 0 10px rgba(245,215,110,0.35)'}}>{'▶ '+tr('Voir une démo')}</span>
+                    <button className='intro-btn' onClick={()=>{if(loading)return;setSlug('memejacquet1998');setJustLoggedIn(true);}} disabled={loading} style={{marginTop:'1.2rem',background:'linear-gradient(135deg,rgba(245,215,110,0.22),rgba(245,215,110,0.08))',border:'1px solid rgba(245,215,110,0.85)',color:'#f5d76e',padding:'0.6rem 2rem',fontSize:'0.72rem',fontWeight:700,letterSpacing:'0.2em',textTransform:'uppercase',cursor:loading?'default':'pointer',fontFamily:'Courier New,monospace',clipPath:'polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px)',animation:'goldGlow 2.4s ease-in-out infinite'}}>{'▶ '+tr('Voir une démo')}</button>
                     <span onClick={handleLogout} style={{marginTop:'0.9rem',color:'#40e8ff',cursor:'pointer',fontFamily:'Courier New,monospace',fontSize:'0.6rem',letterSpacing:'0.14em',textTransform:'uppercase',borderBottom:'1px solid rgba(64,232,255,0.45)',paddingBottom:'1px'}}>{tr('Se déconnecter')}</span>
                   </>
                 )}
                 {!currentUser&&(
                   <>
-                    <span onClick={()=>{if(loading)return;setSlug('memejacquet1998');setJustLoggedIn(true);}} style={{marginTop:'1.1rem',color:'#f5d76e',cursor:loading?'default':'pointer',fontFamily:'Courier New,monospace',fontSize:'0.62rem',letterSpacing:'0.16em',textTransform:'uppercase',textShadow:'0 0 10px rgba(245,215,110,0.35)'}}>{'▶ '+tr('Voir une démo')}</span>
+                    <button className='intro-btn' onClick={()=>{if(loading)return;setSlug('memejacquet1998');setJustLoggedIn(true);}} disabled={loading} style={{marginTop:'1.2rem',background:'linear-gradient(135deg,rgba(245,215,110,0.22),rgba(245,215,110,0.08))',border:'1px solid rgba(245,215,110,0.85)',color:'#f5d76e',padding:'0.6rem 2rem',fontSize:'0.72rem',fontWeight:700,letterSpacing:'0.2em',textTransform:'uppercase',cursor:loading?'default':'pointer',fontFamily:'Courier New,monospace',clipPath:'polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px)',animation:'goldGlow 2.4s ease-in-out infinite'}}>{'▶ '+tr('Voir une démo')}</button>
                     <div style={{display:'flex',alignItems:'center',gap:'0.8rem',marginTop:'0.9rem',fontFamily:'Courier New,monospace',fontSize:'0.6rem',letterSpacing:'0.14em'}}>
                       <span onClick={()=>{setAuthMode('login');setAuthOpen(true);}} style={{color:'#40e8ff',cursor:'pointer',textTransform:'uppercase',borderBottom:'1px solid rgba(64,232,255,0.45)',paddingBottom:'1px'}}>{tr('Connexion')}</span>
                       <span style={{color:'rgba(207,228,251,0.25)'}}>|</span>
@@ -1044,7 +1045,7 @@ export default function Home() {
               {quick.length>0&&(<div style={{display:'flex',flexWrap:'wrap' as const,gap:'0.4rem',justifyContent:'center',marginTop:'0.7rem'}}>{quick.map(chip)}</div>)}
               {/* Liens discrets */}
               <div style={{display:'flex',gap:'1.4rem',marginTop:'0.9rem',alignItems:'center',justifyContent:'center'}}>
-                <span onClick={()=>{setHomeOpen(false);openManager('memejacquet1998');}} style={{...link,color:'#f5d76e'}}>{'▶ '+tr('Voir une démo')}</span>
+                <button className='home-btn' onClick={()=>{setHomeOpen(false);openManager('memejacquet1998');}} style={{...mono,background:'linear-gradient(135deg,rgba(245,215,110,0.22),rgba(245,215,110,0.08))',border:'1px solid rgba(245,215,110,0.85)',color:'#f5d76e',padding:'0.45rem 1.1rem',fontSize:'0.68rem',fontWeight:700,letterSpacing:'0.16em',cursor:'pointer',animation:'goldGlow 2.4s ease-in-out infinite'}}>{'▶ '+tr('Voir une démo')}</button>
                 {currentUser?(<span onClick={async()=>{await handleLogout();fullReset();}} style={{...link,color:'rgba(64,232,255,0.8)'}}>{tr('Se déconnecter')}</span>):(<span onClick={()=>{setAuthMode('login');setAuthOpen(true);}} style={{...link,color:'rgba(64,232,255,0.8)'}}>{tr('Connexion')}</span>)}
               </div>
             </div>
