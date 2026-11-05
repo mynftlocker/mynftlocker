@@ -5,6 +5,7 @@ import { getJson, ymdLocal } from './ttfl';
 const ESPN = 'https://site.api.espn.com/apis/site/v2/sports/basketball/nba';
 export const START = '2026-10-20';
 export type FullRow = { id: string; n: string; tm: string; opp: string; home: boolean; gid: string; d: string; m: number; t: number; pts: number; reb: number; ast: number; stl: number; blk: number; to: number; fgm: number; fga: number; tpm: number; tpa: number; ftm: number; fta: number };
+export const NBA_TEAMS = new Set('ATL BOS BKN CHA CHI CLE DAL DEN DET GS GSW HOU IND LAC LAL MEM MIA MIL MIN NO NOP NY NYK OKC ORL PHI PHX POR SAC SA SAS TOR UTA UTAH WAS WSH'.split(' '));
 const pair = (v: any): [number, number] => { const m = String(v ?? '').match(/^(\d+)-(\d+)$/); return m ? [+m[1], +m[2]] : [0, 0]; };
 
 export async function getDayFull(date: string): Promise<FullRow[] | null> {
@@ -18,6 +19,7 @@ export async function getDayFull(date: string): Promise<FullRow[] | null> {
   await Promise.all(events.map(async e => {
     const cs: any[] = e.competitions?.[0]?.competitors || [];
     const home = cs.find(c => c.homeAway === 'home')?.team?.abbreviation, away = cs.find(c => c.homeAway === 'away')?.team?.abbreviation;
+    if (!NBA_TEAMS.has(home) || !NBA_TEAMS.has(away)) return; // All-Star & co : pas de vrais matchs
     let sum: any = null;
     for (let i = 0; i < 3 && !sum; i++) sum = await getJson(`${ESPN}/summary?event=${e.id}`, 3600).catch(() => null);
     if (!sum) throw new Error('summary ' + e.id); // jour incomplet : non mis en cache, reessaye au prochain appel
