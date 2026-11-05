@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 
-type Row = { name: string; team: string; status: 'OUT' | 'GTD' | 'PROB'; until: string | null; untilKind: 'return' | 'reeval' | null; detail: string; src: string; updated: string };
+type Row = { name: string; team: string; status: 'OUT' | 'GTD' | 'DOUBT' | 'PROB'; until: string | null; untilKind: 'return' | 'reeval' | null; detail: string; src: string; updated: string };
 const SRC: Record<string, string> = { espn: 'ESPN', rotowire: 'Rotowire', underdog: 'Underdog NBA', manual: 'Manuel' };
 const fmt = (iso: string) => (iso ? new Date(iso).toLocaleString('fr-FR', { timeZone: 'Europe/Paris', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '–');
 

@@ -13,9 +13,10 @@ const defaultNight = () => { const h = Number(new Intl.DateTimeFormat('en-GB', {
 const lbl = (day: string, en = false) => new Date(day + 'T12:00:00Z').toLocaleDateString(en ? 'en-GB' : 'fr-FR', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
 const dm = (d: string) => d.slice(5).split('-').reverse().join('/');
 
-type R = { name: string; team: string; opp: string; home: boolean; time: string; est: number; estFull?: number | null; proj: number; l10: number | null; n: number; last: number | null; gp: number; tg: number; g: [string, number, number, string?, boolean?, boolean?][]; slug: string; status: 'OUT' | 'GTD' | null; until: string | null };
-type I = { name: string; team: string; status: 'OUT' | 'GTD' | 'PROB'; until: string | null; untilKind: 'return' | 'reeval' | null; src: string; updated: string; l10: number | null; n: number };
+type R = { name: string; team: string; opp: string; home: boolean; time: string; est: number; estFull?: number | null; proj: number; l10: number | null; n: number; last: number | null; gp: number; tg: number; g: [string, number, number, string?, boolean?, boolean?][]; slug: string; status: 'OUT' | 'GTD' | 'DOUBT' | 'PROB' | null; until: string | null };
+type I = { name: string; team: string; status: 'OUT' | 'GTD' | 'DOUBT' | 'PROB'; until: string | null; untilKind: 'return' | 'reeval' | null; src: string; updated: string; l10: number | null; n: number };
 const fam = (n: string) => { const w = n.replace(/\s+(Jr\.?|Sr\.?|II|III|IV)$/i, '').split(' '); return norm(w[w.length - 1]); };
+const SL: Record<string, string> = { OUT: 'OUT', GTD: 'GTD', DOUBT: 'DOUBTFUL', PROB: 'PROBABLE' };
 type IK = 'status' | 'name' | 'team' | 'until' | 'l10';
 type SK = 'name' | 'match' | 'est' | 'l10' | 'reg' | 'last' | 'pres';
 type W = 5 | 10 | 0;
@@ -95,7 +96,7 @@ export default function TtflPublic() {
   const itoggle = (k: IK) => setIsort(s => s.k === k ? { k, dir: (s.dir * -1) as 1 | -1 } : { k, dir: k === 'l10' ? -1 : 1 });
 
   const btn = (on = false): React.CSSProperties => ({ background: c.card, border: `1px solid ${on ? c.cy : c.line}`, color: on ? c.cy : '#fff', borderRadius: 10, padding: '8px 14px', cursor: 'pointer', fontSize: 14 });
-  const badge = (s: 'OUT' | 'GTD' | 'PROB', t: string) => <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 700, padding: '2px 7px', borderRadius: 999, background: s === 'OUT' ? 'rgba(255,90,90,.18)' : 'rgba(229,185,78,.18)', color: s === 'OUT' ? '#ff7b7b' : c.gold }}>{t}</span>;
+  const badge = (s: 'OUT' | 'GTD' | 'DOUBT' | 'PROB', t: string) => <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 700, padding: '2px 7px', borderRadius: 999, background: s === 'OUT' ? 'rgba(255,90,90,.18)' : s === 'PROB' ? 'rgba(74,222,128,.16)' : 'rgba(229,185,78,.18)', color: s === 'OUT' ? '#ff7b7b' : s === 'PROB' ? '#4ade80' : s === 'DOUBT' ? '#ff9f43' : c.gold }}>{t}</span>;
 
   return (
     <main style={{ minHeight: '100vh', color: '#fff', fontFamily: 'system-ui,sans-serif', padding: narrow ? '16px 12px 50px' : '28px 16px 60px', position: 'relative' }}>
@@ -138,7 +139,7 @@ export default function TtflPublic() {
               {top.map((r, i) => (
                 <a key={r.name} href={`/ttfl/joueur/${r.slug || 'n-' + r.name.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`} style={{ display: 'block', color: '#fff', textDecoration: 'none', background: c.card, border: `1px solid ${c.line}`, borderRadius: 14, padding: narrow ? 10 : 14, backdropFilter: 'blur(6px)', ...(narrow ? { flex: '0 0 150px' } : {}) }}>
                   <div style={{ fontSize: 12, color: c.dim }}>#{i + 1} · {r.team}</div>
-                  <div style={{ fontWeight: 700, margin: '4px 0 8px' }}>{r.name}{r.status === 'GTD' && badge('GTD', 'GTD')}</div>
+                  <div style={{ fontWeight: 700, margin: '4px 0 8px' }}>{r.name}{r.status && r.status !== 'OUT' && badge(r.status, SL[r.status])}</div>
                   <div style={{ fontSize: 30, fontWeight: 800, color: c.cy, lineHeight: 1 }}>{r.est.toFixed(1)}</div>
                   <div style={{ fontSize: 12, color: c.dim, marginTop: 6 }}>{r.home ? 'vs' : '@'} {r.opp} · {r.time}</div>
                 </a>
@@ -160,9 +161,9 @@ export default function TtflPublic() {
                 <tbody>{list.map(r => { const a = avg(r, win), trd = trend(r), o = open === r.name; return [
                   <tr key={r.name} onClick={() => openRow(r)} style={{ borderTop: `1px solid ${c.line}`, opacity: r.status === 'OUT' ? 0.45 : 1, cursor: 'pointer', background: o ? 'rgba(0,255,255,.07)' : 'transparent' }}>
                     <td style={{ padding: pd, color: c.dim }}>{rank[r.name]}</td>
-                    <td style={{ padding: pd, whiteSpace: narrow ? 'normal' : 'nowrap' }}>{r.name}{r.status && badge(r.status, r.status === 'OUT' && r.until ? `OUT → ${dm(r.until)}` : r.status)}{narrow && <div style={{ fontSize: 11, color: c.dim }}>{r.home ? 'vs' : '@'} {r.opp.split(' ').pop()} · {r.time}{r.tg && r.gp < r.tg - 1 ? <span style={{ color: '#ff9f43' }}> · {r.gp}/{r.tg} {tr('matchs')}</span> : null}</div>}</td>
+                    <td style={{ padding: pd, whiteSpace: narrow ? 'normal' : 'nowrap' }}>{r.name}{r.status && badge(r.status, r.status === 'OUT' && r.until ? `OUT → ${dm(r.until)}` : SL[r.status])}{narrow && <div style={{ fontSize: 11, color: c.dim }}>{r.home ? 'vs' : '@'} {r.opp.split(' ').pop()} · {r.time}{r.tg && r.gp < r.tg - 1 ? <span style={{ color: '#ff9f43' }}> · {r.gp}/{r.tg} {tr('matchs')}</span> : null}</div>}</td>
                     {!narrow && <td style={{ padding: pd, color: c.dim, whiteSpace: 'nowrap' }}>{r.home ? 'vs' : '@'} {r.opp} · {r.time}</td>}
-                    <td style={{ padding: pd, textAlign: 'right', color: r.status === 'OUT' ? c.dim : heat(r.est, eLo, eHi), fontWeight: 700 }}>{r.status === 'OUT' ? '–' : r.est.toFixed(1)}{r.status === 'GTD' && r.estFull != null && <div title={tr('Les GTD ont un malus de 12 % sur la projection. Valeur affichée en dessous : projection réelle s’il joue.')} style={{ fontSize: 11, fontWeight: 600, color: '#e5c07b', whiteSpace: 'nowrap', textAlign: 'right' }}>↑ {r.estFull.toFixed(1)}</div>}</td>
+                    <td style={{ padding: pd, textAlign: 'right', color: r.status === 'OUT' ? c.dim : heat(r.est, eLo, eHi), fontWeight: 700 }}>{r.status === 'OUT' ? '–' : r.est.toFixed(1)}{(r.status === 'GTD' || r.status === 'DOUBT') && r.estFull != null && <div title={tr('Les GTD ont un malus de 12 % sur la projection. Valeur affichée en dessous : projection réelle s’il joue.')} style={{ fontSize: 11, fontWeight: 600, color: '#e5c07b', whiteSpace: 'nowrap', textAlign: 'right' }}>↑ {r.estFull.toFixed(1)}</div>}</td>
                     <td style={{ padding: pd, textAlign: 'right', color: heat(a, lLo, lHi) }}>{a == null ? '–' : a.toFixed(1)}{trd !== 0 && <span title={trd > 0 ? tr('En hausse (5 derniers vs 10)') : tr('En baisse (5 derniers vs 10)')} style={{ marginLeft: 4, fontSize: 10, color: trd > 0 ? '#4ade80' : '#ff7b7b' }}>{trd > 0 ? '▲' : '▼'}</span>}</td>
                     {(() => { const q = reg(r, win); const m = avg(r, win); const gw = (win ? r.g.slice(-win) : r.g).map(x => x[1]); const lo = q && m != null ? Math.max(0, Math.round(m - q.sd)) : 0, hi = q && m != null ? Math.round(m + q.sd) : 0; const pc = gw.length ? Math.round(100 * gw.filter(v => v >= lo && v <= hi).length / gw.length) : 0; const lab = !q ? null : q.cv < 0.25 ? [tr('Très régulier'), '#4ade80'] : q.cv < 0.35 ? [tr('Régulier'), '#a3e635'] : q.cv < 0.45 ? [tr('Moyen'), '#e5b94e'] : [tr('Irrégulier'), '#ff9f43']; return <td title={q && m != null ? `${en ? 'Usually scores between' : 'Il score le plus souvent entre'} ${lo} ${tr(' et ').trim()} ${hi} (${pc} % ${tr('des matchs')})` : tr('pas assez de matchs')} style={{ padding: pd, textAlign: 'right', whiteSpace: 'nowrap', color: lab ? lab[1] : c.dim }}>{lab ? lab[0] : '–'}</td>; })()}
                     {!narrow && <td style={{ padding: pd, textAlign: 'right' }}>{r.last ?? '–'}</td>}
@@ -179,7 +180,7 @@ export default function TtflPublic() {
               </table>
             </div>
           )}
-          <p style={{ color: c.dim, fontSize: 12, marginTop: 14, lineHeight: 1.5 }}>{tr('Projection myNFTlocker = score TTFL attendu, calculé depuis la projection Sorare lissée avec la forme récente (les joueurs GTD subissent un malus de 12 % ; leur projection réelle s’ils jouent est indiquée en dessous, précédée de ↑, en doré). Calibrage en cours sur les scores réels. « Présence » = matchs joués / matchs de l’équipe cette saison. Heures de Paris.')}</p>
+          <p style={{ color: c.dim, fontSize: 12, marginTop: 14, lineHeight: 1.5 }}>{tr('Projection myNFTlocker = score TTFL attendu, calculé depuis la projection Sorare lissée avec la forme récente (statuts de l’injury report officiel NBA : les joueurs GTD / Doubtful subissent un malus de 12 %, les Probable aucun ; leur projection réelle s’ils jouent est indiquée en dessous, précédée de ↑, en doré). Calibrage en cours sur les scores réels. « Présence » = matchs joués / matchs de l’équipe cette saison. Heures de Paris.')}</p>
         </>}
 
         {view === 'live' && <LiveTab night={night} proj={projMap} slugs={slugMap} initialGame={initGame && (initGame.n === night || !initGame.n) ? initGame.g : null} onSelect={setSelGame} />}
@@ -193,7 +194,7 @@ export default function TtflPublic() {
                 <tr key={r.name} style={{ borderTop: `1px solid ${c.line}` }}>
                   <td style={{ padding: pd }}>{(() => { const sl = rows?.find(x => norm(x.name) === norm(r.name))?.slug || 'n-' + r.name.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''); return <a href={`/ttfl/joueur/${sl}`} style={{ color: '#fff', textDecoration: 'none', borderBottom: `1px dashed ${c.cy}` }}>{r.name} →</a>; })()}{narrow && <div style={{ fontSize: 11, color: c.dim }}>{r.team || '–'}</div>}</td>
                   {!narrow && <td style={{ padding: pd, color: c.dim }}>{r.team || '–'}</td>}
-                  <td style={{ padding: pd, color: r.status === 'OUT' ? '#ff7b7b' : c.gold, fontWeight: 700 }}>{r.status}</td>
+                  <td style={{ padding: pd, color: r.status === 'OUT' ? '#ff7b7b' : r.status === 'PROB' ? '#4ade80' : r.status === 'DOUBT' ? '#ff9f43' : c.gold, fontWeight: 700 }}>{SL[r.status]}</td>
                   <td style={{ padding: pd }}>{r.until ? `${dm(r.until)} (${r.untilKind === 'reeval' ? tr('réévaluation') : tr('retour')})` : '–'}</td>
                   <td style={{ padding: pd, textAlign: 'right' }}>{r.l10 == null ? '–' : r.l10.toFixed(1)}</td>
                 </tr>))}</tbody>
