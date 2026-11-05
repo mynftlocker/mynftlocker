@@ -115,7 +115,7 @@ export default function GwLineups() {
       <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14, padding: 12, border: '1px solid #ffffff1f', borderRadius: 12, background: '#0a1218e6' }}>
         <label style={lab}><input type="checkbox" checked={isOnly} onChange={e => setIsOnly(e.target.checked)} /> Compo In-Season (4 IS + 1 classic max)</label>
         <label style={lab}><input type="checkbox" checked={noInj} onChange={e => setNoInj(e.target.checked)} /> Exclure les blessés</label>
-        <label style={lab}>Max par équipe <select value={perTeam} onChange={e => setPerTeam(Number(e.target.value))} style={inp}><option value={1}>1</option><option value={2}>2</option><option value={3}>3</option></select></label>
+        <label style={lab}>Max par équipe <select value={perTeam} onChange={e => setPerTeam(Number(e.target.value))} style={inp}><option value={1}>1</option><option value={2}>2</option><option value={3}>3</option><option value={4}>4 (règle Sorare)</option></select></label>
         <label style={lab}>Compte <input value={pseudo} onChange={e => setPseudo(e.target.value)} onKeyDown={e => e.key === 'Enter' && fxSlug && loadCol(pseudo, fxSlug)} style={{ ...inp, width: 160 }} /></label>
         <button onClick={() => fxSlug && loadCol(pseudo, fxSlug)} style={{ ...inp, cursor: 'pointer', borderColor: '#19d3e6' }}>Recharger</button>
       </div>
