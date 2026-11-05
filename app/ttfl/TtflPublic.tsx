@@ -81,11 +81,16 @@ export default function TtflPublic() {
     <main style={{ minHeight: '100vh', color: '#fff', fontFamily: 'system-ui,sans-serif', padding: '28px 16px 60px', position: 'relative' }}>
       <StarBg />
       <div style={{ maxWidth: 1000, margin: '0 auto', position: 'relative' }}>
-        <a href="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
-          <span style={{ fontSize: 26, fontWeight: 800, letterSpacing: '.02em', color: '#fff' }}>my<span style={{ color: c.cy }}>NFT</span>locker</span>
-        </a>
-        <h1 style={{ fontSize: 'clamp(26px,5vw,42px)', margin: '10px 0 4px', letterSpacing: '.01em' }}>Remplis ton deck de <span style={{ color: c.cy }}>best picks</span> TTFL</h1>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20, flexWrap: 'wrap' }}>
+          <div style={{ flex: '1 1 420px', minWidth: 0 }}>
+        <h1 style={{ fontSize: 'clamp(26px,5vw,42px)', margin: '0 0 4px', letterSpacing: '.01em' }}>Remplis ton deck de <span style={{ color: c.cy }}>best picks</span> TTFL</h1>
         <p style={{ color: c.dim, margin: '0 0 18px', maxWidth: 700, lineHeight: 1.5, fontSize: 15 }}>Les <b style={{ color: '#fff' }}>projections myNFTlocker</b> : le score TTFL attendu de chaque joueur NBA pour la nuit, selon la forme, le match, les blessures et les retours. Mises à jour en continu.</p>
+          </div>
+          <a href="/" title="Retour à l'accueil myNFTlocker" style={{ flex: '0 0 auto', margin: '0 auto' }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo-pack.png" alt="myNFTlocker" style={{ height: 'clamp(84px,18vw,170px)', width: 'auto', display: 'block', filter: 'drop-shadow(0 8px 22px rgba(0,255,255,.25))' }} />
+          </a>
+        </div>
 
         <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
           <button style={btn(view === 'night')} onClick={() => setView('night')}>Projections de la nuit</button>
