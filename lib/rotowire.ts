@@ -44,9 +44,9 @@ export function toState(it: RwItem, today: string): RwState | null {
     const m = t.match(/(\d+|one|two|three|four|five|six|seven|ten)\s*(days?|weeks?)/i);
     if (m) { const until = addDays(it.date, num(m[1]) * (/week/i.test(m[2]) ? 7 : 1)); if (until >= today) return { ...base, status: 'OUT', until, untilKind: 'reeval' }; }
   }
-  if (age > 2) return null; // statut d'un seul match trop ancien : on ne le garde pas
+  if (age > 1) return null; // statut d'un seul match trop ancien : on ne le garde pas
   if (/(not listed|removed from (the )?injury report|good to go|cleared to play|available|will play|expected to play|probable|upgraded)/i.test(t) && !/(out|doubtful|ruled out|won't play|will not play)/i.test(it.headline)) return { ...base, status: /probable/i.test(t) ? 'PROB' : 'OK', until: null, untilKind: null };
-  if (/(out|ruled out|won't play|will not play|sidelined|inactive|miss)/i.test(it.headline) || /(listed as out|is out|ruled out|will miss|won't play)/i.test(it.text)) return { ...base, status: 'OUT', until: addDays(it.date, 1) >= today ? addDays(it.date, 1) : null, untilKind: 'reeval' };
+  if (/(out|ruled out|won't play|will not play|sidelined|inactive|miss)/i.test(it.headline) || /(listed as out|is out|ruled out|will miss|won't play)/i.test(it.text)) return { ...base, status: 'OUT', until: addDays(it.date, 1), untilKind: 'reeval' };
   if (/(questionable|game-time decision|doubtful|iffy|downgraded|uncertain)/i.test(t)) return { ...base, status: 'GTD', until: null, untilKind: null };
   return null;
 }
