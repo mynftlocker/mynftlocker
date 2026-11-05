@@ -29,22 +29,23 @@ const fx = (v: number | null) => (v == null ? '–' : v.toFixed(1));
 
 function Bars({ g, narrow }: { g: G[]; narrow?: boolean }) {
   // Telephone : 5 bougies visibles (les plus recentes), le reste en faisant glisser vers la droite.
-  const s = g.slice(narrow ? -25 : -10); const H = 210, Lm = 8, B = 36, T = 16; const slots = narrow ? Math.max(5, s.length) : 10; const W = narrow ? Lm * 2 + slots * 96 : 640; const bw = (W - Lm * 2) / slots;
+  const s = g.slice(narrow ? -25 : -10); const H = 218, Lm = 8, B = 44, T = 16; const slots = narrow ? Math.max(8, s.length) : 10; const W = narrow ? Lm * 2 + slots * 60 : 640; const bw = (W - Lm * 2) / slots;
   const box = useRef<HTMLDivElement>(null); const [more, setMore] = useState(false); const upd = () => { const e = box.current; setMore(!!e && e.scrollLeft > 6); }; useEffect(() => { const e = box.current; if (e) { e.scrollLeft = e.scrollWidth; upd(); } }, [s.length, narrow]);
   const hi = Math.max(10, ...s.map(x => x.t)) + 4; const lo = Math.min(0, ...s.map(x => x.t)); const y = (v: number) => T + (1 - (v - lo) / (hi - lo)) * (H - T - B);
   const mean = s.length ? s.reduce((a, x) => a + x.t, 0) / s.length : 0;
   return (
     <div style={{ position: 'relative' }}>
-    {narrow && slots > 5 && more && <div aria-hidden style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 34, zIndex: 1, pointerEvents: 'none', background: 'linear-gradient(90deg, rgba(5,8,24,.95), rgba(5,8,24,0))', display: 'flex', alignItems: 'center', color: c.cy, fontSize: 22, fontWeight: 700 }}>‹</div>}
+    {narrow && slots > 8 && more && <div aria-hidden style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 34, zIndex: 1, pointerEvents: 'none', background: 'linear-gradient(90deg, rgba(5,8,24,.95), rgba(5,8,24,0))', display: 'flex', alignItems: 'center', color: c.cy, fontSize: 22, fontWeight: 700 }}>‹</div>}
     <div ref={box} onScroll={upd} style={{ overflowX: narrow ? 'auto' : 'visible', WebkitOverflowScrolling: 'touch' }}>
-    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: narrow ? `${slots / 5 * 100}%` : '100%', height: 'auto', display: 'block' }} role="img" aria-label={tr('10 derniers matchs')}>
+    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: narrow ? `${slots / 8 * 100}%` : '100%', height: 'auto', display: 'block' }} role="img" aria-label={tr('10 derniers matchs')}>
       <line x1={Lm} x2={W - Lm} y1={y(0)} y2={y(0)} stroke={c.line} />
       {s.map((x, i) => { const cx = Lm + (slots - s.length + i) * bw + bw / 2; return (
         <a key={x.gid} href={matchHref(x.d, x.gid)}><g style={{ cursor: 'pointer' }}>
           <rect x={cx - 17} y={Math.min(y(x.t), y(0))} width={34} height={Math.max(Math.abs(y(x.t) - y(0)), 2)} rx="4" fill={x.t >= mean ? c.cy : 'rgba(0,255,255,.4)'} />
           <text x={cx} y={y(Math.max(x.t, 0)) - 5} fill="#fff" fontSize="12" fontWeight="700" textAnchor="middle">{x.t}</text>
-          <text x={cx} y={H - 20} fill={c.dim} fontSize="10" textAnchor="middle">{x.home ? 'vs' : '@'} {x.opp}</text>
-          <text x={cx} y={H - 7} fill={c.dim} fontSize="9" textAnchor="middle">{ddmm(x.d)}</text>
+          <text x={cx} y={H - 30} fill={c.dim} fontSize="9.5" textAnchor="middle">{x.home ? 'vs' : '@'}{x.opp}</text>
+          <text x={cx} y={H - 19} fill={c.dim} fontSize="9" textAnchor="middle">{ddmm(x.d)}</text>
+          {x.b2b && <text x={cx} y={H - 7} fill={c.gold} fontSize="9" fontWeight="700" textAnchor="middle">b2b</text>}
         </g></a>); })}
       {s.length > 0 && <><line x1={Lm} x2={W - Lm} y1={y(mean)} y2={y(mean)} stroke="rgba(255,255,255,.5)" strokeDasharray="2 4" /><text x={W - Lm} y={y(mean) - 4} fill="rgba(255,255,255,.8)" fontSize="11" textAnchor="end" stroke="#050818" strokeWidth="3" paintOrder="stroke">{tr('Moyenne ')}{mean.toFixed(1)}</text></>}
     </svg>
