@@ -1,4 +1,4 @@
-import type { GP } from './gwLineup';
+import { best, vary, BONUS_IS, MAX_PER_TEAM, type Cand, type GP, type MCard } from './gwLineup';
 
 // Donnees publiques d'une GW NBA Sorare : joueurs (etoiles, projection, blessures, matchs) + vraie carte du marche par joueur.
 const GQL = 'https://api.sorare.com/graphql';
@@ -58,4 +58,19 @@ export async function getGw(want = '') {
   });
   const first = games.map(g => g.date as string).sort()[0] || fixture.startDate;
   return { fixture: { slug: fixture.slug, state: fixture.aasmState as string, gw: fixture.gameWeek as number, start: first, end: fixture.endDate as string, games: games.length }, players };
+}
+
+// Compo ideale du builder : 5 joueurs, cartes In-Season reelles en vente (un joueur sans carte IS en vente est ecarte), +5 % de bonus
+export async function idealLineup(players: GP[], capStars: number): Promise<Cand[]> {
+  const ok = players.filter(p => !(p.inj && p.inj !== 'GTD') && p.games > 0);
+  const pics: Record<string, MCard[]> = {}; const banned = new Set<string>();
+  for (let it = 0; it < 8; it++) {
+    const set = best(ok.filter(p => !banned.has(p.slug)).map(p => ({ id: p.slug, p, v: p.proj * BONUS_IS * (p.inj === 'GTD' ? 0.88 : 1), cost: Math.round(p.stars * 2), pw: BONUS_IS, is: true, pic: p.pic, real: false })), capStars * 2, MAX_PER_TEAM);
+    const need = set.map(c => c.p.slug).filter(s => !pics[s]);
+    if (need.length) Object.assign(pics, await marketPics(need));
+    const bad = set.filter(c => !pics[c.p.slug]?.some(x => x.is));
+    if (!bad.length) return vary(set, pics);
+    bad.forEach(c => banned.add(c.p.slug));
+  }
+  return [];
 }

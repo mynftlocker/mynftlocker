@@ -73,11 +73,12 @@ export default function GwLineups() {
   useEffect(() => { try { const p = localStorage.getItem(LSP); if (p) setPseudo(p); } catch {} }, []);
 
   const players = useMemo(() => (gw?.players || []) as GP[], [gw]);
+  const hasIs = (p: GP) => !pics[p.slug] || pics[p.slug].some(x => x.is); // pas de carte In-Season en vente : exclu du builder
   const okP = (p: GP) => !(noInj && p.inj && p.inj !== 'GTD') && p.games > 0;
   const gtd = (p: GP) => (p.inj === 'GTD' ? 0.88 : 1);
 
   // Compos ideales (toutes cartes, une par palier)
-  const idealOf = (cap: number) => best(players.filter(okP).map(p => ({ id: 'i-' + p.slug, p, v: p.proj * BONUS_IS * gtd(p), cost: Math.round(p.stars * 2), pw: BONUS_IS, is: true, pic: p.pic, real: false })), Math.round(cap * 2), perTeam);
+  const idealOf = (cap: number) => best(players.filter(p => okP(p) && hasIs(p)).map(p => ({ id: 'i-' + p.slug, p, v: p.proj * BONUS_IS * gtd(p), cost: Math.round(p.stars * 2), pw: BONUS_IS, is: true, pic: p.pic, real: false })), Math.round(cap * 2), perTeam);
   const idealChamp = useMemo(() => vary(idealOf(CAPS.champ), pics), [players, noInj, pics]); // eslint-disable-line react-hooks/exhaustive-deps
   const idealCont = useMemo(() => vary(idealOf(CAPS.cont), pics), [players, noInj, pics]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {

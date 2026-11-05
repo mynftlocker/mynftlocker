@@ -50,7 +50,7 @@ export function Slab({ c, u, art }: { c: Cand; u: (n: number) => string; art: st
             </div>
           </div>
         </div>
-        <div style={{ display: 'flex', marginTop: u(3.4), borderRadius: u(4.8), overflow: 'hidden', background: '#0b1d26', height: u(128.8) }}>
+        <div style={{ display: 'flex', marginTop: u(3.4), borderRadius: u(4.8), overflow: 'hidden', background: '#0b1d26', height: u(148.9) }}>
           {art ? <img src={art} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ display: 'flex' }} />}
         </div>
       </div>
@@ -58,11 +58,13 @@ export function Slab({ c, u, art }: { c: Cand; u: (n: number) => string; art: st
         {c.pw !== 1 && <div style={{ display: 'flex', fontSize: u(6.2), fontWeight: 700, color: '#35e6ff' }}>{`bonus +${Math.round((c.pw - 1) * 100)} %`}</div>}
         {c.p.inj && <div style={{ display: 'flex', fontSize: u(5), fontWeight: 700, padding: `${u(0.6)} ${u(3)}`, borderRadius: u(10), background: c.p.inj === 'GTD' ? '#ffd914' : '#ff2828', color: c.p.inj === 'GTD' ? '#0e0e0e' : '#fff' }}>{c.p.inj}</div>}
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: u(1.6), fontSize: u(5.2), color: '#cfd8e6', lineHeight: 1.4 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: u(1.6), fontSize: u(5.4), color: '#cfd8e6', lineHeight: 1.45 }}>
         <div style={{ display: 'flex', color: '#9ab' }}>{c.p.games} match{c.p.games > 1 ? 's' : ''}</div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center' }}>
-          {c.p.opp.map((g, i) => <div key={i} style={{ display: 'flex', marginLeft: i ? u(3) : 0 }}><span>{day(g.d)}</span><span style={{ marginLeft: u(1) }}>{`${g.h ? '' : '@'}${abbr(g.o)}`}</span>{g.pj != null && <span style={{ marginLeft: u(1), color: '#ffd24a', fontWeight: 700 }}>{Math.round(g.pj)}</span>}</div>)}
-        </div>
+        {c.p.opp.map((g, i) => (
+          <div key={i} style={{ display: 'flex' }}>
+            <span>{day(g.d)}</span><span style={{ marginLeft: u(1.6) }}>{`${g.h ? '' : '@'}${abbr(g.o)}`}</span>{g.pj != null && <span style={{ marginLeft: u(2), color: '#ffd24a', fontWeight: 700 }}>{Math.round(g.pj)}</span>}
+          </div>
+        ))}
       </div>
     </div>
   );
