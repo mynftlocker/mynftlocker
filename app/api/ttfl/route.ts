@@ -64,7 +64,7 @@ export async function GET(req: NextRequest) {
       const status: 'OUT' | 'GTD' | null = (p.inj && p.inj !== 'GTD') || tOut ? 'OUT' : p.inj === 'GTD' ? 'GTD' : null;
       return {
         name: p.name, slug: p.slug, team: p.team, opp: p.opp, home: p.home, time: p.time,
-        est: +ttflEst(p.proj, p.l5, p.l10, p.inj).toFixed(1), proj: +myProj(p.proj, p.l5, p.l10, p.inj).toFixed(1),
+        est: status === 'OUT' ? 0 : +ttflEst(p.proj, p.l5, p.l10, p.inj).toFixed(1), proj: status === 'OUT' ? 0 : +myProj(p.proj, p.l5, p.l10, p.inj).toFixed(1), // absent : pas de projection
         l10: s?.l10 ?? null, n: s?.n ?? 0, g: s?.g ?? [], last: s?.last ?? null, gp: s?.gp ?? 0, tg: s?.tg ?? 0,
         status, until: tOut ? ti.until : null,
       };
