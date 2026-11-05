@@ -13,7 +13,7 @@ const defaultNight = () => { const h = Number(new Intl.DateTimeFormat('en-GB', {
 const lbl = (day: string, en = false) => new Date(day + 'T12:00:00Z').toLocaleDateString(en ? 'en-GB' : 'fr-FR', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
 const dm = (d: string) => d.slice(5).split('-').reverse().join('/');
 
-type R = { name: string; team: string; opp: string; home: boolean; time: string; est: number; proj: number; l10: number | null; n: number; last: number | null; gp: number; tg: number; g: [string, number, number][]; slug: string; status: 'OUT' | 'GTD' | null; until: string | null };
+type R = { name: string; team: string; opp: string; home: boolean; time: string; est: number; proj: number; l10: number | null; n: number; last: number | null; gp: number; tg: number; g: [string, number, number, string?, boolean?, boolean?][]; slug: string; status: 'OUT' | 'GTD' | null; until: string | null };
 type I = { name: string; team: string; status: 'OUT' | 'GTD' | 'PROB'; until: string | null; untilKind: 'return' | 'reeval' | null; src: string; updated: string; l10: number | null; n: number };
 const fam = (n: string) => { const w = n.replace(/\s+(Jr\.?|Sr\.?|II|III|IV)$/i, '').split(' '); return norm(w[w.length - 1]); };
 type IK = 'status' | 'name' | 'team' | 'until' | 'l10';
@@ -23,15 +23,16 @@ const avg = (r: R, w: W) => { const g = w ? r.g.slice(-w) : r.g; return g.length
 // Régularité : écart-type des scores de la fenêtre et part de la moyenne (plus bas = plus fiable). Minimum 3 matchs.
 const reg = (r: R, w: W): { sd: number; cv: number } | null => { const g = (w ? r.g.slice(-w) : r.g).map(x => x[1]); if (g.length < 3) return null; const m = g.reduce((s, x) => s + x, 0) / g.length; const sd = Math.sqrt(g.reduce((s, x) => s + (x - m) ** 2, 0) / g.length); return { sd, cv: m > 0 ? sd / m : 9 }; };
 const trend = (r: R) => { const a = avg(r, 5), b = avg(r, 10); return a == null || b == null || r.g.length < 6 ? 0 : a - b >= 3 ? 1 : a - b <= -3 ? -1 : 0; };
+const seasonOf = (d: string) => { const y = +d.slice(0, 4), m = +d.slice(5, 7); return m >= 9 ? y : y - 1; };
 const ddmm = (d: string) => d.slice(8) + '/' + d.slice(5, 7);
 // Scores TTFL match par match (barres) avec la projection de la nuit et la moyenne en reperes.
-function Bars({ r }: { r: R }) {
-  const g = r.g.slice(-10); const W = 640, H = 210, L = 30, B = 22, T = 14; const hi = Math.max(10, ...g.map(x => x[1]), r.est) + 4; const lo = Math.min(0, ...g.map(x => x[1]));
-  const bw = (W - L - 8) / 10; const off = 10 - g.length; const y = (v: number) => T + (1 - (v - lo) / (hi - lo)) * (H - T - B); const a = avg(r, 0);
+function Bars({ r, a }: { r: R; a: number | null }) {
+  const g = r.g.slice(-10); const W = 640, H = 224, L = 30, B = 36, T = 14; const hi = Math.max(10, ...g.map(x => x[1]), r.est) + 4; const lo = Math.min(0, ...g.map(x => x[1]));
+  const bw = (W - L - 8) / 10; const off = 10 - g.length; const y = (v: number) => T + (1 - (v - lo) / (hi - lo)) * (H - T - B); 
   return (
     <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block' }} role="img" aria-label={tr('Scores TTFL de ') + r.name}>
       <line x1={L} x2={W - 8} y1={y(0)} y2={y(0)} stroke={c.line} />
-      {g.map((x, i) => <g key={x[0]}><rect x={L + (i + off) * bw + bw / 2 - 16} y={Math.min(y(x[1]), y(0))} width={32} height={Math.abs(y(x[1]) - y(0))} rx="3" fill={x[1] >= r.est ? c.cy : 'rgba(0,255,255,.4)'} /><text x={L + (i + off) * bw + bw / 2} y={y(Math.max(x[1], 0)) - 4} fill="#fff" fontSize="12" fontWeight="700" textAnchor="middle">{x[1]}</text><text x={L + (i + off) * bw + bw / 2} y={H - 6} fill={c.dim} fontSize="10" textAnchor="middle">{ddmm(x[0])}</text></g>)}
+      {g.map((x, i) => <g key={x[0]}><rect x={L + (i + off) * bw + bw / 2 - 16} y={Math.min(y(x[1]), y(0))} width={32} height={Math.abs(y(x[1]) - y(0))} rx="3" fill={x[1] >= r.est ? c.cy : 'rgba(0,255,255,.4)'} /><text x={L + (i + off) * bw + bw / 2} y={y(Math.max(x[1], 0)) - 4} fill="#fff" fontSize="12" fontWeight="700" textAnchor="middle">{x[1]}</text>{x[3] && <text x={L + (i + off) * bw + bw / 2} y={H - 20} fill={c.dim} fontSize="10" textAnchor="middle">{x[4] ? 'vs' : '@'} {x[3]}{x[5] ? ' · b2b' : ''}</text>}<text x={L + (i + off) * bw + bw / 2} y={H - 7} fill={c.dim} fontSize="9" textAnchor="middle">{ddmm(x[0])}</text></g>)}
       <line x1={L} x2={W - 8} y1={y(r.est)} y2={y(r.est)} stroke={c.gold} strokeDasharray="5 4" /><text x={W - 10} y={y(r.est) + 14} fill={c.gold} textAnchor="end" fontSize="11" stroke="#050818" strokeWidth="3" paintOrder="stroke">{tr('Projection')} {r.est.toFixed(1)}</text>
       {a != null && <><line x1={L} x2={W - 8} y1={y(a)} y2={y(a)} stroke="rgba(255,255,255,.5)" strokeDasharray="2 4" /><text x={W - 10} y={y(a) - 4} fill="rgba(255,255,255,.7)" fontSize="11" textAnchor="end" stroke="#050818" strokeWidth="3" paintOrder="stroke">{tr('Moyenne ')}{a.toFixed(1)}</text></>}
     </svg>
@@ -53,9 +54,9 @@ export default function TtflPublic() {
   const [isort, setIsort] = useState<{ k: IK; dir: 1 | -1 }>({ k: 'status', dir: 1 });
   const [win, setWin] = useState<W>(10);
   const [open, setOpen] = useState<string | null>(null);
-  const [hx, setHx] = useState<Record<string, [string, number, number][]>>({});
+  const [hx, setHx] = useState<Record<string, [string, number, number, string, boolean, boolean][]>>({});
   // A l'ouverture d'un joueur : historique etendu (saisons precedentes comprises) pour toujours afficher 10 matchs
-  const openRow = (r: R) => { setOpen(o => (o === r.name ? null : r.name)); if (r.slug && !hx[r.slug]) fetch('/api/ttfl/player?slug=' + r.slug).then(x => x.json()).then(j => j.ok && setHx(h => ({ ...h, [r.slug]: [...(j.pastGames || []), ...(j.games || [])].map((x: any) => [x.d, x.t, x.m] as [string, number, number]) }))).catch(() => {}); };
+  const openRow = (r: R) => { setOpen(o => (o === r.name ? null : r.name)); if (r.slug && !hx[r.slug]) fetch('/api/ttfl/player?slug=' + r.slug).then(x => x.json()).then(j => j.ok && setHx(h => ({ ...h, [r.slug]: [...(j.pastGames || []), ...(j.games || [])].map((x: any) => [x.d, x.t, x.m, x.opp, x.home, x.b2b] as [string, number, number, string, boolean, boolean]) }))).catch(() => {}); };
   const [sort, setSort] = useState<{ k: SK; dir: 1 | -1 }>({ k: 'est', dir: -1 });
   // Telephone : tableau recompose (joueur + match sur 2 lignes), en-tete compact, top 5 defilant.
   const lang = useLang(); const en = lang === 'en'; useEffect(() => { initLang(); }, []);
@@ -159,10 +160,10 @@ export default function TtflPublic() {
                     {!narrow && <td style={{ padding: pd, textAlign: 'right' }}>{r.last ?? '–'}</td>}
                     {!narrow && <td style={{ padding: pd, textAlign: 'right', color: r.tg && r.gp < r.tg - 1 ? '#ff9f43' : c.dim }}>{r.tg ? `${r.gp}/${r.tg}` : '–'}</td>}
                   </tr>,
-                  o && (() => { const rr = hx[r.slug] ? { ...r, g: hx[r.slug] } : r; return <tr key={r.name + 'x'}><td colSpan={narrow ? 5 : 8} style={{ padding: '10px 12px 14px', background: 'rgba(0,255,255,.04)' }}>
-                    {rr.g.length ? <Bars r={rr} /> : <span style={{ color: c.dim }}>{tr('Pas encore de match joué cette saison.')}</span>}
+                  o && (() => { const rr = hx[r.slug] ? { ...r, g: hx[r.slug] } : r; const cs = seasonOf(night); const sr = { ...rr, g: rr.g.filter(x => seasonOf(x[0]) === cs) }; return <tr key={r.name + 'x'}><td colSpan={narrow ? 5 : 8} style={{ padding: '10px 12px 14px', background: 'rgba(0,255,255,.04)' }}>
+                    {rr.g.length ? <Bars r={rr} a={avg(sr, 0)} /> : <span style={{ color: c.dim }}>{tr('Pas encore de match joué cette saison.')}</span>}
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10, fontSize: 15, alignItems: 'center' }}>
-                      {([[tr('Moy. 5'), avg(rr, 5)], [tr('Moy. 10'), avg(rr, 10)], [tr('Moy.') + ' ' + rr.g.length + ' ' + tr('matchs'), avg(rr, 0)], [tr('Max'), rr.g.length ? Math.max(...rr.g.map(x => x[1])) : null], [tr('Min'), rr.g.length ? Math.min(...rr.g.map(x => x[1])) : null]] as [string, number | null][]).map(([k, v]) => (
+                      {([[tr('Moy. 5'), avg(sr, 5)], [tr('Moy. 10'), avg(sr, 10)], [tr('Moy. saison') + ' (' + sr.g.length + ')', avg(sr, 0)], [tr('Max'), sr.g.length ? Math.max(...sr.g.map(x => x[1])) : null], [tr('Min'), sr.g.length ? Math.min(...sr.g.map(x => x[1])) : null]] as [string, number | null][]).map(([k, v]) => (
                         <span key={k} style={{ border: `1px solid ${c.line}`, borderRadius: 10, padding: '6px 12px', background: 'rgba(255,255,255,.05)' }}><span style={{ color: c.dim, fontSize: 13 }}>{k}</span> <b style={{ fontSize: 18 }}>{v == null ? '–' : v.toFixed(1)}</b></span>))}
                       {r.slug && <a href={`/ttfl/joueur/${r.slug}`} onClick={e => e.stopPropagation()} style={{ marginLeft: 'auto', background: c.cy, color: '#001018', fontWeight: 700, padding: '8px 14px', borderRadius: 10, textDecoration: 'none', fontSize: 14 }}>{tr('Fiche joueur →')}</a>}
                     </div>
