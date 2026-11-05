@@ -23,6 +23,12 @@ const lines = (g: FullRow[]) => ({
 export async function GET(req: NextRequest) {
   let slug = (req.nextUrl.searchParams.get('slug') || '').trim();
   if (!/^[a-z0-9-]{3,80}$/.test(slug)) return NextResponse.json({ ok: false, error: 'slug invalide' }, { status: 400 });
+  // Anti-abus : 60 fiches par minute et par adresse IP (chaque slug inconnu declenche des appels ESPN / Sorare)
+  try {
+    const ip = (req.headers.get('x-forwarded-for') || 'x').split(',')[0].trim().slice(0, 45); const rk = 'rl:ttfl:player:' + ip + ':' + Math.floor(Date.now() / 60000);
+    const n = await redis.incr(rk); if (n === 1) await redis.expire(rk, 90);
+    if (n > 60) return NextResponse.json({ ok: false, error: 'Trop de requêtes, réessaie dans une minute.' }, { status: 429 });
+  } catch (e) { /* sans limite si Redis indisponible */ }
   try {
     // Lien par nom (ex. onglet blessures) : n-<nom sans accents ni espaces> -> slug Sorare (nom-AAAAMMJJ) via la date de naissance ESPN.
     if (slug.startsWith('n-')) {
