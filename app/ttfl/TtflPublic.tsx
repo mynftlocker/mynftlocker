@@ -49,12 +49,15 @@ export default function TtflPublic() {
     <main style={{ minHeight: '100vh', color: '#fff', fontFamily: 'system-ui,sans-serif', padding: '28px 16px 60px', position: 'relative' }}>
       <StarBg />
       <div style={{ maxWidth: 1000, margin: '0 auto', position: 'relative' }}>
-        <a href="/" style={{ color: c.cy, fontSize: 13, textDecoration: 'none' }}>← myNFTlocker</a>
-        <h1 style={{ fontSize: 'clamp(26px,5vw,40px)', margin: '8px 0 4px', letterSpacing: '.01em' }}>Projections <span style={{ color: c.cy }}>TTFL</span> NBA</h1>
-        <p style={{ color: c.dim, margin: '0 0 18px', maxWidth: 680, lineHeight: 1.5, fontSize: 15 }}>L&apos;estimation du score TTFL de chaque joueur pour la nuit, calculée à partir de la projection Sorare, de la forme récente et du contexte du match. Mise à jour en continu.</p>
+        <a href="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo-pack.png" alt="myNFTlocker" style={{ height: 56, width: 'auto', filter: 'drop-shadow(0 4px 14px rgba(0,0,0,.6))' }} />
+        </a>
+        <h1 style={{ fontSize: 'clamp(26px,5vw,42px)', margin: '10px 0 4px', letterSpacing: '.01em' }}>Remplis ton deck de <span style={{ color: c.cy }}>best picks</span> TTFL</h1>
+        <p style={{ color: c.dim, margin: '0 0 18px', maxWidth: 700, lineHeight: 1.5, fontSize: 15 }}>Les <b style={{ color: '#fff' }}>projections myNFTlocker</b> : le score TTFL attendu de chaque joueur NBA pour la nuit, selon la forme, le match, les blessures et les retours. Mises à jour en continu.</p>
 
         <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-          <button style={btn(view === 'night')} onClick={() => setView('night')}>Estimations de la nuit</button>
+          <button style={btn(view === 'night')} onClick={() => setView('night')}>Projections de la nuit</button>
           <button style={btn(view === 'inj')} onClick={() => setView('inj')}>Blessures et retours</button>
         </div>
 
@@ -89,7 +92,7 @@ export default function TtflPublic() {
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, minWidth: 640 }}>
                 <thead><tr style={{ color: c.dim, textAlign: 'left' }}>
                   <th style={{ padding: '10px 12px', fontWeight: 500 }}>#</th>
-                  {([['name', 'Joueur'], ['match', 'Match'], ['est', 'Estimation'], ['l10', 'Moy. 10'], ['last', 'Dernier'], ['pres', 'Présence']] as [SK, string][]).map(([k, h], i) => (
+                  {([['name', 'Joueur'], ['match', 'Match'], ['est', 'Projection'], ['l10', 'Moy. 10'], ['last', 'Dernier'], ['pres', 'Présence']] as [SK, string][]).map(([k, h], i) => (
                     <th key={k} onClick={() => toggle(k)} aria-sort={sort.k === k ? (sort.dir === 1 ? 'ascending' : 'descending') : 'none'} style={{ padding: '10px 12px', fontWeight: 500, textAlign: i > 1 ? 'right' : 'left', whiteSpace: 'nowrap', cursor: 'pointer', userSelect: 'none', color: sort.k === k ? c.cy : c.dim }}>{h} {sort.k === k ? (sort.dir === 1 ? '▲' : '▼') : <span style={{ opacity: .35 }}>↕</span>}</th>
                   ))}
                 </tr></thead>
@@ -106,7 +109,7 @@ export default function TtflPublic() {
               </table>
             </div>
           )}
-          <p style={{ color: c.dim, fontSize: 12, marginTop: 14, lineHeight: 1.5 }}>Estimation = projection Sorare lissée avec la forme récente, joueurs incertains (GTD) pondérés à la baisse. Formule en cours de calibrage sur les scores réels. « Présence » = matchs joués / matchs de l&apos;équipe cette saison. Heures de Paris.</p>
+          <p style={{ color: c.dim, fontSize: 12, marginTop: 14, lineHeight: 1.5 }}>Projection myNFTlocker = score TTFL attendu, calculé depuis la projection Sorare lissée avec la forme récente (joueurs incertains GTD pondérés à la baisse). Calibrage en cours sur les scores réels. « Présence » = matchs joués / matchs de l&apos;équipe cette saison. Heures de Paris.</p>
         </>}
 
         {view === 'inj' && (
@@ -127,6 +130,7 @@ export default function TtflPublic() {
 
         <div style={{ marginTop: 28, textAlign: 'center' }}>
           <a href="/" style={{ display: 'inline-block', background: c.cy, color: '#001018', fontWeight: 700, padding: '12px 22px', borderRadius: 12, textDecoration: 'none' }}>Découvrir myNFTlocker</a>
+          <div style={{ color: c.dim, fontSize: 12, marginTop: 10 }}>Projections TTFL © myNFTlocker.com</div>
         </div>
       </div>
     </main>
