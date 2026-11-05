@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
             <div style={{ display: 'flex', flexDirection: 'column', marginTop: n(30) }}>
               {top.map((p, i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'baseline', marginTop: i ? n(10) : 0 }}>
-                  <div style={{ display: 'flex', width: n(80), fontSize: n(46), fontWeight: 700, color: '#40e8ff' }}>{p.est.toFixed(1)}</div>
+                  <div style={{ display: 'flex', width: n(130), flexShrink: 0, fontSize: n(46), fontWeight: 700, color: '#40e8ff' }}>{p.est.toFixed(1)}</div>
                   <div style={{ display: 'flex', fontSize: n(36), fontWeight: 700 }}>{p.name}</div>
                   <div style={{ display: 'flex', fontSize: n(26), color: '#9fb0c4', marginLeft: n(14) }}>{p.home ? 'vs' : '@'} {p.opp}</div>
                 </div>
