@@ -1,16 +1,71 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getNight, lastFinishedDate } from '../../../lib/ttfl';
+import { redis } from '../../../lib/redis';
+import { getDayRows, ymdLocal } from '../../../lib/ttfl';
+import { ttflEst, myProj } from '../../../lib/ttflEst';
 
-// Top TTFL d'une nuit NBA. ?date=AAAA-MM-JJ (jour americain, fuseau Est) ; sans date : dernier jour termine.
+// API publique des projections TTFL : estimation du score TTFL de chaque joueur pour une nuit (jour Paris du coup d'envoi).
+// GET ?night=YYYY-MM-DD -> joueurs ; GET ?inj=1 -> blessures et retours (sans le texte des news). Aucune donnee privee.
 export const maxDuration = 60;
+const START = '2026-10-21';
+const nrm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z]/g, '');
+type InjRow = { name: string; team: string; status: 'OUT' | 'GTD' | 'PROB'; until: string | null; untilKind: 'return' | 'reeval' | null; src: string; updated: string };
+type Stat = { l10: number | null; n: number; last: number | null; gp: number; tg: number };
+const HDR = { 'Cache-Control': 'public, s-maxage=600, stale-while-revalidate=1800' };
+
+async function injTable(): Promise<{ updated: string; rows: InjRow[] }> {
+  return (await redis.get<{ updated: string; rows: InjRow[] }>('inj:table').catch(() => null)) || { updated: '', rows: [] };
+}
+
+// Historique TTFL depuis le debut de saison : moyenne des 10 derniers, dernier score, presence. Mis en cache 15 min.
+async function stats(): Promise<{ nights: number; by: Record<string, Stat> }> {
+  const hit = await redis.get<{ nights: number; by: Record<string, Stat> }>('ttfl:pub:stats').catch(() => null);
+  if (hit) return hit;
+  const dates: string[] = [];
+  const end = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/New_York' }));
+  for (let d = new Date(START + 'T12:00:00'); d <= end; d.setDate(d.getDate() + 1)) dates.push(ymdLocal(d));
+  const days = await Promise.all(dates.map(async d => ({ d, rows: await getDayRows(d).catch(() => null) })));
+  const hist: Record<string, { d: string; t: number; tm: string }[]> = {};
+  const teamDays: Record<string, Set<string>> = {};
+  for (const { d, rows } of days) for (const r of rows || []) { (hist[nrm(r.n)] ||= []).push({ d, t: r.t, tm: r.tm }); if (r.tm) (teamDays[r.tm] ||= new Set()).add(d); }
+  const by: Record<string, Stat> = {};
+  for (const [k, g0] of Object.entries(hist)) {
+    const g = g0.sort((a, b) => (a.d < b.d ? -1 : 1)); const l = g.slice(-10);
+    const tm = g[g.length - 1].tm;
+    by[k] = { l10: l.length ? +(l.reduce((s, x) => s + x.t, 0) / l.length).toFixed(1) : null, n: l.length, last: l.length ? l[l.length - 1].t : null, gp: g.length, tg: tm ? teamDays[tm]?.size ?? 0 : 0 };
+  }
+  const out = { nights: days.filter(x => x.rows).length, by };
+  await redis.set('ttfl:pub:stats', out, { ex: 900 }).catch(() => {});
+  return out;
+}
+
 export async function GET(req: NextRequest) {
   try {
-    const date = req.nextUrl.searchParams.get('date') || (await lastFinishedDate());
-    if (!date) return NextResponse.json({ ok: false, error: 'aucun match' }, { status: 404 });
-    const night = await getNight(date);
-    if (!night) return NextResponse.json({ ok: false, error: 'aucun match' }, { status: 404 });
-    return NextResponse.json(night);
+    const sp = req.nextUrl.searchParams;
+    if (sp.get('inj')) {
+      const t = await injTable();
+      return NextResponse.json({ ok: true, updated: t.updated, rows: t.rows.map(({ name, team, status, until, untilKind, src, updated }) => ({ name, team, status, until, untilKind, src, updated })) }, { headers: HDR });
+    }
+    const night = (sp.get('night') || '').trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(night)) return NextResponse.json({ ok: false, error: 'night=YYYY-MM-DD requis' }, { status: 400 });
+    const [cupR, st, tb] = await Promise.all([
+      fetch(`${req.nextUrl.origin}/api/outils/cup?night=${night}`, { next: { revalidate: 600 } }).then(r => r.json()),
+      stats(), injTable(),
+    ]);
+    if (cupR.error) return NextResponse.json({ ok: false, error: cupR.error }, { status: 502 });
+    const tbl: Record<string, InjRow> = {}; for (const r of tb.rows) tbl[nrm(r.name)] = r;
+    const rows = (cupR.players || []).filter((p: any) => p.proj >= 5).map((p: any) => {
+      const s = st.by[nrm(p.name)]; const ti = tbl[nrm(p.name)];
+      const tOut = !!ti && ti.status === 'OUT' && (!ti.until || night < ti.until);
+      const status: 'OUT' | 'GTD' | null = (p.inj && p.inj !== 'GTD') || tOut ? 'OUT' : p.inj === 'GTD' ? 'GTD' : null;
+      return {
+        name: p.name, team: p.team, opp: p.opp, home: p.home, time: p.time,
+        est: +ttflEst(p.proj, p.l5, p.l10, p.inj).toFixed(1), proj: +myProj(p.proj, p.l5, p.l10, p.inj).toFixed(1),
+        l10: s?.l10 ?? null, n: s?.n ?? 0, last: s?.last ?? null, gp: s?.gp ?? 0, tg: s?.tg ?? 0,
+        status, until: tOut ? ti.until : null,
+      };
+    }).sort((a: any, b: any) => b.est - a.est);
+    return NextResponse.json({ ok: true, night, games: cupR.games, nights: st.nights, updated: new Date().toISOString(), rows }, { headers: HDR });
   } catch (e) {
-    return NextResponse.json({ ok: false, error: String(e) }, { status: 502 });
+    return NextResponse.json({ ok: false, error: String(e).slice(0, 200) }, { status: 502 });
   }
 }

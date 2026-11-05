@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getGw, idealLineup } from '../../lib/gwData';
 import { CAPS, type Cand } from '../../lib/gwLineup';
-import StarBg from '../outils/gw/StarBg';
+import StarBg from '../components/StarBg';
 import { GwRow } from '../outils/gw/GwCard';
 
 // Page publique a partager dans les posts : compos idealees de la GW NBA (Champion / Contender) en vraies cartes Sorare avec projection.
