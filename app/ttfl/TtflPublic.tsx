@@ -115,8 +115,8 @@ export default function TtflPublic() {
 
         <div style={{ display: 'flex', gap: narrow ? 6 : 8, marginBottom: narrow ? 10 : 16, overflowX: 'auto' }}>
           <button style={{ ...btn(view === 'night'), whiteSpace: 'nowrap', padding: narrow ? '8px 10px' : undefined }} onClick={() => setView('night')}>{narrow ? tr('Projections') : tr('Projections de la nuit')}</button>
-          <button style={{ ...btn(view === 'live'), whiteSpace: 'nowrap', padding: narrow ? '8px 10px' : undefined }} onClick={() => setView('live')}>{tr('En direct')}</button>
           <button style={{ ...btn(view === 'inj'), whiteSpace: 'nowrap', padding: narrow ? '8px 10px' : undefined }} onClick={() => setView('inj')}>{narrow ? tr('Blessures') : tr('Blessures et retours')}</button>
+          <button style={{ ...btn(view === 'live'), whiteSpace: 'nowrap', padding: narrow ? '8px 10px' : undefined }} onClick={() => setView('live')}>{tr('En direct')}</button>
           <LangSwitch style={{ marginLeft: 'auto', flex: '0 0 auto' }} />
         </div>
 
