@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { redis } from '../../../../lib/redis';
 import { allFull, type FullRow } from '../../../../lib/ttflFull';
 
+type FR = FullRow & { ps?: number };
+const seasonOf = (d: string) => { const y = +d.slice(0, 4), m = +d.slice(5, 7); const a = m >= 9 ? y : y - 1; return `${a}-${String(a + 1).slice(2)}`; };
+
 // Fiche joueur TTFL publique : identite (Sorare), historique complet des scores TTFL et moyennes de stats, carte Sorare.
 export const maxDuration = 60;
 const nrm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z]/g, '');
@@ -20,7 +23,7 @@ export async function GET(req: NextRequest) {
   const slug = (req.nextUrl.searchParams.get('slug') || '').trim();
   if (!/^[a-z0-9-]{3,80}$/.test(slug)) return NextResponse.json({ ok: false, error: 'slug invalide' }, { status: 400 });
   try {
-    const key = 'ttfl:pub:player2:' + slug;
+    const key = 'ttfl:pub:player3:' + slug;
     const hit = await redis.get<any>(key).catch(() => null);
     const H = { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=900' };
     if (hit) return NextResponse.json(hit, { headers: H });
@@ -34,23 +37,43 @@ export async function GET(req: NextRequest) {
       if (cs[0]) card = { slug: cs[0].slug, pic: cs[0].pictureUrl, year: Number(cs[0].seasonYear) };
     } catch { /* pas de carte */ }
     const full = await allFull();
-    const all = full.rows.filter(r => nrm(r.n) === nrm(p.displayName)).sort((a, b) => (a.d < b.d ? -1 : 1));
-    // Back-to-back : le soir d'un match ou son equipe a deja joue la veille (jour americain).
-    const teamDays = new Set(full.rows.map(r => r.tm + '|' + r.d));
+    const all: FR[] = full.rows.filter(r => nrm(r.n) === nrm(p.displayName)).sort((a, b) => (a.d < b.d ? -1 : 1));
+    // Historique des 3 saisons precedentes (reprise ESPN) : lignes du joueur par son id ESPN, puis back-to-back via les equipes de la veille.
+    const curId = all.length ? (full.rows.find(r => nrm(r.n) === nrm(p.displayName))?.id || '') : '';
+    let pid = curId;
+    if (!pid) { const ids = String((await redis.hget<string>('ttfl:pidx', nrm(p.displayName)).catch(() => '')) || '').split(',').filter(Boolean); pid = ids[ids.length - 1] || ''; }
+    const past: FR[] = [];
+    if (pid) {
+      const h = await redis.hgetall<Record<string, (string | number)[]>>('ttfl:ph:' + pid).catch(() => null);
+      for (const r of Object.values(h || {})) past.push({ id: pid, n: p.displayName, d: String(r[0]), tm: String(r[1]), opp: String(r[2]), home: r[3] === 1, m: +r[4], t: +r[5], pts: +r[6], reb: +r[7], ast: +r[8], stl: +r[9], blk: +r[10], to: +r[11], fgm: +r[12], fga: +r[13], tpm: +r[14], tpa: +r[15], ftm: +r[16], fta: +r[17], gid: String(r[18]), ps: +r[19] });
+      past.sort((a, b) => (a.d < b.d ? -1 : 1));
+    }
     const prevDay = (d: string) => { const x = new Date(d + 'T12:00:00Z'); x.setUTCDate(x.getUTCDate() - 1); return x.toISOString().slice(0, 10); };
-    const isB2b = (r: FullRow) => teamDays.has(r.tm + '|' + prevDay(r.d));
-    const best = all.length ? all.reduce((m, x) => (x.t > m.t ? x : m)) : null; const worst = all.length ? all.reduce((m, x) => (x.t < m.t ? x : m)) : null;
-    const byOpp: Record<string, FullRow[]> = {}; all.forEach(r => (byOpp[r.opp] ||= []).push(r));
-    const opps = Object.entries(byOpp).map(([opp, g]) => ({ opp, n: g.length, avg: avg(g.map(x => x.t)) as number })).sort((a, b) => b.avg - a.avg);
-    const mean = avg(all.map(x => x.t)) as number;
-    const sd = all.length > 1 ? +Math.sqrt(all.reduce((s, x) => s + (x.t - mean) ** 2, 0) / all.length).toFixed(1) : null;
+    const prevDates = [...new Set(past.map(r => prevDay(r.d)))];
+    const td: Record<string, string[]> = {};
+    if (prevDates.length) { const vals = await redis.mget<(string[] | null)[]>(...prevDates.map(d => 'ttfl:td:' + d)).catch(() => []); prevDates.forEach((d, i) => { td[d] = vals?.[i] || []; }); }
+    const teamDays = new Set(full.rows.map(r => r.tm + '|' + r.d));
+    const isB2b = (r: FR) => (td[prevDay(r.d)] ? td[prevDay(r.d)].includes(r.tm) : teamDays.has(r.tm + '|' + prevDay(r.d)));
+    const bundle = (rows: FR[]) => {
+      const best = rows.length ? rows.reduce((m, x) => (x.t > m.t ? x : m)) : null; const worst = rows.length ? rows.reduce((m, x) => (x.t < m.t ? x : m)) : null;
+      const byOpp: Record<string, FR[]> = {}; rows.forEach(r => (byOpp[r.opp] ||= []).push(r));
+      const opps = Object.entries(byOpp).map(([opp, g]) => ({ opp, n: g.length, avg: avg(g.map(x => x.t)) as number })).sort((a, b) => b.avg - a.avg);
+      const mean = avg(rows.map(x => x.t)) as number;
+      const sd = rows.length > 1 ? +Math.sqrt(rows.reduce((s, x) => s + (x.t - mean) ** 2, 0) / rows.length).toFixed(1) : null;
+      return { avg: { season: lines(rows), l10: lines(rows.slice(-10)), l5: lines(rows.slice(-5)), home: lines(rows.filter(r => r.home)), away: lines(rows.filter(r => !r.home)), b2b: lines(rows.filter(isB2b)), rest: lines(rows.filter(r => !isB2b(r))) },
+        best: best && { t: best.t, opp: best.opp, d: best.d, gid: best.gid }, worst: worst && { t: worst.t, opp: worst.opp, d: worst.d, gid: worst.gid }, opps, sd };
+    };
+    const cur = bundle(all); const everything = [...past, ...all];
+    const bySeason: Record<string, FR[]> = {}; everything.forEach(r => (bySeason[seasonOf(r.d)] ||= []).push(r));
+    const seasons = Object.entries(bySeason).sort((a, b) => (a[0] < b[0] ? 1 : -1)).map(([season, g]) => ({ season, n: g.length, ttfl: avg(g.map(x => x.t)), max: Math.max(...g.map(x => x.t)), min: Math.min(...g.map(x => x.t)), min_m: avg(g.map(x => x.m)) }));
+    const slim = (r: FR) => ({ b2b: isB2b(r), d: r.d, opp: r.opp, home: r.home, gid: r.gid, t: r.t, m: Math.round(r.m), pts: r.pts, reb: r.reb, ast: r.ast, stl: r.stl, blk: r.blk, to: r.to, fgm: r.fgm, fga: r.fga, tpm: r.tpm, tpa: r.tpa, ftm: r.ftm, fta: r.fta, ps: r.ps ? 1 : 0 });
     const out = {
       ok: true,
-      player: { slug: p.slug, name: p.displayName, birthDay: p.birthDay || null, country: p.country || null, stars: p.gameplayTierStars ?? null, pic: p.squaredPictureUrl || null, team: all.length ? all[all.length - 1].tm : null },
+      player: { slug: p.slug, name: p.displayName, birthDay: p.birthDay || null, country: p.country || null, stars: p.gameplayTierStars ?? null, pic: p.squaredPictureUrl || null, team: all.length ? all[all.length - 1].tm : (past.length ? past[past.length - 1].tm : null) },
       card,
-      games: all.map(r => ({ b2b: isB2b(r), d: r.d, opp: r.opp, home: r.home, gid: r.gid, t: r.t, m: Math.round(r.m), pts: r.pts, reb: r.reb, ast: r.ast, stl: r.stl, blk: r.blk, to: r.to, fgm: r.fgm, fga: r.fga, tpm: r.tpm, tpa: r.tpa, ftm: r.ftm, fta: r.fta })),
-      avg: { season: lines(all), l10: lines(all.slice(-10)), l5: lines(all.slice(-5)), home: lines(all.filter(r => r.home)), away: lines(all.filter(r => !r.home)), b2b: lines(all.filter(isB2b)), rest: lines(all.filter(r => !isB2b(r))) },
-      best: best && { t: best.t, opp: best.opp, d: best.d, gid: best.gid }, worst: worst && { t: worst.t, opp: worst.opp, d: worst.d, gid: worst.gid }, opps, sd,
+      games: all.map(slim), pastGames: past.map(slim),
+      ...cur,
+      ext: past.length ? bundle(everything) : null, seasons,
     };
     if (!full.failed) await redis.set(key, out, { ex: 600 }).catch(() => {});
     return NextResponse.json(out, { headers: full.failed ? { 'Cache-Control': 'no-store' } : H });

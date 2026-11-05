@@ -49,6 +49,9 @@ export default function TtflPublic() {
   const [isort, setIsort] = useState<{ k: IK; dir: 1 | -1 }>({ k: 'status', dir: 1 });
   const [win, setWin] = useState<W>(10);
   const [open, setOpen] = useState<string | null>(null);
+  const [hx, setHx] = useState<Record<string, [string, number, number][]>>({});
+  // A l'ouverture d'un joueur : historique etendu (saisons precedentes comprises) pour toujours afficher 10 matchs
+  const openRow = (r: R) => { setOpen(o => (o === r.name ? null : r.name)); if (r.slug && !hx[r.slug]) fetch('/api/ttfl/player?slug=' + r.slug).then(x => x.json()).then(j => j.ok && setHx(h => ({ ...h, [r.slug]: [...(j.pastGames || []), ...(j.games || [])].map((x: any) => [x.d, x.t, x.m] as [string, number, number]) }))).catch(() => {}); };
   const [sort, setSort] = useState<{ k: SK; dir: 1 | -1 }>({ k: 'est', dir: -1 });
 
   // Lien direct vers un match : /ttfl?v=live&night=AAAA-MM-JJ&game=ID
@@ -137,7 +140,7 @@ export default function TtflPublic() {
                   ))}
                 </tr></thead>
                 <tbody>{list.map(r => { const a = avg(r, win), tr = trend(r), o = open === r.name; return [
-                  <tr key={r.name} onClick={() => setOpen(o ? null : r.name)} style={{ borderTop: `1px solid ${c.line}`, opacity: r.status === 'OUT' ? 0.45 : 1, cursor: 'pointer', background: o ? 'rgba(0,255,255,.07)' : 'transparent' }}>
+                  <tr key={r.name} onClick={() => openRow(r)} style={{ borderTop: `1px solid ${c.line}`, opacity: r.status === 'OUT' ? 0.45 : 1, cursor: 'pointer', background: o ? 'rgba(0,255,255,.07)' : 'transparent' }}>
                     <td style={{ padding: '8px 12px', color: c.dim }}>{rank[r.name]}</td>
                     <td style={{ padding: '8px 12px', whiteSpace: 'nowrap' }}>{r.name}{r.status && badge(r.status, r.status === 'OUT' && r.until ? `OUT → ${dm(r.until)}` : r.status)}</td>
                     <td style={{ padding: '8px 12px', color: c.dim, whiteSpace: 'nowrap' }}>{r.home ? 'vs' : '@'} {r.opp} · {r.time}</td>
@@ -146,14 +149,14 @@ export default function TtflPublic() {
                     <td style={{ padding: '8px 12px', textAlign: 'right' }}>{r.last ?? '–'}</td>
                     <td style={{ padding: '8px 12px', textAlign: 'right', color: r.tg && r.gp < r.tg - 1 ? '#ff9f43' : c.dim }}>{r.tg ? `${r.gp}/${r.tg}` : '–'}</td>
                   </tr>,
-                  o && <tr key={r.name + 'x'}><td colSpan={7} style={{ padding: '10px 12px 14px', background: 'rgba(0,255,255,.04)' }}>
-                    {r.g.length ? <Bars r={r} /> : <span style={{ color: c.dim }}>Pas encore de match joué cette saison.</span>}
+                  o && (() => { const rr = hx[r.slug] ? { ...r, g: hx[r.slug] } : r; return <tr key={r.name + 'x'}><td colSpan={7} style={{ padding: '10px 12px 14px', background: 'rgba(0,255,255,.04)' }}>
+                    {rr.g.length ? <Bars r={rr} /> : <span style={{ color: c.dim }}>Pas encore de match joué cette saison.</span>}
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10, fontSize: 15, alignItems: 'center' }}>
-                      {([['Moy. 5', avg(r, 5)], ['Moy. 10', avg(r, 10)], ['Saison', avg(r, 0)], ['Max', r.g.length ? Math.max(...r.g.map(x => x[1])) : null], ['Min', r.g.length ? Math.min(...r.g.map(x => x[1])) : null]] as [string, number | null][]).map(([k, v]) => (
+                      {([['Moy. 5', avg(rr, 5)], ['Moy. 10', avg(rr, 10)], ['Moy. ' + rr.g.length + ' matchs', avg(rr, 0)], ['Max', rr.g.length ? Math.max(...rr.g.map(x => x[1])) : null], ['Min', rr.g.length ? Math.min(...rr.g.map(x => x[1])) : null]] as [string, number | null][]).map(([k, v]) => (
                         <span key={k} style={{ border: `1px solid ${c.line}`, borderRadius: 10, padding: '6px 12px', background: 'rgba(255,255,255,.05)' }}><span style={{ color: c.dim, fontSize: 13 }}>{k}</span> <b style={{ fontSize: 18 }}>{v == null ? '–' : v.toFixed(1)}</b></span>))}
                       {r.slug && <a href={`/ttfl/joueur/${r.slug}`} onClick={e => e.stopPropagation()} style={{ marginLeft: 'auto', background: c.cy, color: '#001018', fontWeight: 700, padding: '8px 14px', borderRadius: 10, textDecoration: 'none', fontSize: 14 }}>Fiche joueur →</a>}
                     </div>
-                  </td></tr>]; })}</tbody>
+                  </td></tr>; })()]; })}</tbody>
               </table>
             </div>
           )}

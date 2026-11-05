@@ -2,9 +2,10 @@
 import { useEffect, useState } from 'react';
 import StarBg from '../components/StarBg';
 
-type G = { b2b?: boolean; d: string; opp: string; home: boolean; gid: string; t: number; m: number; pts: number; reb: number; ast: number; stl: number; blk: number; to: number; fgm: number; fga: number; tpm: number; tpa: number; ftm: number; fta: number };
+type G = { ps?: number; b2b?: boolean; d: string; opp: string; home: boolean; gid: string; t: number; m: number; pts: number; reb: number; ast: number; stl: number; blk: number; to: number; fgm: number; fga: number; tpm: number; tpa: number; ftm: number; fta: number };
 type L = { n: number; ttfl: number | null; min: number | null; pts: number | null; reb: number | null; ast: number | null; stl: number | null; blk: number | null; to: number | null; fgm: number | null; fgmiss: number | null; tpm: number | null; tpmiss: number | null; ftm: number | null; ftmiss: number | null };
-type D = { player: { slug: string; name: string; birthDay: string | null; country: { name: string; code: string } | null; stars: number | null; pic: string | null; team: string | null }; card: { slug: string; pic: string; year: number } | null; games: G[]; avg: { season: L; l10: L; l5: L; home: L; away: L; b2b: L; rest: L }; best: { t: number; opp: string; d: string; gid: string } | null; worst: { t: number; opp: string; d: string; gid: string } | null; opps: { opp: string; n: number; avg: number }[]; sd: number | null };
+type B = { avg: { season: L; l10: L; l5: L; home: L; away: L; b2b: L; rest: L }; best: { t: number; opp: string; d: string; gid: string } | null; worst: { t: number; opp: string; d: string; gid: string } | null; opps: { opp: string; n: number; avg: number }[]; sd: number | null };
+type D = B & { pastGames: G[]; ext: B | null; seasons: { season: string; n: number; ttfl: number | null; max: number; min: number; min_m: number | null }[]; player: { slug: string; name: string; birthDay: string | null; country: { name: string; code: string } | null; stars: number | null; pic: string | null; team: string | null }; card: { slug: string; pic: string; year: number } | null; games: G[] };
 const c = { cy: '#00ffff', gold: '#e5b94e', dim: 'rgba(255,255,255,.6)', line: 'rgba(255,255,255,.12)', card: 'rgba(8,12,28,.72)' };
 const age = (b: string) => Math.floor((Date.now() - new Date(b).getTime()) / 31557600000);
 const ddmm = (d: string) => d.slice(8) + '/' + d.slice(5, 7);
@@ -32,11 +33,14 @@ function Bars({ g }: { g: G[] }) {
 }
 
 export default function PlayerSheet({ slug }: { slug: string }) {
-  const [d, setD] = useState<D | null>(null); const [err, setErr] = useState(''); const [w, setW] = useState<'l5' | 'l10' | 'season'>('l10');
+  const [d, setD] = useState<D | null>(null); const [err, setErr] = useState(''); const [w, setW] = useState<'l5' | 'l10' | 'season'>('l10'); const [scope, setScope] = useState<'cur' | 'ext'>('cur');
   useEffect(() => { fetch('/api/ttfl/player?slug=' + slug).then(r => r.json()).then(j => j.ok ? setD(j) : setErr(j.error || 'Indisponible')).catch(e => setErr(String(e))); }, [slug]);
   const box: React.CSSProperties = { background: c.card, border: `1px solid ${c.line}`, borderRadius: 14, padding: 14, backdropFilter: 'blur(6px)' };
   const btn = (on: boolean): React.CSSProperties => ({ background: c.card, border: `1px solid ${on ? c.cy : c.line}`, color: on ? c.cy : '#fff', borderRadius: 10, padding: '6px 12px', cursor: 'pointer', fontSize: 13 });
-  const A = d?.avg[w];
+  const S: B | null = d ? (scope === 'ext' && d.ext ? d.ext : d) : null;
+  const A = S?.avg[w];
+  const recent = d ? [...d.pastGames, ...d.games] : [];
+  const shown = d ? (scope === 'ext' ? recent : d.games) : [];
   const tile = (k: string, v: string, sub?: string, col = '#fff') => <div style={{ ...box, flex: '1 1 120px', minWidth: 110 }}><div style={{ fontSize: 12, color: c.dim }}>{k}</div><div style={{ fontSize: 26, fontWeight: 800, color: col, margin: '2px 0' }}>{v}</div>{sub && <div style={{ fontSize: 12, color: c.dim }}>{sub}</div>}</div>;
   const mlink = (g: { d: string; gid: string }, t: number, strong = false) => <a href={matchHref(g.d, g.gid)} style={{ color: c.cy, fontWeight: strong ? 800 : 700, textDecoration: 'none', borderBottom: `1px dashed ${c.cy}` }}>{t}</a>;
 
@@ -63,15 +67,17 @@ export default function PlayerSheet({ slug }: { slug: string }) {
               {/* eslint-disable-next-line @next/next/no-img-element */}<img src={d.card.pic} alt={`Carte Sorare ${d.player.name}`} style={{ height: 120, width: 'auto', borderRadius: 8, display: 'block', margin: '0 auto 4px' }} />Carte Sorare {d.card.year} →</a>}
           </div>
 
+          {d.ext && <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 12, flexWrap: 'wrap' }}><span style={{ color: c.dim, fontSize: 13 }}>Période</span>
+            <button style={btn(scope === 'cur')} onClick={() => setScope('cur')}>Saison en cours</button><button style={btn(scope === 'ext')} onClick={() => setScope('ext')}>3 dernières saisons + actuelle</button></div>}
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 16 }}>
-            {tile('Moy. 5 matchs', fx(d.avg.l5.ttfl), `${d.avg.l5.n} match(s)`, c.cy)}{tile('Moy. 10 matchs', fx(d.avg.l10.ttfl), `${d.avg.l10.n} match(s)`, c.cy)}{tile('Moy. saison', fx(d.avg.season.ttfl), `${d.avg.season.n} match(s)`)}
-            {tile('Score max', d.best ? String(d.best.t) : '–', d.best ? `vs ${d.best.opp} · ${ddmm(d.best.d)}` : undefined, '#4ade80')}{tile('Score min', d.worst ? String(d.worst.t) : '–', d.worst ? `vs ${d.worst.opp} · ${ddmm(d.worst.d)}` : undefined, '#ff7b7b')}
-            {tile('Régularité', d.sd == null ? '–' : '±' + d.sd, 'écart-type des scores')}
+            {tile('Moy. 5 matchs', fx(S!.avg.l5.ttfl), `${S!.avg.l5.n} match(s)`, c.cy)}{tile('Moy. 10 matchs', fx(S!.avg.l10.ttfl), `${S!.avg.l10.n} match(s)`, c.cy)}{tile('Moy. saison', fx(S!.avg.season.ttfl), `${S!.avg.season.n} match(s)`)}
+            {tile('Score max', S!.best ? String(S!.best.t) : '–', S!.best ? `vs ${S!.best.opp} · ${ddmm(S!.best.d)}` : undefined, '#4ade80')}{tile('Score min', S!.worst ? String(S!.worst.t) : '–', S!.worst ? `vs ${S!.worst.opp} · ${ddmm(S!.worst.d)}` : undefined, '#ff7b7b')}
+            {tile('Régularité', S!.sd == null ? '–' : '±' + S!.sd, 'écart-type des scores')}
           </div>
 
           <div style={{ ...box, marginBottom: 16 }}>
             <div style={{ fontWeight: 700, marginBottom: 6 }}>10 derniers matchs <span style={{ color: c.dim, fontWeight: 400, fontSize: 12 }}>· clique sur un score pour ouvrir la fiche du match</span></div>
-            {d.games.length ? <Bars g={d.games} /> : <p style={{ color: c.dim }}>Aucun match joué cette saison.</p>}
+            {recent.length ? <Bars g={recent} /> : <p style={{ color: c.dim }}>Aucun match joué cette saison.</p>}
           </div>
 
           <div style={{ ...box, marginBottom: 16 }}>
@@ -82,8 +88,8 @@ export default function PlayerSheet({ slug }: { slug: string }) {
                 <div key={k} style={{ border: `1px solid ${c.line}`, borderRadius: 10, padding: '8px 10px' }}><div style={{ fontSize: 11, color: c.dim }}>{k}</div><div style={{ fontSize: 20, fontWeight: 800, color: s === '−' ? '#ff9b9b' : s === '+' ? '#fff' : c.dim }}>{s === '−' && v ? '−' : ''}{fx(v)}</div></div>))}
             </div>
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 10, fontSize: 13, color: c.dim }}>
-              <span>Domicile : <b style={{ color: '#fff' }}>{fx(d.avg.home.ttfl)}</b> ({d.avg.home.n})</span><span>Extérieur : <b style={{ color: '#fff' }}>{fx(d.avg.away.ttfl)}</b> ({d.avg.away.n})</span>
-              <span title="Équipe ayant déjà joué la veille">2e soir de back-to-back : <b style={{ color: c.gold }}>{fx(d.avg.b2b.ttfl)}</b> ({d.avg.b2b.n})</span><span>Avec repos : <b style={{ color: '#fff' }}>{fx(d.avg.rest.ttfl)}</b> ({d.avg.rest.n})</span>
+              <span>Domicile : <b style={{ color: '#fff' }}>{fx(S!.avg.home.ttfl)}</b> ({S!.avg.home.n})</span><span>Extérieur : <b style={{ color: '#fff' }}>{fx(S!.avg.away.ttfl)}</b> ({S!.avg.away.n})</span>
+              <span title="Équipe ayant déjà joué la veille">2e soir de back-to-back : <b style={{ color: c.gold }}>{fx(S!.avg.b2b.ttfl)}</b> ({S!.avg.b2b.n})</span><span>Avec repos : <b style={{ color: '#fff' }}>{fx(S!.avg.rest.ttfl)}</b> ({S!.avg.rest.n})</span>
             </div>
           </div>
 
@@ -92,7 +98,7 @@ export default function PlayerSheet({ slug }: { slug: string }) {
               <div style={{ padding: '12px 14px', fontWeight: 700 }}>Tous les matchs</div>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 440 }}>
                 <thead><tr style={{ color: c.dim, textAlign: 'right' }}>{['Date', 'Adversaire', 'TTFL', 'MIN', 'PTS', 'REB', 'PD', 'INT', 'CT', 'BP'].map((h, i) => <th key={h} style={{ padding: '6px 8px', fontWeight: 500, textAlign: i < 2 ? 'left' : 'right' }}>{h}</th>)}</tr></thead>
-                <tbody>{d.games.slice().reverse().map(g => (
+                <tbody>{shown.slice().reverse().map(g => (
                   <tr key={g.gid} style={{ borderTop: `1px solid ${c.line}` }}>
                     <td style={{ padding: '7px 8px', color: c.dim }}>{ddmm(g.d)}{g.b2b && <span title="2e soir de back-to-back" style={{ marginLeft: 6, fontSize: 9, color: c.gold, border: `1px solid ${c.gold}`, borderRadius: 4, padding: '0 3px' }}>B2B</span>}</td><td style={{ padding: '7px 8px' }}>{g.home ? 'vs' : '@'} {g.opp}</td>
                     <td style={{ padding: '7px 8px', textAlign: 'right' }}>{mlink(g, g.t, true)}</td>
@@ -102,15 +108,19 @@ export default function PlayerSheet({ slug }: { slug: string }) {
             </div>
             <div style={box}>
               <div style={{ fontWeight: 700, marginBottom: 8 }}>Scores par adversaire</div>
-              {d.opps.length === 0 && <p style={{ color: c.dim }}>Pas encore de données.</p>}
-              {d.opps.map((o, i) => (
+              {S!.opps.length === 0 && <p style={{ color: c.dim }}>Pas encore de données.</p>}
+              {S!.opps.map((o, i) => (
                 <div key={o.opp} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderTop: i ? `1px solid ${c.line}` : 'none' }}>
-                  <span>{o.opp} {i === 0 && d.opps.length > 1 && <span style={{ fontSize: 10, color: c.gold, border: `1px solid ${c.gold}`, borderRadius: 4, padding: '0 4px', marginLeft: 4 }}>FAVORI</span>}</span>
+                  <span>{o.opp} {i === 0 && S!.opps.length > 1 && <span style={{ fontSize: 10, color: c.gold, border: `1px solid ${c.gold}`, borderRadius: 4, padding: '0 4px', marginLeft: 4 }}>FAVORI</span>}</span>
                   <span><b style={{ color: c.cy }}>{o.avg.toFixed(1)}</b> <span style={{ color: c.dim, fontSize: 12 }}>({o.n} match{o.n > 1 ? 's' : ''})</span></span>
                 </div>))}
             </div>
           </div>
-          <p style={{ color: c.dim, fontSize: 12, marginTop: 14 }}>Scores TTFL calculés depuis les box scores officiels de la saison 2026-27 (depuis le 21/10). La carte affichée est la Limited In-Season de la saison la plus récente.</p>
+          {d.seasons.length > 1 && <div style={{ ...box, marginTop: 16, overflowX: 'auto' }}>
+            <div style={{ fontWeight: 700, marginBottom: 8 }}>Saison par saison</div>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 360 }}><thead><tr style={{ color: c.dim }}>{['Saison', 'Matchs', 'Moy. TTFL', 'Max', 'Min', 'Minutes'].map((h, i) => <th key={h} style={{ padding: '6px 8px', fontWeight: 500, textAlign: i ? 'right' : 'left' }}>{h}</th>)}</tr></thead>
+              <tbody>{d.seasons.map(x => <tr key={x.season} style={{ borderTop: `1px solid ${c.line}` }}><td style={{ padding: '7px 8px' }}>{x.season}</td><td style={{ padding: '7px 8px', textAlign: 'right' }}>{x.n}</td><td style={{ padding: '7px 8px', textAlign: 'right', color: c.cy, fontWeight: 700 }}>{fx(x.ttfl)}</td><td style={{ padding: '7px 8px', textAlign: 'right' }}>{x.max}</td><td style={{ padding: '7px 8px', textAlign: 'right' }}>{x.min}</td><td style={{ padding: '7px 8px', textAlign: 'right', color: c.dim }}>{fx(x.min_m)}</td></tr>)}</tbody></table></div>}
+          <p style={{ color: c.dim, fontSize: 12, marginTop: 14 }}>Scores TTFL calculés depuis les box scores officiels de la saison 2026-27 (depuis le 20/10). La carte affichée est la Limited In-Season de la saison la plus récente.</p>
         </>}
       </div>
     </main>
