@@ -10,18 +10,21 @@ async function gql(query: string) {
 }
 const chunk = <T,>(a: T[], n: number) => Array.from({ length: Math.ceil(a.length / n) }, (_, i) => a.slice(i * n, i * n + n));
 
-// Cartes LIMITED en vente par joueur (une par saison d'edition) : sert a varier les editions dans les compos
+// Cartes LIMITED In-Season existantes par joueur (toutes les cartes emises, en vente ou non) : sert a l'image des compos du builder
 export async function marketPics(slugs: string[]): Promise<Record<string, { pic: string; year: number; is: boolean }[]>> {
   const out: Record<string, { pic: string; year: number; is: boolean }[]> = {};
   await Promise.all(slugs.filter(s => /^[a-z0-9-]{3,80}$/.test(s)).slice(0, 20).map(async s => {
     out[s] = [];
     try {
-      const d = await gql(`{ tokens{ liveSingleSaleOffers(sport:NBA first:25 playerSlug:"${s}"){ nodes{ senderSide{ anyCards{ pictureUrl rarityTyped seasonYear inSeasonEligible } } } } } }`);
-      const seen = new Set<string>();
-      const cs = (d.tokens?.liveSingleSaleOffers?.nodes || []).map((n: any) => n.senderSide?.anyCards?.[0]).filter((c: any) => c && c.pictureUrl && String(c.rarityTyped).toLowerCase() === 'limited');
-      cs.sort((a: any, b: any) => Number(!!b.inSeasonEligible) - Number(!!a.inSeasonEligible));
-      for (const c of cs) { if (seen.has(c.pictureUrl) || out[s].length >= 6) continue; seen.add(c.pictureUrl); out[s].push({ pic: c.pictureUrl, year: Number(c.seasonYear), is: !!c.inSeasonEligible }); }
-    } catch { /* pas de carte : photo du joueur */ }
+      let after = '';
+      for (let page = 0; page < 3 && !out[s].length; page++) {
+        const d = await gql(`{ tokens{ allCards(first:50${after ? `, after:"${after}"` : ''}, sport:NBA, playerSlug:"${s}", rarities:[limited]){ nodes{ pictureUrl seasonYear inSeasonEligible } pageInfo{ hasNextPage endCursor } } } }`);
+        const ac = d.tokens?.allCards;
+        for (const c of ac?.nodes || []) if (c.pictureUrl && c.inSeasonEligible && out[s].length < 6) out[s].push({ pic: c.pictureUrl, year: Number(c.seasonYear), is: true });
+        if (!ac?.pageInfo?.hasNextPage) break;
+        after = ac.pageInfo.endCursor;
+      }
+    } catch { /* pas de carte : joueur ecarte du builder */ }
   }));
   return out;
 }
