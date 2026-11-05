@@ -146,7 +146,7 @@ export default function LiveTab({ night, proj, slugs, initialGame, onSelect }: {
       </svg>
     );
     const rows = (items: [string, number][], rgb: string) => { const mx = Math.max(1, ...items.map(i => i[1])); return items.map(([k, v]) => (
-      <div key={k} style={{ display: 'grid', gridTemplateColumns: '64px 1fr 30px', alignItems: 'center', gap: 10, padding: '5px 0', opacity: v ? 1 : .45 }}>
+      <div key={k} style={{ display: 'grid', gridTemplateColumns: '96px 1fr 30px', alignItems: 'center', gap: 10, padding: '5px 0', opacity: v ? 1 : .45 }}>
         <span style={{ fontSize: 13, color: c.dim }}>{k}</span>
         <span style={{ height: 8, borderRadius: 99, background: 'rgba(255,255,255,.07)', overflow: 'hidden' }}><span style={{ display: 'block', height: '100%', width: (100 * v / mx) + '%', borderRadius: 99, background: `linear-gradient(90deg, rgba(${rgb},.3), rgb(${rgb}))`, boxShadow: `0 0 10px rgba(${rgb},.5)` }} /></span>
         <b style={{ textAlign: 'right', fontSize: 16, fontVariantNumeric: 'tabular-nums' }}>{v}</b>
