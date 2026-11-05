@@ -42,8 +42,8 @@ export async function GET(req: NextRequest) {
   try {
     const sp = req.nextUrl.searchParams;
     if (sp.get('inj')) {
-      const t = await injTable();
-      return NextResponse.json({ ok: true, updated: t.updated, rows: t.rows.map(({ name, team, status, until, untilKind, src, updated }) => ({ name, team, status, until, untilKind, src, updated })) }, { headers: HDR });
+      const [t, st] = await Promise.all([injTable(), stats()]);
+      return NextResponse.json({ ok: true, updated: t.updated, rows: t.rows.map(({ name, team, status, until, untilKind, src, updated }) => { const s = st.by[nrm(name)]; return { name, team, status, until, untilKind, src, updated, l10: s?.l10 ?? null, n: s?.n ?? 0 }; }) }, { headers: HDR });
     }
     const night = (sp.get('night') || '').trim();
     if (!/^\d{4}-\d{2}-\d{2}$/.test(night)) return NextResponse.json({ ok: false, error: 'night=YYYY-MM-DD requis' }, { status: 400 });
