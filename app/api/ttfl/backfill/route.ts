@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
   const cursor = (await redis.get<string>(CUR).catch(() => null)) || TOP;
   if (sp.get('status')) return NextResponse.json({ ok: true, cursor, done: cursor < BOTTOM, from: TOP, to: BOTTOM });
   if (!sp.get('run')) return NextResponse.json({ ok: false, error: 'run=1 ou status=1' }, { status: 400 });
-  const t0 = Date.now(); let d = cursor; let days = 0, games = 0, rows = 0;
+  const t0 = Date.now(); let d = cursor; let days = 0, games = 0, rows = 0; const missing: string[] = [];
   try {
     while (d >= BOTTOM && Date.now() - t0 < 40000) {
       // lot de 6 jours
@@ -45,8 +45,9 @@ export async function GET(req: NextRequest) {
       const byPlayer: Record<string, Record<string, Row>> = {}; const names: Record<string, Set<string>> = {};
       const jobs = lists.flatMap(l => l.ev.map(e => ({ ...e, day: l.day })));
       await pool(jobs, 12, async e => {
-        let sum: any = null;
-        for (let i = 0; i < 3 && !sum; i++) sum = await getJson(`${ESPN}/summary?event=${e.id}`, 86400).catch(() => null);
+        let sum: any = null; let gone = false;
+        for (let i = 0; i < 3 && !sum && !gone; i++) sum = await getJson(`${ESPN}/summary?event=${e.id}`, 86400).catch((err: Error) => { if (/ 404$/.test(err.message)) gone = true; return null; });
+        if (gone) { missing.push(e.id); return; } // match sans box score chez ESPN (annule, etc.) : ignore
         if (!sum) throw new Error('summary ' + e.id);
         for (const team of sum?.boxscore?.players || []) {
           const st = team?.statistics?.[0]; if (!st) continue;
@@ -80,7 +81,8 @@ export async function GET(req: NextRequest) {
       days += batch.length; d = prev(batch[batch.length - 1]);
       await redis.set(CUR, d);
     }
-    return NextResponse.json({ ok: true, cursor: d, done: d < BOTTOM, days, games, rows, ms: Date.now() - t0 });
+    if (missing.length) await redis.sadd('ttfl:bf:missing', missing[0], ...missing.slice(1)).catch(() => {});
+    return NextResponse.json({ ok: true, cursor: d, done: d < BOTTOM, days, games, rows, missing: missing.length, ms: Date.now() - t0 });
   } catch (e) {
     return NextResponse.json({ ok: false, error: String(e).slice(0, 200), cursor: d, days, games, rows }, { status: 502 });
   }
