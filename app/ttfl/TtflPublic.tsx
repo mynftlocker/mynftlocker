@@ -185,7 +185,7 @@ export default function TtflPublic() {
               </table>
             </div>
           )}
-          <p style={{ color: c.dim, fontSize: 12, marginTop: 14, lineHeight: 1.5 }}>{tr('Projection myNFTlocker = score TTFL attendu, calculé à partir de l’actualité, de la forme du joueur et de son équipe, et de l’adversaire. ↑ = projection du joueur s’il joue (statut incertain). « Présence » = matchs joués / matchs de l’équipe cette saison. Heures de Paris.')}</p>
+          <p style={{ color: c.dim, fontSize: 12, marginTop: 14, lineHeight: 1.5 }}>{tr('Projection myNFTlocker = score TTFL attendu, calculé à partir de l’actualité, de la forme du joueur et de son équipe, et de l’adversaire. Statuts : injury report officiel de la NBA croisé avec l’actualité. ↑ = projection du joueur s’il joue (statut incertain). « Présence » = matchs joués / matchs de l’équipe cette saison. Heures de Paris.')}</p>
         </>}
 
         {view === 'live' && <LiveTab night={night} proj={projMap} slugs={slugMap} initialGame={initGame && (initGame.n === night || !initGame.n) ? initGame.g : null} onSelect={setSelGame} />}
