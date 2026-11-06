@@ -264,6 +264,7 @@ export default function GwBuilder() {
   const glass: React.CSSProperties = { background: `linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.01)), ${c.card}`, border: `1px solid ${c.line}`, borderRadius: 18, backdropFilter: 'blur(8px)' };
   const btn = (on = false): React.CSSProperties => ({ background: on ? 'rgba(0,255,255,.14)' : 'rgba(255,255,255,.06)', border: `1px solid ${on ? c.cy : c.line}`, color: on ? c.cy : '#fff', borderRadius: 10, padding: '7px 12px', fontSize: 13, cursor: 'pointer', whiteSpace: 'nowrap' });
   const pill = (on = false): React.CSSProperties => ({ background: on ? 'rgba(0,255,255,.12)' : 'rgba(255,255,255,.04)', border: `1px solid ${on ? c.cy + '99' : c.line}`, color: on ? c.cy : 'rgba(255,255,255,.86)', borderRadius: 999, padding: '4px 11px', fontSize: 12, cursor: 'pointer', whiteSpace: 'nowrap' });
+  const addPill = (gold = false): React.CSSProperties => ({ background: gold ? 'rgba(229,185,78,.08)' : 'rgba(0,255,255,.07)', border: `1px solid ${gold ? c.gold + '88' : 'rgba(0,255,255,.5)'}`, color: '#fff', borderRadius: 999, padding: '5px 13px', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' });
   const lab: React.CSSProperties = { fontSize: 10.5, letterSpacing: 1.2, color: c.dim, textTransform: 'uppercase', marginRight: 2 };
   const inp: React.CSSProperties = { background: 'rgba(0,0,0,.4)', color: '#fff', border: `1px solid ${c.line}`, borderRadius: 10, padding: '8px 10px', fontSize: 14 };
 
@@ -364,10 +365,10 @@ export default function GwBuilder() {
         {/* Barre de commande : ajouter / classer / générer */}
         <div style={{ ...glass, padding: '10px 12px', marginBottom: 14 }}>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-            <span style={lab}>Ajouter</span>
-            {PRESETS.filter(p => p.kind !== 'arena').map(p => { const lim = (p.kind === 'cl-champ' || p.kind === 'cl-cont') && count(p.kind) >= MAXCL; return <button key={p.kind} disabled={lim} onClick={() => add(p.kind)} style={{ ...pill(), opacity: lim ? 0.35 : 1 }}>{p.label.replace('In-Season', 'IS').replace('Emirates NBA Cup', 'Cup')}{p.kind === 'cl-champ' || p.kind === 'cl-cont' ? ` ${count(p.kind)}/${MAXCL}` : ''}</button>; })}
-            <span style={{ ...lab, marginLeft: 6 }}>Arena</span>
-            {ARENAS.map(a => <button key={a.k} onClick={() => addArena(a)} title={`${a.label} · ${a.essence} Essence`} style={pill()}>{a.label.replace('Arena ', '')}</button>)}
+            <span style={{ fontSize: 13, fontWeight: 700, color: c.cy, marginRight: 4, whiteSpace: 'nowrap' }}>＋ Ajouter une compo</span>
+            {PRESETS.filter(p => p.kind !== 'arena').map(p => { const lim = (p.kind === 'cl-champ' || p.kind === 'cl-cont') && count(p.kind) >= MAXCL; return <button key={p.kind} disabled={lim} onClick={() => add(p.kind)} style={{ ...addPill(), opacity: lim ? 0.35 : 1 }}>+ {p.label.replace('In-Season', 'IS').replace('Emirates NBA Cup', 'Cup')}{p.kind === 'cl-champ' || p.kind === 'cl-cont' ? ` ${count(p.kind)}/${MAXCL}` : ''}</button>; })}
+            <span style={{ fontSize: 12, fontWeight: 700, color: c.gold, margin: '0 2px 0 8px', whiteSpace: 'nowrap' }}>Arena</span>
+            {ARENAS.map(a => <button key={a.k} onClick={() => addArena(a)} title={`${a.label} · ${a.essence} Essence`} style={addPill(true)}>+ {a.label.replace('Arena ', '')}</button>)}
           </div>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginTop: 8, paddingTop: 8, borderTop: `1px solid ${c.line}` }}>
             <button onClick={rank} style={{ ...pill(true), padding: '5px 12px' }}>⚡ Classer par chance de perf</button>
