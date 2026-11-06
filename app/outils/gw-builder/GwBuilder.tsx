@@ -265,6 +265,7 @@ export default function GwBuilder() {
   const addArena = (a: typeof ARENAS[number]) => setRooms(rs => [...(rs || []), makeRoom('arena', { label: `${a.label} ${(rs || []).filter(r => r.label.startsWith(a.label)).length + 1}`, cap: a.cap, essence: a.essence, arena: a.k, minAge: 'minAge' in a ? a.minAge : undefined, maxAge: 'maxAge' in a ? a.maxAge : undefined, rar: ['limited'] })]);
   const rank = () => setRooms(rs => rankRooms(rs || [], cards, playersP, cup));
   // Plan complet : genere toutes les compos dans l'ordre de preference (IS en alternance, puis Classic, puis Arena), en gardant la Cup
+  const planEss = ARENAS.reduce((t, a) => t + RARITIES.slice(0, 3).reduce((u, ra) => u + (plan[`ar-${a.k}|${ra.k}`] || 0), 0) * a.essence, 0);
   const mp = (k: string) => plan['min|' + k] || undefined;   // seuil mini de projection du type (0 = aucun)
   const genPlan = () => setRooms(rs => {
     const keep = (rs || []).filter(r => r.kind === 'cup').map(r => ({ ...r, pins: [] }));
@@ -275,7 +276,7 @@ export default function GwBuilder() {
       while (a > 0 || b > 0) { if (a > 0) { out.push(makeRoom('is-champ', { label: `In-Season Champion${nm} ${++n1}`, rar, minProj: mp('isc') })); a--; } if (b > 0) { out.push(makeRoom('is-cont', { label: `In-Season Contender${nm} ${++n2}`, rar, minProj: mp('isk') })); b--; } }
       let c1 = Math.min(MAXCL, g('clc')), c2 = Math.min(MAXCL, g('clk')), m1 = 0, m2 = 0; // Classic : 3 max par type et par rareté
       while (c1 > 0 || c2 > 0) { if (c1 > 0) { out.push(makeRoom('cl-champ', { label: `Classic Champion${nm} ${++m1}`, rar, minProj: mp('clc') })); c1--; } if (c2 > 0) { out.push(makeRoom('cl-cont', { label: `Classic Contender${nm} ${++m2}`, rar, minProj: mp('clk') })); c2--; } }
-      for (let i = 1; i <= g('ar'); i++) out.push(makeRoom('arena', { label: `Arena Champion${nm} ${i}`, essence: 150, arena: 'champ', rar, minProj: mp('ar') }));
+      for (const a of ARENAS) for (let i = 1; i <= g('ar-' + a.k); i++) out.push(makeRoom('arena', { label: `${a.label}${nm} ${i}`, cap: a.cap, essence: a.essence, arena: a.k, minAge: 'minAge' in a ? a.minAge : undefined, maxAge: 'maxAge' in a ? a.maxAge : undefined, rar, minProj: mp('ar-' + a.k) }));
     }
     return [...out.slice(0, 1), ...keep, ...out.slice(1)];
   });
@@ -285,11 +286,11 @@ export default function GwBuilder() {
     setTimeout(() => {
       try {
         const keepCup = rooms.filter(r => r.kind === 'cup');
-        const minProj: Record<string, number> = {}; for (const k of ['isc', 'isk', 'clc', 'clk', 'ar']) minProj[k] = plan['min|' + k] || 0;
-        const o = autoAll({ cards, players: playersP, cup, keepCup, minProj, mk: (k, e) => makeRoom(k, e), arena: (r, t) => { const q = rent(r, t); return q && q.th ? { ok: q.ok, ratio: q.ratio } : null; } });
+        const minProj: Record<string, number> = {}; for (const k of ['isc', 'isk', 'clc', 'clk', ...ARENAS.map(a => 'ar-' + a.k)]) minProj[k] = plan['min|' + k] || 0;
+        const o = autoAll({ cards, players: playersP, cup, keepCup, minProj, budget: plan.bud || 0, mk: (k, e) => makeRoom(k, e), arena: (r, t) => { const q = rent(r, t); return q && q.th ? { ok: q.ok, ratio: q.ratio } : null; } });
         setRooms(o.rooms);
         const n = (f: (r: Room) => boolean) => o.rooms.filter(f).length;
-        setAutoMsg(`${o.rooms.length} compos viables générées : ${n(r => r.kind === 'is-champ' || r.kind === 'is-cont')} In-Season · ${n(r => r.kind === 'cl-champ' || r.kind === 'cl-cont')} Classic · ${n(r => r.kind === 'arena')} Arena rentables${n(r => r.kind === 'cup') ? ` · ${n(r => r.kind === 'cup')} Cup` : ''}.${o.arenaSkipped ? ` ${o.arenaSkipped} type(s) d’Arena écarté(s) car non rentables.` : ''}${o.arenaUnknown ? ' Seuils Arena indisponibles pour certains types : non créés.' : ''}`);
+        setAutoMsg(`${o.rooms.length} compos viables générées : ${n(r => r.kind === 'is-champ' || r.kind === 'is-cont')} In-Season · ${n(r => r.kind === 'cl-champ' || r.kind === 'cl-cont')} Classic · ${n(r => r.kind === 'arena')} Arena rentables (${o.essence} Essence${plan.bud ? ` sur ${plan.bud}` : ''})${n(r => r.kind === 'cup') ? ` · ${n(r => r.kind === 'cup')} Cup` : ''}.${o.overBudget ? ` ${o.overBudget} autre(s) Arena rentables non créées : budget Essence atteint.` : ''}${o.arenaSkipped ? ` ${o.arenaSkipped} type(s) d’Arena écarté(s) car non rentables.` : ''}${o.arenaUnknown ? ' Seuils Arena indisponibles pour certains types : non créés.' : ''}`);
       } catch (e: any) { setAutoMsg('Génération impossible : ' + String(e?.message || e)); }
       setAutoBusy(false);
     }, 30);
@@ -414,7 +415,7 @@ export default function GwBuilder() {
           <div style={{ display: 'flex', gap: 22, flexWrap: 'wrap', alignItems: 'center' }}>
             <div><div style={{ fontSize: 12, color: c.dim, letterSpacing: 1 }}>COMPOS PRÊTES</div><div style={{ fontSize: 34, fontWeight: 800, color: c.cy, textShadow: '0 0 18px rgba(0,255,255,.5)', lineHeight: 1.1 }}>{nDone}<span style={{ color: c.dim, fontSize: 18, textShadow: 'none' }}> / {results.length}</span></div></div>
             <div><div style={{ fontSize: 12, color: c.dim, letterSpacing: 1 }}>CARTES ENGAGÉES</div><div style={{ fontSize: 28, fontWeight: 800, lineHeight: 1.2 }}>{usedCards.size}<span style={{ color: c.dim, fontSize: 18 }}> / {cards.length}</span></div><div style={{ fontSize: 11.5, color: c.dim }}>jouables sur {cardStats.total} cartes de jeu · {cardStats.nomatch} non projetées par Sorare (absentes, blessées longue durée) · {cardStats.inj} blessées · {cardStats.engaged} déjà alignées</div></div>
-            <div><div style={{ fontSize: 12, color: c.dim, letterSpacing: 1 }}>ESSENCE ARENA</div><div style={{ fontSize: 28, fontWeight: 800, lineHeight: 1.2, color: c.gold }}>{essenceIn}<span style={{ color: c.dim, fontSize: 16 }}> Ess.</span></div><div style={{ fontSize: 11.5, color: c.dim }}>{nArena} Arena rentables</div></div>
+            <div><div style={{ fontSize: 12, color: c.dim, letterSpacing: 1 }}>ESSENCE ARENA · BUDGET</div><div style={{ display: 'flex', alignItems: 'baseline', gap: 6, lineHeight: 1.2 }}><span style={{ fontSize: 28, fontWeight: 800, color: plan.bud && essenceIn > plan.bud ? c.red : c.gold }}>{essenceIn}</span><span style={{ color: c.dim, fontSize: 16 }}>/</span><input type="number" min={0} step={25} placeholder="∞" value={plan.bud || ''} onChange={e => setPlan(pl => ({ ...pl, bud: Math.max(0, +e.target.value || 0) }))} title="Budget Arena en Essence pour cette GW (0 ou vide = sans limite). « Tout générer » le respecte." style={{ ...inp, width: 78, padding: '3px 8px', fontSize: 16, fontWeight: 700 }} /></div><div style={{ fontSize: 11.5, color: plan.bud && essenceIn > plan.bud ? c.red : c.dim }}>{nArena} Arena rentables{plan.bud && essenceIn > plan.bud ? ` · budget dépassé de ${essenceIn - plan.bud}` : ''}</div></div>
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
             <label style={{ fontSize: 13, color: c.dim, display: 'flex', gap: 6, alignItems: 'center' }}><input type="checkbox" checked={onlyRent} onChange={e => setOnlyRent(e.target.checked)} /> Écarter les Arena non rentables</label>
@@ -501,10 +502,11 @@ export default function GwBuilder() {
               <div style={{ fontSize: 11.5, color: c.dim, marginBottom: 6 }}>Nombre de compos par type et par rareté (Classic : 3 max) et seuil mini de projection : une compo sous le seuil n’est pas jouée. Remplace l’ordre actuel, garde la Cup.</div>
               <div style={{ display: 'grid', gridTemplateColumns: 'minmax(110px,1fr) repeat(3,62px) 78px', gap: '4px 8px', alignItems: 'center', maxWidth: 420, fontSize: 12.5 }}>
                 <span />{RARITIES.slice(0, 3).map(ra => <span key={ra.k} style={{ color: c.dim, fontSize: 11, textAlign: 'center', whiteSpace: 'nowrap' }}>{ra.l}</span>)}<span style={{ color: c.gold, fontSize: 11, textAlign: 'center', whiteSpace: 'nowrap' }}>Seuil mini</span>
-                {([['isc', 'IS Champion', 99], ['isk', 'IS Contender', 99], ['clc', 'Classic Champion', 3], ['clk', 'Classic Contender', 3], ['ar', 'Arena Champion', 20]] as const).map(([k, l, mx]) => (
+                {([['isc', 'IS Champion', 99], ['isk', 'IS Contender', 99], ['clc', 'Classic Champion', 3], ['clk', 'Classic Contender', 3], ...ARENAS.map(a => ['ar-' + a.k, `${a.label} · ${a.essence} Ess.`, 20] as const)] as readonly (readonly [string, string, number])[]).map(([k, l, mx]) => (
                   <Fragment key={k}><span>{l}</span>{RARITIES.slice(0, 3).map(ra => <input key={ra.k} type="number" min={0} max={mx} value={plan[`${k}|${ra.k}`] || 0} onChange={e => setPlan(pl => ({ ...pl, [`${k}|${ra.k}`]: Math.max(0, Math.min(mx, +e.target.value || 0)) }))} style={{ ...inp, width: 62, padding: '4px 6px', fontSize: 13, textAlign: 'center', boxSizing: 'border-box' }} />)}<input type="number" min={0} max={999} placeholder="—" value={plan['min|' + k] || ''} onChange={e => setPlan(pl => ({ ...pl, ['min|' + k]: Math.max(0, Math.min(999, +e.target.value || 0)) }))} style={{ ...inp, width: 78, padding: '4px 6px', fontSize: 13, textAlign: 'center', boxSizing: 'border-box', borderColor: c.gold + '66' }} /></Fragment>
                 ))}
               </div>
+              <div style={{ marginTop: 8, fontSize: 12.5, color: planEss > (plan.bud || 1e9) ? c.red : c.dim }}>Essence engagée par ce plan : <b style={{ color: planEss > (plan.bud || 1e9) ? c.red : c.gold }}>{planEss}</b>{plan.bud ? ` / budget ${plan.bud}${planEss > plan.bud ? ' · dépassé' : ''}` : ' (pas de budget fixé)'}</div>
               <div style={{ marginTop: 8 }}><button onClick={() => { genPlan(); setPlanOpen(false); }} style={{ ...pill(true), padding: '5px 14px' }}>Générer</button></div>
             </div>
           )}
