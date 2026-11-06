@@ -1,5 +1,5 @@
 'use client';
-import { Fragment, useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import type { GP } from '../../../lib/gwLineup';
 import { PRESETS, ARENAS, RARITIES, roomRar, rankRooms, cardsFor, ageOk, solve, type CupMap, CUP_TIERS, allocate, cardValue, toCand, type Card, type Room, type RoomKind } from '../../../lib/gwAuto';
 import { baseProj, gameAdj, statusMul } from '../../../lib/projBase';
@@ -45,6 +45,9 @@ export default function GwBuilder() {
   const [gw, setGw] = useState<any>(null);
   const [err, setErr] = useState('');
   const [planOpen, setPlanOpen] = useState(false);
+  const [acct, setAcct] = useState<boolean | null>(null);        // compte connecte ? (null = inconnu)
+  const [saveSt, setSaveSt] = useState<'' | 'wait' | 'ok' | 'err'>('');
+  const synced = useRef(false);
   const [pseudo, setPseudo] = useState('memejacquet1998');
   const [rawCards, setRawCards] = useState<any[]>([]);
   const [used, setUsed] = useState<Record<string, string[]>>({});
@@ -97,6 +100,27 @@ export default function GwBuilder() {
     setRooms(r && r.length ? r.map(x => ({ ...x, pins: [], rar: x.rar?.length ? [x.rar[0]] : undefined })) : defaultRooms(nights.find(n => n >= parisDay(new Date().toISOString())) || nights[0]));
   }, [nights, rooms]);
   useEffect(() => { if (rooms) try { localStorage.setItem(LSR, JSON.stringify(rooms)); } catch {} }, [rooms]);
+
+  // Sauvegarde des compos par GW pour un compte connecte (la connexion reste un bonus : sans compte, tout marche, memorise sur cet appareil)
+  const gwNum = gw?.fixture?.gw;
+  useEffect(() => {
+    if (!gwNum || !rooms || synced.current) return;
+    synced.current = true;
+    fetch('/api/gw-compos?gw=' + gwNum).then(async r => {
+      if (r.status === 401) { setAcct(false); return; }
+      const j = await r.json(); setAcct(true);
+      if (j.saved?.rooms?.length) { setRooms(j.saved.rooms); if (j.saved.plan && Object.keys(j.saved.plan).length) setPlan(j.saved.plan); setSaveSt('ok'); }
+    }).catch(() => setAcct(false));
+  }, [gwNum, rooms]);
+  useEffect(() => {
+    if (!acct || !gwNum || !rooms || !synced.current) return;
+    setSaveSt('wait');
+    const t = setTimeout(() => {
+      fetch('/api/gw-compos', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ gw: gwNum, rooms, plan }) })
+        .then(r => setSaveSt(r.ok ? 'ok' : 'err')).catch(() => setSaveSt('err'));
+    }, 1500);
+    return () => clearTimeout(t);
+  }, [rooms, plan, acct, gwNum]);
 
   // Collection + cartes deja alignees dans une compo de la GW
   const loadCol = async (pp: string) => {
@@ -338,6 +362,7 @@ export default function GwBuilder() {
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginTop: 8, paddingTop: 8, borderTop: `1px solid ${c.line}` }}>
             <button onClick={rank} style={{ ...pill(true), padding: '5px 12px' }}>⚡ Classer par chance de perf</button>
             <button onClick={() => setPlanOpen(o => !o)} style={pill(planOpen)}>Générer tout le plan {planOpen ? '▴' : '▾'}</button>
+            {acct && saveSt && <span style={{ fontSize: 11, color: saveSt === 'err' ? c.red : c.dim, marginLeft: 6 }}>{saveSt === 'wait' ? 'Sauvegarde…' : saveSt === 'ok' ? 'Compos sauvegardées ✓' : 'Sauvegarde impossible'}</span>}
             <button onClick={() => setRooms(defaultRooms(nights[0]))} style={{ ...pill(), marginLeft: 'auto', color: c.dim }}>Réinitialiser</button>
           </div>
           {planOpen && (
@@ -354,6 +379,7 @@ export default function GwBuilder() {
           )}
         </div>
 
+        {acct === false && <p style={{ margin: '-6px 2px 12px', fontSize: 12, color: c.dim }}>Compos mémorisées sur cet appareil. <a href="/" style={{ color: c.cy }}>Connecte-toi</a> pour les retrouver partout, GW par GW.</p>}
         {/* Compos dans l'ordre */}
         {results.map((res, i) => {
           const r = res.room; const full = res.lineup.length === 5; const cupT = r.kind === 'cup' ? CUP_TIERS.find(t => r.label.includes('palier ' + t.n)) : null;
