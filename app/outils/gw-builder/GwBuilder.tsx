@@ -87,7 +87,7 @@ function TeamRow({ x }: { x: Cand }) {
 const phi = (z: number) => { const t = 1 / (1 + 0.2316419 * Math.abs(z)), d = 0.3989423 * Math.exp(-z * z / 2), p = d * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274)))); return z > 0 ? 1 - p : p; };
 const SIG_TOTAL = 26;   // ecart-type du total reel d'une compo de 5 joueurs autour de la projection v2 (backtest GW 111-115)
 const roiTxt = (v: number | null | undefined) => (v == null ? '' : ` · ROI ${v >= 0 ? '+' : '−'}${Math.abs(Math.round(v * 100))} %`);
-export default function GwBuilder() {
+export default function GwBuilder({ defaultSlug = 'memejacquet1998' }: { defaultSlug?: string }) {
   const [gw, setGw] = useState<any>(null);
   const [err, setErr] = useState('');
   const [planOpen, setPlanOpen] = useState(false);
@@ -97,7 +97,7 @@ export default function GwBuilder() {
   const [autoBusy, setAutoBusy] = useState(false);
   const [clearAsk, setClearAsk] = useState(false);   // 2e clic pour confirmer « Tout effacer »
   const [autoMsg, setAutoMsg] = useState('');
-  const [pseudo, setPseudo] = useState('memejacquet1998');
+  const [pseudo, setPseudo] = useState(defaultSlug);
   const [rawCards, setRawCards] = useState<any[]>([]);
   const [used, setUsed] = useState<Record<string, string[]>>({});
   const [loadMsg, setLoadMsg] = useState('');
@@ -187,7 +187,7 @@ export default function GwBuilder() {
     } catch (e: any) { setLoadMsg('Collection introuvable : ' + String(e?.message || e)); }
     setLoading(false);
   };
-  useEffect(() => { if (fxSlug) loadCol(typeof window !== 'undefined' && localStorage.getItem(LSP) || 'memejacquet1998'); }, [fxSlug]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (fxSlug) loadCol(typeof window !== 'undefined' && localStorage.getItem(LSP) || defaultSlug); }, [fxSlug]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Pourquoi certaines cartes ne sont pas jouables cette GW : detail affiche sous l'indicateur
   const cardStats = useMemo(() => {
