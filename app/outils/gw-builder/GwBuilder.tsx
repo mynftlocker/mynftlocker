@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
 import type { GP } from '../../../lib/gwLineup';
-import { PRESETS, ARENAS, RARITIES, roomRar, rankRooms, ageOk, solve, CUP_TIERS, allocate, cardValue, toCand, type Card, type Room, type RoomKind } from '../../../lib/gwAuto';
+import { PRESETS, ARENAS, RARITIES, roomRar, rankRooms, cardsFor, ageOk, solve, type CupMap, CUP_TIERS, allocate, cardValue, toCand, type Card, type Room, type RoomKind } from '../../../lib/gwAuto';
 import { baseProj, gameAdj, statusMul } from '../../../lib/projBase';
 import StarBg from '../../components/StarBg';
 import { Slab } from '../gw/Slab';
@@ -58,6 +58,7 @@ export default function GwBuilder() {
   const [view, setView] = useState<'build' | 'teams'>('build');
   const [plan, setPlan] = useState<Record<string, number>>({ 'isc|limited': 4, 'isk|limited': 3, 'clc|limited': 3, 'clk|limited': 3, 'ar|limited': 2 });
   const [shareMsg, setShareMsg] = useState('');
+  const [cup, setCup] = useState<CupMap>({});
   const [thr, setThr] = useState<Record<string, { fifth: number; podium: number; first: number; rooms: number; list: number[] }>>({});
   const [onlyRent, setOnlyRent] = useState(true);
   const [buy, setBuy] = useState<{ id: string; n: 1 | 2; busy: boolean; msg: string; res: { adds: Card[]; total: number; gain: number }[] } | null>(null);
@@ -129,8 +130,22 @@ export default function GwBuilder() {
     return out;
   }, [rawCards, playersP, used, noInj]);
 
+  // Cup : donnees de la nuit choisie (calendrier independant des GW) via l'API du Cup Builder
+  const cupNights = useMemo(() => [...new Set((rooms || []).filter(r => r.kind === 'cup' && r.night).map(r => r.night as string))], [rooms]);
+  useEffect(() => {
+    cupNights.filter(n => !cup[n]).forEach(night => {
+      fetch('/api/outils/cup?night=' + night).then(r => r.json()).then(j => {
+        const m: Record<string, GP> = {};
+        for (const p of j.players || []) {
+          const v = baseProj({ pj: p.proj, l10: p.l10, l5: p.l5, ceil: p.max, adj: gameAdj(undefined, p.home, false) }) * statusMul(p.inj);
+          m[p.slug] = { slug: p.slug, name: p.name, team: p.team, teamName: p.team, games: 1, opp: [{ d: night + 'T12:00:00Z', o: p.opp, h: p.home, pj: v }], stars: p.stars, proj: v, l10: p.l10, inj: p.inj || null, pic: null, ceil: p.max, l5: p.l5 } as GP;
+        }
+        setCup(c => ({ ...c, [night]: m }));
+      }).catch(() => setCup(c => ({ ...c, [night]: {} })));
+    });
+  }, [cupNights]); // eslint-disable-line react-hooks/exhaustive-deps
   const rawRar = useMemo(() => Object.fromEntries(cards.map(x => [x.id, x.rar || 'limited'])) as Record<string, string>, [cards]);
-  const results = useMemo(() => (rooms ? allocate(rooms, cards) : []), [rooms, cards]);
+  const results = useMemo(() => (rooms ? allocate(rooms, cards, cup) : []), [rooms, cards, cup]);
   // Rentabilite d'une Arena : projection de la compo contre le score MEDIAN de la 5e place sur les GW deja terminees (meme type de room, meme rarete)
   const rent = (r: Room, total: number) => {
     if (r.kind !== 'arena') return null;
@@ -145,7 +160,7 @@ export default function GwBuilder() {
   const MAXCL = 3; // Classic : 3 Champion + 3 Contender maximum
   const count = (kind: RoomKind) => (rooms || []).filter(r => r.kind === kind && roomRar(r)[0] === 'limited').length;
   const addArena = (a: typeof ARENAS[number]) => setRooms(rs => [...(rs || []), makeRoom('arena', { label: `${a.label} ${(rs || []).filter(r => r.label.startsWith(a.label)).length + 1}`, cap: a.cap, essence: a.essence, arena: a.k, minAge: 'minAge' in a ? a.minAge : undefined, maxAge: 'maxAge' in a ? a.maxAge : undefined, rar: ['limited'] })]);
-  const rank = () => setRooms(rs => rankRooms(rs || [], cards, playersP));
+  const rank = () => setRooms(rs => rankRooms(rs || [], cards, playersP, cup));
   // Plan complet : genere toutes les compos dans l'ordre de preference (IS en alternance, puis Classic, puis Arena), en gardant la Cup
   const genPlan = () => setRooms(rs => {
     const keep = (rs || []).filter(r => r.kind === 'cup').map(r => ({ ...r, pins: [] }));
@@ -166,7 +181,7 @@ export default function GwBuilder() {
     setBuy({ id: room.id, n, busy: true, msg: '', res: [] });
     try {
       const isRoom = room.kind === 'is-champ' || room.kind === 'is-cont' || room.kind === 'cup', rar = roomRar(room)[0];
-      const cand = [...playersP].filter(p => p.games > 0 && p.proj > 0 && p.inj !== 'OUT' && ageOk(p, room)).sort((a, b) => b.proj - a.proj).slice(0, 40);
+      const cand = [...(room.kind === 'cup' && room.night && cup[room.night] ? Object.values(cup[room.night]) : playersP)].filter(p => p.games > 0 && p.proj > 0 && p.inj !== 'OUT' && ageOk(p, room)).sort((a, b) => b.proj - a.proj).slice(0, 40);
       const offers: Record<string, any> = {};
       for (let i = 0; i < cand.length; i += 20) {
         const r = await fetch(`/api/outils/gw-market?rar=${rar}&slugs=${cand.slice(i, i + 20).map(p => p.slug).join(',')}`); const j = await r.json();
@@ -178,8 +193,8 @@ export default function GwBuilder() {
       const here = results.find(x => x.room.id === room.id)!;
       const taken = new Set(results.filter(x => x.room.id !== room.id).flatMap(x => x.lineup.map(l => l.id)));
       const rr = roomRar(room);
-      const pool = cards.filter(c => !taken.has(c.id) && rr.includes(c.rar || 'limited') && ageOk(c.p, room));
-      const lockedC = room.pins.map(id => cards.find(c => c.id === id)).filter(Boolean).map(c => toCand(c as Card, room));
+      const pool = cardsFor(cards, room, cup).filter(c => !taken.has(c.id) && rr.includes(c.rar || 'limited') && ageOk(c.p, room));
+      const lockedC = room.pins.map(id => cardsFor(cards, room, cup).find(c => c.id === id)).filter(Boolean).map(c => toCand(c as Card, room));
       const tot = (extra: Card[]) => { const lu = solve([...pool, ...extra].map(c => toCand(c, room)), room, lockedC); return { lu, t: lu.length === 5 ? lu.reduce((s, c) => s + c.v, 0) : 0 }; };
       const base = here.lineup.length === 5 ? here.total : 0;
       const one = extras.map(e => { const r = tot([e]); return { adds: [e], total: r.t, gain: r.t - base, used: r.lu.some(c => c.id === e.id) }; }).filter(x => x.used && x.gain > 0.05).sort((a, b) => b.gain - a.gain);
@@ -235,7 +250,7 @@ export default function GwBuilder() {
     const where = (id: string) => results.findIndex(r => r.room.id !== picker && r.lineup.some(l => l.id === id));
     const pinnedAt = (id: string) => (rooms || []).findIndex(r => r.id !== picker && r.pins.includes(id));
     const by = new Map<string, { p: GP; list: { x: Card; v: number; st: string; ok: boolean; why: string }[] }>();
-    for (const x of cards) {
+    for (const x of cardsFor(cards, pickerRoom, cup)) {
       if (!rr.includes(x.rar || 'limited') || !ageOk(x.p, pickerRoom)) continue;
       if (ql && !(x.p.name + ' ' + x.p.teamName).toLowerCase().includes(ql)) continue;
       const v = cardValue(x, pickerRoom); if (v <= 0) continue;
@@ -252,7 +267,7 @@ export default function GwBuilder() {
       g.list.push({ x, v, st: here ? 'ici' : w >= 0 ? `en compo ${w + 1}` : 'libre', ok: !why, why });
     }
     return [...by.values()].map(g => ({ ...g, best: Math.max(...g.list.map(z => z.v)) })).sort((a, b) => b.best - a.best).slice(0, 40);
-  }, [pickerRoom, pickerRes, cards, results, rooms, picker, q]);
+  }, [pickerRoom, pickerRes, cards, results, rooms, picker, q, cup]);
 
   return (
     <div style={{ position: 'relative', minHeight: '100vh', background: '#030510', color: '#fff' }}>
@@ -341,7 +356,7 @@ export default function GwBuilder() {
                 <button onClick={() => patch(r.id, x => ({ ...x, auto: !x.auto }))} style={btn(r.auto)}>{r.auto ? 'Auto' : 'Manuel'}</button>
                 {r.kind === 'cup' && <>
                   <select value={cupT?.n ?? 2} onChange={e => { const t = CUP_TIERS.find(z => z.n === +e.target.value)!; patch(r.id, x => ({ ...x, minIS: t.is, label: `Emirates NBA Cup · palier ${t.n}` })); }} style={inp}>{CUP_TIERS.map(t => <option key={t.n} value={t.n}>Palier {t.n} · {t.pts} pts · {t.is} IS min</option>)}</select>
-                  <select value={r.night} onChange={e => patch(r.id, x => ({ ...x, night: e.target.value }))} style={inp}>{nights.map(n => <option key={n} value={n}>{dayLab(n)}</option>)}</select>
+                  <select value={r.night} onChange={e => patch(r.id, x => ({ ...x, night: e.target.value }))} style={inp}>{[...new Set([...nights, ...Array.from({ length: 10 }, (_, i) => parisDay(new Date(Date.now() + i * 864e5).toISOString()))])].sort().filter(n => n >= parisDay(new Date().toISOString()) || n === r.night).map(n => <option key={n} value={n}>{dayLab(n)}</option>)}</select>
                 </>}
                 {r.kind === 'arena' && <label style={{ fontSize: 13, color: c.dim, display: 'flex', alignItems: 'center', gap: 6 }}>Plafond ★ <input type="number" min={5} max={99} value={r.cap} onChange={e => patch(r.id, x => ({ ...x, cap: Math.max(5, +e.target.value || 16) }))} style={{ ...inp, width: 64 }} /></label>}
                 <button onClick={() => { setPicker(r.id); setQ(''); }} style={btn()}>+ Choisir une carte</button>
