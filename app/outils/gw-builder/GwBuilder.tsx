@@ -253,7 +253,7 @@ export default function GwBuilder({ defaultSlug = 'memejacquet1998' }: { default
     }
     return { th, ok: roi != null ? roi >= 0 : pass / Math.max(1, th.list.length) >= 0.5, ratio: roi != null ? roi : total / th.fifth, pass, roi };
   };
-  const skipped = (res: typeof results[number]) => { const q = rent(res.room, res.total); return (onlyRent && !!q && !!q.th && !q.ok && res.lineup.length === 5) || (!!res.room.minProj && res.lineup.length === 5 && res.total < res.room.minProj); };
+  const skipped = (res: typeof results[number]) => { if (res.room.done || !res.room.auto) return false; /* compo choisie/validee par toi : jamais ecartee */ const q = rent(res.room, res.total); return (onlyRent && !!q && !!q.th && !q.ok && res.lineup.length === 5) || (!!res.room.minProj && res.lineup.length === 5 && res.total < res.room.minProj); };
   // Onglet « Les meilleures » : pour chaque type de compo, la meilleure compo possible avec TES cartes (chaque type calcule seul, sans se partager les cartes)
   const bestList = useMemo(() => {
     if (view !== 'best' || !cards.length) return [];
@@ -586,7 +586,7 @@ export default function GwBuilder({ defaultSlug = 'memejacquet1998' }: { default
                 <button onClick={() => runBuy(r, 1)} style={btn(buy?.id === r.id && buy.n === 1)}>Acheter 1 carte</button>
                 <button onClick={() => runBuy(r, 2)} style={btn(buy?.id === r.id && buy.n === 2)}>Acheter 2 cartes</button>
                 {r.pins.length > 0 && <button onClick={() => patch(r.id, x => ({ ...x, pins: [] }))} style={btn()}>Vider mes choix</button>}
-                <button onClick={() => validate(res)} disabled={!full || !!res.issues.length || skipped(res)} title={full && !res.issues.length ? 'Fige cette compo (ses cartes ne bougent plus) et la range dans Mes équipes' : 'La compo doit être complète et valide'} style={{ ...btn(), marginLeft: 'auto', color: c.green, borderColor: c.green + '77', opacity: !full || res.issues.length || skipped(res) ? .4 : 1 }}>✓ Valider</button>
+                <button onClick={() => validate(res)} disabled={!full || !!res.issues.length} title={full && !res.issues.length ? 'Fige cette compo (ses cartes ne bougent plus) et la range dans Mes équipes' : 'La compo doit être complète et valide'} style={{ ...btn(), marginLeft: 'auto', color: c.green, borderColor: c.green + '77', opacity: !full || res.issues.length || skipped(res) ? .4 : 1 }}>✓ Valider</button>
                 <button onClick={() => setRooms(rs => (rs || []).filter(x => x.id !== r.id))} style={{ ...btn(), color: c.red }} aria-label="Supprimer la compo">Supprimer</button>
               </div>
               {buy?.id === r.id && (
@@ -611,6 +611,7 @@ export default function GwBuilder({ defaultSlug = 'memejacquet1998' }: { default
                   </div>
                 </div>
               )}
+              {(() => { const q = full ? rent(r, res.total) : null; if (!q || !q.th || q.ok) return null; return <div style={{ margin: '0 0 12px', padding: '12px 14px', borderRadius: 12, border: `1.5px solid ${c.gold}`, background: 'rgba(229,185,78,.12)', color: c.gold, fontWeight: 700, fontSize: 15, lineHeight: 1.4 }}>⚠ Cette compo ne paraît pas rentable{roiTxt(q.roi)} : son score attendu ({res.total.toFixed(0)}) est sous le seuil habituel de la 5e place ({Math.round(q.th.fifth)}). <span style={{ fontWeight: 500, color: '#fff' }}>Tu peux quand même la valider et la jouer.</span></div>; })()}
               <div className="gwb-row">
                 {res.lineup.map(cd => (
                   <div key={cd.id} className="gwb-cell">
