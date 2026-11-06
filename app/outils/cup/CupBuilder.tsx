@@ -1,4 +1,5 @@
 'use client';
+import { baseProj, gameAdj, statusMul } from '../../../lib/projBase';
 import { useEffect, useMemo, useState } from 'react';
 
 // Paliers Emirates NBA Cup (Sorare) : cible de points, nb min de cartes In-Season. Cap 16 etoiles, 5 cartes Limited+.
@@ -127,10 +128,10 @@ export default function CupBuilder() {
   }, [night]);
 
   const T = TIERS[tier - 1];
+  // Estimation : base unique myNFTlocker (lib/projBase.ts, la meme que le GW Builder et TTFL) ou projection Sorare brute ; malus de statut commun
   const val = (p: P) => {
-    const l5 = p.l5 ?? p.proj, l10 = p.l10 ?? p.proj;
-    const b = metric === 'proj' ? p.proj : 0.7 * p.proj + 0.1 * l5 + 0.2 * l10;
-    return p.inj === 'GTD' ? b * 0.88 : b;
+    const b = metric === 'proj' ? p.proj : baseProj({ pj: p.proj, l10: p.l10, l5: p.l5, ceil: p.max, adj: gameAdj(undefined, p.home, false) });
+    return b * statusMul(p.inj);
   };
   const tblOut = (p: P) => { const t = tbl[nk(p.name)]; if (!t) return false; const lim = ymd(new Date(Date.now() + 86400000)); return t.until ? night < t.until : night <= lim; };
   const pool = useMemo(() => data.filter(p => !(noOut && ((p.inj && p.inj !== 'GTD') || tblOut(p)))).map((p, i) => ({ p, v: val(p), c: Math.round(p.stars * 2), i })), [data, metric, noOut, tbl, night]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -391,7 +392,7 @@ export default function CupBuilder() {
                 <span onClick={() => sortBy('proj')} title="Projection Sorare pour le match de la nuit (comme sur la fiche joueur)" style={{ lineHeight: 1.1 }}>Proj.{arrow('proj')}<br /><small style={{ fontSize: 9, color: '#ffd24a' }}>Sorare</small></span>
                 <span onClick={() => sortBy('d5')} title="Projection Sorare moins L5 : vert = Sorare voit mieux que sa forme récente" style={{ lineHeight: 1.1 }}>± L5{arrow('d5')}<br /><small style={{ fontSize: 9, opacity: 0.7 }}>proj−L5</small></span>
                 <span onClick={() => sortBy('d10')} title="Projection Sorare moins L10" style={{ lineHeight: 1.1 }}>± L10{arrow('d10')}<br /><small style={{ fontSize: 9, opacity: 0.7 }}>proj−L10</small></span>
-                <span onClick={() => sortBy('est')} title={metric === 'mix' ? 'Score estimé = projection myNFTlocker (70 % projection Sorare + 10 % L5 + 20 % L10) × bonus de la carte' : 'Score estimé = projection Sorare × bonus de la carte'} style={{ lineHeight: 1.1, color: '#4ade80' }}>Estimation{arrow('est')}<br /><small style={{ fontSize: 9 }}>{metric === 'mix' ? 'proj. myNFTlocker × bonus' : 'proj. Sorare × bonus'}</small></span>
+                <span onClick={() => sortBy('est')} title={metric === 'mix' ? 'Score estimé = projection myNFTlocker (50 % projection Sorare + 30 % forme L10 + 15 % plafond + 5 % L5, ajustée domicile/extérieur) × bonus de la carte' : 'Score estimé = projection Sorare × bonus de la carte'} style={{ lineHeight: 1.1, color: '#4ade80' }}>Estimation{arrow('est')}<br /><small style={{ fontSize: 9 }}>{metric === 'mix' ? 'proj. myNFTlocker × bonus' : 'proj. Sorare × bonus'}</small></span>
                 <span onClick={() => sortBy('eff')} title="Score estimé par étoile">Pts/★{arrow('eff')}</span>
               </div>
               {rows.slice(0, 150).map(({ x, o }) => {

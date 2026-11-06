@@ -54,7 +54,9 @@ export async function GET(req: NextRequest) {
 const norm = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z]/g, '');
 const parisDay = (t: number) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris' }).format(new Date(t));
 async function summary() {
-  const agg = { n: 0, dnp: 0, abs: 0, bias: 0, top: 0, avg: 0, nights: 0 }; const per: unknown[] = [];
+  const agg = { n: 0, dnp: 0, abs: 0, bias: 0, top: 0, avg: 0, nights: 0, oabs: 0, obias: 0, otop: 0 };
+  // ancienne formule (avant la base unique du 06/11) : 70 % proj Sorare + 10 % L5 + 20 % L10, GTD x0,88
+  const oldEst = (proj: number, l5: number | null, l10: number | null, inj: string | null) => 3.77 + 0.75 * (0.7 * proj + 0.1 * (l5 ?? proj) + 0.2 * (l10 ?? proj)) * (inj === 'GTD' ? 0.88 : 1); const per: unknown[] = [];
   for (let k = 1; k <= 40; k++) {
     const night = parisDay(Date.now() - k * 86400000);
     const snap = await redis.get<[string, number, number | null, number | null, string | null][]>('ttflog:snap:' + night);
@@ -63,20 +65,21 @@ async function summary() {
     const rows = await getDayRows(us.toISOString().slice(0, 10)).catch(() => null);
     if (!rows) continue;
     const act: Record<string, number> = {}; rows.forEach(r => { act[norm(r.n)] = r.t; });
-    const res: { est: number; t: number }[] = [];
+    const res: { est: number; old: number; t: number }[] = [];
     for (const [name, proj, l5, l10, inj] of snap) {
       if (inj && inj !== 'GTD') continue;
       const t = act[norm(name)];
       if (t == null) { agg.dnp++; continue; }
-      res.push({ est: ttflEst(proj, l5, l10, inj), t });
+      res.push({ est: ttflEst(proj, l5, l10, inj), old: oldEst(proj, l5, l10, inj), t });
     }
     if (res.length < 5) continue;
     const mae = res.reduce((s, x) => s + Math.abs(x.est - x.t), 0) / res.length;
     const top = res.slice().sort((a, b) => b.est - a.est).slice(0, 3).reduce((s, x) => s + x.t, 0) / 3;
     const avg = res.reduce((s, x) => s + x.t, 0) / res.length;
+    agg.oabs += res.reduce((s, x) => s + Math.abs(x.old - x.t), 0); agg.obias += res.reduce((s, x) => s + x.old - x.t, 0); agg.otop += res.slice().sort((a, b) => b.old - a.old).slice(0, 3).reduce((s, x) => s + x.t, 0) / 3;
     agg.n += res.length; agg.abs += mae * res.length; agg.bias += res.reduce((s, x) => s + x.est - x.t, 0); agg.top += top; agg.avg += avg; agg.nights++;
     per.push({ night, joueurs: res.length, mae: +mae.toFixed(2), top3: +top.toFixed(1), moyenneNuit: +avg.toFixed(1) });
   }
   const f = (x: number, d: number) => (d ? +(x / d).toFixed(2) : null);
-  return { nuits: agg.nights, joueurs: agg.n, dnp: agg.dnp, mae: f(agg.abs, agg.n), biais: f(agg.bias, agg.n), top3Moyen: f(agg.top, agg.nights), moyenneNuit: f(agg.avg, agg.nights), per };
+  return { nuits: agg.nights, joueurs: agg.n, dnp: agg.dnp, mae: f(agg.abs, agg.n), biais: f(agg.bias, agg.n), top3Moyen: f(agg.top, agg.nights), ancienne: { mae: f(agg.oabs, agg.n), biais: f(agg.obias, agg.n), top3Moyen: f(agg.otop, agg.nights) }, moyenneNuit: f(agg.avg, agg.nights), per };
 }
