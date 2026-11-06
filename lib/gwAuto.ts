@@ -31,6 +31,13 @@ export const PRESETS: { kind: RoomKind; label: string; cap: number; minIS: numbe
 // Paliers de la Cup : cartes In-Season minimum (cap 16 etoiles)
 export const CUP_TIERS = [{ n: 1, pts: 230, is: 1 }, { n: 2, pts: 250, is: 1 }, { n: 3, pts: 270, is: 2 }, { n: 4, pts: 280, is: 3 }, { n: 5, pts: 300, is: 4 }];
 
+// Cup : calendrier independant des GW. Pour une nuit donnee, on remplace le joueur de chaque carte par sa version « nuit » (match du soir, projection de la nuit)
+export type CupMap = Record<string, Record<string, GP>>;
+export function cardsFor(cards: Card[], r: Room, cup?: CupMap): Card[] {
+  if (r.kind !== 'cup' || !r.night || !cup?.[r.night]) return cards;
+  const m = cup[r.night];
+  return cards.filter(c => m[c.p.slug]).map(c => ({ ...c, p: m[c.p.slug] }));
+}
 export type Card = { id: string; p: GP; is: boolean; pw: number; pic: string | null; rar?: string; buy?: { eur: number; url: string } };
 export const RARITIES = [{ k: 'limited', l: 'Limited' }, { k: 'rare', l: 'Rare' }, { k: 'super_rare', l: 'Super Rare' }, { k: 'unique', l: 'Unique' }];
 // Arena Rooms NBA 27 (regles officielles Sorare) : plafond, age, entree en Essence
@@ -110,17 +117,17 @@ export function check(lineup: Cand[], r: Room): string[] {
 }
 
 // Toutes les compos, dans l'ordre. Les cartes imposees (pins) de TOUTES les compos sont reservees d'avance.
-export function allocate(rooms: Room[], cards: Card[]): RoomResult[] {
-  const byId = new Map(cards.map(c => [c.id, c]));
+export function allocate(rooms: Room[], cards: Card[], cup?: CupMap): RoomResult[] {
   const pinned = new Set(rooms.flatMap(r => r.pins));
   const taken = new Set<string>();
   return rooms.map(r => {
+    const rc = cardsFor(cards, r, cup), byId = new Map(rc.map(c => [c.id, c]));
     const locked = r.pins.map(id => byId.get(id)).filter(Boolean).map(c => toCand(c as Card, r)).slice(0, 5);
     locked.forEach(c => taken.add(c.id));
     let lineup = locked;
     if (r.auto && locked.length < 5) {
       const rr = roomRar(r);
-      const free = cards.filter(c => !taken.has(c.id) && !pinned.has(c.id) && rr.includes(c.rar || 'limited') && ageOk(c.p, r)).map(c => toCand(c, r));
+      const free = rc.filter(c => !taken.has(c.id) && !pinned.has(c.id) && rr.includes(c.rar || 'limited') && ageOk(c.p, r)).map(c => toCand(c, r));
       lineup = solve(free, r, locked);
     }
     lineup.forEach(c => taken.add(c.id));
@@ -140,7 +147,7 @@ export function idealTotal(players: GP[], r: Room): number {
 
 // Classement automatique : a chaque tour on prend la compo qui atteint la plus grande part de son potentiel avec les cartes restantes
 // (ratio total / potentiel, ou total / palier pour la Cup). Les compos les plus prometteuses passent en premier.
-export function rankRooms(rooms: Room[], cards: Card[], players: GP[]): Room[] {
+export function rankRooms(rooms: Room[], cards: Card[], players: GP[], cup?: CupMap): Room[] {
   const ideal = new Map<string, number>();
   const pot = (r: Room) => { const k = `${r.kind}|${r.cap}|${r.minAge ?? ''}|${r.maxAge ?? ''}|${r.night ?? ''}`; if (!ideal.has(k)) ideal.set(k, idealTotal(players, r) || 1); return ideal.get(k)!; };
   const left = [...rooms], out: Room[] = [], taken = new Set<string>();
@@ -149,16 +156,16 @@ export function rankRooms(rooms: Room[], cards: Card[], players: GP[]): Room[] {
     let bi = 0, bs = -1;
     left.forEach((r, i) => {
       const rr = roomRar(r);
-      const free = cards.filter(c => !taken.has(c.id) && !pinned.has(c.id) && rr.includes(c.rar || 'limited') && ageOk(c.p, r)).map(c => toCand(c, r));
+      const free = cardsFor(cards, r, cup).filter(c => !taken.has(c.id) && !pinned.has(c.id) && rr.includes(c.rar || 'limited') && ageOk(c.p, r)).map(c => toCand(c, r));
       const lu = solve(free, r, []);
       const tot = lu.reduce((s, c) => s + c.v, 0);
-      const cup = r.kind === 'cup' ? CUP_TIERS.find(t => r.label.includes('palier ' + t.n)) : null;
-      const sc = lu.length < 5 ? -1 : cup ? tot / cup.pts : tot / pot(r);
+      const ct = r.kind === 'cup' ? CUP_TIERS.find(t => r.label.includes('palier ' + t.n)) : null;
+      const sc = lu.length < 5 ? -1 : ct ? tot / ct.pts : tot / pot(r);
       if (sc > bs) { bs = sc; bi = i; }
     });
     const r = left.splice(bi, 1)[0]; out.push(r);
     const rr = roomRar(r);
-    const free = cards.filter(c => !taken.has(c.id) && !pinned.has(c.id) && rr.includes(c.rar || 'limited') && ageOk(c.p, r)).map(c => toCand(c, r));
+    const free = cardsFor(cards, r, cup).filter(c => !taken.has(c.id) && !pinned.has(c.id) && rr.includes(c.rar || 'limited') && ageOk(c.p, r)).map(c => toCand(c, r));
     solve(free, r, []).forEach(c => taken.add(c.id));
   }
   return out;
