@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
-import { notFound } from 'next/navigation';
 import { toolSlug } from '../../../lib/owner';
 import GwBuilder from './GwBuilder';
 
@@ -11,7 +10,7 @@ export const metadata: Metadata = {
 };
 
 export default async function Page() {
+  // Page non listee et non indexee, ouverte a qui a le lien : chacun entre son pseudo Sorare (donnees publiques) ; compos memorisees sur son appareil (ou son compte s'il est connecte).
   const slug = await toolSlug((await cookies()).get('mnfl_session')?.value);
-  if (!slug) notFound();
-  return <GwBuilder defaultSlug={slug} />;
+  return <GwBuilder defaultSlug={slug || ''} />;
 }
