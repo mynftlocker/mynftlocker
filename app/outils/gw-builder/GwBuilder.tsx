@@ -4,7 +4,9 @@ import type { GP } from '../../../lib/gwLineup';
 import { PRESETS, ARENAS, RARITIES, roomRar, rankRooms, autoAll, cardsFor, ageOk, solve, type CupMap, CUP_TIERS, allocate, cardValue, toCand, type Card, type Room, type RoomKind } from '../../../lib/gwAuto';
 import { baseProj, gameAdj, statusMul } from '../../../lib/projBase';
 import StarBg from '../../components/StarBg';
-import { Slab } from '../gw/Slab';
+import type { Cand } from '../../../lib/gwLineup';
+import { Slab, HexStars } from '../gw/Slab';
+import { TEAMS } from '../../../lib/rotowire';
 
 // GW Builder : toutes les compos de la Game Week dans l'ORDRE que tu choisis. Une carte = une seule compo : la compo la plus haut dans l'ordre la prend.
 // Mode Auto (le moteur complete, tu peux imposer des cartes avec l'epingle) ou Manuel (seulement tes cartes).
@@ -41,6 +43,41 @@ const Ring = ({ v, max, col, size = 54, label }: { v: number; max: number; col: 
   );
 };
 const Chip = ({ t, ok = true, warn = false }: { t: string; ok?: boolean; warn?: boolean }) => <span style={{ fontSize: 12, padding: '3px 9px', borderRadius: 999, whiteSpace: 'nowrap', color: warn ? c.gold : ok ? c.dim : c.red, border: `1px solid ${warn ? c.gold + '88' : ok ? c.line : c.red + '88'}`, background: ok && !warn ? 'rgba(255,255,255,.04)' : 'transparent' }}>{t}</span>;
+
+// ===== Vue « Mes équipes » : une ligne par joueur (miniature de la carte, equipe, etoiles, bonus, matchs avec logo adverse, vs = domicile, @ = deplacement)
+const ESP: Record<string, string> = { GSW: 'gs', NOP: 'no', NYK: 'ny', SAS: 'sa', UTA: 'utah', WAS: 'wsh' };
+const logoOf = (abbr: string) => `https://a.espncdn.com/i/teamlogos/nba/500/${ESP[abbr] || abbr.toLowerCase()}.png`;
+const ABBR: Record<string, string> = Object.fromEntries(Object.entries(TEAMS).map(([k, v]) => [v, k]));
+const abbrOf = (n: string) => ABBR[n] || n.split(' ').pop()!.slice(0, 3).toUpperCase();
+const wday = (iso: string) => new Intl.DateTimeFormat('fr-FR', { timeZone: 'Europe/Paris', weekday: 'short' }).format(new Date(iso)).replace('.', '');
+const Logo = ({ ab, s }: { ab: string; s: number }) => /* eslint-disable-next-line @next/next/no-img-element */ <img src={logoOf(ab)} alt={ab} width={s} height={s} loading="lazy" style={{ width: s, height: s, objectFit: 'contain', flex: '0 0 auto' }} onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }} />;
+function TeamRow({ x }: { x: Cand }) {
+  const best = x.p.opp.length ? Math.max(...x.p.opp.map(o => o.pj ?? x.p.proj)) : 0;
+  return (
+    <div style={{ display: 'flex', gap: 12, alignItems: 'center', padding: '10px 0', borderTop: `1px solid ${c.line}` }}>
+      {x.pic && /* eslint-disable-next-line @next/next/no-img-element */ <img src={x.pic} alt="" loading="lazy" style={{ height: 84, width: 'auto', borderRadius: 8, flex: '0 0 auto', boxShadow: '0 4px 14px rgba(0,0,0,.5)' }} />}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <b style={{ fontSize: 15.5 }}>{x.p.name}</b>
+          {x.p.inj && <span style={{ fontSize: 10.5, fontWeight: 700, padding: '1px 8px', borderRadius: 99, background: x.p.inj === 'GTD' || x.p.inj === 'QUEST' ? '#ffd914' : '#ff2828', color: x.p.inj === 'GTD' || x.p.inj === 'QUEST' ? '#0e0e0e' : '#fff' }}>{x.p.inj}</span>}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 4, fontSize: 12.5, color: c.dim }}>
+          <Logo ab={x.p.team} s={18} /><span>{x.p.teamName}</span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><HexStars stars={x.p.stars} size="20px" /><span>{x.p.stars}★</span></span>
+          {x.pw > 1 && <span style={{ color: c.cy, fontWeight: 700 }}>bonus +{Math.round((x.pw - 1) * 100)} %</span>}
+        </div>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 7 }}>
+          {x.p.opp.map((o, i) => { const pj = o.pj ?? x.p.proj, top = x.p.opp.length > 1 && pj === best; const ab = abbrOf(o.o); return (
+            <span key={i} title={top ? 'Meilleur match : c’est lui qui compte' : undefined} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 9px 3px 7px', borderRadius: 999, fontSize: 12, whiteSpace: 'nowrap', border: `1px solid ${top ? c.gold + 'aa' : c.line}`, background: top ? 'rgba(229,185,78,.12)' : 'rgba(255,255,255,.04)' }}>
+              <span style={{ color: c.dim }}>{wday(o.d)}</span><span style={{ color: c.dim, fontWeight: 700 }}>{o.h ? 'vs' : '@'}</span><Logo ab={ab} s={16} /><span>{ab}</span><b style={{ color: c.gold }}>{Math.round(pj)}</b>
+            </span>); })}
+          {!x.p.opp.length && <span style={{ fontSize: 12, color: c.dim }}>pas de match</span>}
+        </div>
+      </div>
+      <div style={{ textAlign: 'right', flex: '0 0 auto' }}><div style={{ fontWeight: 800, fontSize: 24, color: c.gold, lineHeight: 1 }}>{x.v.toFixed(1)}</div><div style={{ fontSize: 10, letterSpacing: 1, color: c.cy, marginTop: 3 }}>PROJ</div></div>
+    </div>
+  );
+}
 
 export default function GwBuilder() {
   const [gw, setGw] = useState<any>(null);
@@ -384,12 +421,7 @@ export default function GwBuilder() {
                   <div style={{ textAlign: 'right' }}><div style={{ fontSize: 11, color: c.dim, letterSpacing: 1 }}>TOTAL</div><div style={{ fontSize: 28, fontWeight: 800, color: c.cy, textShadow: '0 0 14px rgba(0,255,255,.5)', lineHeight: 1 }}>{res.total.toFixed(1)}</div></div>
                   <button onClick={() => shareTeam(res, i)} style={btn()}>Partager</button>
                 </div>
-                {res.lineup.map(x => (
-                  <div key={x.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', borderTop: `1px solid ${c.line}` }}>
-                    <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontWeight: 600, fontSize: 14 }}>{x.p.name}</div><div style={{ fontSize: 12, color: c.dim }}>{x.p.teamName} · {x.p.stars}★ · {x.p.games} match{x.p.games > 1 ? 's' : ''}{x.p.inj ? ` · ${x.p.inj}` : ''}{x.pw > 1 ? ` · +${Math.round((x.pw - 1) * 100)} %` : ''}</div></div>
-                    <div style={{ fontWeight: 800, fontSize: 18, color: c.gold }}>{x.v.toFixed(1)}</div>
-                  </div>
-                ))}
+                {res.lineup.map(x => <TeamRow key={x.id} x={x} />)}
               </section>
             ))}
             {!results.some(r => r.lineup.length === 5) && <p style={{ color: c.dim }}>Aucune équipe complète pour l’instant.</p>}
