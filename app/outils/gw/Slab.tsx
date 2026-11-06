@@ -65,6 +65,7 @@ export function Slab({ c, u, art }: { c: Cand; u: (n: number) => string; art: st
             <span>{day(g.d)}</span><span style={{ marginLeft: u(1.6) }}>{`${g.h ? '' : '@'}${abbr(g.o)}`}</span>{g.pj != null && <span style={{ marginLeft: u(2), color: '#ffd24a', fontWeight: 700 }}>{Math.round(g.pj)}</span>}
           </div>
         ))}
+        {c.p.games > 1 && c.pw > 0 && <div style={{ display: 'flex', marginTop: u(1), color: '#7fe9ff', fontWeight: 700 }} title="Seul le meilleur match de la GW compte : sa valeur attendue dépasse la moyenne d’un match">meilleur attendu {Math.round(c.v / c.pw)} × {c.pw.toFixed(2)}</div>}
       </div>
     </div>
   );
