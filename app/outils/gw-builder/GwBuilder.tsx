@@ -317,7 +317,7 @@ export default function GwBuilder() {
       const tot = (extra: Card[]) => { const lu = solve([...pool, ...extra].map(c => toCand(c, room)), room, lockedC); return { lu, t: lu.length === 5 ? lu.reduce((s, c) => s + c.v, 0) : 0 }; };
       const base = here.lineup.length === 5 ? here.total : 0;
       const one = extras.map(e => { const r = tot([e]); return { adds: [e], total: r.t, gain: r.t - base, used: r.lu.some(c => c.id === e.id) }; }).filter(x => x.used && x.gain > 0.05).sort((a, b) => b.gain - a.gain);
-      let out: { adds: Card[]; total: number; gain: number }[] = one.slice(0, 6);
+      let out: { adds: Card[]; total: number; gain: number }[] = one.slice(0, 7);
       if (n === 2) {
         const pairs: { adds: Card[]; total: number; gain: number }[] = [];
         for (const a of one.slice(0, 6)) for (const b of extras) {
@@ -558,18 +558,18 @@ export default function GwBuilder() {
                   <div style={{ fontSize: 12, color: c.dim, marginBottom: 6 }}>Marché de revente des managers d’abord (seule source pour les Classic), puis achat immédiat pour les In-Season. Les enchères sont exclues : leur prix n’est pas fiable avant la fin.</div>
                   {buy.busy && <div style={{ color: c.dim, fontSize: 13 }}>Recherche sur le marché Sorare…</div>}
                   {buy.msg && <div style={{ color: c.red, fontSize: 13 }}>{buy.msg}</div>}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(176px,1fr))', gap: 10, marginTop: 8 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(148px,1fr))', gap: 8, marginTop: 8 }}>
                     {buy.res.map((o, k) => { const eur = o.adds.reduce((s, a) => s + a.buy!.eur, 0); return (
-                      <div key={k} style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 10, borderRadius: 12, border: `1px solid ${c.line}`, background: 'rgba(255,255,255,.03)' }}>
-                        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 6 }}>
+                      <div key={k} style={{ gridColumn: o.adds.length > 1 ? 'span 2' : undefined, display: 'flex', flexDirection: 'column', gap: 6, padding: 8, borderRadius: 12, border: `1px solid ${c.line}`, background: 'rgba(255,255,255,.03)' }}>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6 }}>
                           <div style={{ display: 'flex', gap: 6 }}>{o.adds.map(a => <div key={a.id} style={{ width: o.adds.length > 1 ? 64 : 76, containerType: 'inline-size' }}><Slab c={toCand(a, r)} u={n => `${n}cqw`} art={a.pic} /></div>)}</div>
-                          <div style={{ textAlign: 'right' }}><div style={{ fontSize: 20, fontWeight: 800, color: c.green, lineHeight: 1 }}>+{o.gain.toFixed(1)}</div><div style={{ fontSize: 11, color: c.dim, marginTop: 3 }}>total {o.total.toFixed(0)}</div></div>
+                          <div style={{ textAlign: 'left', paddingTop: 2 }}><div style={{ fontSize: 19, fontWeight: 800, color: c.green, lineHeight: 1 }}>+{o.gain.toFixed(1)}</div><div style={{ fontSize: 10.5, color: c.dim, marginTop: 3, whiteSpace: 'nowrap' }}>total {o.total.toFixed(0)}</div></div>
                         </div>
                         <div style={{ fontSize: 12.5, lineHeight: 1.35 }}>
                           {o.adds.map(a => <div key={a.id}><b>{a.p.name}</b> · {a.buy!.eur.toFixed(2)} €</div>)}
                           <div style={{ color: c.dim, fontSize: 11.5, marginTop: 2 }}>{(o.gain / eur * 10).toFixed(1)} pts pour 10 €{o.adds.length > 1 ? ` · ${eur.toFixed(2)} € au total` : ''}</div>
                         </div>
-                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 'auto' }}>{o.adds.map(a => <a key={a.id} href={a.buy!.url} target="_blank" rel="noopener noreferrer" style={{ flex: 1, textAlign: 'center', padding: '5px 8px', borderRadius: 999, fontSize: 12, fontWeight: 700, color: c.cy, border: `1px solid ${c.cy}77`, background: 'rgba(0,255,255,.07)', textDecoration: 'none', whiteSpace: 'nowrap' }}>Acheter{o.adds.length > 1 ? ' ' + a.p.name.split(' ').pop() : ''} ↗</a>)}</div>
+                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 'auto' }}>{o.adds.map(a => <a key={a.id} href={a.buy!.url} target="_blank" rel="noopener noreferrer" style={{ flex: o.adds.length > 1 ? 1 : '0 0 auto', textAlign: 'center', padding: '4px 12px', borderRadius: 999, fontSize: 12, fontWeight: 700, color: c.cy, border: `1px solid ${c.cy}77`, background: 'rgba(0,255,255,.07)', textDecoration: 'none', whiteSpace: 'nowrap' }}>Acheter{o.adds.length > 1 ? ' ' + a.p.name.split(' ').pop() : ''} ↗</a>)}</div>
                       </div>); })}
                   </div>
                 </div>
