@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
-import { ttflEst } from '../../../lib/ttflEst';
+import { ttflProj } from '../../../lib/ttflEst';
 
 // Deck builder TTFL : choisit un joueur par nuit sur plusieurs jours pour maximiser le total estime, en respectant le verrou de 30 jours
 // (un joueur pické est indisponible les 30 jours suivants) et sans reprendre deux fois le meme joueur. Dates = jour americain (comme TTFL).
@@ -89,7 +89,7 @@ export default function DeckBuilder() {
           const hr = (t: string) => Number(String(t).slice(0, 2));
           const pl = [...d0.filter((p: any) => hr(p.time) >= 12), ...d1.filter((p: any) => hr(p.time) < 12)];
           const seen = new Set<string>();
-          cands = pl.filter((p: any) => p.proj >= 5 && !seen.has(p.slug) && seen.add(p.slug)).map((p: any) => ({ name: p.name, team: p.team, opp: p.opp, home: p.home, est: ttflEst(p.proj, p.l5, p.l10, p.inj), inj: p.inj, src: 'S' as const }))
+          cands = pl.filter((p: any) => p.proj >= 5 && !seen.has(p.slug) && seen.add(p.slug)).map((p: any) => ({ name: p.name, team: p.team, opp: p.opp, home: p.home, est: ttflProj(p.proj, null, p.inj, p.home), inj: p.inj, src: 'S' as const }))
             .filter((c: Cand) => !c.inj || c.inj === 'GTD')
             .filter((c: Cand) => { const ij = injs[norm(c.name)]; return !(ij?.s === 'OUT' && ij.until && us < ij.until); });
         }

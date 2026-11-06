@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ownerOnly } from '../../../../lib/owner';
 import { getDayRows, getJson, ymdLocal } from '../../../../lib/ttfl';
 import { redis } from '../../../../lib/redis';
-import { ttflEst } from '../../../../lib/ttflEst';
+import { ttflProj, ttflEstLegacy } from '../../../../lib/ttflEst';
 
 // Historique TTFL par joueur depuis le debut de saison (nuits terminees, date americaine). Outil prive.
 export const maxDuration = 60;
@@ -55,12 +55,13 @@ const norm = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').t
 const parisDay = (t: number) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris' }).format(new Date(t));
 async function summary() {
   const agg = { n: 0, dnp: 0, abs: 0, bias: 0, top: 0, avg: 0, nights: 0, oabs: 0, obias: 0, otop: 0 };
-  // ancienne formule (avant la base unique du 06/11) : 70 % proj Sorare + 10 % L5 + 20 % L10, GTD x0,88
-  const oldEst = (proj: number, l5: number | null, l10: number | null, inj: string | null) => 3.77 + 0.75 * (0.7 * proj + 0.1 * (l5 ?? proj) + 0.2 * (l10 ?? proj)) * (inj === 'GTD' ? 0.88 : 1); const per: unknown[] = [];
+  const per: unknown[] = [];
+  const oldEst = ttflEstLegacy; // ancienne formule (avant le 06/11) : 70 % proj Sorare + 10 % L5 + 20 % L10
   for (let k = 1; k <= 40; k++) {
     const night = parisDay(Date.now() - k * 86400000);
     const snap = await redis.get<[string, number, number | null, number | null, string | null][]>('ttflog:snap:' + night);
     if (!snap) continue;
+    const pub = await redis.get<Record<string, [number, string | null]>>('ttflog:est:' + night).catch(() => null); // estimation publiee ce soir-la (formule complete, plafond TTFL)
     const us = new Date(night + 'T12:00:00Z'); us.setUTCDate(us.getUTCDate() - 1);
     const rows = await getDayRows(us.toISOString().slice(0, 10)).catch(() => null);
     if (!rows) continue;
@@ -70,7 +71,7 @@ async function summary() {
       if (inj && inj !== 'GTD') continue;
       const t = act[norm(name)];
       if (t == null) { agg.dnp++; continue; }
-      res.push({ est: ttflEst(proj, l5, l10, inj), old: oldEst(proj, l5, l10, inj), t });
+      res.push({ est: pub?.[name]?.[0] ?? ttflProj(proj, null, inj), old: oldEst(proj, l5, l10, inj), t });
     }
     if (res.length < 5) continue;
     const mae = res.reduce((s, x) => s + Math.abs(x.est - x.t), 0) / res.length;
