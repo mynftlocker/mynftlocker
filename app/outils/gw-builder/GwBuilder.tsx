@@ -8,6 +8,7 @@ import { Slab } from '../gw/Slab';
 
 // GW Builder : toutes les compos de la Game Week dans l'ORDRE que tu choisis. Une carte = une seule compo : la compo la plus haut dans l'ordre la prend.
 // Mode Auto (le moteur complete, tu peux imposer des cartes avec l'epingle) ou Manuel (seulement tes cartes).
+const pillLink: React.CSSProperties = { fontSize: 12, padding: '4px 12px', borderRadius: 999, border: '1px solid rgba(255,255,255,.13)', background: 'rgba(255,255,255,.04)', color: 'rgba(255,255,255,.86)', textDecoration: 'none', whiteSpace: 'nowrap' };
 const LSP = 'mnl_cup_pseudo_v1', LSR = 'mnl_gwb_rooms_v1';
 const c = { cy: '#00ffff', gold: '#e5b94e', dim: 'rgba(255,255,255,.62)', line: 'rgba(255,255,255,.13)', card: 'rgba(8,12,28,.74)', red: '#ff6b6b', green: '#4ade80' };
 const parisDay = (iso: string) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris' }).format(new Date(iso));
@@ -301,6 +302,11 @@ export default function GwBuilder() {
       <StarBg />
       <style>{'.gwb-row{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}.gwb-cell{container-type:inline-size}.gwb-pick{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}@media(max-width:700px){.gwb-pick{grid-template-columns:repeat(3,minmax(0,1fr))}}@media(max-width:700px){.gwb-row{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}}'}</style>
       <main style={{ position: 'relative', zIndex: 1, maxWidth: 1100, margin: '0 auto', padding: '22px 14px 80px', fontFamily: 'system-ui,sans-serif' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', marginBottom: 10 }}>
+          <a href="/" title="Retour à la galerie myNFTlocker" style={{ flex: '0 0 auto' }}>{/* eslint-disable-next-line @next/next/no-img-element */}<img src="/logo-pack.png" alt="myNFTlocker" style={{ height: 56, width: 'auto', display: 'block', filter: 'drop-shadow(0 6px 18px rgba(0,255,255,.25))' }} /></a>
+          <a href="/" style={{ ...pillLink }}>← Vestiaire</a>
+          <a href="/?vue=galerie" style={{ ...pillLink }}>Galerie</a>
+        </div>
         <h1 style={{ fontSize: 28, margin: '0 0 4px', letterSpacing: '.01em' }}>GW <span style={{ color: c.cy }}>Builder</span></h1>
         <p style={{ color: c.dim, fontSize: 14, margin: '0 0 16px' }}>{gw ? `GW ${gw.fixture.gw} · ${gw.fixture.games} matchs` : err || 'Chargement de la GW…'} · tes compos dans l’ordre que tu choisis : une carte ne sert qu’une fois, la compo la plus haute la prend.</p>
 
