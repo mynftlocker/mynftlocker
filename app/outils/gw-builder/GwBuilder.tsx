@@ -87,6 +87,7 @@ export default function GwBuilder() {
   const [saveSt, setSaveSt] = useState<'' | 'wait' | 'ok' | 'err'>('');
   const synced = useRef(false);
   const [autoBusy, setAutoBusy] = useState(false);
+  const [clearAsk, setClearAsk] = useState(false);   // 2e clic pour confirmer « Tout effacer »
   const [autoMsg, setAutoMsg] = useState('');
   const [pseudo, setPseudo] = useState('memejacquet1998');
   const [rawCards, setRawCards] = useState<any[]>([]);
@@ -137,7 +138,7 @@ export default function GwBuilder() {
     if (!nights.length || rooms) return;
     let r: Room[] | null = null;
     try { const s = localStorage.getItem(LSR); if (s) r = JSON.parse(s); } catch {}
-    setRooms(r && r.length ? r.map(x => ({ ...x, pins: [], rar: x.rar?.length ? [x.rar[0]] : undefined })) : defaultRooms(nights.find(n => n >= parisDay(new Date().toISOString())) || nights[0]));
+    setRooms(Array.isArray(r) ? r.map(x => ({ ...x, pins: [], rar: x.rar?.length ? [x.rar[0]] : undefined })) : defaultRooms(nights.find(n => n >= parisDay(new Date().toISOString())) || nights[0]));
   }, [nights, rooms]);
   useEffect(() => { if (rooms) try { localStorage.setItem(LSR, JSON.stringify(rooms)); } catch {} }, [rooms]);
 
@@ -149,7 +150,7 @@ export default function GwBuilder() {
     fetch('/api/gw-compos?gw=' + gwNum).then(async r => {
       if (r.status === 401) { setAcct(false); return; }
       const j = await r.json(); setAcct(true);
-      if (j.saved?.rooms?.length) { setRooms(j.saved.rooms); if (j.saved.plan && Object.keys(j.saved.plan).length) setPlan(j.saved.plan); setSaveSt('ok'); }
+      if (Array.isArray(j.saved?.rooms)) { setRooms(j.saved.rooms); if (j.saved.plan && Object.keys(j.saved.plan).length) setPlan(j.saved.plan); setSaveSt('ok'); }
     }).catch(() => setAcct(false));
   }, [gwNum, rooms]);
   useEffect(() => {
@@ -441,7 +442,7 @@ export default function GwBuilder() {
             <button onClick={rank} style={pill()}>Classer par chance de perf</button>
             <button onClick={() => setPlanOpen(o => !o)} style={pill(planOpen)}>Générer tout le plan {planOpen ? '▴' : '▾'}</button>
             {acct && saveSt && <span style={{ fontSize: 11, color: saveSt === 'err' ? c.red : c.dim, marginLeft: 6 }}>{saveSt === 'wait' ? 'Sauvegarde…' : saveSt === 'ok' ? 'Compos sauvegardées ✓' : 'Sauvegarde impossible'}</span>}
-            <button onClick={() => setRooms(defaultRooms(nights[0]))} style={{ ...pill(), marginLeft: 'auto', color: c.dim }}>Réinitialiser</button>
+            <button onClick={() => { if (!clearAsk) { setClearAsk(true); setTimeout(() => setClearAsk(false), 3500); return; } setRooms([]); setPlan({}); setAutoMsg(''); setClearAsk(false); }} title="Supprime toutes les compos pour repartir de zéro" style={{ ...pill(clearAsk), marginLeft: 'auto', color: clearAsk ? c.red : c.dim, borderColor: clearAsk ? c.red : undefined }}>{clearAsk ? 'Confirmer : tout effacer ?' : 'Tout effacer'}</button>
           </div>
           {autoMsg && <div style={{ marginTop: 8, fontSize: 12.5, color: c.green }}>{autoMsg}</div>}
           {planOpen && (
@@ -459,6 +460,7 @@ export default function GwBuilder() {
         </div>
 
         {acct === false && <p style={{ margin: '-6px 2px 12px', fontSize: 12, color: c.dim }}>Compos mémorisées sur cet appareil. <a href="/" style={{ color: c.cy }}>Connecte-toi</a> pour les retrouver partout, GW par GW.</p>}
+        {rooms && rooms.length === 0 && <div style={{ ...glass, padding: '26px 18px', textAlign: 'center', color: c.dim, fontSize: 14 }}>Aucune compo pour l’instant. Ajoute-en une avec les boutons <b style={{ color: c.cy }}>+</b> ci-dessus, ou lance <b style={{ color: '#fff' }}>⚡ Tout générer automatiquement</b>.</div>}
         {/* Compos dans l'ordre */}
         {results.map((res, i) => {
           const r = res.room; const full = res.lineup.length === 5; const cupT = r.kind === 'cup' ? CUP_TIERS.find(t => r.label.includes('palier ' + t.n)) : null;
