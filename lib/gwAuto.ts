@@ -19,6 +19,7 @@ export type Room = {
   essence?: number;   // cout d'entree Arena (Essence)
   rar?: string[];     // raretes autorisees pour l'auto (defaut : limited)
   minProj?: number;   // seuil mini de projection : en dessous, la compo n'est pas jouee
+  done?: boolean;     // compo validee : figee (cartes verrouillees) et rangee dans « Mes equipes »
 };
 
 export const PRESETS: { kind: RoomKind; label: string; cap: number; minIS: number; bonus: boolean }[] = [
@@ -184,6 +185,7 @@ export type AutoParams = {
   minProj: Record<string, number>;       // seuil mini par type : isc, isk, clc, clk, ar
   floor?: number;                        // part minimale du potentiel pour une compo In-Season / Classic
   budget?: number;                       // budget Arena en Essence (0 / absent = illimite)
+  done?: Room[];                         // compos deja validees : leurs cartes sont reservees, elles comptent dans les limites et le budget
 };
 export type AutoOut = { rooms: Room[]; arenaSkipped: number; arenaUnknown: boolean; essence: number; overBudget: number };
 type Cd = { proto: Room; tier: 'A' | 'B'; limit: number; made: number; once: boolean; cache: { lu: Cand[]; total: number } | null; base: string; rar: string; mkey: string };
@@ -215,6 +217,12 @@ export function autoAll(P: AutoParams): AutoOut {
     const sh = k.total / pot(c.proto); return sh >= floor ? sh : -1;
   };
   let spent = 0;
+  for (const d of P.done || []) {   // compos validees : cartes reservees + comptees dans les limites (Classic 3 max) et le budget Essence
+    d.pins.forEach(id => taken.add(id));
+    const c = cands.find(z => z.tier === (d.kind === 'arena' ? 'B' : 'A') && z.proto.kind === d.kind && roomRar(z.proto)[0] === roomRar(d)[0] && (d.kind !== 'arena' || z.proto.arena === d.arena));
+    if (c) c.made++;
+    if (d.kind === 'arena') spent += d.essence || 0;
+  }
   for (const tier of ['A', 'B'] as const) {
     const cs = cands.filter(c => c.tier === tier);
     for (;;) {
