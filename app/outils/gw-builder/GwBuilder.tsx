@@ -57,8 +57,8 @@ const Logo = ({ ab, s }: { ab: string; s: number }) => /* eslint-disable-next-li
 function TeamRow({ x }: { x: Cand }) {
   const best = x.p.opp.length ? Math.max(...x.p.opp.map(o => o.pj ?? x.p.proj)) : 0;
   return (
-    <div style={{ display: 'flex', gap: 12, alignItems: 'center', padding: '10px 0', borderTop: `1px solid ${c.line}` }}>
-      {x.pic && /* eslint-disable-next-line @next/next/no-img-element */ <img src={x.pic} alt="" loading="lazy" style={{ height: 84, width: 'auto', borderRadius: 8, flex: '0 0 auto', boxShadow: '0 4px 14px rgba(0,0,0,.5)' }} />}
+    <div className="tm-row">
+      {x.pic && /* eslint-disable-next-line @next/next/no-img-element */ <img className="tm-pic" src={x.pic} alt="" loading="lazy" style={{ boxShadow: '0 4px 14px rgba(0,0,0,.5)' }} />}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           <b style={{ fontSize: 15.5 }}>{x.p.name}</b>
@@ -77,7 +77,7 @@ function TeamRow({ x }: { x: Cand }) {
           {!x.p.opp.length && <span style={{ fontSize: 12, color: c.dim }}>pas de match</span>}
         </div>
       </div>
-      <div style={{ textAlign: 'right', flex: '0 0 auto' }}><div style={{ fontWeight: 800, fontSize: 24, color: c.gold, lineHeight: 1 }}>{x.v.toFixed(1)}</div><div style={{ fontSize: 10, letterSpacing: 1, color: c.cy, marginTop: 3 }}>PROJ</div></div>
+      <div className="tm-score"><div style={{ fontWeight: 800, fontSize: 24, color: c.gold, lineHeight: 1 }}>{x.v.toFixed(1)}</div><div style={{ fontSize: 10, letterSpacing: 1, color: c.cy, marginTop: 3 }}>PROJ</div></div>
     </div>
   );
 }
@@ -416,7 +416,7 @@ export default function GwBuilder() {
   return (
     <div style={{ position: 'relative', minHeight: '100vh', background: '#030510', color: '#fff' }}>
       <StarBg />
-      <style>{'.gwb-row{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}.gwb-cell{container-type:inline-size}.gwb-pick{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}@media(max-width:700px){.gwb-pick{grid-template-columns:repeat(3,minmax(0,1fr))}}@media(max-width:700px){.gwb-row{display:flex;overflow-x:auto;scroll-snap-type:x proximity;gap:10px;padding-bottom:8px;-webkit-overflow-scrolling:touch}.gwb-row>.gwb-cell{flex:0 0 46%;scroll-snap-align:start}.gwb-tiles{display:grid!important;grid-template-columns:1fr 1fr;gap:12px 14px!important;width:100%}.gwb-tiles>div:nth-child(3){grid-column:1/-1}.gwb-hint{display:none}}'}</style>
+      <style>{'.tm-row{display:flex;gap:12px;align-items:center;padding:10px 0;border-top:1px solid rgba(255,255,255,.13)}.tm-pic{height:84px;width:auto;border-radius:8px;flex:0 0 auto}.tm-score{text-align:right;flex:0 0 auto}@media(min-width:901px){.tm-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}.tm-row{flex-direction:column;align-items:stretch;gap:8px;padding:10px;border:1px solid rgba(255,255,255,.13);border-radius:12px;background:rgba(255,255,255,.03)}.tm-pic{height:140px;align-self:center}.tm-score{text-align:left;margin-top:auto;display:flex;align-items:baseline;gap:8px}.tm-score div:last-child{margin-top:0!important}}.gwb-row{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}.gwb-cell{container-type:inline-size}.gwb-pick{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}@media(max-width:700px){.gwb-pick{grid-template-columns:repeat(3,minmax(0,1fr))}}@media(max-width:700px){.gwb-row{display:flex;overflow-x:auto;scroll-snap-type:x proximity;gap:10px;padding-bottom:8px;-webkit-overflow-scrolling:touch}.gwb-row>.gwb-cell{flex:0 0 46%;scroll-snap-align:start}.gwb-tiles{display:grid!important;grid-template-columns:1fr 1fr;gap:12px 14px!important;width:100%}.gwb-tiles>div:nth-child(3){grid-column:1/-1}.gwb-hint{display:none}}'}</style>
       <main style={{ position: 'relative', zIndex: 1, maxWidth: 1100, margin: '0 auto', padding: '22px 14px 80px', fontFamily: 'system-ui,sans-serif' }}>
         <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, marginBottom: 16 }}>
           <div style={{ minWidth: 0, flex: 1 }}>
@@ -499,7 +499,7 @@ export default function GwBuilder() {
                   {res.room.done ? <button onClick={() => reopen(res.room.id)} style={btn()} title="Rouvre la compo dans Construire pour la modifier">Rouvrir</button> : <button onClick={() => validate(res)} disabled={!!res.issues.length} style={btn()} title="Fige cette compo : ses cartes ne bougent plus">✓ Valider</button>}
                   <button onClick={() => shareTeam(res, i)} style={btn()}>Partager</button>
                 </div>
-                {res.lineup.map(x => <TeamRow key={x.id} x={x} />)}
+                <div className="tm-grid">{res.lineup.map(x => <TeamRow key={x.id} x={x} />)}</div>
               </section>
             ))}
             {!results.some(r => r.lineup.length === 5) && <p style={{ color: c.dim }}>Aucune équipe complète pour l’instant.</p>}
