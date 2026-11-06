@@ -13,6 +13,9 @@ export type Room = {
   night?: string;     // Cup : seule la nuit demandee compte (YYYY-MM-DD, date Paris)
   pins: string[];     // cartes imposees (ids de cartes)
   auto: boolean;      // true = le moteur complete ; false = seulement les cartes choisies
+  minAge?: number;    // Arena Veterans : age minimum
+  maxAge?: number;    // Arena U23 : age maximum
+  essence?: number;   // cout d'entree Arena (Essence)
   rar?: string[];     // raretes autorisees pour l'auto (defaut : limited)
 };
 
@@ -28,11 +31,20 @@ export const PRESETS: { kind: RoomKind; label: string; cap: number; minIS: numbe
 export const CUP_TIERS = [{ n: 1, pts: 230, is: 1 }, { n: 2, pts: 250, is: 1 }, { n: 3, pts: 270, is: 2 }, { n: 4, pts: 280, is: 3 }, { n: 5, pts: 300, is: 4 }];
 
 export type Card = { id: string; p: GP; is: boolean; pw: number; pic: string | null; rar?: string };
-export const RARITIES = [{ k: 'limited', l: 'Limited' }, { k: 'rare', l: 'Rare' }, { k: 'super_rare', l: 'Super Rare' }];
+export const RARITIES = [{ k: 'limited', l: 'Limited' }, { k: 'rare', l: 'Rare' }, { k: 'super_rare', l: 'Super Rare' }, { k: 'unique', l: 'Unique' }];
+// Arena Rooms NBA 27 (regles officielles Sorare) : plafond, age, entree en Essence
+export const ARENAS = [
+  { k: 'unc', label: 'Arena Uncapped', cap: 99, essence: 200 },
+  { k: 'champ', label: 'Arena Champion', cap: 16, essence: 150 },
+  { k: 'cont', label: 'Arena Contender', cap: 11, essence: 75 },
+  { k: 'vet', label: 'Arena Veterans', cap: 16, essence: 150, minAge: 30 },
+  { k: 'u23', label: 'Arena U23', cap: 11, essence: 150, maxAge: 23 },
+] as const;
+export const ageOk = (p: GP, r: Room) => (r.minAge == null || (p.age != null && p.age >= r.minAge)) && (r.maxAge == null || (p.age != null && p.age <= r.maxAge));
 export const roomRar = (r: Room) => r.rar && r.rar.length ? r.rar : ['limited'];
 
 const parisDay = (iso: string) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris' }).format(new Date(iso));
-export const gtdMul = (p: GP) => (p.inj === 'GTD' ? 0.88 : 1);
+export const gtdMul = (_p: GP) => 1; // le malus GTD (-3) est deja dans la projection de la GW
 
 // Valeur d'une carte dans une compo : projection Sorare (GW, ou matchs de la nuit pour la Cup) x bonus de la carte x malus GTD
 export function cardValue(c: Card, r: Room): number {
@@ -40,7 +52,7 @@ export function cardValue(c: Card, r: Room): number {
   if (r.night) {
     const g = c.p.opp.filter(o => parisDay(o.d) === r.night);
     if (!g.length) return 0;
-    base = g.reduce((s, o) => s + (o.pj ?? c.p.proj / Math.max(1, c.p.games)), 0);
+    base = Math.max(...g.map(o => o.pj ?? c.p.proj)); // seul le meilleur match compte
   }
   return base * (r.bonus ? c.pw : 1) * gtdMul(c.p);
 }
@@ -107,7 +119,7 @@ export function allocate(rooms: Room[], cards: Card[]): RoomResult[] {
     let lineup = locked;
     if (r.auto && locked.length < 5) {
       const rr = roomRar(r);
-      const free = cards.filter(c => !taken.has(c.id) && !pinned.has(c.id) && rr.includes(c.rar || 'limited')).map(c => toCand(c, r));
+      const free = cards.filter(c => !taken.has(c.id) && !pinned.has(c.id) && rr.includes(c.rar || 'limited') && ageOk(c.p, r)).map(c => toCand(c, r));
       lineup = solve(free, r, locked);
     }
     lineup.forEach(c => taken.add(c.id));
@@ -116,4 +128,37 @@ export function allocate(rooms: Room[], cards: Card[]): RoomResult[] {
     const t: Record<string, number> = {}; lineup.forEach(c => { t[c.p.team] = (t[c.p.team] || 0) + 1; });
     return { room: r, lineup, total, stars: lineup.reduce((s, c) => s + c.cost, 0) / 2, nIS, maxTeam: Math.max(0, ...Object.values(t)), issues: check(lineup, r) };
   });
+}
+
+// Potentiel d'une compo = meilleure compo possible avec TOUS les joueurs de la GW (hors collection) : sert de reference pour classer
+export function idealTotal(players: GP[], r: Room): number {
+  const fake: Card[] = players.filter(p => p.games > 0 && ageOk(p, r)).map(p => ({ id: 'i' + p.slug, p, is: true, pw: 1, pic: null }));
+  const lu = solve(fake.map(c => toCand(c, { ...r, bonus: false, minIS: 0 })), { ...r, minIS: 0 });
+  return lu.reduce((s, c) => s + c.v, 0);
+}
+
+// Classement automatique : a chaque tour on prend la compo qui atteint la plus grande part de son potentiel avec les cartes restantes
+// (ratio total / potentiel, ou total / palier pour la Cup). Les compos les plus prometteuses passent en premier.
+export function rankRooms(rooms: Room[], cards: Card[], players: GP[]): Room[] {
+  const ideal = new Map<string, number>();
+  const pot = (r: Room) => { const k = `${r.kind}|${r.cap}|${r.minAge ?? ''}|${r.maxAge ?? ''}|${r.night ?? ''}`; if (!ideal.has(k)) ideal.set(k, idealTotal(players, r) || 1); return ideal.get(k)!; };
+  const left = [...rooms], out: Room[] = [], taken = new Set<string>();
+  const pinned = new Set(rooms.flatMap(r => r.pins));
+  while (left.length) {
+    let bi = 0, bs = -1;
+    left.forEach((r, i) => {
+      const rr = roomRar(r);
+      const free = cards.filter(c => !taken.has(c.id) && !pinned.has(c.id) && rr.includes(c.rar || 'limited') && ageOk(c.p, r)).map(c => toCand(c, r));
+      const lu = solve(free, r, []);
+      const tot = lu.reduce((s, c) => s + c.v, 0);
+      const cup = r.kind === 'cup' ? CUP_TIERS.find(t => r.label.includes('palier ' + t.n)) : null;
+      const sc = lu.length < 5 ? -1 : cup ? tot / cup.pts : tot / pot(r);
+      if (sc > bs) { bs = sc; bi = i; }
+    });
+    const r = left.splice(bi, 1)[0]; out.push(r);
+    const rr = roomRar(r);
+    const free = cards.filter(c => !taken.has(c.id) && !pinned.has(c.id) && rr.includes(c.rar || 'limited') && ageOk(c.p, r)).map(c => toCand(c, r));
+    solve(free, r, []).forEach(c => taken.add(c.id));
+  }
+  return out;
 }

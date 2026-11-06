@@ -45,7 +45,7 @@ export async function getGw(want = '') {
   await Promise.all(Object.keys(teams).map(async s => {
     for (let t = 0; t < 2; t++) { try { const d = await gql(`{ team(slug:"${s}"){ ... on Club{ activePlayers(first:30){ nodes{ slug } } } } }`); (d.team?.activePlayers?.nodes || []).forEach((n: any) => { by[n.slug] = s; }); break; } catch { /* nouvel essai */ } }
   }));
-  const F = 'slug displayName ... on NBAPlayer{ gameplayTierStars nextClassicFixtureProjectedScore squaredPictureUrl injuries{ status expectedEndDate } playerGameScores(last:10){ score } }';
+  const F = 'slug displayName ... on NBAPlayer{ age gameplayTierStars nextClassicFixtureProjectedScore squaredPictureUrl injuries{ status expectedEndDate } playerGameScores(last:10){ score } }';
   const parts = await Promise.all(chunk(Object.keys(by), 12).map(c => gql(`{ players(slugs:${JSON.stringify(c)}){ ${F} } }`).catch(() => ({ players: [] }))));
   // projection Sorare de chaque match (comme sur la fiche joueur) : une requete par match
   const pmap: Record<string, number> = {};
@@ -57,7 +57,7 @@ export async function getGw(want = '') {
     const sc: number[] = (p.playerGameScores || []).map((x: any) => Number(x.score)).filter((x: number) => !isNaN(x));
     const t = teams[by[p.slug]];
     const inj = (p.injuries || []).find((i: any) => !i.expectedEndDate || new Date(i.expectedEndDate).getTime() > now);
-    return { slug: p.slug, name: p.displayName, team: by[p.slug], teamName: t.name, games: t.n, opp: t.opp.slice().sort((a, b) => (a.d < b.d ? -1 : 1)).map(x => ({ d: x.d, o: x.o, h: x.h, pj: pmap[x.gid + '|' + p.slug] ?? null })), stars: p.gameplayTierStars, proj: p.nextClassicFixtureProjectedScore, l10: sc.length ? sc.reduce((a, b) => a + b, 0) / sc.length : null, inj: inj?.status || null, pic: p.squaredPictureUrl || null };
+    return { slug: p.slug, name: p.displayName, team: by[p.slug], teamName: t.name, games: t.n, opp: t.opp.slice().sort((a, b) => (a.d < b.d ? -1 : 1)).map(x => ({ d: x.d, o: x.o, h: x.h, pj: pmap[x.gid + '|' + p.slug] ?? null })), stars: p.gameplayTierStars, proj: p.nextClassicFixtureProjectedScore, l10: sc.length ? sc.reduce((a, b) => a + b, 0) / sc.length : null, inj: inj?.status || null, pic: p.squaredPictureUrl || null, age: p.age ?? null, ceil: sc.length ? Math.max(...sc) : null };
   });
   const first = games.map(g => g.date as string).sort()[0] || fixture.startDate;
   return { fixture: { slug: fixture.slug, state: fixture.aasmState as string, gw: fixture.gameWeek as number, start: first, end: fixture.endDate as string, games: games.length }, players };
