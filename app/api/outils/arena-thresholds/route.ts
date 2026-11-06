@@ -16,7 +16,7 @@ const TYPES: Record<string, string> = { Champion: 'champ', Contender: 'cont', Un
 
 export async function GET(req: NextRequest) {
   const deny = await ownerOnly(req); if (deny) return deny;
-  const KEY = 'gwb:arena:v1';
+  const KEY = 'gwb:arena:v2';
   if (!req.nextUrl.searchParams.get('fresh')) { const hit = await redis.get<any>(KEY).catch(() => null); if (hit) return NextResponse.json(hit); }
   try {
     const fx = (await gq('{ so5{ so5Fixtures(first:6, sport:NBA){ nodes{ slug gameWeek aasmState } } } }')).so5.so5Fixtures.nodes.filter((f: any) => f.aasmState === 'closed').slice(0, 2);
@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
       const L = (await gq(`{ so5{ so5Fixture(slug:"${f.slug}"){ so5Leaderboards{ slug displayName } } } }`)).so5.so5Fixture.so5Leaderboards as { slug: string; displayName: string }[];
       for (const l of L) { const m = l.slug.match(/_(limited|rare|super_rare)_arena_/); const t = TYPES[l.displayName]; if (!m || !t) continue; (groups[`${m[1]}|${t}`] ||= []).push(l); }
     }
-    const jobs = Object.entries(groups).flatMap(([k, ls]) => ls.sort(() => Math.random() - 0.5).slice(0, 8).map(l => ({ k, slug: l.slug })));
+    const jobs = Object.entries(groups).flatMap(([k, ls]) => ls.sort(() => Math.random() - 0.5).slice(0, 14).map(l => ({ k, slug: l.slug })));
     const acc: Record<string, { f: number[]; p: number[]; w: number[] }> = {};
     const batches: typeof jobs[] = []; for (let i = 0; i < jobs.length; i += 5) batches.push(jobs.slice(i, i + 5));
     let bi = 0;
@@ -34,8 +34,8 @@ export async function GET(req: NextRequest) {
       try { const d = await gq('{ so5{ ' + b.map((x, j) => `r${j}: so5Leaderboard(slug:"${x.slug}"){ so5Rankings(first:5){ nodes{ ranking score } } }`).join(' ') + ' } }');
         b.forEach((x, j) => { const n = d.so5[`r${j}`]?.so5Rankings?.nodes || []; if (n.length < 5) return; const a = (acc[x.k] ||= { f: [], p: [], w: [] }); a.f.push(n[4].score); a.p.push(n[2].score); a.w.push(n[0].score); }); } catch { /* lot ignore */ }
     } }));
-    const out: Record<string, { fifth: number; podium: number; first: number; rooms: number }> = {};
-    for (const [k, a] of Object.entries(acc)) out[k] = { fifth: +med(a.f).toFixed(1), podium: +med(a.p).toFixed(1), first: +med(a.w).toFixed(1), rooms: a.f.length };
+    const out: Record<string, { fifth: number; podium: number; first: number; rooms: number; list: number[] }> = {};
+    for (const [k, a] of Object.entries(acc)) out[k] = { fifth: +med(a.f).toFixed(1), podium: +med(a.p).toFixed(1), first: +med(a.w).toFixed(1), rooms: a.f.length, list: [...a.f].sort((x, y) => x - y).map(v => +v.toFixed(1)) };
     const res = { thresholds: out, gws: fx.map((f: any) => f.gameWeek), at: new Date().toISOString() };
     if (Object.keys(out).length) await redis.set(KEY, res, { ex: 21600 }).catch(() => {});
     return NextResponse.json(res);
