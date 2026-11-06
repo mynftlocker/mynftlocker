@@ -302,13 +302,17 @@ export default function GwBuilder() {
       <StarBg />
       <style>{'.gwb-row{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}.gwb-cell{container-type:inline-size}.gwb-pick{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}@media(max-width:700px){.gwb-pick{grid-template-columns:repeat(3,minmax(0,1fr))}}@media(max-width:700px){.gwb-row{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}}'}</style>
       <main style={{ position: 'relative', zIndex: 1, maxWidth: 1100, margin: '0 auto', padding: '22px 14px 80px', fontFamily: 'system-ui,sans-serif' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', marginBottom: 10 }}>
-          <a href="/" title="Retour à la galerie myNFTlocker" style={{ flex: '0 0 auto' }}>{/* eslint-disable-next-line @next/next/no-img-element */}<img src="/logo-pack.png" alt="myNFTlocker" style={{ height: 80, width: 'auto', display: 'block', filter: 'drop-shadow(0 6px 18px rgba(0,255,255,.25))' }} /></a>
-          <a href="/" style={{ ...pillLink }}>← Vestiaire</a>
-          <a href="/?vue=galerie" style={{ ...pillLink }}>Galerie</a>
-        </div>
-        <h1 style={{ fontSize: 28, margin: '0 0 4px', letterSpacing: '.01em' }}>GW <span style={{ color: c.cy }}>Builder</span></h1>
-        <p style={{ color: c.dim, fontSize: 14, margin: '0 0 16px' }}>{gw ? `GW ${gw.fixture.gw} · ${gw.fixture.games} matchs` : err || 'Chargement de la GW…'} · tes compos dans l’ordre que tu choisis : une carte ne sert qu’une fois, la compo la plus haute la prend.</p>
+        <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, marginBottom: 16 }}>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <nav style={{ display: 'flex', gap: 6, marginBottom: 10 }} aria-label="Navigation">
+              <a href="/" style={pillLink}>← Vestiaire</a>
+              <a href="/?vue=galerie" style={pillLink}>Galerie</a>
+            </nav>
+            <h1 style={{ fontSize: 28, margin: '0 0 4px', letterSpacing: '.01em' }}>GW <span style={{ color: c.cy }}>Builder</span></h1>
+            <p style={{ color: c.dim, fontSize: 14, margin: 0 }}>{gw ? `GW ${gw.fixture.gw} · ${gw.fixture.games} matchs` : err || 'Chargement de la GW…'} · tes compos dans l’ordre que tu choisis : une carte ne sert qu’une fois, la compo la plus haute la prend.</p>
+          </div>
+          <a href="/" title="Retour à myNFTlocker" style={{ flex: '0 0 auto' }}>{/* eslint-disable-next-line @next/next/no-img-element */}<img src="/logo-pack.png" alt="myNFTlocker" style={{ height: 'clamp(72px,14vw,112px)', width: 'auto', display: 'block', filter: 'drop-shadow(0 8px 22px rgba(0,255,255,.28))' }} /></a>
+        </header>
 
         {/* Synthese */}
         <div style={{ ...glass, padding: '14px 16px', marginBottom: 14, display: 'flex', flexWrap: 'wrap', gap: 14, alignItems: 'center', justifyContent: 'space-between', border: `1px solid rgba(0,255,255,.28)`, background: 'radial-gradient(120% 160% at 0% 0%, rgba(0,255,255,.14), rgba(7,11,28,0) 60%), ' + c.card }}>
