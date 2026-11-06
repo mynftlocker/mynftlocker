@@ -1,7 +1,7 @@
 'use client';
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import type { GP } from '../../../lib/gwLineup';
-import { PRESETS, ARENAS, RARITIES, roomRar, rankRooms, autoAll, cardsFor, ageOk, solve, type CupMap, CUP_TIERS, allocate, cardValue, toCand, type Card, type Room, type RoomKind } from '../../../lib/gwAuto';
+import { PRESETS, ARENAS, RARITIES, roomRar, rankRooms, autoAll, idealTotal, check, cardsFor, ageOk, solve, type CupMap, CUP_TIERS, allocate, cardValue, toCand, type Card, type Room, type RoomKind } from '../../../lib/gwAuto';
 import { baseProj, gameAdj, statusMul } from '../../../lib/projBase';
 import StarBg from '../../components/StarBg';
 import type { Cand } from '../../../lib/gwLineup';
@@ -100,7 +100,9 @@ export default function GwBuilder() {
   const [q, setQ] = useState('');
   const [copied, setCopied] = useState(false);
   const [src, setSrc] = useState<'sorare' | 'mnl'>('mnl');   // source de projection
-  const [view, setView] = useState<'build' | 'teams'>('build');
+  const [view, setView] = useState<'build' | 'teams' | 'best'>('build');
+  const [bestRar, setBestRar] = useState('limited');
+  const [bestTier, setBestTier] = useState(2);
   const [plan, setPlan] = useState<Record<string, number>>({ 'isc|limited': 4, 'isk|limited': 3, 'clc|limited': 3, 'clk|limited': 3, 'ar|limited': 2 });
   const [shareMsg, setShareMsg] = useState('');
   const [cup, setCup] = useState<CupMap>({});
@@ -212,7 +214,8 @@ export default function GwBuilder() {
   }, [rawCards, playersP, used, noInj]);
 
   // Cup : donnees de la nuit choisie (calendrier independant des GW) via l'API du Cup Builder
-  const cupNights = useMemo(() => [...new Set((rooms || []).filter(r => r.kind === 'cup' && r.night).map(r => r.night as string))], [rooms]);
+  const bestNights = useMemo(() => Array.from({ length: 5 }, (_, i) => parisDay(new Date(Date.now() + i * 864e5).toISOString())), []);
+  const cupNights = useMemo(() => [...new Set([...(rooms || []).filter(r => r.kind === 'cup' && r.night).map(r => r.night as string), ...(view === 'best' ? bestNights : [])])], [rooms, view, bestNights]);
   useEffect(() => {
     cupNights.filter(n => !cup[n]).forEach(night => {
       fetch('/api/outils/cup?night=' + night).then(r => r.json()).then(j => {
@@ -236,6 +239,25 @@ export default function GwBuilder() {
     return { th, ok: pass / Math.max(1, th.list.length) >= 0.5, ratio: total / th.fifth, pass };
   };
   const skipped = (res: typeof results[number]) => { const q = rent(res.room, res.total); return (onlyRent && !!q && !!q.th && !q.ok && res.lineup.length === 5) || (!!res.room.minProj && res.lineup.length === 5 && res.total < res.room.minProj); };
+  // Onglet « Les meilleures » : pour chaque type de compo, la meilleure compo possible avec TES cartes (chaque type calcule seul, sans se partager les cartes)
+  const bestList = useMemo(() => {
+    if (view !== 'best' || !cards.length) return [];
+    const base: { key: string; title: string; room: Room }[] = [];
+    const R = [bestRar];
+    base.push({ key: 'isc', title: 'In-Season Champion', room: makeRoom('is-champ', { rar: R }) }, { key: 'isk', title: 'In-Season Contender', room: makeRoom('is-cont', { rar: R }) },
+      { key: 'clc', title: 'Classic Champion', room: makeRoom('cl-champ', { rar: R }) }, { key: 'clk', title: 'Classic Contender', room: makeRoom('cl-cont', { rar: R }) });
+    for (const a of ARENAS) base.push({ key: 'ar' + a.k, title: a.label, room: makeRoom('arena', { label: a.label, rar: R, cap: a.cap, essence: a.essence, arena: a.k, minAge: 'minAge' in a ? a.minAge : undefined, maxAge: 'maxAge' in a ? a.maxAge : undefined }) });
+    const t = CUP_TIERS.find(z => z.n === bestTier)!;
+    for (const n of bestNights) if (cup[n] && Object.keys(cup[n]).length) base.push({ key: 'cup' + n, title: `Emirates NBA Cup · ${dayLab(n)}`, room: makeRoom('cup', { label: `Emirates NBA Cup · palier ${t.n}`, minIS: t.is, night: n, rar: R }) });
+    return base.map(b => {
+      const rr = roomRar(b.room);
+      const free = cardsFor(cards, b.room, cup).filter(x => rr.includes(x.rar || 'limited') && ageOk(x.p, b.room)).map(x => toCand(x, b.room));
+      const lineup = solve(free, b.room, []);
+      const total = lineup.reduce((q, x) => q + x.v, 0);
+      const ideal = b.room.kind === 'cup' ? 0 : idealTotal(playersP, b.room);
+      return { ...b, lineup, total, ideal, issues: check(lineup, b.room), tier: b.room.kind === 'cup' ? t : null };
+    });
+  }, [view, cards, cup, bestRar, bestTier, bestNights, playersP]); // eslint-disable-line react-hooks/exhaustive-deps
   const patch = (id: string, f: (r: Room) => Room) => setRooms(rs => (rs || []).map(r => (r.id === id ? f(r) : r)));
   const move = (i: number, d: -1 | 1) => setRooms(rs => { const a = [...(rs || [])]; const j = i + d; if (j < 0 || j >= a.length) return a; [a[i], a[j]] = [a[j], a[i]]; return a; });
   const MAXCL = 3; // Classic : 3 Champion + 3 Contender maximum
@@ -404,6 +426,7 @@ export default function GwBuilder() {
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14 }}>
           <button onClick={() => setView('build')} style={btn(view === 'build')}>Construire</button>
+          <button onClick={() => setView('best')} style={btn(view === 'best')}>★ Les meilleures</button>
           <button onClick={() => setView('teams')} style={btn(view === 'teams')}>Mes équipes ({results.filter(r => r.lineup.length === 5 && !skipped(r)).length})</button>
           <span style={{ marginLeft: 'auto', fontSize: 12, color: c.dim }}>Projection :</span>
           <button onClick={() => setSrc('mnl')} style={btn(src === 'mnl')}>myNFTlocker</button>
@@ -413,6 +436,34 @@ export default function GwBuilder() {
         {loadMsg && <p style={{ color: c.gold, fontSize: 13 }}>{loadMsg}</p>}
         {loading && <p style={{ color: c.dim, fontSize: 13 }}>Chargement de ta collection…</p>}
 
+        {view === 'best' && (
+          <div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 12 }}>
+              <span style={lab}>Rareté</span>
+              {RARITIES.map(ra => <button key={ra.k} onClick={() => setBestRar(ra.k)} style={pill(bestRar === ra.k)}>{ra.l}</button>)}
+              <span style={{ ...lab, marginLeft: 10 }}>Cup : palier</span>
+              <select value={bestTier} onChange={e => setBestTier(+e.target.value)} style={{ ...inp, padding: '4px 8px' }}>{CUP_TIERS.map(t => <option key={t.n} value={t.n}>{t.n} · {t.pts} pts · {t.is} IS min</option>)}</select>
+            </div>
+            <p style={{ color: c.dim, fontSize: 12.5, margin: '0 2px 12px' }}>La meilleure compo possible pour chaque type avec tes cartes. Chaque type est calculé séparément : une même carte peut apparaître dans plusieurs.</p>
+            {!bestList.length && <p style={{ color: c.dim }}>{loading ? 'Chargement…' : 'Aucune carte jouable.'}</p>}
+            {bestList.map(b => { const q = rent(b.room, b.total); const full = b.lineup.length === 5 && !b.issues.length; return (
+              <section key={b.key} style={{ ...glass, padding: 14, marginBottom: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 10 }}>
+                  <div style={{ flex: '1 1 200px', minWidth: 0 }}><div style={{ fontSize: 17, fontWeight: 700 }}>{b.title}</div><div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 5 }}>
+                    <Chip t={`${b.lineup.reduce((x, y) => x + y.cost, 0) / 2}/${b.room.cap}★`} />
+                    {b.room.minIS > 0 && <Chip t={`${b.lineup.filter(x => x.is).length}/${b.room.minIS} In-Season`} ok={b.lineup.filter(x => x.is).length >= b.room.minIS} />}
+                    {b.ideal > 0 && full && <Chip t={`${Math.round(b.total / b.ideal * 100)} % du potentiel max`} />}
+                    {b.tier && full && <Chip t={`objectif ${b.tier.pts} : ${b.total >= b.tier.pts ? 'atteint' : `il manque ${Math.round(b.tier.pts - b.total)}`}`} ok={b.total >= b.tier.pts} warn={b.total < b.tier.pts} />}
+                    {q && q.th && full && <Chip t={q.ok ? `Rentable · seuil 5e place ${Math.round(q.th.fifth)}` : `Non rentable · seuil 5e place ${Math.round(q.th.fifth)}`} ok={q.ok} warn={!q.ok} />}
+                    {b.room.essence ? <Chip t={`${b.room.essence} Essence`} warn /> : null}
+                  </div></div>
+                  {full && <div style={{ textAlign: 'right' }}><div style={{ fontSize: 11, color: c.dim, letterSpacing: 1 }}>TOTAL</div><div style={{ fontSize: 30, fontWeight: 800, color: c.cy, textShadow: '0 0 16px rgba(0,255,255,.45)', lineHeight: 1 }}>{b.total.toFixed(1)}</div></div>}
+                </div>
+                {full ? <div className="gwb-row">{b.lineup.map(cd => <div key={cd.id} className="gwb-cell"><Slab c={cd} u={n => `${n}cqw`} art={cd.real ? cd.pic : null} /></div>)}</div>
+                  : <p style={{ margin: 0, color: c.dim, fontSize: 13 }}>Pas assez de cartes {RARITIES.find(z => z.k === bestRar)?.l} pour une compo complète.</p>}
+              </section>); })}
+          </div>
+        )}
         {view === 'teams' && (
           <div>
             {results.filter(r => r.lineup.length === 5 && !skipped(r)).map((res, i) => (
@@ -495,7 +546,6 @@ export default function GwBuilder() {
                   <select value={cupT?.n ?? 2} onChange={e => { const t = CUP_TIERS.find(z => z.n === +e.target.value)!; patch(r.id, x => ({ ...x, minIS: t.is, label: `Emirates NBA Cup · palier ${t.n}` })); }} style={inp}>{CUP_TIERS.map(t => <option key={t.n} value={t.n}>Palier {t.n} · {t.pts} pts · {t.is} IS min</option>)}</select>
                   <select value={r.night} onChange={e => patch(r.id, x => ({ ...x, night: e.target.value }))} style={inp}>{[...new Set([...nights, ...Array.from({ length: 10 }, (_, i) => parisDay(new Date(Date.now() + i * 864e5).toISOString()))])].sort().filter(n => n >= parisDay(new Date().toISOString()) || n === r.night).map(n => <option key={n} value={n}>{dayLab(n)}</option>)}</select>
                 </>}
-                {r.kind === 'arena' && <label style={{ fontSize: 13, color: c.dim, display: 'flex', alignItems: 'center', gap: 6 }}>Plafond ★ <input type="number" min={5} max={99} value={r.cap} onChange={e => patch(r.id, x => ({ ...x, cap: Math.max(5, +e.target.value || 16) }))} style={{ ...inp, width: 64 }} /></label>}
                 <button onClick={() => { setPicker(r.id); setQ(''); }} style={btn()}>+ Choisir une carte</button>
                 <button onClick={() => runBuy(r, 1)} style={btn(buy?.id === r.id && buy.n === 1)}>Acheter 1 carte</button>
                 <button onClick={() => runBuy(r, 2)} style={btn(buy?.id === r.id && buy.n === 2)}>Acheter 2 cartes</button>
