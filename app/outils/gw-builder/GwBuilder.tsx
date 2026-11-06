@@ -395,7 +395,7 @@ export default function GwBuilder() {
                     );
                   })}
                 </div>
-              ) : <p style={{ color: c.dim, fontSize: 13, margin: 0 }}>{loading ? 'Chargement…' : r.auto ? 'Aucune compo possible avec les cartes restantes.' : 'Choisis tes cartes ou passe en Auto.'}</p>}
+              ) : <p style={{ color: c.dim, fontSize: 13, margin: 0 }}>{loading ? 'Chargement…' : r.kind === 'cup' && r.night && cup[r.night] && !Object.keys(cup[r.night]).length ? 'Pas encore de projections Sorare pour cette nuit : elles sortent la veille du match. Choisis une nuit plus proche.' : r.auto ? 'Aucune compo possible avec les cartes restantes.' : 'Choisis tes cartes ou passe en Auto.'}</p>}
               {full && res.issues.length > 0 && <p style={{ color: c.red, fontSize: 13, margin: '10px 0 0' }}>⚠ {res.issues.join(' · ')}</p>}
             </section>
           );
