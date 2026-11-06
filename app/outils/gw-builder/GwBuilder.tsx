@@ -2,7 +2,7 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import type { GP } from '../../../lib/gwLineup';
 import { PRESETS, ARENAS, RARITIES, roomRar, rankRooms, autoAll, idealTotal, check, cardsFor, ageOk, solve, type CupMap, CUP_TIERS, allocate, cardValue, toCand, type Card, type Room, type RoomKind } from '../../../lib/gwAuto';
-import { baseProj, gameAdj, statusMul } from '../../../lib/projBase';
+import { gameMean, gwBest, statusMul } from '../../../lib/projBase';
 import StarBg from '../../components/StarBg';
 import type { Cand } from '../../../lib/gwLineup';
 import { Slab, HexStars } from '../gw/Slab';
@@ -79,6 +79,10 @@ function TeamRow({ x }: { x: Cand }) {
   );
 }
 
+// Loi normale : P(Z <= z)
+const phi = (z: number) => { const t = 1 / (1 + 0.2316419 * Math.abs(z)), d = 0.3989423 * Math.exp(-z * z / 2), p = d * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274)))); return z > 0 ? 1 - p : p; };
+const SIG_TOTAL = 26;   // ecart-type du total reel d'une compo de 5 joueurs autour de la projection v2 (backtest GW 111-115)
+const roiTxt = (v: number | null | undefined) => (v == null ? '' : ` · ROI ${v >= 0 ? '+' : '−'}${Math.abs(Math.round(v * 100))} %`);
 export default function GwBuilder() {
   const [gw, setGw] = useState<any>(null);
   const [err, setErr] = useState('');
@@ -106,32 +110,25 @@ export default function GwBuilder() {
   const [plan, setPlan] = useState<Record<string, number>>({ 'isc|limited': 4, 'isk|limited': 3, 'clc|limited': 3, 'clk|limited': 3, 'ar|limited': 2 });
   const [shareMsg, setShareMsg] = useState('');
   const [cup, setCup] = useState<CupMap>({});
-  const [thr, setThr] = useState<Record<string, { fifth: number; podium: number; first: number; rooms: number; list: number[] }>>({});
+  const [thr, setThr] = useState<Record<string, { fifth: number; podium: number; first: number; rooms: number; list: number[]; tops?: number[][]; rew?: number[] | null; slope?: number; gws?: number }>>({});
   const [onlyRent, setOnlyRent] = useState(true);
   const [buy, setBuy] = useState<{ id: string; n: 1 | 2; busy: boolean; msg: string; res: { adds: Card[]; total: number; gain: number }[] } | null>(null);
-  const [splits, setSplits] = useState<Record<string, { home: number; away: number; b2b: number; n: number }>>({});
 
   useEffect(() => { fetch('/api/outils/gw').then(r => r.json()).then(j => j.error ? setErr(j.error) : setGw(j)).catch(e => setErr(String(e))); }, []);
   useEffect(() => { fetch('/api/outils/arena-thresholds').then(r => r.json()).then(j => j.thresholds && setThr(j.thresholds)).catch(() => {}); }, []);
-  useEffect(() => { fetch('/api/outils/gw-splits').then(r => r.json()).then(j => j.splits && setSplits(j.splits)).catch(() => {}); }, []);
   useEffect(() => { try { const p = localStorage.getItem(LSP); if (p) setPseudo(p); } catch {} }, []);
   const players = useMemo(() => (gw?.players || []) as GP[], [gw]);
-  // Projection d'un joueur = son MEILLEUR match de la GW (seul le meilleur score compte, qu'il joue 1, 2 ou 3 matchs).
-  // Source "Sorare" : projection Sorare par match. Source "myNFTlocker" : 50 % Sorare + 30 % forme (moy. 10 derniers, ajustee domicile/exterieur et back-to-back d'apres l'historique des 3 dernieres saisons)
-  // + 15 % plafond (meilleur des 10) + 5 % L5 (forme du moment). Statut : questionable -10 %, doubtful -15 %. Bonus 3 matchs : +2 d'office.
+  // Projection d'un joueur = ESPERANCE de son meilleur match de la GW (seul le meilleur score compte, qu'il joue 1, 2 ou 3 matchs).
+  // Source "Sorare" : projection Rotowire du match, la plus haute. Source "myNFTlocker" (v2, calibree par backtest sur 5 GW, voir lib/projBase.ts) :
+  // moyenne attendue du match (Rotowire + forme sur les matchs joues) puis esperance du meilleur match avec le bruit reel et le risque de ne pas jouer.
+  // Statut : questionable -10 %, doubtful -15 %.
   const playersP = useMemo(() => players.map(p => {
-    const days = new Set(p.opp.map(o => parisDay(o.d)));
-    const prev = (d: string) => parisDay(new Date(new Date(d + 'T12:00:00Z').getTime() - 864e5).toISOString());
-    const blend = (pj: number, o: { d: string; h: boolean }) => {
-      if (src !== 'mnl') return pj;
-      return baseProj({ pj, l10: p.l10, l5: p.l5, ceil: p.ceil, adj: gameAdj(splits[p.slug], o.h, days.has(prev(parisDay(o.d)))) });
-    };
-    const opp = p.opp.map(o => ({ ...o, pj: blend(o.pj ?? p.proj, o) }));
-    const best = opp.length ? Math.max(...opp.map(o => o.pj)) : 0;
+    const opp = p.opp.map(o => ({ ...o, pj: src === 'mnl' ? gameMean(o.pj ?? p.proj, p.l10) : (o.pj ?? p.proj) }));
     const st = statusMul(p.inj);
-    const proj = p.games > 0 ? (best + (p.games >= 3 ? 2 : 0)) * st : 0;
+    const best = src === 'mnl' ? gwBest(p.opp.map(o => ({ pj: o.pj ?? p.proj, l10: p.l10 }))) : (opp.length ? Math.max(...opp.map(o => o.pj)) : 0);
+    const proj = p.games > 0 ? best * st : 0;
     return { ...p, opp, proj };
-  }), [players, src, splits]);
+  }), [players, src]);
   const nights = useMemo(() => [...new Set(players.flatMap(p => p.opp.map(o => parisDay(o.d))))].sort(), [players]);
   const fxSlug: string = gw?.fixture?.slug || '';
 
@@ -221,7 +218,7 @@ export default function GwBuilder() {
       fetch('/api/outils/cup?night=' + night).then(r => r.json()).then(j => {
         const m: Record<string, GP> = {};
         for (const p of j.players || []) {
-          const v = baseProj({ pj: p.proj, l10: p.l10, l5: p.l5, ceil: p.max, adj: gameAdj(undefined, p.home, false) }) * statusMul(p.inj);
+          const v = gwBest([{ pj: p.proj, l10: (p.n ?? 0) >= 5 ? p.l10 : null }]) * statusMul(p.inj);   // projection v2 : esperance du score du match (risque de ne pas jouer inclus)
           m[p.slug] = { slug: p.slug, name: p.name, team: p.team, teamName: p.team, games: 1, opp: [{ d: night + 'T12:00:00Z', o: p.opp, h: p.home, pj: v }], stars: p.stars, proj: v, l10: p.l10, inj: p.inj || null, pic: null, ceil: p.max, l5: p.l5 } as GP;
         }
         setCup(c => ({ ...c, [night]: m }));
@@ -236,7 +233,15 @@ export default function GwBuilder() {
     const t = r.arena || (r.label.includes('Uncapped') ? 'unc' : r.label.includes('Veterans') ? 'vet' : r.label.includes('U23') ? 'u23' : r.label.includes('Contender') ? 'cont' : 'champ');
     const th = thr[`${roomRar(r)[0]}|${t}`]; if (!th) return { th: null as null | typeof th, ok: true, ratio: 0, pass: 0 };
     const pass = th.list.filter(v => total >= v).length;
-    return { th, ok: pass / Math.max(1, th.list.length) >= 0.5, ratio: total / th.fifth, pass };
+    // ROI attendu en Essence : le total reel d'une compo s'ecarte de la projection (ecart-type ~26 pts, mesure sur 5 GW) ; on moyenne le gain sur les rooms echantillonnees
+    // (5 places payees, recompenses reelles de la room). Point mort ~ score median de la 5e place + 2 a 4 pts.
+    const entry = r.essence || 0; let roi: number | null = null;
+    if (entry > 0 && th.tops?.length && th.rew?.length === 5) {
+      const R = th.rew; let ev = 0;
+      for (const tp of th.tops) for (let k = 1; k <= 5; k++) ev += (R[k - 1] - (k < 5 ? R[k] : 0)) * (1 - phi((tp[k - 1] - total) / SIG_TOTAL));
+      roi = ev / th.tops.length / entry - 1;
+    }
+    return { th, ok: roi != null ? roi >= 0 : pass / Math.max(1, th.list.length) >= 0.5, ratio: roi != null ? roi : total / th.fifth, pass, roi };
   };
   const skipped = (res: typeof results[number]) => { const q = rent(res.room, res.total); return (onlyRent && !!q && !!q.th && !q.ok && res.lineup.length === 5) || (!!res.room.minProj && res.lineup.length === 5 && res.total < res.room.minProj); };
   // Onglet « Les meilleures » : pour chaque type de compo, la meilleure compo possible avec TES cartes (chaque type calcule seul, sans se partager les cartes)
@@ -461,7 +466,7 @@ export default function GwBuilder() {
                     {b.room.minIS > 0 && <Chip t={`${b.lineup.filter(x => x.is).length}/${b.room.minIS} In-Season`} ok={b.lineup.filter(x => x.is).length >= b.room.minIS} />}
                     {b.ideal > 0 && full && <Chip t={`${Math.round(b.total / b.ideal * 100)} % du potentiel max`} />}
                     {b.tier && full && <Chip t={`objectif ${b.tier.pts} : ${b.total >= b.tier.pts ? 'atteint' : `il manque ${Math.round(b.tier.pts - b.total)}`}`} ok={b.total >= b.tier.pts} warn={b.total < b.tier.pts} />}
-                    {q && q.th && full && <Chip t={q.ok ? `Rentable · seuil 5e place ${Math.round(q.th.fifth)}` : `Non rentable · seuil 5e place ${Math.round(q.th.fifth)}`} ok={q.ok} warn={!q.ok} />}
+                    {q && q.th && full && <Chip t={`${q.ok ? 'Rentable' : 'Non rentable'}${roiTxt(q.roi)} · seuil 5e place ${Math.round(q.th.fifth)}`} ok={q.ok} warn={!q.ok} />}
                     {b.room.essence ? <Chip t={`${b.room.essence} Essence`} warn /> : null}
                   </div></div>
                   {full && <div style={{ textAlign: 'right' }}><div style={{ fontSize: 11, color: c.dim, letterSpacing: 1 }}>TOTAL</div><div style={{ fontSize: 30, fontWeight: 800, color: c.cy, textShadow: '0 0 16px rgba(0,255,255,.45)', lineHeight: 1 }}>{b.total.toFixed(1)}</div></div>}
@@ -549,7 +554,7 @@ export default function GwBuilder() {
                     <Chip t={`max ${res.maxTeam}/${r.perTeam} par équipe`} ok={res.maxTeam <= r.perTeam} />
                     {r.night && <Chip t={`nuit du ${dayLab(r.night)}`} />}
                     {!r.bonus && <Chip t="sans bonus XP" />}{r.minProj ? <Chip t={`seuil mini ${r.minProj}`} ok={res.total >= r.minProj} /> : null}
-                    {r.essence != null && <Chip t={`${r.essence} Essence`} warn />}{(() => { const q = rent(r, res.total); if (!q || !q.th || res.lineup.length < 5) return null; return <Chip t={`${q.ok ? 'Rentable' : 'Non rentable'} · proj ${res.total.toFixed(0)} · 5e place atteinte dans ${q.pass}/${q.th.list.length} rooms (seuil ${q.th.list[0].toFixed(0)}–${q.th.list[q.th.list.length - 1].toFixed(0)}, médian ${q.th.fifth.toFixed(0)})`} ok={q.ok} warn={!q.ok} />; })()}{r.minAge != null && <Chip t={`${r.minAge} ans et +`} />}{r.maxAge != null && <Chip t={`${r.maxAge} ans max`} />}{r.cap >= 99 && <Chip t="sans plafond" />}
+                    {r.essence != null && <Chip t={`${r.essence} Essence`} warn />}{(() => { const q = rent(r, res.total); if (!q || !q.th || res.lineup.length < 5) return null; return <Chip t={`${q.ok ? 'Rentable' : 'Non rentable'}${roiTxt(q.roi)} · proj ${res.total.toFixed(0)} · 5e place atteinte dans ${q.pass}/${q.th.list.length} rooms (seuil ${q.th.list[0].toFixed(0)}–${q.th.list[q.th.list.length - 1].toFixed(0)}, médian ${q.th.fifth.toFixed(0)})`} ok={q.ok} warn={!q.ok} />; })()}{r.minAge != null && <Chip t={`${r.minAge} ans et +`} />}{r.maxAge != null && <Chip t={`${r.maxAge} ans max`} />}{r.cap >= 99 && <Chip t="sans plafond" />}
                     {RARITIES.map(ra => { const on = roomRar(r).includes(ra.k); return <button key={ra.k} onClick={() => patch(r.id, x => ({ ...x, rar: [ra.k], pins: x.pins.filter(id => rawRar[id] === ra.k) }))} style={{ ...btn(on), padding: '3px 9px', fontSize: 11, borderRadius: 999 }}>{ra.l}</button>; })}
                     {res.issues.filter(x => !/^\d+★|In-Season$|équipe/.test(x)).map(x => <Chip key={x} t={x} ok={false} />)}
                   </div>
@@ -615,7 +620,7 @@ export default function GwBuilder() {
         })}
 
         </div>
-        <p style={{ color: c.dim, fontSize: 12, margin: '14px 2px 0', lineHeight: 1.5 }}>Valeur affichée = projection du meilleur match de la GW (de la nuit choisie pour la Cup) × bonus de la carte ; seul le meilleur match de la GW compte (−10 % questionable, −15 % doubtful ). Bonus 3 matchs : un joueur qui joue 3 matchs reçoit +2 points, car il a trois chances de sortir son meilleur score ; sans bonus en Arena. Une seule rareté par compo (Limited par défaut), cartes déjà alignées sur Sorare exclues. Règles : 5 joueurs différents, plafond d’étoiles, max 4 joueurs d’une même équipe, minimum In-Season selon la compo. Tu envoies toi-même les compos sur Sorare.</p>
+        <p style={{ color: c.dim, fontSize: 12, margin: '14px 2px 0', lineHeight: 1.5 }}>Valeur affichée = score attendu du meilleur match de la GW (de la nuit choisie pour la Cup) × bonus de la carte ; seul le meilleur match compte, donc un joueur à 2 ou 3 matchs vaut plus que sa moyenne (−10 % questionable, −15 % doubtful). Projection calibrée sur les scores réels des GW passées ; sans bonus en Arena. Une seule rareté par compo (Limited par défaut), cartes déjà alignées sur Sorare exclues. Règles : 5 joueurs différents, plafond d’étoiles, max 4 joueurs d’une même équipe, minimum In-Season selon la compo. Tu envoies toi-même les compos sur Sorare.</p>
       </main>
 
       {/* Choix d'une carte : stock complet par joueur */}

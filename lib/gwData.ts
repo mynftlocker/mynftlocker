@@ -3,10 +3,14 @@ import { best, vary, BONUS_IS, MAX_PER_TEAM, type Cand, type GP, type MCard } fr
 // Donnees publiques d'une GW NBA Sorare : joueurs (etoiles, projection, blessures, matchs) + vraie carte du marche par joueur.
 const GQL = 'https://api.sorare.com/graphql';
 async function gql(query: string) {
-  const r = await fetch(GQL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query }), signal: AbortSignal.timeout(20000), next: { revalidate: 600 } });
-  const j = await r.json();
-  if (!j?.data) throw new Error(JSON.stringify(j?.errors || j).slice(0, 300));
-  return j.data;
+  const H: Record<string, string> = { 'Content-Type': 'application/json' }; if (process.env.SORARE_API_KEY) H.APIKEY = process.env.SORARE_API_KEY;
+  // 1er essai via le cache (10 min). Une reponse d'erreur (limite de debit, complexite) serait aussi mise en cache : on la contourne par un 2e essai SANS cache.
+  for (const fresh of [false, true]) {
+    const r = await fetch(GQL, { method: 'POST', headers: H, body: JSON.stringify({ query }), signal: AbortSignal.timeout(20000), ...(fresh ? { cache: 'no-store' as const } : { next: { revalidate: 600 } }) });
+    const j = await r.json().catch(() => null);
+    if (j?.data) return j.data;
+    if (fresh) throw new Error(JSON.stringify(j?.errors || j).slice(0, 300));
+  }
 }
 const chunk = <T,>(a: T[], n: number) => Array.from({ length: Math.ceil(a.length / n) }, (_, i) => a.slice(i * n, i * n + n));
 
@@ -45,8 +49,11 @@ export async function getGw(want = '') {
   await Promise.all(Object.keys(teams).map(async s => {
     for (let t = 0; t < 2; t++) { try { const d = await gql(`{ team(slug:"${s}"){ ... on Club{ activePlayers(first:30){ nodes{ slug } } } } }`); (d.team?.activePlayers?.nodes || []).forEach((n: any) => { by[n.slug] = s; }); break; } catch { /* nouvel essai */ } }
   }));
-  const F = 'slug displayName ... on NBAPlayer{ age gameplayTierStars nextClassicFixtureProjectedScore squaredPictureUrl injuries{ status expectedEndDate } playerGameScores(last:10){ score } }';
-  const parts = await Promise.all(chunk(Object.keys(by), 12).map(c => gql(`{ players(slugs:${JSON.stringify(c)}){ ${F} } }`).catch(() => ({ players: [] }))));
+  const F = 'slug displayName ... on NBAPlayer{ age gameplayTierStars nextClassicFixtureProjectedScore squaredPictureUrl injuries{ status expectedEndDate } playerGameScores(last:20){ score scoreStatus } }';
+  // Sans cle API, Sorare limite une requete a 500 de complexite : 8 joueurs par requete. Chaque lot est retente ; trop de lots perdus = erreur claire (pas de liste silencieusement incomplete).
+  const lots = chunk(Object.keys(by), 8); let lost = 0;
+  const parts = await Promise.all(lots.map(async c => { for (let t = 0; t < 3; t++) { try { return await gql(`{ players(slugs:${JSON.stringify(c)}){ ${F} } }`); } catch { await new Promise(r => setTimeout(r, 400 * (t + 1))); } } lost++; return { players: [] as any[] }; }));
+  if (lots.length && lost > lots.length * 0.15) throw new Error('Sorare ne repond pas assez : donnees incompletes, reessaie dans un instant');
   // projection Sorare de chaque match (comme sur la fiche joueur) : une requete par match
   const pmap: Record<string, number> = {};
   await Promise.all(games.map(async (g: any) => {
@@ -54,10 +61,11 @@ export async function getGw(want = '') {
   }));
   const now = Date.now();
   const players: GP[] = parts.flatMap(p => p.players || []).filter((p: any) => p.gameplayTierStars != null && p.nextClassicFixtureProjectedScore != null && p.nextClassicFixtureProjectedScore > 0).map((p: any) => {
-    const sc: number[] = (p.playerGameScores || []).map((x: any) => Number(x.score)).filter((x: number) => !isNaN(x));
+    // L'API renvoie du PLUS RECENT au plus ancien. Forme = 10 derniers matchs JOUES (un match manque ne compte pas comme 0) ; moins de 5 matchs joues = pas de forme.
+    const sc: number[] = (p.playerGameScores || []).filter((x: any) => x.scoreStatus !== 'DID_NOT_PLAY' && Number(x.score) > 0).map((x: any) => Number(x.score)).slice(0, 10);
     const t = teams[by[p.slug]];
     const inj = (p.injuries || []).find((i: any) => !i.expectedEndDate || new Date(i.expectedEndDate).getTime() > now);
-    return { slug: p.slug, name: p.displayName, team: by[p.slug], teamName: t.name, games: t.n, opp: t.opp.slice().sort((a, b) => (a.d < b.d ? -1 : 1)).map(x => ({ d: x.d, o: x.o, h: x.h, pj: pmap[x.gid + '|' + p.slug] ?? null })), stars: p.gameplayTierStars, proj: p.nextClassicFixtureProjectedScore, l10: sc.length ? sc.reduce((a, b) => a + b, 0) / sc.length : null, inj: inj?.status || null, pic: p.squaredPictureUrl || null, age: p.age ?? null, ceil: sc.length ? Math.max(...sc) : null, l5: sc.length ? sc.slice(-5).reduce((a, b) => a + b, 0) / Math.min(5, sc.length) : null };
+    return { slug: p.slug, name: p.displayName, team: by[p.slug], teamName: t.name, games: t.n, opp: t.opp.slice().sort((a, b) => (a.d < b.d ? -1 : 1)).map(x => ({ d: x.d, o: x.o, h: x.h, pj: pmap[x.gid + '|' + p.slug] ?? null })), stars: p.gameplayTierStars, proj: p.nextClassicFixtureProjectedScore, l10: sc.length >= 5 ? sc.reduce((a, b) => a + b, 0) / sc.length : null, inj: inj?.status || null, pic: p.squaredPictureUrl || null, age: p.age ?? null, ceil: sc.length >= 5 ? Math.max(...sc) : null, l5: sc.length >= 5 ? sc.slice(0, 5).reduce((a, b) => a + b, 0) / 5 : null };
   });
   const first = games.map(g => g.date as string).sort()[0] || fixture.startDate;
   return { fixture: { slug: fixture.slug, state: fixture.aasmState as string, gw: fixture.gameWeek as number, start: first, end: fixture.endDate as string, games: games.length }, players };

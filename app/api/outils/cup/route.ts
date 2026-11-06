@@ -7,13 +7,14 @@ export const maxDuration = 30;
 
 const GQL = 'https://api.sorare.com/graphql';
 async function gql(query: string) {
-  const r = await fetch(GQL, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ query }), signal: AbortSignal.timeout(20000), next: { revalidate: 600 },
-  });
-  const j = await r.json();
-  if (!j?.data) throw new Error(JSON.stringify(j?.errors || j).slice(0, 300));
-  return j.data;
+  const H: Record<string, string> = { 'Content-Type': 'application/json' }; if (process.env.SORARE_API_KEY) H.APIKEY = process.env.SORARE_API_KEY;
+  // 1er essai via le cache (10 min) ; une reponse d'erreur serait aussi mise en cache : on la contourne par un 2e essai sans cache
+  for (const fresh of [false, true]) {
+    const r = await fetch(GQL, { method: 'POST', headers: H, body: JSON.stringify({ query }), signal: AbortSignal.timeout(20000), ...(fresh ? { cache: 'no-store' as const } : { next: { revalidate: 600 } }) });
+    const j = await r.json().catch(() => null);
+    if (j?.data) return j.data;
+    if (fresh) throw new Error(JSON.stringify(j?.errors || j).slice(0, 300));
+  }
 }
 const berlinDay = (iso: string) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris' }).format(new Date(iso));
 const berlinHour = (iso: string) => new Intl.DateTimeFormat('fr-FR', { timeZone: 'Europe/Paris', hour: '2-digit', minute: '2-digit' }).format(new Date(iso));
@@ -54,11 +55,11 @@ export async function GET(req: NextRequest) {
     }));
 
     // 3) Details joueurs
-    const F = 'slug displayName ... on NBAPlayer{ gameplayTierStars nextClassicFixtureProjectedScore injuries{ status expectedEndDate } playerGameScores(last:10){ score } }';
-    const parts = await Promise.all(chunk(Object.keys(bySlug), 12).map((c) => gql(`{ players(slugs:${JSON.stringify(c)}){ ${F} } }`).catch(() => gql(`{ players(slugs:${JSON.stringify(c)}){ ${F} } }`).catch(() => ({ players: [] })))));
+    const F = 'slug displayName ... on NBAPlayer{ gameplayTierStars nextClassicFixtureProjectedScore injuries{ status expectedEndDate } playerGameScores(last:20){ score scoreStatus } }';
+    const parts = await Promise.all(chunk(Object.keys(bySlug), 8).map((c) => gql(`{ players(slugs:${JSON.stringify(c)}){ ${F} } }`).catch(() => gql(`{ players(slugs:${JSON.stringify(c)}){ ${F} } }`).catch(() => ({ players: [] })))));
     const now = Date.now();
     const players = parts.flatMap((p) => p.players || []).map((p: any) => {
-      const sc: number[] = (p.playerGameScores || []).map((x: any) => Number(x.score)).filter((x: number) => !isNaN(x));
+      const sc: number[] = (p.playerGameScores || []).filter((x: any) => x.scoreStatus !== 'DID_NOT_PLAY' && Number(x.score) > 0).map((x: any) => Number(x.score)).slice(0, 10);   // recent -> ancien, matchs JOUES seulement
       const avg = (a: number[]) => (a.length ? a.reduce((s, x) => s + x, 0) / a.length : null);
       const l5 = sc.slice(0, 5), l10 = sc.slice(0, 10);
       const m = avg(l10);

@@ -8,7 +8,8 @@ export async function GET(req: NextRequest) {
     const sp = req.nextUrl.searchParams;
     const pics = (sp.get('pics') || '').split(',').filter(Boolean);
     if (pics.length) return NextResponse.json({ pics: await marketPics(pics) });
-    return NextResponse.json(await getGw((sp.get('fixture') || '').trim()));
+    // Cache CDN 2 min (+ 10 min de secours) : pic de trafic avant la deadline = une seule execution par fenetre, pas une par visiteur
+    return NextResponse.json(await getGw((sp.get('fixture') || '').trim()), { headers: { 'Cache-Control': 'public, s-maxage=120, stale-while-revalidate=600' } });
   } catch (e: any) {
     return NextResponse.json({ error: String(e?.message || e) }, { status: 502, headers: { 'Cache-Control': 'no-store' } });
   }
