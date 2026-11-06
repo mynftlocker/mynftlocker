@@ -37,20 +37,20 @@ export function Slab({ c, u, art }: { c: Cand; u: (n: number) => string; art: st
   return (
     <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
       <div style={{ display: 'flex', flexDirection: 'column', borderRadius: u(7), padding: u(4), background: 'linear-gradient(160deg,#101826,#070a11)', border: `1px solid ${gold}88`, boxShadow: `0 0 ${u(6)} ${gold}33` }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: u(2), height: u(15) }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: u(2.4), height: u(18.4) }}>
           <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
             <div style={{ display: 'flex', fontSize: u(name.length > 20 ? 4.6 : long ? 5.6 : 7), fontWeight: 800, color: '#fff', lineHeight: 1.05, textTransform: 'uppercase' }}>{name}</div>
             <div style={{ display: 'flex', fontSize: u(4.8), color: '#cfd8e6', marginTop: u(1) }}>{c.p.teamName.split(' ').pop()}</div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: u(1.6), borderRadius: u(3.5), padding: `${u(1.6)} ${u(2.2)}`, border: '1px solid rgba(120,150,190,0.25)', background: 'rgba(53,230,255,0.08)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: u(2.4), borderRadius: u(4), padding: `${u(2.2)} ${u(3.2)} ${u(1.8)}`, border: '1px solid rgba(120,150,190,0.14)', background: 'radial-gradient(120% 120% at 50% 0%,rgba(53,230,255,0.10),rgba(8,12,20,0.6))' }}>
             <HexStars stars={c.p.stars} size={u(12.5)} />
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              <div style={{ display: 'flex', fontWeight: 800, fontSize: u(8.2), lineHeight: 0.95, color: gold }}>{c.v.toFixed(1)}</div>
-              <div style={{ display: 'flex', fontSize: u(3), letterSpacing: '0.1em', color: '#35e6ff', marginTop: u(0.5) }}>PROJ</div>
+              <div style={{ display: 'flex', fontWeight: 800, fontSize: u(8.4), lineHeight: 0.95, color: gold, textShadow: '0 0 10px rgba(245,215,110,0.35)' }}>{c.v.toFixed(1)}</div>
+              <div style={{ display: 'flex', fontSize: u(3), letterSpacing: '0.1em', color: '#35e6ff', marginTop: u(1) }}>PROJ</div>
             </div>
           </div>
         </div>
-        <div style={{ display: 'flex', marginTop: u(3.4), borderRadius: u(4.8), overflow: 'hidden', background: '#0b1d26', height: u(148.9) }}>
+        <div style={{ display: 'flex', marginTop: u(3.4), borderRadius: u(4.8), overflow: 'hidden', background: '#0b1d26', height: u(146.1) }}>
           {art ? <img src={art} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ display: 'flex' }} />}
         </div>
       </div>
