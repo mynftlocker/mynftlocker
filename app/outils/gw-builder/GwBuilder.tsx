@@ -87,7 +87,7 @@ export default function GwBuilder() {
     if (!nights.length || rooms) return;
     let r: Room[] | null = null;
     try { const s = localStorage.getItem(LSR); if (s) r = JSON.parse(s); } catch {}
-    setRooms(r && r.length ? r.map(x => ({ ...x, pins: [] })) : defaultRooms(nights.find(n => n >= parisDay(new Date().toISOString())) || nights[0]));
+    setRooms(r && r.length ? r.map(x => ({ ...x, pins: [], rar: x.rar?.length ? [x.rar[0]] : undefined })) : defaultRooms(nights.find(n => n >= parisDay(new Date().toISOString())) || nights[0]));
   }, [nights, rooms]);
   useEffect(() => { if (rooms) try { localStorage.setItem(LSR, JSON.stringify(rooms)); } catch {} }, [rooms]);
 
@@ -124,12 +124,13 @@ export default function GwBuilder() {
     return out;
   }, [rawCards, playersP, used, noInj]);
 
+  const rawRar = useMemo(() => Object.fromEntries(cards.map(x => [x.id, x.rar || 'limited'])) as Record<string, string>, [cards]);
   const results = useMemo(() => (rooms ? allocate(rooms, cards) : []), [rooms, cards]);
   const patch = (id: string, f: (r: Room) => Room) => setRooms(rs => (rs || []).map(r => (r.id === id ? f(r) : r)));
   const move = (i: number, d: -1 | 1) => setRooms(rs => { const a = [...(rs || [])]; const j = i + d; if (j < 0 || j >= a.length) return a; [a[i], a[j]] = [a[j], a[i]]; return a; });
   const MAXCL = 3; // Classic : 3 Champion + 3 Contender maximum
   const count = (kind: RoomKind) => (rooms || []).filter(r => r.kind === kind).length;
-  const addArena = (a: typeof ARENAS[number]) => setRooms(rs => [...(rs || []), makeRoom('arena', { label: `${a.label} ${(rs || []).filter(r => r.label.startsWith(a.label)).length + 1}`, cap: a.cap, essence: a.essence, minAge: 'minAge' in a ? a.minAge : undefined, maxAge: 'maxAge' in a ? a.maxAge : undefined, rar: ['limited', 'rare', 'super_rare', 'unique'] })]);
+  const addArena = (a: typeof ARENAS[number]) => setRooms(rs => [...(rs || []), makeRoom('arena', { label: `${a.label} ${(rs || []).filter(r => r.label.startsWith(a.label)).length + 1}`, cap: a.cap, essence: a.essence, minAge: 'minAge' in a ? a.minAge : undefined, maxAge: 'maxAge' in a ? a.maxAge : undefined, rar: ['limited'] })]);
   const rank = () => setRooms(rs => rankRooms(rs || [], cards, playersP));
   // Plan complet : genere toutes les compos dans l'ordre de preference (IS en alternance, puis Classic, puis Arena), en gardant la Cup
   const genPlan = () => setRooms(rs => {
@@ -272,7 +273,7 @@ export default function GwBuilder() {
                     {r.night && <Chip t={`nuit du ${dayLab(r.night)}`} />}
                     {!r.bonus && <Chip t="sans bonus XP" />}
                     {r.essence != null && <Chip t={`${r.essence} Essence`} warn />}{r.minAge != null && <Chip t={`${r.minAge} ans et +`} />}{r.maxAge != null && <Chip t={`${r.maxAge} ans max`} />}{r.cap >= 99 && <Chip t="sans plafond" />}
-                    {RARITIES.map(ra => { const on = roomRar(r).includes(ra.k); return <button key={ra.k} onClick={() => patch(r.id, x => { const cur = roomRar(x); const nx = cur.includes(ra.k) ? cur.filter(k => k !== ra.k) : [...cur, ra.k]; return { ...x, rar: nx.length ? nx : cur }; })} style={{ ...btn(on), padding: '3px 9px', fontSize: 11, borderRadius: 999 }}>{ra.l}</button>; })}
+                    {RARITIES.map(ra => { const on = roomRar(r).includes(ra.k); return <button key={ra.k} onClick={() => patch(r.id, x => ({ ...x, rar: [ra.k], pins: x.pins.filter(id => rawRar[id] === ra.k) }))} style={{ ...btn(on), padding: '3px 9px', fontSize: 11, borderRadius: 999 }}>{ra.l}</button>; })}
                     {res.issues.filter(x => !/^\d+★|In-Season$|équipe/.test(x)).map(x => <Chip key={x} t={x} ok={false} />)}
                   </div>
                 </div>
@@ -327,7 +328,7 @@ export default function GwBuilder() {
           </div>
         </div>
         </div>
-        <p style={{ color: c.dim, fontSize: 12, margin: '14px 2px 0', lineHeight: 1.5 }}>Valeur affichée = projection du meilleur match de la GW (de la nuit choisie pour la Cup) × bonus de la carte ; seul le meilleur match de la GW compte (−10 % questionable, −15 % doubtful ; +2 si bonus 3 matchs) ; sans bonus en Arena. Raretés au choix par compo (Limited par défaut), cartes déjà alignées sur Sorare exclues. Règles : 5 joueurs différents, plafond d’étoiles, max 4 joueurs d’une même équipe, minimum In-Season selon la compo. Tu envoies toi-même les compos sur Sorare.</p>
+        <p style={{ color: c.dim, fontSize: 12, margin: '14px 2px 0', lineHeight: 1.5 }}>Valeur affichée = projection du meilleur match de la GW (de la nuit choisie pour la Cup) × bonus de la carte ; seul le meilleur match de la GW compte (−10 % questionable, −15 % doubtful ; +2 si bonus 3 matchs) ; sans bonus en Arena. Une seule rareté par compo (Limited par défaut), cartes déjà alignées sur Sorare exclues. Règles : 5 joueurs différents, plafond d’étoiles, max 4 joueurs d’une même équipe, minimum In-Season selon la compo. Tu envoies toi-même les compos sur Sorare.</p>
       </main>
 
       {/* Choix d'une carte : stock complet par joueur */}
@@ -339,7 +340,7 @@ export default function GwBuilder() {
               <button onClick={() => setPicker(null)} style={btn()}>✕ Fermer</button>
             </div>
             <input value={q} onChange={e => setQ(e.target.value)} placeholder="Joueur ou équipe" style={{ ...inp, width: '100%', boxSizing: 'border-box', marginBottom: 8 }} />
-            <div style={{ fontSize: 12, color: c.dim, marginBottom: 10, lineHeight: 1.45 }}>Toute ta collection pour cette compo, par joueur : tu vois combien d’exemplaires il te reste et lesquels. Une carte déjà dans une autre compo passe dans celle-ci, l’autre se réorganise. Raretés : {roomRar(pickerRoom).map(k => RARITIES.find(r => r.k === k)?.l).join(', ')}.</div>
+            <div style={{ fontSize: 12, color: c.dim, marginBottom: 10, lineHeight: 1.45 }}>Toute ta collection pour cette compo, par joueur : tu vois combien d’exemplaires il te reste et lesquels. Une carte déjà dans une autre compo passe dans celle-ci, l’autre se réorganise. Une compo ne contient qu’une seule rareté : {RARITIES.find(r => r.k === roomRar(pickerRoom)[0])?.l}.</div>
             {pickerGroups.map(g => {
               const free = g.list.filter(z => z.st === 'libre').length;
               return (
