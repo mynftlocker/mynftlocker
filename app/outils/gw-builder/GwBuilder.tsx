@@ -47,6 +47,8 @@ const Chip = ({ t, ok = true, warn = false }: { t: string; ok?: boolean; warn?: 
 
 // ===== Vue « Mes équipes » : une ligne par joueur (miniature de la carte, equipe, etoiles, bonus, matchs avec logo adverse, vs = domicile, @ = deplacement)
 const ESP: Record<string, string> = { GSW: 'gs', NOP: 'no', NYK: 'ny', SAS: 'sa', UTA: 'utah', WAS: 'wsh' };
+const abOf = (name: string) => Object.keys(TEAMS).find(k => TEAMS[k] === name) || name;
+const nick = (name: string) => /Trail Blazers$/.test(name) ? 'Blazers' : name.split(' ').pop() || name;
 const logoOf = (abbr: string) => `https://a.espncdn.com/i/teamlogos/nba/500/${ESP[abbr] || abbr.toLowerCase()}.png`;
 const ABBR: Record<string, string> = Object.fromEntries(Object.entries(TEAMS).map(([k, v]) => [v, k]));
 const abbrOf = (n: string) => ABBR[n] || n.split(' ').pop()!.slice(0, 3).toUpperCase();
@@ -691,7 +693,7 @@ export default function GwBuilder() {
                             <span style={{ minWidth: 0 }}>
                               <b>{p.name}</b>{p.inj && (() => { const k = String(p.inj).toUpperCase(), lab = k.startsWith('PROB') ? 'Probable' : k === 'QUEST' ? 'Questionable' : k === 'DOUBT' ? 'Doubtful' : k === 'GTD' ? 'Incertain' : k === 'OUT' ? 'Out' : p.inj, col = k.startsWith('PROB') ? c.green : k === 'QUEST' || k === 'GTD' ? c.gold : k === 'DOUBT' ? '#ff9f43' : c.red; return <span title={lab + ' : ' + (k.startsWith('PROB') ? 'devrait jouer' : k === 'QUEST' ? '50 % de chances de jouer, projection −10 %' : k === 'DOUBT' ? 'peu de chances de jouer, projection −15 %' : k === 'GTD' ? 'décision le jour du match, projection −10 %' : 'absent')} style={{ marginLeft: 7, fontSize: 10.5, padding: '1px 7px', borderRadius: 99, color: col, border: `1px solid ${col}77`, whiteSpace: 'nowrap' }}>{lab}</span>; })()}
                               <span style={{ display: 'flex', flexWrap: 'wrap', gap: '2px 8px', marginTop: 2 }}>
-                                {p.opp.map((o, i) => <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 11, color: o.pj === bestG && p.opp.length > 1 ? c.gold : c.dim, whiteSpace: 'nowrap' }}><span>{o.h ? 'vs' : '@'}</span><Logo ab={o.o} s={14} /><span>{o.o}</span><span style={{ opacity: .7 }}>{dayLab(parisDay(o.d)).split(' ').slice(0, 2).join(' ')}</span></span>)}
+                                {p.opp.map((o, i) => <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 11, color: o.pj === bestG && p.opp.length > 1 ? c.gold : c.dim, whiteSpace: 'nowrap' }}><span>{o.h ? 'vs' : '@'}</span><Logo ab={abOf(o.o)} s={16} /><span>{nick(o.o)}</span><span style={{ opacity: .7 }}>{dayLab(parisDay(o.d)).split(' ').slice(0, 2).join(' ')}</span></span>)}
                                 {!p.opp.length && <span style={{ fontSize: 11, color: c.dim }}>pas de match</span>}
                               </span>
                             </span>
