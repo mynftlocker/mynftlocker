@@ -57,7 +57,7 @@ export async function getGw(want = '') {
     const sc: number[] = (p.playerGameScores || []).map((x: any) => Number(x.score)).filter((x: number) => !isNaN(x));
     const t = teams[by[p.slug]];
     const inj = (p.injuries || []).find((i: any) => !i.expectedEndDate || new Date(i.expectedEndDate).getTime() > now);
-    return { slug: p.slug, name: p.displayName, team: by[p.slug], teamName: t.name, games: t.n, opp: t.opp.slice().sort((a, b) => (a.d < b.d ? -1 : 1)).map(x => ({ d: x.d, o: x.o, h: x.h, pj: pmap[x.gid + '|' + p.slug] ?? null })), stars: p.gameplayTierStars, proj: p.nextClassicFixtureProjectedScore, l10: sc.length ? sc.reduce((a, b) => a + b, 0) / sc.length : null, inj: inj?.status || null, pic: p.squaredPictureUrl || null, age: p.age ?? null, ceil: sc.length ? Math.max(...sc) : null };
+    return { slug: p.slug, name: p.displayName, team: by[p.slug], teamName: t.name, games: t.n, opp: t.opp.slice().sort((a, b) => (a.d < b.d ? -1 : 1)).map(x => ({ d: x.d, o: x.o, h: x.h, pj: pmap[x.gid + '|' + p.slug] ?? null })), stars: p.gameplayTierStars, proj: p.nextClassicFixtureProjectedScore, l10: sc.length ? sc.reduce((a, b) => a + b, 0) / sc.length : null, inj: inj?.status || null, pic: p.squaredPictureUrl || null, age: p.age ?? null, ceil: sc.length ? Math.max(...sc) : null, l5: sc.length ? sc.slice(-5).reduce((a, b) => a + b, 0) / Math.min(5, sc.length) : null };
   });
   const first = games.map(g => g.date as string).sort()[0] || fixture.startDate;
   return { fixture: { slug: fixture.slug, state: fixture.aasmState as string, gw: fixture.gameWeek as number, start: first, end: fixture.endDate as string, games: games.length }, players };
