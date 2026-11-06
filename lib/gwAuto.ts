@@ -13,6 +13,7 @@ export type Room = {
   night?: string;     // Cup : seule la nuit demandee compte (YYYY-MM-DD, date Paris)
   pins: string[];     // cartes imposees (ids de cartes)
   auto: boolean;      // true = le moteur complete ; false = seulement les cartes choisies
+  arena?: 'unc' | 'champ' | 'cont' | 'vet' | 'u23'; // type d'Arena (seuils de rentabilite)
   minAge?: number;    // Arena Veterans : age minimum
   maxAge?: number;    // Arena U23 : age maximum
   essence?: number;   // cout d'entree Arena (Essence)

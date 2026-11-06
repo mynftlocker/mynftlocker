@@ -58,10 +58,13 @@ export default function GwBuilder() {
   const [view, setView] = useState<'build' | 'teams'>('build');
   const [plan, setPlan] = useState({ isc: 4, isk: 3, clc: 3, clk: 3, ar: 2 });
   const [shareMsg, setShareMsg] = useState('');
+  const [thr, setThr] = useState<Record<string, { fifth: number; podium: number; first: number; rooms: number }>>({});
+  const [onlyRent, setOnlyRent] = useState(true);
   const [buy, setBuy] = useState<{ id: string; n: 1 | 2; busy: boolean; msg: string; res: { adds: Card[]; total: number; gain: number }[] } | null>(null);
   const [splits, setSplits] = useState<Record<string, { home: number; away: number; b2b: number; n: number }>>({});
 
   useEffect(() => { fetch('/api/outils/gw').then(r => r.json()).then(j => j.error ? setErr(j.error) : setGw(j)).catch(e => setErr(String(e))); }, []);
+  useEffect(() => { fetch('/api/outils/arena-thresholds').then(r => r.json()).then(j => j.thresholds && setThr(j.thresholds)).catch(() => {}); }, []);
   useEffect(() => { fetch('/api/outils/gw-splits').then(r => r.json()).then(j => j.splits && setSplits(j.splits)).catch(() => {}); }, []);
   useEffect(() => { try { const p = localStorage.getItem(LSP); if (p) setPseudo(p); } catch {} }, []);
   const players = useMemo(() => (gw?.players || []) as GP[], [gw]);
@@ -128,11 +131,19 @@ export default function GwBuilder() {
 
   const rawRar = useMemo(() => Object.fromEntries(cards.map(x => [x.id, x.rar || 'limited'])) as Record<string, string>, [cards]);
   const results = useMemo(() => (rooms ? allocate(rooms, cards) : []), [rooms, cards]);
+  // Rentabilite d'une Arena : projection de la compo contre le score MEDIAN de la 5e place sur les GW deja terminees (meme type de room, meme rarete)
+  const rent = (r: Room, total: number) => {
+    if (r.kind !== 'arena') return null;
+    const t = r.arena || (r.label.includes('Uncapped') ? 'unc' : r.label.includes('Veterans') ? 'vet' : r.label.includes('U23') ? 'u23' : r.label.includes('Contender') ? 'cont' : 'champ');
+    const th = thr[`${roomRar(r)[0]}|${t}`]; if (!th) return { th: null as null | typeof th, ok: true, ratio: 0 };
+    return { th, ok: total >= th.fifth, ratio: total / th.fifth };
+  };
+  const skipped = (res: typeof results[number]) => { const q = rent(res.room, res.total); return onlyRent && !!q && !!q.th && !q.ok && res.lineup.length === 5; };
   const patch = (id: string, f: (r: Room) => Room) => setRooms(rs => (rs || []).map(r => (r.id === id ? f(r) : r)));
   const move = (i: number, d: -1 | 1) => setRooms(rs => { const a = [...(rs || [])]; const j = i + d; if (j < 0 || j >= a.length) return a; [a[i], a[j]] = [a[j], a[i]]; return a; });
   const MAXCL = 3; // Classic : 3 Champion + 3 Contender maximum
   const count = (kind: RoomKind) => (rooms || []).filter(r => r.kind === kind).length;
-  const addArena = (a: typeof ARENAS[number]) => setRooms(rs => [...(rs || []), makeRoom('arena', { label: `${a.label} ${(rs || []).filter(r => r.label.startsWith(a.label)).length + 1}`, cap: a.cap, essence: a.essence, minAge: 'minAge' in a ? a.minAge : undefined, maxAge: 'maxAge' in a ? a.maxAge : undefined, rar: ['limited'] })]);
+  const addArena = (a: typeof ARENAS[number]) => setRooms(rs => [...(rs || []), makeRoom('arena', { label: `${a.label} ${(rs || []).filter(r => r.label.startsWith(a.label)).length + 1}`, cap: a.cap, essence: a.essence, arena: a.k, minAge: 'minAge' in a ? a.minAge : undefined, maxAge: 'maxAge' in a ? a.maxAge : undefined, rar: ['limited'] })]);
   const rank = () => setRooms(rs => rankRooms(rs || [], cards, playersP));
   // Plan complet : genere toutes les compos dans l'ordre de preference (IS en alternance, puis Classic, puis Arena), en gardant la Cup
   const genPlan = () => setRooms(rs => {
@@ -141,7 +152,7 @@ export default function GwBuilder() {
     while (a > 0 || b > 0) { if (a > 0) { out.push(makeRoom('is-champ', { label: `In-Season Champion ${++n1}` })); a--; } if (b > 0) { out.push(makeRoom('is-cont', { label: `In-Season Contender ${++n2}` })); b--; } }
     let c1 = Math.min(MAXCL, plan.clc), c2 = Math.min(MAXCL, plan.clk), m1 = 0, m2 = 0;
     while (c1 > 0 || c2 > 0) { if (c1 > 0) { out.push(makeRoom('cl-champ', { label: `Classic Champion ${++m1}` })); c1--; } if (c2 > 0) { out.push(makeRoom('cl-cont', { label: `Classic Contender ${++m2}` })); c2--; } }
-    for (let i = 1; i <= plan.ar; i++) out.push(makeRoom('arena', { label: `Arena Champion ${i}`, essence: 150 }));
+    for (let i = 1; i <= plan.ar; i++) out.push(makeRoom('arena', { label: `Arena Champion ${i}`, essence: 150, arena: 'champ' }));
     return [...out.slice(0, 1), ...keep, ...out.slice(1)];
   });
   // Acheter 1 ou 2 cartes : on cherche, parmi les meilleurs joueurs de la GW, la ou les cartes EN VENTE qui font le plus monter cette compo
@@ -195,8 +206,8 @@ export default function GwBuilder() {
     const n = (rs || []).filter(r => r.kind === kind).length + 1; const p = PRESETS.find(x => x.kind === kind)!;
     return [...(rs || []), makeRoom(kind, { label: kind === 'cup' ? 'Emirates NBA Cup · palier 2' : `${p.label} ${n}`, ...(kind === 'cup' ? { minIS: 1, night: nights[0] } : {}) })];
   });
-  const total = results.reduce((s, r) => s + (r.lineup.length === 5 ? r.total : 0), 0);
-  const nDone = results.filter(r => r.lineup.length === 5 && !r.issues.length).length;
+  const total = results.reduce((s, r) => s + (r.lineup.length === 5 && !skipped(r) ? r.total : 0), 0);
+  const nDone = results.filter(r => r.lineup.length === 5 && !r.issues.length && !skipped(r)).length;
   const usedCards = new Set(results.flatMap(r => r.lineup.map(x => x.id)));
 
   const recap = () => {
@@ -254,6 +265,7 @@ export default function GwBuilder() {
             <div><div style={{ fontSize: 12, color: c.dim, letterSpacing: 1 }}>CARTES UTILISÉES</div><div style={{ fontSize: 28, fontWeight: 800, lineHeight: 1.2 }}>{usedCards.size}<span style={{ color: c.dim, fontSize: 18 }}> / {cards.length}</span></div></div>
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+            <label style={{ fontSize: 13, color: c.dim, display: 'flex', gap: 6, alignItems: 'center' }}><input type="checkbox" checked={onlyRent} onChange={e => setOnlyRent(e.target.checked)} /> Écarter les Arena non rentables</label>
             <label style={{ fontSize: 13, color: c.dim, display: 'flex', gap: 6, alignItems: 'center' }}><input type="checkbox" checked={noInj} onChange={e => setNoInj(e.target.checked)} /> Exclure les blessés</label>
             <input value={pseudo} onChange={e => setPseudo(e.target.value)} onKeyDown={e => e.key === 'Enter' && loadCol(pseudo)} style={{ ...inp, width: 150 }} aria-label="Compte Sorare" />
             <button onClick={() => loadCol(pseudo)} style={btn()}>Recharger</button>
@@ -262,7 +274,7 @@ export default function GwBuilder() {
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14 }}>
           <button onClick={() => setView('build')} style={btn(view === 'build')}>Construire</button>
-          <button onClick={() => setView('teams')} style={btn(view === 'teams')}>Mes équipes ({results.filter(r => r.lineup.length === 5).length})</button>
+          <button onClick={() => setView('teams')} style={btn(view === 'teams')}>Mes équipes ({results.filter(r => r.lineup.length === 5 && !skipped(r)).length})</button>
           <span style={{ marginLeft: 'auto', fontSize: 12, color: c.dim }}>Projection :</span>
           <button onClick={() => setSrc('sorare')} style={btn(src === 'sorare')}>Sorare (Rotowire)</button>
           <button onClick={() => setSrc('mnl')} style={btn(src === 'mnl')}>myNFTlocker</button>
@@ -273,7 +285,7 @@ export default function GwBuilder() {
 
         {view === 'teams' && (
           <div>
-            {results.filter(r => r.lineup.length === 5).map((res, i) => (
+            {results.filter(r => r.lineup.length === 5 && !skipped(r)).map((res, i) => (
               <section key={res.room.id} style={{ ...glass, padding: 14, marginBottom: 12 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 8 }}>
                   <div style={{ flex: '1 1 160px', minWidth: 0 }}><div style={{ fontSize: 17, fontWeight: 700 }}>{res.room.label}</div><div style={{ fontSize: 12, color: c.dim }}>{res.stars}/{res.room.cap}★ · {res.nIS} In-Season</div></div>
@@ -297,7 +309,7 @@ export default function GwBuilder() {
           const r = res.room; const full = res.lineup.length === 5; const cupT = r.kind === 'cup' ? CUP_TIERS.find(t => r.label.includes('palier ' + t.n)) : null;
           const col = !full ? c.dim : res.issues.length ? c.red : cupT ? (res.total >= cupT.pts ? c.green : c.gold) : c.cy;
           return (
-            <section key={r.id} style={{ ...glass, padding: 14, marginBottom: 14, borderColor: res.issues.length && full ? c.red + '66' : c.line }}>
+            <section key={r.id} style={{ ...glass, padding: 14, marginBottom: 14, opacity: skipped(res) ? 0.5 : 1, borderColor: res.issues.length && full ? c.red + '66' : c.line }}>
               <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginBottom: 10 }}>
                 <span style={{ width: 30, height: 30, borderRadius: 99, display: 'grid', placeItems: 'center', fontWeight: 800, color: '#001018', background: c.cy, boxShadow: '0 0 14px rgba(0,255,255,.5)', flex: '0 0 auto' }}>{i + 1}</span>
                 <div style={{ flex: '1 1 200px', minWidth: 0 }}>
@@ -308,7 +320,7 @@ export default function GwBuilder() {
                     <Chip t={`max ${res.maxTeam}/${r.perTeam} par équipe`} ok={res.maxTeam <= r.perTeam} />
                     {r.night && <Chip t={`nuit du ${dayLab(r.night)}`} />}
                     {!r.bonus && <Chip t="sans bonus XP" />}
-                    {r.essence != null && <Chip t={`${r.essence} Essence`} warn />}{r.minAge != null && <Chip t={`${r.minAge} ans et +`} />}{r.maxAge != null && <Chip t={`${r.maxAge} ans max`} />}{r.cap >= 99 && <Chip t="sans plafond" />}
+                    {r.essence != null && <Chip t={`${r.essence} Essence`} warn />}{(() => { const q = rent(r, res.total); if (!q || !q.th || res.lineup.length < 5) return null; return <Chip t={`${q.ok ? 'Rentable' : 'Non rentable'} · proj ${res.total.toFixed(0)} vs 5e médian ${q.th.fifth.toFixed(0)} (${q.th.rooms} rooms)`} ok={q.ok} warn={!q.ok} />; })()}{r.minAge != null && <Chip t={`${r.minAge} ans et +`} />}{r.maxAge != null && <Chip t={`${r.maxAge} ans max`} />}{r.cap >= 99 && <Chip t="sans plafond" />}
                     {RARITIES.map(ra => { const on = roomRar(r).includes(ra.k); return <button key={ra.k} onClick={() => patch(r.id, x => ({ ...x, rar: [ra.k], pins: x.pins.filter(id => rawRar[id] === ra.k) }))} style={{ ...btn(on), padding: '3px 9px', fontSize: 11, borderRadius: 999 }}>{ra.l}</button>; })}
                     {res.issues.filter(x => !/^\d+★|In-Season$|équipe/.test(x)).map(x => <Chip key={x} t={x} ok={false} />)}
                   </div>
