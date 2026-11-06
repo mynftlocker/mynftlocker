@@ -259,38 +259,44 @@ export default function GwBuilder() {
     });
   }, [view, cards, cup, bestRar, bestTier, bestNights, playersP]); // eslint-disable-line react-hooks/exhaustive-deps
   const patch = (id: string, f: (r: Room) => Room) => setRooms(rs => (rs || []).map(r => (r.id === id ? f(r) : r)));
-  const move = (i: number, d: -1 | 1) => setRooms(rs => { const a = [...(rs || [])]; const j = i + d; if (j < 0 || j >= a.length) return a; [a[i], a[j]] = [a[j], a[i]]; return a; });
+  const move = (i: number, d: -1 | 1) => setRooms(rs => { const a = [...(rs || [])]; let j = i + d; while (j >= 0 && j < a.length && a[j].done) j += d; if (j < 0 || j >= a.length) return a; [a[i], a[j]] = [a[j], a[i]]; return a; });
   const MAXCL = 3; // Classic : 3 Champion + 3 Contender maximum
   const count = (kind: RoomKind) => (rooms || []).filter(r => r.kind === kind && roomRar(r)[0] === 'limited').length;
   const addArena = (a: typeof ARENAS[number]) => setRooms(rs => [...(rs || []), makeRoom('arena', { label: `${a.label} ${(rs || []).filter(r => r.label.startsWith(a.label)).length + 1}`, cap: a.cap, essence: a.essence, arena: a.k, minAge: 'minAge' in a ? a.minAge : undefined, maxAge: 'maxAge' in a ? a.maxAge : undefined, rar: ['limited'] })]);
-  const rank = () => setRooms(rs => rankRooms(rs || [], cards, playersP, cup));
+  const rank = () => setRooms(rs => { const all = rankRooms(rs || [], cards, playersP, cup); return [...all.filter(r => r.done), ...all.filter(r => !r.done)]; });
+  // Valider une compo : on fige ses 5 cartes (elles ne bougent plus quand on touche aux autres compos) et elle part dans « Mes équipes »
+  const validate = (res: typeof results[number]) => patch(res.room.id, x => ({ ...x, done: true, auto: false, pins: res.lineup.map(l => l.id) }));
+  const reopen = (id: string) => patch(id, x => ({ ...x, done: false }));
   // Plan complet : genere toutes les compos dans l'ordre de preference (IS en alternance, puis Classic, puis Arena), en gardant la Cup
   const planEss = ARENAS.reduce((t, a) => t + RARITIES.slice(0, 3).reduce((u, ra) => u + (plan[`ar-${a.k}|${ra.k}`] || 0), 0) * a.essence, 0);
   const mp = (k: string) => plan['min|' + k] || undefined;   // seuil mini de projection du type (0 = aucun)
   const genPlan = () => setRooms(rs => {
-    const keep = (rs || []).filter(r => r.kind === 'cup').map(r => ({ ...r, pins: [] }));
+    const done = (rs || []).filter(r => r.done);   // compos validees : conservees telles quelles
+    const nd = (kind: RoomKind, rar: string, ar?: string) => done.filter(r => r.kind === kind && roomRar(r)[0] === rar && (!ar || r.arena === ar)).length;
+    const keep = (rs || []).filter(r => r.kind === 'cup' && !r.done).map(r => ({ ...r, pins: [] }));
     const out: Room[] = [];
     for (const ra of RARITIES.slice(0, 3)) {
       const nm = ra.k === 'limited' ? '' : ` ${ra.l}`, g = (k: string) => plan[`${k}|${ra.k}`] || 0, rar = [ra.k];
-      let a = g('isc'), b = g('isk'), n1 = 0, n2 = 0;
+      let a = g('isc'), b = g('isk'), n1 = nd('is-champ', ra.k), n2 = nd('is-cont', ra.k);
       while (a > 0 || b > 0) { if (a > 0) { out.push(makeRoom('is-champ', { label: `In-Season Champion${nm} ${++n1}`, rar, minProj: mp('isc') })); a--; } if (b > 0) { out.push(makeRoom('is-cont', { label: `In-Season Contender${nm} ${++n2}`, rar, minProj: mp('isk') })); b--; } }
-      let c1 = Math.min(MAXCL, g('clc')), c2 = Math.min(MAXCL, g('clk')), m1 = 0, m2 = 0; // Classic : 3 max par type et par rareté
+      let c1 = Math.max(0, Math.min(MAXCL, g('clc') + nd('cl-champ', ra.k)) - nd('cl-champ', ra.k)), c2 = Math.max(0, Math.min(MAXCL, g('clk') + nd('cl-cont', ra.k)) - nd('cl-cont', ra.k)), m1 = nd('cl-champ', ra.k), m2 = nd('cl-cont', ra.k); // Classic : 3 max par type et par rareté
       while (c1 > 0 || c2 > 0) { if (c1 > 0) { out.push(makeRoom('cl-champ', { label: `Classic Champion${nm} ${++m1}`, rar, minProj: mp('clc') })); c1--; } if (c2 > 0) { out.push(makeRoom('cl-cont', { label: `Classic Contender${nm} ${++m2}`, rar, minProj: mp('clk') })); c2--; } }
-      for (const a of ARENAS) for (let i = 1; i <= g('ar-' + a.k); i++) out.push(makeRoom('arena', { label: `${a.label}${nm} ${i}`, cap: a.cap, essence: a.essence, arena: a.k, minAge: 'minAge' in a ? a.minAge : undefined, maxAge: 'maxAge' in a ? a.maxAge : undefined, rar, minProj: mp('ar-' + a.k) }));
+      for (const a of ARENAS) for (let i = 1; i <= g('ar-' + a.k); i++) out.push(makeRoom('arena', { label: `${a.label}${nm} ${i + nd('arena', ra.k, a.k)}`, cap: a.cap, essence: a.essence, arena: a.k, minAge: 'minAge' in a ? a.minAge : undefined, maxAge: 'maxAge' in a ? a.maxAge : undefined, rar, minProj: mp('ar-' + a.k) }));
     }
-    return [...out.slice(0, 1), ...keep, ...out.slice(1)];
+    return [...done, ...out.slice(0, 1), ...keep, ...out.slice(1)];
   });
   // Tout generer automatiquement : le maximum de compos viables avec toutes les cartes, du plus rentable au moins rentable
   const runAuto = () => {
     if (!rooms) return; setAutoBusy(true); setAutoMsg('');
     setTimeout(() => {
       try {
-        const keepCup = rooms.filter(r => r.kind === 'cup');
+        const done = rooms.filter(r => r.done), keepCup = rooms.filter(r => r.kind === 'cup' && !r.done);
         const minProj: Record<string, number> = {}; for (const k of ['isc', 'isk', 'clc', 'clk', ...ARENAS.map(a => 'ar-' + a.k)]) minProj[k] = plan['min|' + k] || 0;
-        const o = autoAll({ cards, players: playersP, cup, keepCup, minProj, budget: plan.bud || 0, mk: (k, e) => makeRoom(k, e), arena: (r, t) => { const q = rent(r, t); return q && q.th ? { ok: q.ok, ratio: q.ratio } : null; } });
-        setRooms(o.rooms);
-        const n = (f: (r: Room) => boolean) => o.rooms.filter(f).length;
-        setAutoMsg(`${o.rooms.length} compos viables générées : ${n(r => r.kind === 'is-champ' || r.kind === 'is-cont')} In-Season · ${n(r => r.kind === 'cl-champ' || r.kind === 'cl-cont')} Classic · ${n(r => r.kind === 'arena')} Arena rentables (${o.essence} Essence${plan.bud ? ` sur ${plan.bud}` : ''})${n(r => r.kind === 'cup') ? ` · ${n(r => r.kind === 'cup')} Cup` : ''}.${o.overBudget ? ` ${o.overBudget} autre(s) Arena rentables non créées : budget Essence atteint.` : ''}${o.arenaSkipped ? ` ${o.arenaSkipped} type(s) d’Arena écarté(s) car non rentables.` : ''}${o.arenaUnknown ? ' Seuils Arena indisponibles pour certains types : non créés.' : ''}`);
+        const o = autoAll({ cards, players: playersP, cup, keepCup, done, minProj, budget: plan.bud || 0, mk: (k, e) => makeRoom(k, e), arena: (r, t) => { const q = rent(r, t); return q && q.th ? { ok: q.ok, ratio: q.ratio } : null; } });
+        const all = [...done, ...o.rooms];
+        setRooms(all);
+        const n = (f: (r: Room) => boolean) => all.filter(f).length;
+        setAutoMsg(`${all.length} compos viables générées : ${n(r => r.kind === 'is-champ' || r.kind === 'is-cont')} In-Season · ${n(r => r.kind === 'cl-champ' || r.kind === 'cl-cont')} Classic · ${n(r => r.kind === 'arena')} Arena rentables (${o.essence} Essence${plan.bud ? ` sur ${plan.bud}` : ''})${n(r => r.kind === 'cup') ? ` · ${n(r => r.kind === 'cup')} Cup` : ''}.${o.overBudget ? ` ${o.overBudget} autre(s) Arena rentables non créées : budget Essence atteint.` : ''}${o.arenaSkipped ? ` ${o.arenaSkipped} type(s) d’Arena écarté(s) car non rentables.` : ''}${o.arenaUnknown ? ' Seuils Arena indisponibles pour certains types : non créés.' : ''}`);
       } catch (e: any) { setAutoMsg('Génération impossible : ' + String(e?.message || e)); }
       setAutoBusy(false);
     }, 30);
@@ -467,11 +473,16 @@ export default function GwBuilder() {
         )}
         {view === 'teams' && (
           <div>
+            <div style={{ ...glass, padding: '10px 12px', marginBottom: 12, display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+              <button onClick={rank} style={pill()}>Classer par chance de perf</button>
+              <span style={{ flex: '1 1 260px', fontSize: 12, color: c.dim, lineHeight: 1.45 }}>Remet tes compos dans le bon ordre : celle qui a le plus de chances d’atteindre son potentiel passe en premier et prend les meilleures cartes. À utiliser après avoir bougé des cartes à la main. Les compos validées ✓ ne bougent pas.</span>
+            </div>
             {results.filter(r => r.lineup.length === 5 && !skipped(r)).map((res, i) => (
               <section key={res.room.id} style={{ ...glass, padding: 14, marginBottom: 12 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 8 }}>
-                  <div style={{ flex: '1 1 160px', minWidth: 0 }}><div style={{ fontSize: 17, fontWeight: 700 }}>{res.room.label}</div><div style={{ fontSize: 12, color: c.dim }}>{res.stars}/{res.room.cap}★ · {res.nIS} In-Season</div></div>
+                  <div style={{ flex: '1 1 160px', minWidth: 0 }}><div style={{ fontSize: 17, fontWeight: 700 }}>{res.room.done && <span style={{ color: c.green, marginRight: 6 }} title="Compo validée">✓</span>}{res.room.label}</div><div style={{ fontSize: 12, color: c.dim }}>{res.stars}/{res.room.cap}★ · {res.nIS} In-Season</div></div>
                   <div style={{ textAlign: 'right' }}><div style={{ fontSize: 11, color: c.dim, letterSpacing: 1 }}>TOTAL</div><div style={{ fontSize: 28, fontWeight: 800, color: c.cy, textShadow: '0 0 14px rgba(0,255,255,.5)', lineHeight: 1 }}>{res.total.toFixed(1)}</div></div>
+                  {res.room.done ? <button onClick={() => reopen(res.room.id)} style={btn()} title="Rouvre la compo dans Construire pour la modifier">Rouvrir</button> : <button onClick={() => validate(res)} disabled={!!res.issues.length} style={btn()} title="Fige cette compo : ses cartes ne bougent plus">✓ Valider</button>}
                   <button onClick={() => shareTeam(res, i)} style={btn()}>Partager</button>
                 </div>
                 {res.lineup.map(x => <TeamRow key={x.id} x={x} />)}
@@ -491,7 +502,6 @@ export default function GwBuilder() {
           </div>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginTop: 8, paddingTop: 8, borderTop: `1px solid ${c.line}` }}>
             <button onClick={runAuto} disabled={autoBusy || !rooms || !cards.length} title="Crée le maximum de compos viables avec toutes tes cartes, en respectant toutes les règles Sorare" style={{ background: 'linear-gradient(135deg,rgba(0,255,255,.3),rgba(229,185,78,.28))', border: `1px solid ${c.cy}`, color: '#fff', borderRadius: 999, padding: '7px 18px', fontSize: 13.5, fontWeight: 800, cursor: autoBusy ? 'wait' : 'pointer', boxShadow: '0 0 18px rgba(0,255,255,.28)', whiteSpace: 'nowrap', opacity: autoBusy ? 0.7 : 1 }}>{autoBusy ? 'Calcul en cours…' : '⚡ Tout générer automatiquement'}</button>
-            <button onClick={rank} style={pill()}>Classer par chance de perf</button>
             <button onClick={() => setPlanOpen(o => !o)} style={pill(planOpen)}>Générer tout le plan {planOpen ? '▴' : '▾'}</button>
             {acct && saveSt && <span style={{ fontSize: 11, color: saveSt === 'err' ? c.red : c.dim, marginLeft: 6 }}>{saveSt === 'wait' ? 'Sauvegarde…' : saveSt === 'ok' ? 'Compos sauvegardées ✓' : 'Sauvegarde impossible'}</span>}
             <button onClick={() => { if (!clearAsk) { setClearAsk(true); setTimeout(() => setClearAsk(false), 3500); return; } setRooms([]); setPlan({}); setAutoMsg(''); setClearAsk(false); }} title="Supprime toutes les compos pour repartir de zéro" style={{ ...pill(clearAsk), marginLeft: 'auto', color: clearAsk ? c.red : c.dim, borderColor: clearAsk ? c.red : undefined }}>{clearAsk ? 'Confirmer : tout effacer ?' : 'Tout effacer'}</button>
@@ -515,13 +525,22 @@ export default function GwBuilder() {
         {acct === false && <p style={{ margin: '-6px 2px 12px', fontSize: 12, color: c.dim }}>Compos mémorisées sur cet appareil. <a href="/" style={{ color: c.cy }}>Connecte-toi</a> pour les retrouver partout, GW par GW.</p>}
         {rooms && rooms.length === 0 && <div style={{ ...glass, padding: '26px 18px', textAlign: 'center', color: c.dim, fontSize: 14 }}>Aucune compo pour l’instant. Ajoute-en une avec les boutons <b style={{ color: c.cy }}>+</b> ci-dessus, ou lance <b style={{ color: '#fff' }}>⚡ Tout générer automatiquement</b>.</div>}
         {/* Compos dans l'ordre */}
+        {results.some(x => x.room.done) && (
+          <div style={{ ...glass, padding: '9px 12px', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', borderColor: c.green + '55' }}>
+            <span style={{ color: c.green, fontWeight: 800 }}>✓</span>
+            <span style={{ fontSize: 13 }}><b>{results.filter(x => x.room.done).length}</b> compo{results.filter(x => x.room.done).length > 1 ? 's' : ''} validée{results.filter(x => x.room.done).length > 1 ? 's' : ''}, rangée{results.filter(x => x.room.done).length > 1 ? 's' : ''} dans « Mes équipes »</span>
+            <button onClick={() => setView('teams')} style={{ ...btn(), marginLeft: 'auto' }}>Les voir</button>
+          </div>
+        )}
+        {rooms && rooms.length > 0 && rooms.every(x => x.done) && <div style={{ ...glass, padding: '18px', textAlign: 'center', color: c.dim, fontSize: 14, marginBottom: 14 }}>Toutes tes compos sont validées. Ajoute-en une avec les boutons <b style={{ color: c.cy }}>+</b> ou lance <b style={{ color: c.cy }}>⚡ Tout générer</b> pour compléter avec tes cartes restantes.</div>}
         {results.map((res, i) => {
-          const r = res.room; const full = res.lineup.length === 5; const cupT = r.kind === 'cup' ? CUP_TIERS.find(t => r.label.includes('palier ' + t.n)) : null;
+          const r = res.room; if (r.done) return null;
+          const pos = results.slice(0, i).filter(x => !x.room.done).length, firstOpen = results.findIndex(x => !x.room.done), lastOpen = results.length - 1 - [...results].reverse().findIndex(x => !x.room.done); const full = res.lineup.length === 5; const cupT = r.kind === 'cup' ? CUP_TIERS.find(t => r.label.includes('palier ' + t.n)) : null;
           const col = !full ? c.dim : res.issues.length ? c.red : cupT ? (res.total >= cupT.pts ? c.green : c.gold) : c.cy;
           return (
             <section key={r.id} style={{ ...glass, padding: 14, marginBottom: 14, opacity: skipped(res) ? 0.5 : 1, borderColor: res.issues.length && full ? c.red + '66' : c.line }}>
               <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginBottom: 10 }}>
-                <span style={{ width: 30, height: 30, borderRadius: 99, display: 'grid', placeItems: 'center', fontWeight: 800, color: '#001018', background: c.cy, boxShadow: '0 0 14px rgba(0,255,255,.5)', flex: '0 0 auto' }}>{i + 1}</span>
+                <span style={{ width: 30, height: 30, borderRadius: 99, display: 'grid', placeItems: 'center', fontWeight: 800, color: '#001018', background: c.cy, boxShadow: '0 0 14px rgba(0,255,255,.5)', flex: '0 0 auto' }}>{pos + 1}</span>
                 <div style={{ flex: '1 1 200px', minWidth: 0 }}>
                   <div style={{ fontSize: 18, fontWeight: 700 }}>{r.label}</div>
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 5 }}>
@@ -541,8 +560,8 @@ export default function GwBuilder() {
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
-                <button onClick={() => move(i, -1)} disabled={i === 0} style={{ ...btn(), opacity: i === 0 ? .35 : 1 }} aria-label="Monter">↑</button>
-                <button onClick={() => move(i, 1)} disabled={i === results.length - 1} style={{ ...btn(), opacity: i === results.length - 1 ? .35 : 1 }} aria-label="Descendre">↓</button>
+                <button onClick={() => move(i, -1)} disabled={i === firstOpen} style={{ ...btn(), opacity: i === firstOpen ? .35 : 1 }} aria-label="Monter">↑</button>
+                <button onClick={() => move(i, 1)} disabled={i === lastOpen} style={{ ...btn(), opacity: i === lastOpen ? .35 : 1 }} aria-label="Descendre">↓</button>
                 <button onClick={() => patch(r.id, x => ({ ...x, auto: !x.auto }))} style={btn(r.auto)}>{r.auto ? 'Auto' : 'Manuel'}</button>
                 {r.kind === 'cup' && <>
                   <select value={cupT?.n ?? 2} onChange={e => { const t = CUP_TIERS.find(z => z.n === +e.target.value)!; patch(r.id, x => ({ ...x, minIS: t.is, label: `Emirates NBA Cup · palier ${t.n}` })); }} style={inp}>{CUP_TIERS.map(t => <option key={t.n} value={t.n}>Palier {t.n} · {t.pts} pts · {t.is} IS min</option>)}</select>
@@ -552,7 +571,8 @@ export default function GwBuilder() {
                 <button onClick={() => runBuy(r, 1)} style={btn(buy?.id === r.id && buy.n === 1)}>Acheter 1 carte</button>
                 <button onClick={() => runBuy(r, 2)} style={btn(buy?.id === r.id && buy.n === 2)}>Acheter 2 cartes</button>
                 {r.pins.length > 0 && <button onClick={() => patch(r.id, x => ({ ...x, pins: [] }))} style={btn()}>Vider mes choix</button>}
-                <button onClick={() => setRooms(rs => (rs || []).filter(x => x.id !== r.id))} style={{ ...btn(), marginLeft: 'auto', color: c.red }} aria-label="Supprimer la compo">Supprimer</button>
+                <button onClick={() => validate(res)} disabled={!full || !!res.issues.length || skipped(res)} title={full && !res.issues.length ? 'Fige cette compo (ses cartes ne bougent plus) et la range dans Mes équipes' : 'La compo doit être complète et valide'} style={{ ...btn(), marginLeft: 'auto', color: c.green, borderColor: c.green + '77', opacity: !full || res.issues.length || skipped(res) ? .4 : 1 }}>✓ Valider</button>
+                <button onClick={() => setRooms(rs => (rs || []).filter(x => x.id !== r.id))} style={{ ...btn(), color: c.red }} aria-label="Supprimer la compo">Supprimer</button>
               </div>
               {buy?.id === r.id && (
                 <div style={{ margin: '10px 0 12px', padding: 12, borderRadius: 14, border: `1px solid ${c.gold}55`, background: 'radial-gradient(120% 140% at 0% 0%, rgba(229,185,78,.10), rgba(7,11,28,0))' }}>
