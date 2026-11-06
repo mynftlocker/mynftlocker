@@ -145,6 +145,21 @@ export default function GwBuilder() {
   };
   useEffect(() => { if (fxSlug) loadCol(typeof window !== 'undefined' && localStorage.getItem(LSP) || 'memejacquet1998'); }, [fxSlug]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Pourquoi certaines cartes ne sont pas jouables cette GW : detail affiche sous l'indicateur
+  const cardStats = useMemo(() => {
+    const by: Record<string, GP> = {}; playersP.forEach(p => { by[p.slug] = p; });
+    const st = { total: 0, nomatch: 0, inj: 0, engaged: 0, common: 0 };
+    for (const x of rawCards) {
+      const rar = String(x.rarityTyped || '').toLowerCase();
+      if (!['limited', 'rare', 'super_rare', 'unique'].includes(rar)) { st.common++; continue; }
+      st.total++;
+      const p = by[x.anyPlayer?.slug];
+      if (!p || p.games <= 0) { st.nomatch++; continue; }
+      if (noInj && p.inj && p.inj !== 'GTD') { st.inj++; continue; }
+      if (used[x.slug]) st.engaged++;
+    }
+    return st;
+  }, [rawCards, playersP, used, noInj]);
   const cards: Card[] = useMemo(() => {
     const by: Record<string, GP> = {}; playersP.forEach(p => { by[p.slug] = p; });
     const out: Card[] = [];
@@ -338,7 +353,7 @@ export default function GwBuilder() {
         <div style={{ ...glass, padding: '14px 16px', marginBottom: 14, display: 'flex', flexWrap: 'wrap', gap: 14, alignItems: 'center', justifyContent: 'space-between', border: `1px solid rgba(0,255,255,.28)`, background: 'radial-gradient(120% 160% at 0% 0%, rgba(0,255,255,.14), rgba(7,11,28,0) 60%), ' + c.card }}>
           <div style={{ display: 'flex', gap: 22, flexWrap: 'wrap', alignItems: 'center' }}>
             <div><div style={{ fontSize: 12, color: c.dim, letterSpacing: 1 }}>COMPOS PRÊTES</div><div style={{ fontSize: 34, fontWeight: 800, color: c.cy, textShadow: '0 0 18px rgba(0,255,255,.5)', lineHeight: 1.1 }}>{nDone}<span style={{ color: c.dim, fontSize: 18, textShadow: 'none' }}> / {results.length}</span></div></div>
-            <div><div style={{ fontSize: 12, color: c.dim, letterSpacing: 1 }}>CARTES ENGAGÉES</div><div style={{ fontSize: 28, fontWeight: 800, lineHeight: 1.2 }}>{usedCards.size}<span style={{ color: c.dim, fontSize: 18 }}> / {cards.length}</span></div><div style={{ fontSize: 11.5, color: c.dim }}>jouables cette GW · {rawCards.length} en collection</div></div>
+            <div><div style={{ fontSize: 12, color: c.dim, letterSpacing: 1 }}>CARTES ENGAGÉES</div><div style={{ fontSize: 28, fontWeight: 800, lineHeight: 1.2 }}>{usedCards.size}<span style={{ color: c.dim, fontSize: 18 }}> / {cards.length}</span></div><div style={{ fontSize: 11.5, color: c.dim }}>jouables sur {cardStats.total} cartes de jeu · {cardStats.nomatch} sans match · {cardStats.inj} blessées · {cardStats.engaged} déjà alignées</div></div>
             <div><div style={{ fontSize: 12, color: c.dim, letterSpacing: 1 }}>ESSENCE ARENA</div><div style={{ fontSize: 28, fontWeight: 800, lineHeight: 1.2, color: c.gold }}>{essenceIn}<span style={{ color: c.dim, fontSize: 16 }}> Ess.</span></div><div style={{ fontSize: 11.5, color: c.dim }}>{nArena} Arena rentables</div></div>
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
