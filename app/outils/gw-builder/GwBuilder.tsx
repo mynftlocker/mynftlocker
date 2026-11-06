@@ -104,6 +104,7 @@ export default function GwBuilder() {
   const [picker, setPicker] = useState<string | null>(null);
   const [pSort, setPSort] = useState<{ k: string; d: 1 | -1 }>({ k: 'est', d: -1 });
   const [pFree, setPFree] = useState(false);
+  const [pIS, setPIS] = useState<'all' | 'is' | 'cl'>('all');
   const [q, setQ] = useState('');
   const [copied, setCopied] = useState(false);
   const [src, setSrc] = useState<'sorare' | 'mnl'>('mnl');   // source de projection
@@ -637,13 +638,19 @@ export default function GwBuilder() {
               <b style={{ fontSize: 17 }}>{pickerRoom.label} · choisir une carte</b>
               <button onClick={() => setPicker(null)} style={btn()}>✕ Fermer</button>
             </div>
-            <input value={q} onChange={e => setQ(e.target.value)} placeholder="Joueur ou équipe" style={{ ...inp, width: '100%', boxSizing: 'border-box', marginBottom: 8 }} />
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 8 }}>
+              <input value={q} onChange={e => setQ(e.target.value)} placeholder="Joueur ou équipe" style={{ ...inp, flex: '1 1 220px', minWidth: 0, boxSizing: 'border-box' }} />
+              <button onClick={() => setPFree(f => !f)} style={btn(pFree)}>Cartes libres</button>
+              <button onClick={() => setPIS(v => v === 'is' ? 'all' : 'is')} style={btn(pIS === 'is')}>In-Season seulement</button>
+              <button onClick={() => setPIS(v => v === 'cl' ? 'all' : 'cl')} style={btn(pIS === 'cl')}>Classic seulement</button>
+            </div>
             <div style={{ fontSize: 12, color: c.dim, marginBottom: 10, lineHeight: 1.45 }}>Toute ta collection pour cette compo, par joueur : tu vois combien d’exemplaires il te reste et lesquels. Une carte déjà dans une autre compo passe dans celle-ci, l’autre se réorganise. Une compo ne contient qu’une seule rareté : {RARITIES.find(r => r.k === roomRar(pickerRoom)[0])?.l}.</div>
             {(() => {
               type Row = { x: Card; v: number; st: string; ok: boolean; why: string; p: GP; n: number; ids: string[] };
               const m = new Map<string, Row>();
               for (const g of pickerGroups) for (const z of g.list) {
                 if (pFree && z.st !== 'libre' && z.st !== 'ici') continue;
+                if (pIS === 'is' && !z.x.is) continue; if (pIS === 'cl' && z.x.is) continue;
                 const k = [g.p.slug, z.x.rar, z.x.is, Math.round(z.x.pw * 100), z.st, z.ok].join('|'), e = m.get(k);
                 if (e) { e.n++; e.ids.push(z.x.id); } else m.set(k, { ...z, p: g.p, n: 1, ids: [z.x.id] });
               }
@@ -658,7 +665,6 @@ export default function GwBuilder() {
               return (
                 <>
                   <div style={{ display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap', marginBottom: 6 }}>
-                    <label style={{ display: 'flex', gap: 7, alignItems: 'center', fontSize: 13, cursor: 'pointer' }}><input type="checkbox" checked={pFree} onChange={e => setPFree(e.target.checked)} /> Cartes libres seulement</label>
                     <span style={{ fontSize: 12, color: c.dim }}>{rows.length} ligne{rows.length > 1 ? 's' : ''} · clique un titre pour trier · ×N = nombre d’exemplaires identiques</span>
                   </div>
                   <div style={{ overflowX: 'auto' }}>
