@@ -238,8 +238,11 @@ export default function GwBuilder() {
     const entry = r.essence || 0; let roi: number | null = null;
     if (entry > 0 && th.tops?.length && th.rew?.length === 5) {
       const R = th.rew; let ev = 0;
-      for (const tp of th.tops) for (let k = 1; k <= 5; k++) ev += (R[k - 1] - (k < 5 ? R[k] : 0)) * (1 - phi((tp[k - 1] - total) / SIG_TOTAL));
-      roi = ev / th.tops.length / entry - 1;
+      // Rooms aberrantes (5e place < 60 % de la mediane : room sous-remplie ou anormale) ecartees du calcul
+      const f5 = th.tops.map(t => t[4]).sort((a, b) => a - b), med5 = f5[Math.floor(f5.length / 2)];
+      const tt = th.tops.filter(t => t[4] >= med5 * 0.6); const T5 = tt.length ? tt : th.tops;
+      for (const tp of T5) for (let k = 1; k <= 5; k++) ev += (R[k - 1] - (k < 5 ? R[k] : 0)) * (1 - phi((tp[k - 1] - total) / SIG_TOTAL));
+      roi = ev / T5.length / entry - 1;
     }
     return { th, ok: roi != null ? roi >= 0 : pass / Math.max(1, th.list.length) >= 0.5, ratio: roi != null ? roi : total / th.fifth, pass, roi };
   };
