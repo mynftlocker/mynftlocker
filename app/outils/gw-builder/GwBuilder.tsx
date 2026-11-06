@@ -57,14 +57,13 @@ export default function GwBuilder() {
   const [view, setView] = useState<'build' | 'teams'>('build');
   const [plan, setPlan] = useState({ isc: 4, isk: 3, clc: 3, clk: 3, ar: 2 });
   const [shareMsg, setShareMsg] = useState('');
-  const [bonus3, setBonus3] = useState(false);
 
   useEffect(() => { fetch('/api/outils/gw').then(r => r.json()).then(j => j.error ? setErr(j.error) : setGw(j)).catch(e => setErr(String(e))); }, []);
   useEffect(() => { try { const p = localStorage.getItem(LSP); if (p) setPseudo(p); } catch {} }, []);
   const players = useMemo(() => (gw?.players || []) as GP[], [gw]);
   // Projection d'un joueur = son MEILLEUR match de la GW (seul le meilleur score compte, qu'il joue 1, 2 ou 3 matchs).
   // Source "Sorare" : projection Sorare par match. Source "myNFTlocker" : 50 % Sorare + 30 % forme (moy. 10 derniers, ajustee domicile/exterieur et back-to-back)
-  // + 15 % plafond (meilleur des 10) + 5 % L5 (forme du moment). Statut : questionable -10 %, doubtful -15 %. Option : +2 pour 3 matchs.
+  // + 15 % plafond (meilleur des 10) + 5 % L5 (forme du moment). Statut : questionable -10 %, doubtful -15 %. Bonus 3 matchs : +2 d'office.
   const playersP = useMemo(() => players.map(p => {
     const days = new Set(p.opp.map(o => parisDay(o.d)));
     const prev = (d: string) => parisDay(new Date(new Date(d + 'T12:00:00Z').getTime() - 864e5).toISOString());
@@ -76,9 +75,9 @@ export default function GwBuilder() {
     const opp = p.opp.map(o => ({ ...o, pj: blend(o.pj ?? p.proj, o) }));
     const best = opp.length ? Math.max(...opp.map(o => o.pj)) : 0;
     const st = p.inj === 'DOUBT' ? 0.85 : p.inj === 'QUEST' || p.inj === 'GTD' ? 0.9 : 1;
-    const proj = p.games > 0 ? (best + (bonus3 && p.games >= 3 ? 2 : 0)) * st : 0;
+    const proj = p.games > 0 ? (best + (p.games >= 3 ? 2 : 0)) * st : 0;
     return { ...p, opp, proj };
-  }), [players, src, bonus3]);
+  }), [players, src]);
   const nights = useMemo(() => [...new Set(players.flatMap(p => p.opp.map(o => parisDay(o.d))))].sort(), [players]);
   const fxSlug: string = gw?.fixture?.slug || '';
 
@@ -229,7 +228,6 @@ export default function GwBuilder() {
           <span style={{ marginLeft: 'auto', fontSize: 12, color: c.dim }}>Projection :</span>
           <button onClick={() => setSrc('sorare')} style={btn(src === 'sorare')}>Sorare (Rotowire)</button>
           <button onClick={() => setSrc('mnl')} style={btn(src === 'mnl')}>myNFTlocker</button>
-          <label style={{ fontSize: 12, color: c.dim, display: 'flex', gap: 5, alignItems: 'center' }}><input type="checkbox" checked={bonus3} onChange={e => setBonus3(e.target.checked)} /> Bonus 3 matchs (+2)</label>
         </div>
         {shareMsg && <p style={{ color: c.red, fontSize: 13 }}>{shareMsg}</p>}
         {loadMsg && <p style={{ color: c.gold, fontSize: 13 }}>{loadMsg}</p>}
@@ -328,7 +326,7 @@ export default function GwBuilder() {
           </div>
         </div>
         </div>
-        <p style={{ color: c.dim, fontSize: 12, margin: '14px 2px 0', lineHeight: 1.5 }}>Valeur affichée = projection du meilleur match de la GW (de la nuit choisie pour la Cup) × bonus de la carte ; seul le meilleur match de la GW compte (−10 % questionable, −15 % doubtful ; +2 si bonus 3 matchs) ; sans bonus en Arena. Une seule rareté par compo (Limited par défaut), cartes déjà alignées sur Sorare exclues. Règles : 5 joueurs différents, plafond d’étoiles, max 4 joueurs d’une même équipe, minimum In-Season selon la compo. Tu envoies toi-même les compos sur Sorare.</p>
+        <p style={{ color: c.dim, fontSize: 12, margin: '14px 2px 0', lineHeight: 1.5 }}>Valeur affichée = projection du meilleur match de la GW (de la nuit choisie pour la Cup) × bonus de la carte ; seul le meilleur match de la GW compte (−10 % questionable, −15 % doubtful ). Bonus 3 matchs : un joueur qui joue 3 matchs reçoit +2 points, car il a trois chances de sortir son meilleur score ; sans bonus en Arena. Une seule rareté par compo (Limited par défaut), cartes déjà alignées sur Sorare exclues. Règles : 5 joueurs différents, plafond d’étoiles, max 4 joueurs d’une même équipe, minimum In-Season selon la compo. Tu envoies toi-même les compos sur Sorare.</p>
       </main>
 
       {/* Choix d'une carte : stock complet par joueur */}
