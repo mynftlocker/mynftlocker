@@ -652,7 +652,7 @@ export default function GwBuilder() {
               type Row = { x: Card; v: number; st: string; ok: boolean; why: string; p: GP; n: number; ids: string[] };
               const m = new Map<string, Row>();
               for (const g of pickerGroups) for (const z of g.list) {
-                if (pFree && z.st !== 'libre' && z.st !== 'ici') continue;
+                if (pFree && (!z.ok || (z.st !== 'libre' && z.st !== 'ici'))) continue; // cartes libres = non utilisees ailleurs ET choisissables ici
                 if (pIS === 'is' && !z.x.is) continue; if (pIS === 'cl' && z.x.is) continue;
                 const k = [g.p.slug, z.x.rar, z.x.is, Math.round(z.x.pw * 100), z.st, z.ok].join('|'), e = m.get(k);
                 if (e) { e.n++; e.ids.push(z.x.id); } else m.set(k, { ...z, p: g.p, n: 1, ids: [z.x.id] });
@@ -694,7 +694,7 @@ export default function GwBuilder() {
                             <span style={{ minWidth: 0 }}>
                               <b>{p.name}</b>{p.inj && (() => { const k = String(p.inj).toUpperCase(), lab = k.startsWith('PROB') ? 'Probable' : k === 'QUEST' ? 'Questionable' : k === 'DOUBT' ? 'Doubtful' : k === 'GTD' ? 'Incertain' : k === 'OUT' ? 'Out' : p.inj, col = k.startsWith('PROB') ? c.green : k === 'QUEST' || k === 'GTD' ? c.gold : k === 'DOUBT' ? '#ff9f43' : c.red; return <span title={lab + ' : ' + (k.startsWith('PROB') ? 'devrait jouer' : k === 'QUEST' ? '50 % de chances de jouer, projection −10 %' : k === 'DOUBT' ? 'peu de chances de jouer, projection −15 %' : k === 'GTD' ? 'décision le jour du match, projection −10 %' : 'absent')} style={{ marginLeft: 7, fontSize: 10.5, padding: '1px 7px', borderRadius: 99, color: col, border: `1px solid ${col}77`, whiteSpace: 'nowrap' }}>{lab}</span>; })()}
                               <span style={{ display: 'flex', flexWrap: 'wrap', gap: '2px 8px', marginTop: 2 }}>
-                                {p.opp.map((o, i) => <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 11, color: o.pj === bestG && p.opp.length > 1 ? c.gold : c.dim, whiteSpace: 'nowrap' }}><span>{o.h ? 'vs' : '@'}</span><Logo ab={abOf(o.o)} s={16} /><span>{nick(o.o)}</span><span style={{ opacity: .7 }}>{dayLab(parisDay(o.d)).split(' ').slice(0, 2).join(' ')}</span></span>)}
+                                {p.opp.map((o, i) => <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 11, color: c.dim, whiteSpace: 'nowrap' }}><span>{o.h ? 'vs' : '@'}</span>{o.pj != null && <b title={'Projection de ce match' + (p.l10 != null ? ' (vert : au-dessus de sa forme L10, rouge : en dessous)' : '')} style={{ fontSize: 12, color: p.l10 == null ? c.gold : o.pj > p.l10 + 1 ? c.green : o.pj < p.l10 - 1 ? c.red : c.gold }}>{o.pj.toFixed(0)}</b>}<Logo ab={abOf(o.o)} s={16} /><span>{nick(o.o)}</span><span style={{ opacity: .7 }}>{dayLab(parisDay(o.d)).split(' ').slice(0, 2).join(' ')}</span></span>)}
                                 {!p.opp.length && <span style={{ fontSize: 11, color: c.dim }}>pas de match</span>}
                               </span>
                             </span>
