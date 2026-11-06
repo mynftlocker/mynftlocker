@@ -336,7 +336,7 @@ export default function GwBuilder() {
               {buy?.id === r.id && (
                 <div style={{ margin: '10px 0 12px', padding: 12, borderRadius: 14, border: `1px solid ${c.gold}55`, background: 'radial-gradient(120% 140% at 0% 0%, rgba(229,185,78,.10), rgba(7,11,28,0))' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}><b style={{ color: c.gold }}>Acheter {buy.n} carte{buy.n > 1 ? 's' : ''} · meilleurs gains pour cette compo</b><button onClick={() => setBuy(null)} style={btn()}>✕</button></div>
-                  <div style={{ fontSize: 12, color: c.dim, marginBottom: 6 }}>Annonces à prix fixe des managers (achat immédiat) uniquement : les enchères sont exclues, leur prix n’est pas fiable avant la fin.</div>
+                  <div style={{ fontSize: 12, color: c.dim, marginBottom: 6 }}>Marché de revente des managers d’abord (seule source pour les Classic), puis achat immédiat pour les In-Season. Les enchères sont exclues : leur prix n’est pas fiable avant la fin.</div>
                   {buy.busy && <div style={{ color: c.dim, fontSize: 13 }}>Recherche sur le marché Sorare…</div>}
                   {buy.msg && <div style={{ color: c.red, fontSize: 13 }}>{buy.msg}</div>}
                   {buy.res.map((o, k) => (
