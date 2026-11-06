@@ -303,7 +303,7 @@ export default function GwBuilder() {
       <style>{'.gwb-row{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}.gwb-cell{container-type:inline-size}.gwb-pick{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}@media(max-width:700px){.gwb-pick{grid-template-columns:repeat(3,minmax(0,1fr))}}@media(max-width:700px){.gwb-row{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}}'}</style>
       <main style={{ position: 'relative', zIndex: 1, maxWidth: 1100, margin: '0 auto', padding: '22px 14px 80px', fontFamily: 'system-ui,sans-serif' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', marginBottom: 10 }}>
-          <a href="/" title="Retour à la galerie myNFTlocker" style={{ flex: '0 0 auto' }}>{/* eslint-disable-next-line @next/next/no-img-element */}<img src="/logo-pack.png" alt="myNFTlocker" style={{ height: 56, width: 'auto', display: 'block', filter: 'drop-shadow(0 6px 18px rgba(0,255,255,.25))' }} /></a>
+          <a href="/" title="Retour à la galerie myNFTlocker" style={{ flex: '0 0 auto' }}>{/* eslint-disable-next-line @next/next/no-img-element */}<img src="/logo-pack.png" alt="myNFTlocker" style={{ height: 80, width: 'auto', display: 'block', filter: 'drop-shadow(0 6px 18px rgba(0,255,255,.25))' }} /></a>
           <a href="/" style={{ ...pillLink }}>← Vestiaire</a>
           <a href="/?vue=galerie" style={{ ...pillLink }}>Galerie</a>
         </div>
