@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ownerOnly } from '../../../../lib/owner';
+import { toolUserOnly } from '../../../../lib/owner';
 
 // Marche Sorare NBA : carte la moins chere en vente (euros) par joueur, en version In-Season et en version Classic, pour une rarete donnee.
 // GET ?slugs=a,b,c&rar=limited  ->  { offers: { slug: { is?: Offer, cl?: Offer } } }. Reserve au proprietaire (cle API Sorare).
@@ -7,7 +7,7 @@ export const maxDuration = 30;
 type Offer = { eur: number; pic: string | null; year: number; power: number; card: string };
 const q = (slug: string, n: number) => `{ tokens{ liveSingleSaleOffers(sport:NBA, first:${n}, playerSlug:${JSON.stringify(slug)}){ nodes{ sender{ __typename } receiverSide{ amounts{ eurCents } } senderSide{ anyCards{ slug rarityTyped inSeasonEligible seasonYear pictureUrl ... on NBACard{ power } } } } } } }`;
 export async function GET(req: NextRequest) {
-  const deny = await ownerOnly(req); if (deny) return deny;
+  const deny = await toolUserOnly(req); if (deny) return deny;
   const sp = req.nextUrl.searchParams;
   const slugs = (sp.get('slugs') || '').split(',').filter(s => /^[a-z0-9-]{3,80}$/.test(s)).slice(0, 20);
   const rar = ['limited', 'rare', 'super_rare', 'unique'].includes(sp.get('rar') || '') ? sp.get('rar')! : 'limited';

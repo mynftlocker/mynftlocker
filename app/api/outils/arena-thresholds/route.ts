@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ownerOnly } from '../../../../lib/owner';
+import { toolUserOnly } from '../../../../lib/owner';
 import { redis } from '../../../../lib/redis';
 
 // Seuils reels des Arena Rooms NBA (API publique Sorare, GW deja terminees) par type de room et par rarete : score de la 5e place (limite de rentabilite),
@@ -26,7 +26,7 @@ function line(xs: number[], ys: number[], bmax = 4) {
 }
 
 export async function GET(req: NextRequest) {
-  const deny = await ownerOnly(req); if (deny) return deny;
+  const deny = await toolUserOnly(req); if (deny) return deny;
   const KEY = 'gwb:arena:v3';
   if (!req.nextUrl.searchParams.get('fresh')) { const hit = await redis.get<any>(KEY).catch(() => null); if (hit) return NextResponse.json(hit); }
   try {
