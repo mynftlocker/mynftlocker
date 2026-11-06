@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { GP } from '../../../lib/gwLineup';
 import { PRESETS, ARENAS, RARITIES, roomRar, rankRooms, ageOk, CUP_TIERS, allocate, cardValue, toCand, type Card, type Room, type RoomKind } from '../../../lib/gwAuto';
+import { baseProj, gameAdj, statusMul } from '../../../lib/projBase';
 import StarBg from '../../components/StarBg';
 import { Slab } from '../gw/Slab';
 
@@ -70,13 +71,12 @@ export default function GwBuilder() {
     const days = new Set(p.opp.map(o => parisDay(o.d)));
     const prev = (d: string) => parisDay(new Date(new Date(d + 'T12:00:00Z').getTime() - 864e5).toISOString());
     const blend = (pj: number, o: { d: string; h: boolean }) => {
-      if (pj <= 0) return 0; if (src !== 'mnl' || p.l10 == null) return pj;
-      const b2b = days.has(prev(parisDay(o.d))), sp = splits[p.slug], adj = sp ? (o.h ? sp.home : sp.away) * (b2b ? sp.b2b : 1) : (o.h ? 1.02 : 0.98) * (b2b ? 0.96 : 1);
-      return 0.5 * pj + 0.3 * p.l10 * adj + 0.15 * (p.ceil ?? p.l10) + 0.05 * (p.l5 ?? p.l10);
+      if (src !== 'mnl') return pj;
+      return baseProj({ pj, l10: p.l10, l5: p.l5, ceil: p.ceil, adj: gameAdj(splits[p.slug], o.h, days.has(prev(parisDay(o.d)))) });
     };
     const opp = p.opp.map(o => ({ ...o, pj: blend(o.pj ?? p.proj, o) }));
     const best = opp.length ? Math.max(...opp.map(o => o.pj)) : 0;
-    const st = p.inj === 'DOUBT' ? 0.85 : p.inj === 'QUEST' || p.inj === 'GTD' ? 0.9 : 1;
+    const st = statusMul(p.inj);
     const proj = p.games > 0 ? (best + (p.games >= 3 ? 2 : 0)) * st : 0;
     return { ...p, opp, proj };
   }), [players, src, splits]);
