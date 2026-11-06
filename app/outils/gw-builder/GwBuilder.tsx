@@ -19,8 +19,9 @@ let seq = 0; const rid = () => 'r' + Date.now().toString(36) + (seq++);
 
 const makeRoom = (kind: RoomKind, extra: Partial<Room> = {}): Room => {
   const p = PRESETS.find(x => x.kind === kind)!;
-  return { id: rid(), kind, label: p.label, cap: p.cap, minIS: p.minIS, bonus: p.bonus, perTeam: 4, pins: [], auto: true, ...extra };
+  return { id: rid(), kind, label: p.label, cap: p.cap, minIS: p.minIS, bonus: p.bonus, perTeam: 4, pins: [], auto: false, ...extra };
 };
+const makeAuto = (kind: RoomKind, extra: Partial<Room> = {}): Room => makeRoom(kind, { auto: true, ...extra });
 // Ordre par defaut : celui de ta methode (IS Champion 1, Cup, IS Contender 1, IS Champion 2, puis les Classic)
 const defaultRooms = (night: string): Room[] => [
   makeRoom('is-champ', { label: 'In-Season Champion 1' }),
@@ -101,6 +102,8 @@ export default function GwBuilder() {
   const [noInj, setNoInj] = useState(true);
   const [rooms, setRooms] = useState<Room[] | null>(null);
   const [picker, setPicker] = useState<string | null>(null);
+  const [pSort, setPSort] = useState<{ k: string; d: 1 | -1 }>({ k: 'est', d: -1 });
+  const [pFree, setPFree] = useState(false);
   const [q, setQ] = useState('');
   const [copied, setCopied] = useState(false);
   const [src, setSrc] = useState<'sorare' | 'mnl'>('mnl');   // source de projection
@@ -252,11 +255,11 @@ export default function GwBuilder() {
     if (view !== 'best' || !cards.length) return [];
     const base: { key: string; title: string; room: Room }[] = [];
     const R = [bestRar];
-    base.push({ key: 'isc', title: 'In-Season Champion', room: makeRoom('is-champ', { rar: R }) }, { key: 'isk', title: 'In-Season Contender', room: makeRoom('is-cont', { rar: R }) },
-      { key: 'clc', title: 'Classic Champion', room: makeRoom('cl-champ', { rar: R }) }, { key: 'clk', title: 'Classic Contender', room: makeRoom('cl-cont', { rar: R }) });
-    for (const a of ARENAS) base.push({ key: 'ar' + a.k, title: a.label, room: makeRoom('arena', { label: a.label, rar: R, cap: a.cap, essence: a.essence, arena: a.k, minAge: 'minAge' in a ? a.minAge : undefined, maxAge: 'maxAge' in a ? a.maxAge : undefined }) });
+    base.push({ key: 'isc', title: 'In-Season Champion', room: makeAuto('is-champ', { rar: R }) }, { key: 'isk', title: 'In-Season Contender', room: makeAuto('is-cont', { rar: R }) },
+      { key: 'clc', title: 'Classic Champion', room: makeAuto('cl-champ', { rar: R }) }, { key: 'clk', title: 'Classic Contender', room: makeAuto('cl-cont', { rar: R }) });
+    for (const a of ARENAS) base.push({ key: 'ar' + a.k, title: a.label, room: makeAuto('arena', { label: a.label, rar: R, cap: a.cap, essence: a.essence, arena: a.k, minAge: 'minAge' in a ? a.minAge : undefined, maxAge: 'maxAge' in a ? a.maxAge : undefined }) });
     const t = CUP_TIERS.find(z => z.n === bestTier)!;
-    for (const n of bestNights) if (cup[n] && Object.keys(cup[n]).length) base.push({ key: 'cup' + n, title: `Emirates NBA Cup · ${dayLab(n)}`, room: makeRoom('cup', { label: `Emirates NBA Cup · palier ${t.n}`, minIS: t.is, night: n, rar: R }) });
+    for (const n of bestNights) if (cup[n] && Object.keys(cup[n]).length) base.push({ key: 'cup' + n, title: `Emirates NBA Cup · ${dayLab(n)}`, room: makeAuto('cup', { label: `Emirates NBA Cup · palier ${t.n}`, minIS: t.is, night: n, rar: R }) });
     return base.map(b => {
       const rr = roomRar(b.room);
       const free = cardsFor(cards, b.room, cup).filter(x => rr.includes(x.rar || 'limited') && ageOk(x.p, b.room)).map(x => toCand(x, b.room));
@@ -286,10 +289,10 @@ export default function GwBuilder() {
     for (const ra of RARITIES.slice(0, 3)) {
       const nm = ra.k === 'limited' ? '' : ` ${ra.l}`, g = (k: string) => plan[`${k}|${ra.k}`] || 0, rar = [ra.k];
       let a = g('isc'), b = g('isk'), n1 = nd('is-champ', ra.k), n2 = nd('is-cont', ra.k);
-      while (a > 0 || b > 0) { if (a > 0) { out.push(makeRoom('is-champ', { label: `In-Season Champion${nm} ${++n1}`, rar, minProj: mp('isc') })); a--; } if (b > 0) { out.push(makeRoom('is-cont', { label: `In-Season Contender${nm} ${++n2}`, rar, minProj: mp('isk') })); b--; } }
+      while (a > 0 || b > 0) { if (a > 0) { out.push(makeAuto('is-champ', { label: `In-Season Champion${nm} ${++n1}`, rar, minProj: mp('isc') })); a--; } if (b > 0) { out.push(makeAuto('is-cont', { label: `In-Season Contender${nm} ${++n2}`, rar, minProj: mp('isk') })); b--; } }
       let c1 = Math.max(0, Math.min(MAXCL, g('clc') + nd('cl-champ', ra.k)) - nd('cl-champ', ra.k)), c2 = Math.max(0, Math.min(MAXCL, g('clk') + nd('cl-cont', ra.k)) - nd('cl-cont', ra.k)), m1 = nd('cl-champ', ra.k), m2 = nd('cl-cont', ra.k); // Classic : 3 max par type et par rareté
-      while (c1 > 0 || c2 > 0) { if (c1 > 0) { out.push(makeRoom('cl-champ', { label: `Classic Champion${nm} ${++m1}`, rar, minProj: mp('clc') })); c1--; } if (c2 > 0) { out.push(makeRoom('cl-cont', { label: `Classic Contender${nm} ${++m2}`, rar, minProj: mp('clk') })); c2--; } }
-      for (const a of ARENAS) for (let i = 1; i <= g('ar-' + a.k); i++) out.push(makeRoom('arena', { label: `${a.label}${nm} ${i + nd('arena', ra.k, a.k)}`, cap: a.cap, essence: a.essence, arena: a.k, minAge: 'minAge' in a ? a.minAge : undefined, maxAge: 'maxAge' in a ? a.maxAge : undefined, rar, minProj: mp('ar-' + a.k) }));
+      while (c1 > 0 || c2 > 0) { if (c1 > 0) { out.push(makeAuto('cl-champ', { label: `Classic Champion${nm} ${++m1}`, rar, minProj: mp('clc') })); c1--; } if (c2 > 0) { out.push(makeAuto('cl-cont', { label: `Classic Contender${nm} ${++m2}`, rar, minProj: mp('clk') })); c2--; } }
+      for (const a of ARENAS) for (let i = 1; i <= g('ar-' + a.k); i++) out.push(makeAuto('arena', { label: `${a.label}${nm} ${i + nd('arena', ra.k, a.k)}`, cap: a.cap, essence: a.essence, arena: a.k, minAge: 'minAge' in a ? a.minAge : undefined, maxAge: 'maxAge' in a ? a.maxAge : undefined, rar, minProj: mp('ar-' + a.k) }));
     }
     return [...done, ...out.slice(0, 1), ...keep, ...out.slice(1)];
   });
@@ -300,7 +303,7 @@ export default function GwBuilder() {
       try {
         const done = rooms.filter(r => r.done), keepCup = rooms.filter(r => r.kind === 'cup' && !r.done);
         const minProj: Record<string, number> = {}; for (const k of ['isc', 'isk', 'clc', 'clk', ...ARENAS.map(a => 'ar-' + a.k)]) minProj[k] = plan['min|' + k] || 0;
-        const o = autoAll({ cards, players: playersP, cup, keepCup, done, minProj, budget: plan.bud || 0, mk: (k, e) => makeRoom(k, e), arena: (r, t) => { const q = rent(r, t); return q && q.th ? { ok: q.ok, ratio: q.ratio } : null; } });
+        const o = autoAll({ cards, players: playersP, cup, keepCup, done, minProj, budget: plan.bud || 0, mk: (k, e) => makeAuto(k, e), arena: (r, t) => { const q = rent(r, t); return q && q.th ? { ok: q.ok, ratio: q.ratio } : null; } });
         const all = [...done, ...o.rooms];
         setRooms(all);
         const n = (f: (r: Room) => boolean) => all.filter(f).length;
@@ -404,7 +407,7 @@ export default function GwBuilder() {
       const g = by.get(x.p.slug) || { p: x.p, list: [] }; by.set(x.p.slug, g);
       g.list.push({ x, v, st: here ? 'ici' : w >= 0 ? `en compo ${w + 1}` : 'libre', ok: !why, why });
     }
-    return [...by.values()].map(g => ({ ...g, best: Math.max(...g.list.map(z => z.v)) })).sort((a, b) => b.best - a.best).slice(0, 40);
+    return [...by.values()].map(g => ({ ...g, best: Math.max(...g.list.map(z => z.v)) })).sort((a, b) => b.best - a.best);
   }, [pickerRoom, pickerRes, cards, results, rooms, picker, q, cup]);
 
   return (
@@ -570,7 +573,7 @@ export default function GwBuilder() {
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
                 <button onClick={() => move(i, -1)} disabled={i === firstOpen} style={{ ...btn(), opacity: i === firstOpen ? .35 : 1 }} aria-label="Monter">↑</button>
                 <button onClick={() => move(i, 1)} disabled={i === lastOpen} style={{ ...btn(), opacity: i === lastOpen ? .35 : 1 }} aria-label="Descendre">↓</button>
-                <button onClick={() => patch(r.id, x => ({ ...x, auto: !x.auto }))} style={btn(r.auto)}>{r.auto ? 'Auto' : 'Manuel'}</button>
+                <button onClick={() => patch(r.id, x => ({ ...x, auto: false, pins: res.lineup.map(l => l.id) }))} title="Complète cette compo avec les meilleures cartes possibles (une seule fois : tu peux ensuite tout modifier à la main)" style={btn()}>⚡ Compléter en auto</button>
                 {r.kind === 'cup' && <>
                   <select value={cupT?.n ?? 2} onChange={e => { const t = CUP_TIERS.find(z => z.n === +e.target.value)!; patch(r.id, x => ({ ...x, minIS: t.is, label: `Emirates NBA Cup · palier ${t.n}` })); }} style={inp}>{CUP_TIERS.map(t => <option key={t.n} value={t.n}>Palier {t.n} · {t.pts} pts · {t.is} IS min</option>)}</select>
                   <select value={r.night} onChange={e => patch(r.id, x => ({ ...x, night: e.target.value }))} style={inp}>{[...new Set([...nights, ...Array.from({ length: 10 }, (_, i) => parisDay(new Date(Date.now() + i * 864e5).toISOString()))])].sort().filter(n => n >= parisDay(new Date().toISOString()) || n === r.night).map(n => <option key={n} value={n}>{dayLab(n)}</option>)}</select>
@@ -636,33 +639,57 @@ export default function GwBuilder() {
             </div>
             <input value={q} onChange={e => setQ(e.target.value)} placeholder="Joueur ou équipe" style={{ ...inp, width: '100%', boxSizing: 'border-box', marginBottom: 8 }} />
             <div style={{ fontSize: 12, color: c.dim, marginBottom: 10, lineHeight: 1.45 }}>Toute ta collection pour cette compo, par joueur : tu vois combien d’exemplaires il te reste et lesquels. Une carte déjà dans une autre compo passe dans celle-ci, l’autre se réorganise. Une compo ne contient qu’une seule rareté : {RARITIES.find(r => r.k === roomRar(pickerRoom)[0])?.l}.</div>
-            {pickerGroups.map(g => {
-              const free = g.list.filter(z => z.st === 'libre').length;
+            {(() => {
+              const rows = pickerGroups.flatMap(g => g.list.map(z => ({ ...z, p: g.p })).filter(z => !pFree || z.st === 'libre' || z.st === 'ici'));
+              const val = (z: (typeof rows)[number]): number => { const p = z.p; switch (pSort.k) { case 'name': return 0; case 'stars': return p.stars; case 'bonus': return z.x.pw; case 'l5': return p.l5 ?? -1; case 'l10': return p.l10 ?? -1; case 'max': return p.ceil ?? -1; case 'proj': return p.proj; case 'eff': return z.v / Math.max(p.stars, 0.5); default: return z.v; } };
+              rows.sort((a, b) => pSort.k === 'name' ? pSort.d * a.p.name.localeCompare(b.p.name) : pSort.d * (val(a) - val(b)));
+              const sb = (k: string) => () => setPSort(o => ({ k, d: o.k === k ? (-o.d as 1 | -1) : (k === 'name' ? 1 : -1) }));
+              const ar = (k: string) => pSort.k === k ? (pSort.d < 0 ? ' ▼' : ' ▲') : '';
+              const GRID = 'minmax(150px,1.6fr) 38px 120px 92px 40px 40px 52px 48px 58px 50px';
+              const H: React.CSSProperties = { cursor: 'pointer', color: c.dim, fontSize: 11, letterSpacing: .3 };
               return (
-                <div key={g.p.slug} style={{ borderTop: `1px solid ${c.line}`, padding: '12px 0' }}>
-                  <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: 8 }}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 700, fontSize: 16 }}>{g.p.name}{g.p.inj && <span style={{ marginLeft: 8, fontSize: 11, padding: '2px 8px', borderRadius: 99, color: g.p.inj === 'GTD' ? c.gold : c.red, border: `1px solid ${g.p.inj === 'GTD' ? c.gold : c.red}66` }}>{g.p.inj}</span>}</div>
-                      <div style={{ fontSize: 12.5, color: c.dim }}>{g.p.teamName} · {g.p.stars}★ · {g.list.length} carte{g.list.length > 1 ? 's' : ''} · {free} libre{free > 1 ? 's' : ''}{g.p.age ? ` · ${g.p.age} ans` : ''}</div>
-                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
-                        {g.p.opp.map((o, i) => { const bestG = o.pj === Math.max(...g.p.opp.map(z => z.pj ?? 0)); return <span key={i} style={{ fontSize: 11.5, padding: '3px 8px', borderRadius: 8, border: `1px solid ${bestG ? c.gold + '99' : c.line}`, color: bestG ? c.gold : c.dim, background: bestG ? 'rgba(229,185,78,.1)' : 'transparent' }}>{dayLab(parisDay(o.d))} · {o.h ? 'vs' : '@'} {o.o}{o.pj != null ? ` · ${o.pj.toFixed(1)}` : ''}</span>; })}
+                <>
+                  <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 13, marginBottom: 8, cursor: 'pointer' }}><input type="checkbox" checked={pFree} onChange={e => setPFree(e.target.checked)} /> Seulement les cartes libres</label>
+                  <div style={{ overflowX: 'auto' }}>
+                    <div style={{ minWidth: 700 }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: GRID, gap: 6, padding: '6px 4px', borderBottom: `1px solid ${c.line}`, position: 'sticky', top: 0, background: 'rgba(8,12,28,.96)', zIndex: 2 }}>
+                        <span style={H} onClick={sb('name')}>Joueur{ar('name')}</span>
+                        <span style={H} onClick={sb('stars')} title="Étoiles de la carte">★{ar('stars')}</span>
+                        <span style={H} onClick={sb('bonus')} title="Rareté, type de carte et bonus">Carte · bonus{ar('bonus')}</span>
+                        <span style={H}>Statut</span>
+                        <span style={H} onClick={sb('l5')} title="Moyenne des 5 derniers matchs joués">L5{ar('l5')}</span>
+                        <span style={H} onClick={sb('l10')} title="Moyenne des 10 derniers matchs joués">L10{ar('l10')}</span>
+                        <span style={H} onClick={sb('max')} title="Meilleur score sur les 10 derniers matchs">Plafond{ar('max')}</span>
+                        <span style={{ ...H, color: c.gold }} onClick={sb('proj')} title="Projection Sorare (Rotowire), meilleur match de la GW">Sorare{ar('proj')}</span>
+                        <span style={{ ...H, color: c.cy }} onClick={sb('est')} title="Estimation = projection × bonus de la carte (meilleur match de la GW)">Estim.{ar('est')}</span>
+                        <span style={H} onClick={sb('eff')} title="Estimation par étoile">Pts/★{ar('eff')}</span>
                       </div>
+                      {rows.slice(0, 150).map(z => {
+                        const p = z.p, bn = Math.round((z.x.pw - 1) * 100);
+                        return (
+                          <button key={z.x.id} disabled={!z.ok} onClick={() => { patch(pickerRoom.id, r => ({ ...r, pins: [...r.pins.filter(i => i !== z.x.id), z.x.id].slice(0, 5) })); setPicker(null); }} style={{ display: 'grid', gridTemplateColumns: GRID, gap: 6, alignItems: 'center', width: '100%', textAlign: 'left', background: z.st === 'ici' ? 'rgba(229,185,78,.1)' : 'transparent', border: 0, borderTop: `1px solid ${c.line}`, padding: '7px 4px', color: '#fff', fontSize: 13, cursor: z.ok ? 'pointer' : 'not-allowed', opacity: z.ok ? 1 : 0.45 }}>
+                            <span style={{ minWidth: 0 }}>
+                              <b style={{ fontSize: 14 }}>{p.name}</b>{p.inj && <span style={{ marginLeft: 6, fontSize: 10.5, color: p.inj === 'GTD' ? c.gold : c.red }}>{p.inj}</span>}
+                              <span style={{ display: 'block', fontSize: 11.5, color: c.dim }}>{p.teamName} · {p.games} match{p.games > 1 ? 's' : ''}{p.age ? ` · ${p.age} ans` : ''}</span>
+                            </span>
+                            <span>{p.stars}</span>
+                            <span style={{ fontSize: 12 }}>{RARITIES.find(r => r.k === z.x.rar)?.l ?? 'Limited'}<span style={{ display: 'block', color: z.x.is ? '#c084fc' : c.dim }}>{z.x.is ? '🟣 In-Season' : 'Classic'} <b style={{ color: bn > 0 ? c.green : c.dim }}>+{bn} %</b></span></span>
+                            <span style={{ fontSize: 11.5, color: z.why ? c.red : z.st === 'libre' ? c.green : c.gold, lineHeight: 1.25 }}>{z.why || (z.st === 'libre' ? 'Libre' : z.st === 'ici' ? 'Dans cette compo' : 'Utilisée ' + z.st)}</span>
+                            <span>{p.l5 == null ? '–' : p.l5.toFixed(0)}</span>
+                            <span>{p.l10 == null ? '–' : p.l10.toFixed(0)}</span>
+                            <span>{p.ceil == null ? '–' : p.ceil.toFixed(0)}</span>
+                            <span style={{ color: c.gold }}>{p.proj.toFixed(0)}</span>
+                            <b style={{ color: c.cy, fontSize: 15 }}>{z.v.toFixed(1)}</b>
+                            <span style={{ color: c.dim }}>{(z.v / Math.max(p.stars, 0.5)).toFixed(1)}</span>
+                          </button>
+                        );
+                      })}
                     </div>
-                    <div style={{ textAlign: 'right' }}><div style={{ fontSize: 10.5, color: c.dim, letterSpacing: 1 }}>MEILLEUR MATCH</div><div style={{ fontWeight: 800, fontSize: 24, color: c.cy, lineHeight: 1.1 }}>{g.best.toFixed(1)}</div></div>
                   </div>
-                  <div className="gwb-pick">
-                    {g.list.sort((a, b) => b.v - a.v).map(z => (
-                      <button key={z.x.id} disabled={!z.ok} onClick={() => { patch(pickerRoom.id, r => ({ ...r, pins: [...r.pins.filter(i => i !== z.x.id), z.x.id].slice(0, 5) })); setPicker(null); }} style={{ background: 'transparent', border: `1px solid ${z.st === 'ici' ? c.gold : c.line}`, borderRadius: 10, padding: 5, cursor: z.ok ? 'pointer' : 'not-allowed', opacity: z.ok ? 1 : 0.42, color: '#fff', textAlign: 'center', containerType: 'inline-size' }}>
-                        <Slab c={toCand(z.x, pickerRoom)} u={n => `${n}cqw`} art={z.x.pic} />
-                        <div style={{ fontSize: 11, marginTop: 4, color: z.why ? c.red : z.st === 'libre' ? c.green : c.gold, lineHeight: 1.25 }}>{z.why || (z.st === 'libre' ? 'Libre' : z.st === 'ici' ? 'Dans cette compo' : 'Utilisée ' + z.st)}</div>
-                        <div style={{ fontSize: 11, color: c.dim }}>{RARITIES.find(r => r.k === z.x.rar)?.l ?? ''}{z.x.is ? ' · IS' : ' · Classic'}{z.x.pw > 1 ? ` · +${Math.round((z.x.pw - 1) * 100)} %` : ''}</div>
-                        <div style={{ fontWeight: 800, color: c.cy, fontSize: 15 }}>{z.v.toFixed(1)}</div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                  {rows.length > 150 && <div style={{ fontSize: 12, color: c.dim, padding: 6 }}>{rows.length - 150} autres : affine avec la recherche.</div>}
+                </>
               );
-            })}
+            })()}
             {!pickerGroups.length && <p style={{ color: c.dim, fontSize: 13 }}>Aucune carte disponible pour cette compo.</p>}
           </div>
         </div>
