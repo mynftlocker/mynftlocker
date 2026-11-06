@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import type { GP } from '../../../lib/gwLineup';
 import { PRESETS, ARENAS, RARITIES, roomRar, rankRooms, cardsFor, ageOk, solve, type CupMap, CUP_TIERS, allocate, cardValue, toCand, type Card, type Room, type RoomKind } from '../../../lib/gwAuto';
 import { baseProj, gameAdj, statusMul } from '../../../lib/projBase';
@@ -44,6 +44,7 @@ const Chip = ({ t, ok = true, warn = false }: { t: string; ok?: boolean; warn?: 
 export default function GwBuilder() {
   const [gw, setGw] = useState<any>(null);
   const [err, setErr] = useState('');
+  const [planOpen, setPlanOpen] = useState(false);
   const [pseudo, setPseudo] = useState('memejacquet1998');
   const [rawCards, setRawCards] = useState<any[]>([]);
   const [used, setUsed] = useState<Record<string, string[]>>({});
@@ -237,6 +238,8 @@ export default function GwBuilder() {
 
   const glass: React.CSSProperties = { background: `linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.01)), ${c.card}`, border: `1px solid ${c.line}`, borderRadius: 18, backdropFilter: 'blur(8px)' };
   const btn = (on = false): React.CSSProperties => ({ background: on ? 'rgba(0,255,255,.14)' : 'rgba(255,255,255,.06)', border: `1px solid ${on ? c.cy : c.line}`, color: on ? c.cy : '#fff', borderRadius: 10, padding: '7px 12px', fontSize: 13, cursor: 'pointer', whiteSpace: 'nowrap' });
+  const pill = (on = false): React.CSSProperties => ({ background: on ? 'rgba(0,255,255,.12)' : 'rgba(255,255,255,.04)', border: `1px solid ${on ? c.cy + '99' : c.line}`, color: on ? c.cy : 'rgba(255,255,255,.86)', borderRadius: 999, padding: '4px 11px', fontSize: 12, cursor: 'pointer', whiteSpace: 'nowrap' });
+  const lab: React.CSSProperties = { fontSize: 10.5, letterSpacing: 1.2, color: c.dim, textTransform: 'uppercase', marginRight: 2 };
   const inp: React.CSSProperties = { background: 'rgba(0,0,0,.4)', color: '#fff', border: `1px solid ${c.line}`, borderRadius: 10, padding: '8px 10px', fontSize: 14 };
 
   // Fenetre de choix : TOUTES les cartes de ta collection, regroupees par joueur (stock, statut de chaque exemplaire)
@@ -324,6 +327,33 @@ export default function GwBuilder() {
           </div>
         )}
         <div style={{ display: view === 'build' ? 'block' : 'none' }}>
+        {/* Barre de commande : ajouter / classer / générer */}
+        <div style={{ ...glass, padding: '10px 12px', marginBottom: 14 }}>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+            <span style={lab}>Ajouter</span>
+            {PRESETS.filter(p => p.kind !== 'arena').map(p => { const lim = (p.kind === 'cl-champ' || p.kind === 'cl-cont') && count(p.kind) >= MAXCL; return <button key={p.kind} disabled={lim} onClick={() => add(p.kind)} style={{ ...pill(), opacity: lim ? 0.35 : 1 }}>{p.label.replace('In-Season', 'IS').replace('Emirates NBA Cup', 'Cup')}{p.kind === 'cl-champ' || p.kind === 'cl-cont' ? ` ${count(p.kind)}/${MAXCL}` : ''}</button>; })}
+            <span style={{ ...lab, marginLeft: 6 }}>Arena</span>
+            {ARENAS.map(a => <button key={a.k} onClick={() => addArena(a)} title={`${a.label} · ${a.essence} Essence`} style={pill()}>{a.label.replace('Arena ', '')}</button>)}
+          </div>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginTop: 8, paddingTop: 8, borderTop: `1px solid ${c.line}` }}>
+            <button onClick={rank} style={{ ...pill(true), padding: '5px 12px' }}>⚡ Classer par chance de perf</button>
+            <button onClick={() => setPlanOpen(o => !o)} style={pill(planOpen)}>Générer tout le plan {planOpen ? '▴' : '▾'}</button>
+            <button onClick={() => setRooms(defaultRooms(nights[0]))} style={{ ...pill(), marginLeft: 'auto', color: c.dim }}>Réinitialiser</button>
+          </div>
+          {planOpen && (
+            <div style={{ marginTop: 8, paddingTop: 8, borderTop: `1px solid ${c.line}` }}>
+              <div style={{ fontSize: 11.5, color: c.dim, marginBottom: 6 }}>Nombre de compos par type et par rareté (Classic : 3 max). Remplace l’ordre actuel, garde la Cup.</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(110px,1fr) repeat(3,52px)', gap: '4px 8px', alignItems: 'center', maxWidth: 380, fontSize: 12.5 }}>
+                <span />{RARITIES.slice(0, 3).map(ra => <span key={ra.k} style={{ color: c.dim, fontSize: 11, textAlign: 'center' }}>{ra.l}</span>)}
+                {([['isc', 'IS Champion', 99], ['isk', 'IS Contender', 99], ['clc', 'Classic Champion', 3], ['clk', 'Classic Contender', 3], ['ar', 'Arena Champion', 20]] as const).map(([k, l, mx]) => (
+                  <Fragment key={k}><span>{l}</span>{RARITIES.slice(0, 3).map(ra => <input key={ra.k} type="number" min={0} max={mx} value={plan[`${k}|${ra.k}`] || 0} onChange={e => setPlan(pl => ({ ...pl, [`${k}|${ra.k}`]: Math.max(0, Math.min(mx, +e.target.value || 0)) }))} style={{ ...inp, width: 52, padding: '4px 6px', fontSize: 13, textAlign: 'center', boxSizing: 'border-box' }} />)}</Fragment>
+                ))}
+              </div>
+              <div style={{ marginTop: 8 }}><button onClick={() => { genPlan(); setPlanOpen(false); }} style={{ ...pill(true), padding: '5px 14px' }}>Générer</button></div>
+            </div>
+          )}
+        </div>
+
         {/* Compos dans l'ordre */}
         {results.map((res, i) => {
           const r = res.room; const full = res.lineup.length === 5; const cupT = r.kind === 'cup' ? CUP_TIERS.find(t => r.label.includes('palier ' + t.n)) : null;
@@ -401,26 +431,6 @@ export default function GwBuilder() {
           );
         })}
 
-        {/* Ajouter une compo */}
-        <div style={{ ...glass, padding: 14 }}>
-          <div style={{ fontSize: 12, color: c.dim, letterSpacing: 1, marginBottom: 8 }}>AJOUTER UNE COMPO À LA FIN DE L’ORDRE</div>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{PRESETS.filter(p => p.kind !== 'arena').map(p => <button key={p.kind} disabled={(p.kind === 'cl-champ' || p.kind === 'cl-cont') && count(p.kind) >= MAXCL} onClick={() => add(p.kind)} style={{ ...btn(), opacity: (p.kind === 'cl-champ' || p.kind === 'cl-cont') && count(p.kind) >= MAXCL ? 0.4 : 1 }}>+ {p.label}{p.kind === 'cl-champ' || p.kind === 'cl-cont' ? ` (${count(p.kind)}/${MAXCL})` : ''}</button>)}{ARENAS.map(a => <button key={a.k} onClick={() => addArena(a)} style={btn()}>+ {a.label} · {a.essence} Ess.</button>)}<button onClick={() => setRooms(defaultRooms(nights[0]))} style={{ ...btn(), marginLeft: 'auto' }}>Réinitialiser</button><button onClick={rank} style={btn(true)}>Classer par chance de perf</button></div>
-        </div>
-        <div style={{ ...glass, padding: 14, marginTop: 14 }}>
-          <div style={{ fontSize: 12, color: c.dim, letterSpacing: 1, marginBottom: 4 }}>GÉNÉRER TOUT LE PLAN (REMPLACE L’ORDRE ACTUEL, GARDE LA CUP)</div>
-          <div style={{ fontSize: 12, color: c.dim, marginBottom: 10 }}>Nombre maximum à construire par type et par rareté. Classic : 3 maximum par type et par rareté. Une compo ne contient qu’une rareté.</div>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ borderCollapse: 'collapse', fontSize: 13 }}>
-              <thead><tr><th style={{ textAlign: 'left', padding: '4px 10px 4px 0', color: c.dim, fontWeight: 500 }}>Type</th>{RARITIES.slice(0, 3).map(ra => <th key={ra.k} style={{ textAlign: 'left', padding: '4px 10px', color: c.dim, fontWeight: 500 }}>{ra.l}</th>)}</tr></thead>
-              <tbody>
-                {([['isc', 'In-Season Champion', 99], ['isk', 'In-Season Contender', 99], ['clc', 'Classic Champion', 3], ['clk', 'Classic Contender', 3], ['ar', 'Arena (Champion)', 20]] as const).map(([k, l, mx]) => (
-                  <tr key={k}><td style={{ padding: '4px 10px 4px 0', whiteSpace: 'nowrap' }}>{l}</td>{RARITIES.slice(0, 3).map(ra => <td key={ra.k} style={{ padding: '4px 10px' }}><input type="number" min={0} max={mx} value={plan[`${k}|${ra.k}`] || 0} onChange={e => setPlan(pl => ({ ...pl, [`${k}|${ra.k}`]: Math.max(0, Math.min(mx, +e.target.value || 0)) }))} style={{ ...inp, width: 58 }} /></td>)}</tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div style={{ textAlign: 'right', marginTop: 10 }}><button onClick={genPlan} style={btn(true)}>Générer</button></div>
-        </div>
         </div>
         <p style={{ color: c.dim, fontSize: 12, margin: '14px 2px 0', lineHeight: 1.5 }}>Valeur affichée = projection du meilleur match de la GW (de la nuit choisie pour la Cup) × bonus de la carte ; seul le meilleur match de la GW compte (−10 % questionable, −15 % doubtful ). Bonus 3 matchs : un joueur qui joue 3 matchs reçoit +2 points, car il a trois chances de sortir son meilleur score ; sans bonus en Arena. Une seule rareté par compo (Limited par défaut), cartes déjà alignées sur Sorare exclues. Règles : 5 joueurs différents, plafond d’étoiles, max 4 joueurs d’une même équipe, minimum In-Season selon la compo. Tu envoies toi-même les compos sur Sorare.</p>
       </main>
