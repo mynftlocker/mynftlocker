@@ -62,7 +62,7 @@ function TeamRow({ x }: { x: Cand }) {
           {x.p.inj && <span style={{ fontSize: 10.5, fontWeight: 700, padding: '1px 8px', borderRadius: 99, background: x.p.inj === 'GTD' || x.p.inj === 'QUEST' ? '#ffd914' : '#ff2828', color: x.p.inj === 'GTD' || x.p.inj === 'QUEST' ? '#0e0e0e' : '#fff' }}>{x.p.inj}</span>}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 4, fontSize: 12.5, color: c.dim }}>
-          <Logo ab={x.p.team} s={18} /><span>{x.p.teamName}</span>
+          <Logo ab={abbrOf(x.p.teamName)} s={18} /><span>{x.p.teamName}</span>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><HexStars stars={x.p.stars} size="20px" /><span>{x.p.stars}★</span></span>
           {x.pw > 1 && <span style={{ color: c.cy, fontWeight: 700 }}>bonus +{Math.round((x.pw - 1) * 100)} %</span>}
         </div>
