@@ -9,7 +9,7 @@ import { Slab, HexStars } from '../gw/Slab';
 import { TEAMS } from '../../../lib/rotowire';
 
 // GW Builder : toutes les compos de la Game Week dans l'ORDRE que tu choisis. Une carte = une seule compo : la compo la plus haut dans l'ordre la prend.
-// Mode Auto (le moteur complete, tu peux imposer des cartes avec l'epingle) ou Manuel (seulement tes cartes).
+// Compo manuelle (seulement tes cartes) ; le bouton Remplir auto laisse le moteur completer les cases vides.
 const pillLink: React.CSSProperties = { fontSize: 12, padding: '4px 12px', borderRadius: 999, border: '1px solid rgba(255,255,255,.13)', background: 'rgba(255,255,255,.04)', color: 'rgba(255,255,255,.86)', textDecoration: 'none', whiteSpace: 'nowrap' };
 const LSP = 'mnl_cup_pseudo_v1', LSR = 'mnl_gwb_rooms_v1';
 const c = { cy: '#00ffff', gold: '#e5b94e', dim: 'rgba(255,255,255,.62)', line: 'rgba(255,255,255,.13)', card: 'rgba(8,12,28,.74)', red: '#ff6b6b', green: '#4ade80' };
@@ -576,7 +576,7 @@ export default function GwBuilder() {
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
                 <button onClick={() => move(i, -1)} disabled={i === firstOpen} style={{ ...btn(), opacity: i === firstOpen ? .35 : 1 }} aria-label="Monter">↑</button>
                 <button onClick={() => move(i, 1)} disabled={i === lastOpen} style={{ ...btn(), opacity: i === lastOpen ? .35 : 1 }} aria-label="Descendre">↓</button>
-                <button onClick={() => patch(r.id, x => ({ ...x, auto: false, pins: res.lineup.map(l => l.id) }))} title="Complète cette compo avec les meilleures cartes possibles (une seule fois : tu peux ensuite tout modifier à la main)" style={btn()}>⚡ Compléter en auto</button>
+                <button onClick={() => patch(r.id, x => ({ ...x, auto: true }))} disabled={res.lineup.length >= 5 && r.auto} title="Remplit les cases vides avec les meilleures cartes possibles (tes cartes déjà placées restent)" style={btn()}>⚡ Remplir auto</button>
                 {r.kind === 'cup' && <>
                   <select value={cupT?.n ?? 2} onChange={e => { const t = CUP_TIERS.find(z => z.n === +e.target.value)!; patch(r.id, x => ({ ...x, minIS: t.is, label: `Emirates NBA Cup · palier ${t.n}` })); }} style={inp}>{CUP_TIERS.map(t => <option key={t.n} value={t.n}>Palier {t.n} · {t.pts} pts · {t.is} IS min</option>)}</select>
                   <select value={r.night} onChange={e => patch(r.id, x => ({ ...x, night: e.target.value }))} style={inp}>{[...new Set([...nights, ...Array.from({ length: 10 }, (_, i) => parisDay(new Date(Date.now() + i * 864e5).toISOString()))])].sort().filter(n => n >= parisDay(new Date().toISOString()) || n === r.night).map(n => <option key={n} value={n}>{dayLab(n)}</option>)}</select>
@@ -610,19 +610,20 @@ export default function GwBuilder() {
                   </div>
                 </div>
               )}
-              {res.lineup.length ? (
-                <div className="gwb-row">
-                  {res.lineup.map(cd => {
-                    const pinned = r.pins.includes(cd.id);
-                    return (
-                      <div key={cd.id} className="gwb-cell">
-                        <button onClick={() => patch(r.id, x => ({ ...x, pins: pinned ? x.pins.filter(y => y !== cd.id) : [...x.pins, cd.id] }))} title={pinned ? 'Retirer de mes choix' : 'Imposer cette carte dans cette compo'} style={{ display: 'block', width: '100%', marginBottom: 6, padding: '4px 0', borderRadius: 8, border: `1px solid ${pinned ? c.gold + 'aa' : c.line}`, background: pinned ? 'rgba(229,185,78,.16)' : 'rgba(255,255,255,.04)', color: pinned ? c.gold : c.dim, cursor: 'pointer', fontSize: 12 }}>{pinned ? '📌 Imposée · retirer' : '📌 Imposer'}</button>
-                        <Slab c={cd} u={n => `${n}cqw`} art={cd.real ? cd.pic : null} />
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : <p style={{ color: c.dim, fontSize: 13, margin: 0 }}>{loading ? 'Chargement…' : r.kind === 'cup' && r.night && cup[r.night] && !Object.keys(cup[r.night]).length ? 'Pas encore de projections Sorare pour cette nuit : elles sortent la veille du match. Choisis une nuit plus proche.' : r.auto ? 'Aucune compo possible avec les cartes restantes.' : 'Choisis tes cartes ou passe en Auto.'}</p>}
+              <div className="gwb-row">
+                {res.lineup.map(cd => (
+                  <div key={cd.id} className="gwb-cell">
+                    <button onClick={() => patch(r.id, x => ({ ...x, auto: false, pins: res.lineup.filter(l => l.id !== cd.id).map(l => l.id) }))} title="Retire cette carte de la compo (la case redevient vide)" style={{ display: 'block', width: '100%', marginBottom: 6, padding: '4px 0', borderRadius: 8, border: `1px solid ${c.line}`, background: 'rgba(255,255,255,.04)', color: c.dim, cursor: 'pointer', fontSize: 12 }}>✕ Retirer</button>
+                    <Slab c={cd} u={n => `${n}cqw`} art={cd.real ? cd.pic : null} />
+                  </div>
+                ))}
+                {Array.from({ length: Math.max(0, 5 - res.lineup.length) }).map((_, i) => (
+                  <div key={'e' + i} className="gwb-cell">
+                    <button onClick={() => { setPicker(r.id); setQ(''); }} title="Choisis toi-même la carte de cette case" style={{ width: '100%', minHeight: 150, height: '100%', borderRadius: 12, border: `1.5px dashed ${c.cy}66`, background: 'rgba(0,255,255,.04)', color: c.cy, cursor: 'pointer', fontSize: 14, fontWeight: 700, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6 }}><span style={{ fontSize: 28, lineHeight: 1 }}>+</span>Choisir une carte</button>
+                  </div>
+                ))}
+              </div>
+              {!res.lineup.length && (loading || (r.kind === 'cup' && r.night && cup[r.night] && !Object.keys(cup[r.night]).length)) && <p style={{ color: c.dim, fontSize: 13, margin: '8px 0 0' }}>{loading ? 'Chargement…' : 'Pas encore de projections Sorare pour cette nuit : elles sortent la veille du match. Choisis une nuit plus proche.'}</p>}
               {full && res.issues.length > 0 && <p style={{ color: c.red, fontSize: 13, margin: '10px 0 0' }}>⚠ {res.issues.join(' · ')}</p>}
             </section>
           );
