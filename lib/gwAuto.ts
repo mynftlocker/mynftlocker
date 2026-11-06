@@ -18,6 +18,7 @@ export type Room = {
   maxAge?: number;    // Arena U23 : age maximum
   essence?: number;   // cout d'entree Arena (Essence)
   rar?: string[];     // raretes autorisees pour l'auto (defaut : limited)
+  minProj?: number;   // seuil mini de projection : en dessous, la compo n'est pas jouee
 };
 
 export const PRESETS: { kind: RoomKind; label: string; cap: number; minIS: number; bonus: boolean }[] = [
@@ -169,4 +170,65 @@ export function rankRooms(rooms: Room[], cards: Card[], players: GP[], cup?: Cup
     solve(free, r, []).forEach(c => taken.add(c.id));
   }
   return out;
+}
+
+// ===== Tout generer automatiquement =====
+// Cree le MAXIMUM de compos viables avec toutes les cartes possedees (toutes raretes), en respectant les regles Sorare
+// (5 joueurs differents, plafond d'etoiles, max par equipe, minimum In-Season, une rarete par compo, Classic 3 max par type et rarete, ages Arena).
+// Etape A (gratuit) : Cup deja prevue, In-Season, Classic ; on prend a chaque tour la compo qui atteint la plus grande part de son potentiel.
+// Etape B (Essence) : Arena, avec les cartes restantes, et SEULEMENT celles dont la projection passe le seuil de la 5e place (donnees reelles des GW terminees).
+export type AutoParams = {
+  cards: Card[]; players: GP[]; cup?: CupMap; keepCup: Room[];
+  arena: (r: Room, total: number) => { ok: boolean; ratio: number } | null;   // null = seuils inconnus
+  mk: (kind: RoomKind, o: Partial<Room>) => Room;
+  minProj: Record<string, number>;       // seuil mini par type : isc, isk, clc, clk, ar
+  floor?: number;                        // part minimale du potentiel pour une compo In-Season / Classic
+};
+export type AutoOut = { rooms: Room[]; arenaSkipped: number; arenaUnknown: boolean };
+type Cd = { proto: Room; tier: 'A' | 'B'; limit: number; made: number; once: boolean; cache: { lu: Cand[]; total: number } | null; base: string; rar: string; mkey: string };
+
+export function autoAll(P: AutoParams): AutoOut {
+  const floor = P.floor ?? 0.5, taken = new Set<string>(), out: Room[] = [];
+  const ideal = new Map<string, number>();
+  const pot = (r: Room) => { const k = `${r.kind}|${r.cap}|${r.minAge ?? ''}|${r.maxAge ?? ''}`; if (!ideal.has(k)) ideal.set(k, idealTotal(P.players, r) || 1); return ideal.get(k)!; };
+  const have = new Set(P.cards.map(c => c.rar || 'limited'));
+  const rars = RARITIES.filter(r => have.has(r.k));
+  const suf = (k: string) => (k === 'limited' ? '' : ' ' + (RARITIES.find(r => r.k === k)?.l || k));
+  const cands: Cd[] = [];
+  for (const c of P.keepCup) cands.push({ proto: { ...c, pins: [], auto: true }, tier: 'A', limit: 1, made: 0, once: true, cache: null, base: c.label, rar: roomRar(c)[0], mkey: 'cup' });
+  const T: [RoomKind, string, string, number][] = [['is-champ', 'In-Season Champion', 'isc', 99], ['is-cont', 'In-Season Contender', 'isk', 99], ['cl-champ', 'Classic Champion', 'clc', 3], ['cl-cont', 'Classic Contender', 'clk', 3]];
+  for (const ra of rars) for (const [kind, base, mkey, lim] of T) cands.push({ proto: P.mk(kind, { rar: [ra.k], label: base + suf(ra.k), minProj: P.minProj[mkey] || undefined }), tier: 'A', limit: lim, made: 0, once: false, cache: null, base: base + suf(ra.k), rar: ra.k, mkey });
+  for (const ra of rars.filter(r => r.k !== 'unique')) for (const a of ARENAS) cands.push({ proto: P.mk('arena', { rar: [ra.k], label: a.label + suf(ra.k), cap: a.cap, essence: a.essence, arena: a.k, minAge: 'minAge' in a ? a.minAge : undefined, maxAge: 'maxAge' in a ? a.maxAge : undefined, minProj: P.minProj.ar || undefined }), tier: 'B', limit: 99, made: 0, once: false, cache: null, base: a.label + suf(ra.k), rar: ra.k, mkey: 'ar' });
+
+  const compute = (c: Cd) => {
+    const rr = roomRar(c.proto);
+    const free = cardsFor(P.cards, c.proto, P.cup).filter(x => !taken.has(x.id) && rr.includes(x.rar || 'limited') && ageOk(x.p, c.proto)).map(x => toCand(x, c.proto));
+    const lu = solve(free, c.proto, []);
+    c.cache = { lu, total: lu.reduce((s, x) => s + x.v, 0) };
+  };
+  const score = (c: Cd): number => {
+    const k = c.cache!; if (k.lu.length < 5 || check(k.lu, c.proto).length) return -1;
+    if (c.proto.minProj && k.total < c.proto.minProj) return -1;
+    if (c.tier === 'B') { const q = P.arena(c.proto, k.total); return q && q.ok ? q.ratio : -1; }
+    if (c.proto.kind === 'cup') { const t = CUP_TIERS.find(z => c.proto.label.includes('palier ' + z.n)); return t ? k.total / t.pts : 1; }
+    const sh = k.total / pot(c.proto); return sh >= floor ? sh : -1;
+  };
+  for (const tier of ['A', 'B'] as const) {
+    const cs = cands.filter(c => c.tier === tier);
+    for (;;) {
+      let best: Cd | null = null, bs = -1;
+      for (const c of cs) {
+        if (c.made >= c.limit) continue;
+        if (!c.cache || c.cache.lu.some(x => taken.has(x.id))) compute(c);   // recalcul seulement si une de ses cartes a ete prise
+        const sc = score(c); if (sc > bs) { bs = sc; best = c; }
+      }
+      if (!best) break;
+      best.made++;
+      const room: Room = best.once ? best.proto : { ...best.proto, id: P.mk(best.proto.kind, {}).id, label: `${best.base} ${best.made}` };
+      out.push(room); best.cache!.lu.forEach(x => taken.add(x.id));
+    }
+  }
+  let arenaSkipped = 0, arenaUnknown = false;
+  for (const c of cands.filter(z => z.tier === 'B')) { compute(c); const k = c.cache!; if (k.lu.length === 5) { const q = P.arena(c.proto, k.total); if (!q) arenaUnknown = true; else if (!q.ok) arenaSkipped++; } }
+  return { rooms: out, arenaSkipped, arenaUnknown };
 }
