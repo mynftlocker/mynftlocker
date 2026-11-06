@@ -76,6 +76,7 @@ function TeamRow({ x }: { x: Cand }) {
             </span>); })}
           {!x.p.opp.length && <span style={{ fontSize: 12, color: c.dim }}>pas de match</span>}
         </div>
+        {x.p.opp.length > 1 && x.pw > 0 && <div title="Seul le meilleur score de la GW compte. Avec plusieurs matchs, le meilleur score attendu est plus haut que la projection d’un seul match. PROJ = ce chiffre × bonus de la carte." style={{ marginTop: 6, fontSize: 12, color: c.cy, fontWeight: 700 }}>meilleur des {x.p.opp.length} matchs : {Math.round(x.v / x.pw)}</div>}
       </div>
       <div className="tm-score"><div style={{ fontWeight: 800, fontSize: 24, color: c.gold, lineHeight: 1 }}>{x.v.toFixed(1)}</div><div style={{ fontSize: 10, letterSpacing: 1, color: c.cy, marginTop: 3 }}>PROJ</div></div>
     </div>
