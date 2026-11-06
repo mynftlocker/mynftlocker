@@ -343,10 +343,10 @@ export default function GwBuilder() {
           {planOpen && (
             <div style={{ marginTop: 8, paddingTop: 8, borderTop: `1px solid ${c.line}` }}>
               <div style={{ fontSize: 11.5, color: c.dim, marginBottom: 6 }}>Nombre de compos par type et par rareté (Classic : 3 max). Remplace l’ordre actuel, garde la Cup.</div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(110px,1fr) repeat(3,52px)', gap: '4px 8px', alignItems: 'center', maxWidth: 380, fontSize: 12.5 }}>
-                <span />{RARITIES.slice(0, 3).map(ra => <span key={ra.k} style={{ color: c.dim, fontSize: 11, textAlign: 'center' }}>{ra.l}</span>)}
+              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(110px,1fr) repeat(3,62px)', gap: '4px 8px', alignItems: 'center', maxWidth: 420, fontSize: 12.5 }}>
+                <span />{RARITIES.slice(0, 3).map(ra => <span key={ra.k} style={{ color: c.dim, fontSize: 11, textAlign: 'center', whiteSpace: 'nowrap' }}>{ra.l}</span>)}
                 {([['isc', 'IS Champion', 99], ['isk', 'IS Contender', 99], ['clc', 'Classic Champion', 3], ['clk', 'Classic Contender', 3], ['ar', 'Arena Champion', 20]] as const).map(([k, l, mx]) => (
-                  <Fragment key={k}><span>{l}</span>{RARITIES.slice(0, 3).map(ra => <input key={ra.k} type="number" min={0} max={mx} value={plan[`${k}|${ra.k}`] || 0} onChange={e => setPlan(pl => ({ ...pl, [`${k}|${ra.k}`]: Math.max(0, Math.min(mx, +e.target.value || 0)) }))} style={{ ...inp, width: 52, padding: '4px 6px', fontSize: 13, textAlign: 'center', boxSizing: 'border-box' }} />)}</Fragment>
+                  <Fragment key={k}><span>{l}</span>{RARITIES.slice(0, 3).map(ra => <input key={ra.k} type="number" min={0} max={mx} value={plan[`${k}|${ra.k}`] || 0} onChange={e => setPlan(pl => ({ ...pl, [`${k}|${ra.k}`]: Math.max(0, Math.min(mx, +e.target.value || 0)) }))} style={{ ...inp, width: 62, padding: '4px 6px', fontSize: 13, textAlign: 'center', boxSizing: 'border-box' }} />)}</Fragment>
                 ))}
               </div>
               <div style={{ marginTop: 8 }}><button onClick={() => { genPlan(); setPlanOpen(false); }} style={{ ...pill(true), padding: '5px 14px' }}>Générer</button></div>
