@@ -426,8 +426,8 @@ export default function GwBuilder() {
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14 }}>
           <button onClick={() => setView('build')} style={btn(view === 'build')}>Construire</button>
-          <button onClick={() => setView('best')} style={btn(view === 'best')}>★ Les meilleures</button>
           <button onClick={() => setView('teams')} style={btn(view === 'teams')}>Mes équipes ({results.filter(r => r.lineup.length === 5 && !skipped(r)).length})</button>
+          <button onClick={() => setView('best')} style={btn(view === 'best')}>★ Les meilleures</button>
           <span style={{ marginLeft: 'auto', fontSize: 12, color: c.dim }}>Projection :</span>
           <button onClick={() => setSrc('mnl')} style={btn(src === 'mnl')}>myNFTlocker</button>
           <button onClick={() => setSrc('sorare')} style={btn(src === 'sorare')}>Sorare (Rotowire)</button>
