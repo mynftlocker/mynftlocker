@@ -1,5 +1,5 @@
 // Calcul pur des compos de GW NBA (utilise cote serveur et cote navigateur) : 5 joueurs, plafond d'etoiles, max N joueurs par equipe.
-export type GP = { slug: string; name: string; team: string; teamName: string; games: number; opp: { d: string; o: string; h: boolean; pj: number | null }[]; stars: number; proj: number; l10: number | null; inj: string | null; pic: string | null; age?: number | null; ceil?: number | null };
+export type GP = { slug: string; name: string; team: string; teamName: string; games: number; opp: { d: string; o: string; h: boolean; pj: number | null }[]; stars: number; proj: number; l10: number | null; inj: string | null; pic: string | null; age?: number | null; ceil?: number | null; l5?: number | null };
 export type Cand = { id: string; p: GP; v: number; cost: number; pw: number; is: boolean; pic: string | null; real: boolean };
 export const BONUS_IS = 1.05; // bonus par defaut d'une carte In-Season pour la compo du builder
 export const MAX_PER_TEAM = 4; // regle Sorare Limited Champion / Contender : max 4 joueurs de chaque equipe
