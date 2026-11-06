@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
 import type { GP } from '../../../lib/gwLineup';
-import { PRESETS, RARITIES, roomRar, CUP_TIERS, allocate, cardValue, type Card, type Room, type RoomKind } from '../../../lib/gwAuto';
+import { PRESETS, ARENAS, RARITIES, roomRar, rankRooms, ageOk, CUP_TIERS, allocate, cardValue, toCand, type Card, type Room, type RoomKind } from '../../../lib/gwAuto';
 import StarBg from '../../components/StarBg';
 import { Slab } from '../gw/Slab';
 
@@ -61,12 +61,15 @@ export default function GwBuilder() {
   useEffect(() => { fetch('/api/outils/gw').then(r => r.json()).then(j => j.error ? setErr(j.error) : setGw(j)).catch(e => setErr(String(e))); }, []);
   useEffect(() => { try { const p = localStorage.getItem(LSP); if (p) setPseudo(p); } catch {} }, []);
   const players = useMemo(() => (gw?.players || []) as GP[], [gw]);
-  // Projection myNFTlocker = projection Sorare par match (60 %) + forme sur les 10 derniers matchs (40 %), x nombre de matchs
+  // Projection d'un joueur = son MEILLEUR match de la GW (seul le meilleur score compte, qu'il joue 1, 2 ou 3 matchs).
+  // Source "Sorare" : projection Sorare par match. Source "myNFTlocker" : croisement 50 % Sorare / 30 % forme (moy. 10 derniers) / 20 % plafond (meilleur des 10).
+  // Dans les deux cas : +2 si le joueur joue 2 matchs ou plus, -3 si GTD.
   const playersP = useMemo(() => players.map(p => {
-    // projection de la GW = somme des projections de CHAQUE match (le champ proj de l'API ne vaut que pour un match)
-    const per = p.opp.map(o => o.pj ?? p.proj), sum = per.reduce((x, y) => x + y, 0), g = Math.max(1, p.games);
-    const sor = p.games > 0 ? sum : 0;
-    return { ...p, proj: src === 'mnl' && p.l10 != null && p.games > 0 ? ((sor / g) * 0.6 + p.l10 * 0.4) * g : sor };
+    const blend = (pj: number) => (pj <= 0 ? 0 : src === 'mnl' && p.l10 != null ? 0.5 * pj + 0.3 * p.l10 + 0.2 * (p.ceil ?? p.l10) : pj);
+    const opp = p.opp.map(o => ({ ...o, pj: blend(o.pj ?? p.proj) }));
+    const best = opp.length ? Math.max(...opp.map(o => o.pj)) : 0;
+    const proj = p.games > 0 ? Math.max(0, best + (p.games >= 2 ? 2 : 0) - (p.inj === 'GTD' ? 3 : 0)) : 0;
+    return { ...p, opp, proj };
   }), [players, src]);
   const nights = useMemo(() => [...new Set(players.flatMap(p => p.opp.map(o => parisDay(o.d))))].sort(), [players]);
   const fxSlug: string = gw?.fixture?.slug || '';
@@ -104,7 +107,7 @@ export default function GwBuilder() {
     const by: Record<string, GP> = {}; playersP.forEach(p => { by[p.slug] = p; });
     const out: Card[] = [];
     for (const x of rawCards) {
-      const rar = String(x.rarityTyped || '').toLowerCase(); if (!['limited', 'rare', 'super_rare'].includes(rar)) continue;
+      const rar = String(x.rarityTyped || '').toLowerCase(); if (!['limited', 'rare', 'super_rare', 'unique'].includes(rar)) continue;
       const p = by[x.anyPlayer?.slug]; if (!p || p.games <= 0) continue;
       if (noInj && p.inj && p.inj !== 'GTD') continue;
       if (used[x.slug]) continue; // deja alignee dans une compo de cette GW
@@ -118,7 +121,8 @@ export default function GwBuilder() {
   const move = (i: number, d: -1 | 1) => setRooms(rs => { const a = [...(rs || [])]; const j = i + d; if (j < 0 || j >= a.length) return a; [a[i], a[j]] = [a[j], a[i]]; return a; });
   const MAXCL = 3; // Classic : 3 Champion + 3 Contender maximum
   const count = (kind: RoomKind) => (rooms || []).filter(r => r.kind === kind).length;
-  const addArena = (label: string, cap: number) => setRooms(rs => [...(rs || []), makeRoom('arena', { label: `Arena ${label} ${(rs || []).filter(r => r.kind === 'arena').length + 1}`, cap })]);
+  const addArena = (a: typeof ARENAS[number]) => setRooms(rs => [...(rs || []), makeRoom('arena', { label: `${a.label} ${(rs || []).filter(r => r.label.startsWith(a.label)).length + 1}`, cap: a.cap, essence: a.essence, minAge: 'minAge' in a ? a.minAge : undefined, maxAge: 'maxAge' in a ? a.maxAge : undefined, rar: ['limited', 'rare', 'super_rare', 'unique'] })]);
+  const rank = () => setRooms(rs => rankRooms(rs || [], cards, playersP));
   // Plan complet : genere toutes les compos dans l'ordre de preference (IS en alternance, puis Classic, puis Arena), en gardant la Cup
   const genPlan = () => setRooms(rs => {
     const keep = (rs || []).filter(r => r.kind === 'cup').map(r => ({ ...r, pins: [] }));
@@ -126,7 +130,7 @@ export default function GwBuilder() {
     while (a > 0 || b > 0) { if (a > 0) { out.push(makeRoom('is-champ', { label: `In-Season Champion ${++n1}` })); a--; } if (b > 0) { out.push(makeRoom('is-cont', { label: `In-Season Contender ${++n2}` })); b--; } }
     let c1 = Math.min(MAXCL, plan.clc), c2 = Math.min(MAXCL, plan.clk), m1 = 0, m2 = 0;
     while (c1 > 0 || c2 > 0) { if (c1 > 0) { out.push(makeRoom('cl-champ', { label: `Classic Champion ${++m1}` })); c1--; } if (c2 > 0) { out.push(makeRoom('cl-cont', { label: `Classic Contender ${++m2}` })); c2--; } }
-    for (let i = 1; i <= plan.ar; i++) out.push(makeRoom('arena', { label: `Arena ${i}` }));
+    for (let i = 1; i <= plan.ar; i++) out.push(makeRoom('arena', { label: `Arena Champion ${i}`, essence: 150 }));
     return [...out.slice(0, 1), ...keep, ...out.slice(1)];
   });
   const shareTeam = async (res: typeof results[number], i: number) => {
@@ -158,23 +162,40 @@ export default function GwBuilder() {
   const btn = (on = false): React.CSSProperties => ({ background: on ? 'rgba(0,255,255,.14)' : 'rgba(255,255,255,.06)', border: `1px solid ${on ? c.cy : c.line}`, color: on ? c.cy : '#fff', borderRadius: 10, padding: '7px 12px', fontSize: 13, cursor: 'pointer', whiteSpace: 'nowrap' });
   const inp: React.CSSProperties = { background: 'rgba(0,0,0,.4)', color: '#fff', border: `1px solid ${c.line}`, borderRadius: 10, padding: '8px 10px', fontSize: 14 };
 
-  // Cartes proposees pour completer / remplacer dans une compo (regles respectees : plafond, equipe, joueur unique, carte libre)
+  // Fenetre de choix : TOUTES les cartes de ta collection, regroupees par joueur (stock, statut de chaque exemplaire)
   const pickerRoom = rooms?.find(r => r.id === picker);
   const pickerRes = results.find(r => r.room.id === picker);
-  const pickerList = useMemo(() => {
+  const pickerGroups = useMemo(() => {
     if (!pickerRoom || !pickerRes) return [];
-    const mine = pickerRes.lineup.filter(x => pickerRoom.pins.includes(x.id)), ql = q.toLowerCase(); // seules les cartes imposees comptent : le moteur complete autour
-    const pinnedElsewhere = new Set((rooms || []).filter(r => r.id !== picker).flatMap(r => r.pins));
+    const ql = q.toLowerCase(), rr = roomRar(pickerRoom);
+    const mine = pickerRes.lineup.filter(x => pickerRoom.pins.includes(x.id));
     const cost = mine.reduce((s, x) => s + x.cost, 0), cnt: Record<string, number> = {}; mine.forEach(x => { cnt[x.p.team] = (cnt[x.p.team] || 0) + 1; });
-    return cards.filter(x => !pinnedElsewhere.has(x.id) && !mine.some(m => m.id === x.id) && !mine.some(m => m.p.slug === x.p.slug) && roomRar(pickerRoom).includes(x.rar || 'limited')
-      && cost + Math.round(x.p.stars * 2) <= pickerRoom.cap * 2 && (cnt[x.p.team] || 0) < pickerRoom.perTeam && (!ql || (x.p.name + x.p.teamName).toLowerCase().includes(ql)))
-      .map(x => ({ x, v: cardValue(x, pickerRoom) })).filter(z => z.v > 0).sort((a, b) => b.v - a.v).slice(0, 60);
+    const where = (id: string) => results.findIndex(r => r.room.id !== picker && r.lineup.some(l => l.id === id));
+    const pinnedAt = (id: string) => (rooms || []).findIndex(r => r.id !== picker && r.pins.includes(id));
+    const by = new Map<string, { p: GP; list: { x: Card; v: number; st: string; ok: boolean; why: string }[] }>();
+    for (const x of cards) {
+      if (!rr.includes(x.rar || 'limited') || !ageOk(x.p, pickerRoom)) continue;
+      if (ql && !(x.p.name + ' ' + x.p.teamName).toLowerCase().includes(ql)) continue;
+      const v = cardValue(x, pickerRoom); if (v <= 0) continue;
+      const here = pickerRoom.pins.includes(x.id), pe = pinnedAt(x.id), w = where(x.id);
+      const samePlayer = mine.some(m => m.p.slug === x.p.slug && m.id !== x.id);
+      let why = '';
+      if (!here) {
+        if (pe >= 0) why = `imposée en compo ${pe + 1}`;
+        else if (samePlayer) why = 'joueur déjà choisi';
+        else if (cost + Math.round(x.p.stars * 2) > pickerRoom.cap * 2) why = 'dépasse le plafond d’étoiles';
+        else if ((cnt[x.p.team] || 0) >= pickerRoom.perTeam) why = `déjà ${pickerRoom.perTeam} joueurs de ${x.p.teamName}`;
+      }
+      const g = by.get(x.p.slug) || { p: x.p, list: [] }; by.set(x.p.slug, g);
+      g.list.push({ x, v, st: here ? 'ici' : w >= 0 ? `en compo ${w + 1}` : 'libre', ok: !why, why });
+    }
+    return [...by.values()].map(g => ({ ...g, best: Math.max(...g.list.map(z => z.v)) })).sort((a, b) => b.best - a.best).slice(0, 40);
   }, [pickerRoom, pickerRes, cards, results, rooms, picker, q]);
 
   return (
     <div style={{ position: 'relative', minHeight: '100vh', background: '#030510', color: '#fff' }}>
       <StarBg />
-      <style>{'.gwb-row{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}.gwb-cell{container-type:inline-size}@media(max-width:700px){.gwb-row{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}}'}</style>
+      <style>{'.gwb-row{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}.gwb-cell{container-type:inline-size}.gwb-pick{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}@media(max-width:700px){.gwb-pick{grid-template-columns:repeat(3,minmax(0,1fr))}}@media(max-width:700px){.gwb-row{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}}'}</style>
       <main style={{ position: 'relative', zIndex: 1, maxWidth: 1100, margin: '0 auto', padding: '22px 14px 80px', fontFamily: 'system-ui,sans-serif' }}>
         <h1 style={{ fontSize: 28, margin: '0 0 4px', letterSpacing: '.01em' }}>GW <span style={{ color: c.cy }}>Builder</span></h1>
         <p style={{ color: c.dim, fontSize: 14, margin: '0 0 16px' }}>{gw ? `GW ${gw.fixture.gw} · ${gw.fixture.games} matchs` : err || 'Chargement de la GW…'} · tes compos dans l’ordre que tu choisis : une carte ne sert qu’une fois, la compo la plus haute la prend.</p>
@@ -241,6 +262,7 @@ export default function GwBuilder() {
                     <Chip t={`max ${res.maxTeam}/${r.perTeam} par équipe`} ok={res.maxTeam <= r.perTeam} />
                     {r.night && <Chip t={`nuit du ${dayLab(r.night)}`} />}
                     {!r.bonus && <Chip t="sans bonus XP" />}
+                    {r.essence != null && <Chip t={`${r.essence} Essence`} warn />}{r.minAge != null && <Chip t={`${r.minAge} ans et +`} />}{r.maxAge != null && <Chip t={`${r.maxAge} ans max`} />}{r.cap >= 99 && <Chip t="sans plafond" />}
                     {RARITIES.map(ra => { const on = roomRar(r).includes(ra.k); return <button key={ra.k} onClick={() => patch(r.id, x => { const cur = roomRar(x); const nx = cur.includes(ra.k) ? cur.filter(k => k !== ra.k) : [...cur, ra.k]; return { ...x, rar: nx.length ? nx : cur }; })} style={{ ...btn(on), padding: '3px 9px', fontSize: 11, borderRadius: 999 }}>{ra.l}</button>; })}
                     {res.issues.filter(x => !/^\d+★|In-Season$|équipe/.test(x)).map(x => <Chip key={x} t={x} ok={false} />)}
                   </div>
@@ -258,7 +280,7 @@ export default function GwBuilder() {
                   <select value={cupT?.n ?? 2} onChange={e => { const t = CUP_TIERS.find(z => z.n === +e.target.value)!; patch(r.id, x => ({ ...x, minIS: t.is, label: `Emirates NBA Cup · palier ${t.n}` })); }} style={inp}>{CUP_TIERS.map(t => <option key={t.n} value={t.n}>Palier {t.n} · {t.pts} pts · {t.is} IS min</option>)}</select>
                   <select value={r.night} onChange={e => patch(r.id, x => ({ ...x, night: e.target.value }))} style={inp}>{nights.map(n => <option key={n} value={n}>{dayLab(n)}</option>)}</select>
                 </>}
-                {r.kind === 'arena' && <label style={{ fontSize: 13, color: c.dim, display: 'flex', alignItems: 'center', gap: 6 }}>Plafond ★ <input type="number" min={5} max={25} value={r.cap} onChange={e => patch(r.id, x => ({ ...x, cap: Math.max(5, +e.target.value || 16) }))} style={{ ...inp, width: 64 }} /></label>}
+                {r.kind === 'arena' && <label style={{ fontSize: 13, color: c.dim, display: 'flex', alignItems: 'center', gap: 6 }}>Plafond ★ <input type="number" min={5} max={99} value={r.cap} onChange={e => patch(r.id, x => ({ ...x, cap: Math.max(5, +e.target.value || 16) }))} style={{ ...inp, width: 64 }} /></label>}
                 <button onClick={() => { setPicker(r.id); setQ(''); }} style={btn()}>+ Choisir une carte</button>
                 {r.pins.length > 0 && <button onClick={() => patch(r.id, x => ({ ...x, pins: [] }))} style={btn()}>Vider mes choix</button>}
                 <button onClick={() => setRooms(rs => (rs || []).filter(x => x.id !== r.id))} style={{ ...btn(), marginLeft: 'auto', color: c.red }} aria-label="Supprimer la compo">Supprimer</button>
@@ -284,7 +306,7 @@ export default function GwBuilder() {
         {/* Ajouter une compo */}
         <div style={{ ...glass, padding: 14 }}>
           <div style={{ fontSize: 12, color: c.dim, letterSpacing: 1, marginBottom: 8 }}>AJOUTER UNE COMPO À LA FIN DE L’ORDRE</div>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{PRESETS.map(p => <button key={p.kind} disabled={(p.kind === 'cl-champ' || p.kind === 'cl-cont') && count(p.kind) >= MAXCL} onClick={() => add(p.kind)} style={{ ...btn(), opacity: (p.kind === 'cl-champ' || p.kind === 'cl-cont') && count(p.kind) >= MAXCL ? 0.4 : 1 }}>+ {p.label}{p.kind === 'cl-champ' || p.kind === 'cl-cont' ? ` (${count(p.kind)}/${MAXCL})` : ''}</button>)}<button onClick={() => addArena('Contender', 11)} style={btn()}>+ Arena Contender</button><button onClick={() => addArena('Uncapped', 99)} style={btn()}>+ Arena Uncapped</button><button onClick={() => setRooms(defaultRooms(nights[0]))} style={{ ...btn(), marginLeft: 'auto' }}>Ordre par défaut</button></div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{PRESETS.filter(p => p.kind !== 'arena').map(p => <button key={p.kind} disabled={(p.kind === 'cl-champ' || p.kind === 'cl-cont') && count(p.kind) >= MAXCL} onClick={() => add(p.kind)} style={{ ...btn(), opacity: (p.kind === 'cl-champ' || p.kind === 'cl-cont') && count(p.kind) >= MAXCL ? 0.4 : 1 }}>+ {p.label}{p.kind === 'cl-champ' || p.kind === 'cl-cont' ? ` (${count(p.kind)}/${MAXCL})` : ''}</button>)}{ARENAS.map(a => <button key={a.k} onClick={() => addArena(a)} style={btn()}>+ {a.label} · {a.essence} Ess.</button>)}<button onClick={() => setRooms(defaultRooms(nights[0]))} style={{ ...btn(), marginLeft: 'auto' }}>Réinitialiser</button><button onClick={rank} style={btn(true)}>Classer par chance de perf</button></div>
         </div>
         <div style={{ ...glass, padding: 14, marginTop: 14 }}>
           <div style={{ fontSize: 12, color: c.dim, letterSpacing: 1, marginBottom: 8 }}>GÉNÉRER TOUT LE PLAN (REMPLACE L’ORDRE ACTUEL, GARDE LA CUP)</div>
@@ -296,26 +318,47 @@ export default function GwBuilder() {
           </div>
         </div>
         </div>
-        <p style={{ color: c.dim, fontSize: 12, margin: '14px 2px 0', lineHeight: 1.5 }}>Valeur affichée = projection Sorare de la GW (de la nuit choisie pour la Cup) × bonus de la carte × 0,88 si GTD ; sans bonus en Arena. Raretés au choix par compo (Limited par défaut), cartes déjà alignées sur Sorare exclues. Règles : 5 joueurs différents, plafond d’étoiles, max 4 joueurs d’une même équipe, minimum In-Season selon la compo. Tu envoies toi-même les compos sur Sorare.</p>
+        <p style={{ color: c.dim, fontSize: 12, margin: '14px 2px 0', lineHeight: 1.5 }}>Valeur affichée = projection du meilleur match de la GW (de la nuit choisie pour la Cup) × bonus de la carte ; seul le meilleur match de la GW compte (+2 si 2 matchs, −3 si GTD) ; sans bonus en Arena. Raretés au choix par compo (Limited par défaut), cartes déjà alignées sur Sorare exclues. Règles : 5 joueurs différents, plafond d’étoiles, max 4 joueurs d’une même équipe, minimum In-Season selon la compo. Tu envoies toi-même les compos sur Sorare.</p>
       </main>
 
-      {/* Choix manuel d'une carte */}
+      {/* Choix d'une carte : stock complet par joueur */}
       {picker && pickerRoom && (
-        <div role="dialog" aria-modal="true" onClick={e => { if (e.target === e.currentTarget) setPicker(null); }} style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(3,6,18,.86)', backdropFilter: 'blur(6px)', overflowY: 'auto', padding: '20px 12px' }}>
-          <div style={{ ...glass, maxWidth: 640, margin: '0 auto', padding: 14 }}>
+        <div role="dialog" aria-modal="true" onClick={e => { if (e.target === e.currentTarget) setPicker(null); }} style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(3,6,18,.9)', backdropFilter: 'blur(6px)', overflowY: 'auto', padding: '16px 10px' }}>
+          <div style={{ ...glass, maxWidth: 760, margin: '0 auto', padding: 14 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-              <b style={{ fontSize: 16 }}>{pickerRoom.label} · choisir une carte</b>
+              <b style={{ fontSize: 17 }}>{pickerRoom.label} · choisir une carte</b>
               <button onClick={() => setPicker(null)} style={btn()}>✕ Fermer</button>
             </div>
             <input value={q} onChange={e => setQ(e.target.value)} placeholder="Joueur ou équipe" style={{ ...inp, width: '100%', boxSizing: 'border-box', marginBottom: 8 }} />
-            <div style={{ fontSize: 12, color: c.dim, marginBottom: 6 }}>Cartes qui respectent le plafond, l’équipe et le joueur unique avec tes cartes imposées, de la plus forte à la plus faible. Si la carte est déjà utilisée dans une autre compo, elle passe dans celle-ci et l’autre se réorganise.</div>
-            {pickerList.map(({ x, v }) => (
-              <button key={x.id} onClick={() => { patch(pickerRoom.id, r => ({ ...r, pins: [...r.pins, x.id].slice(0, 5) })); setPicker(null); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left', color: '#fff', background: 'transparent', border: 'none', borderTop: `1px solid ${c.line}`, padding: '9px 4px', cursor: 'pointer' }}>
-                <span style={{ flex: 1, minWidth: 0 }}><b>{x.p.name}</b><span style={{ display: 'block', color: c.dim, fontSize: 12.5 }}>{x.p.teamName} · {x.p.stars}★ · {x.is ? 'In-Season' : 'Classic'}{x.pw !== 1 ? ` · +${Math.round((x.pw - 1) * 100)} %` : ''} · {x.p.games} match{x.p.games > 1 ? 's' : ''}{x.p.inj ? ' · ' + x.p.inj : ''}{(() => { const k = results.findIndex(r => r.lineup.some(l => l.id === x.id)); return k >= 0 ? ` · utilisée en compo ${k + 1}` : ''; })()}</span></span>
-                <span style={{ fontWeight: 800, fontSize: 20, color: c.cy }}>{v.toFixed(1)}</span>
-              </button>
-            ))}
-            {!pickerList.length && <p style={{ color: c.dim, fontSize: 13 }}>Aucune carte disponible.</p>}
+            <div style={{ fontSize: 12, color: c.dim, marginBottom: 10, lineHeight: 1.45 }}>Toute ta collection pour cette compo, par joueur : tu vois combien d’exemplaires il te reste et lesquels. Une carte déjà dans une autre compo passe dans celle-ci, l’autre se réorganise. Raretés : {roomRar(pickerRoom).map(k => RARITIES.find(r => r.k === k)?.l).join(', ')}.</div>
+            {pickerGroups.map(g => {
+              const free = g.list.filter(z => z.st === 'libre').length;
+              return (
+                <div key={g.p.slug} style={{ borderTop: `1px solid ${c.line}`, padding: '12px 0' }}>
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: 8 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 700, fontSize: 16 }}>{g.p.name}{g.p.inj && <span style={{ marginLeft: 8, fontSize: 11, padding: '2px 8px', borderRadius: 99, color: g.p.inj === 'GTD' ? c.gold : c.red, border: `1px solid ${g.p.inj === 'GTD' ? c.gold : c.red}66` }}>{g.p.inj}</span>}</div>
+                      <div style={{ fontSize: 12.5, color: c.dim }}>{g.p.teamName} · {g.p.stars}★ · {g.list.length} carte{g.list.length > 1 ? 's' : ''} · {free} libre{free > 1 ? 's' : ''}{g.p.age ? ` · ${g.p.age} ans` : ''}</div>
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
+                        {g.p.opp.map((o, i) => { const bestG = o.pj === Math.max(...g.p.opp.map(z => z.pj ?? 0)); return <span key={i} style={{ fontSize: 11.5, padding: '3px 8px', borderRadius: 8, border: `1px solid ${bestG ? c.gold + '99' : c.line}`, color: bestG ? c.gold : c.dim, background: bestG ? 'rgba(229,185,78,.1)' : 'transparent' }}>{dayLab(parisDay(o.d))} · {o.h ? 'vs' : '@'} {o.o}{o.pj != null ? ` · ${o.pj.toFixed(1)}` : ''}</span>; })}
+                      </div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}><div style={{ fontSize: 10.5, color: c.dim, letterSpacing: 1 }}>MEILLEUR MATCH</div><div style={{ fontWeight: 800, fontSize: 24, color: c.cy, lineHeight: 1.1 }}>{g.best.toFixed(1)}</div></div>
+                  </div>
+                  <div className="gwb-pick">
+                    {g.list.sort((a, b) => b.v - a.v).map(z => (
+                      <button key={z.x.id} disabled={!z.ok} onClick={() => { patch(pickerRoom.id, r => ({ ...r, pins: [...r.pins.filter(i => i !== z.x.id), z.x.id].slice(0, 5) })); setPicker(null); }} style={{ background: 'transparent', border: `1px solid ${z.st === 'ici' ? c.gold : c.line}`, borderRadius: 10, padding: 5, cursor: z.ok ? 'pointer' : 'not-allowed', opacity: z.ok ? 1 : 0.42, color: '#fff', textAlign: 'center', containerType: 'inline-size' }}>
+                        <Slab c={toCand(z.x, pickerRoom)} u={n => `${n}cqw`} art={z.x.pic} />
+                        <div style={{ fontSize: 11, marginTop: 4, color: z.why ? c.red : z.st === 'libre' ? c.green : c.gold, lineHeight: 1.25 }}>{z.why || (z.st === 'libre' ? 'Libre' : z.st === 'ici' ? 'Dans cette compo' : 'Utilisée ' + z.st)}</div>
+                        <div style={{ fontSize: 11, color: c.dim }}>{RARITIES.find(r => r.k === z.x.rar)?.l ?? ''}{z.x.is ? ' · IS' : ' · Classic'}{z.x.pw > 1 ? ` · +${Math.round((z.x.pw - 1) * 100)} %` : ''}</div>
+                        <div style={{ fontWeight: 800, color: c.cy, fontSize: 15 }}>{z.v.toFixed(1)}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+            {!pickerGroups.length && <p style={{ color: c.dim, fontSize: 13 }}>Aucune carte disponible pour cette compo.</p>}
           </div>
         </div>
       )}
