@@ -57,19 +57,21 @@ export default function GwBuilder() {
   const [view, setView] = useState<'build' | 'teams'>('build');
   const [plan, setPlan] = useState({ isc: 4, isk: 3, clc: 3, clk: 3, ar: 2 });
   const [shareMsg, setShareMsg] = useState('');
+  const [splits, setSplits] = useState<Record<string, { home: number; away: number; b2b: number; n: number }>>({});
 
   useEffect(() => { fetch('/api/outils/gw').then(r => r.json()).then(j => j.error ? setErr(j.error) : setGw(j)).catch(e => setErr(String(e))); }, []);
+  useEffect(() => { fetch('/api/outils/gw-splits').then(r => r.json()).then(j => j.splits && setSplits(j.splits)).catch(() => {}); }, []);
   useEffect(() => { try { const p = localStorage.getItem(LSP); if (p) setPseudo(p); } catch {} }, []);
   const players = useMemo(() => (gw?.players || []) as GP[], [gw]);
   // Projection d'un joueur = son MEILLEUR match de la GW (seul le meilleur score compte, qu'il joue 1, 2 ou 3 matchs).
-  // Source "Sorare" : projection Sorare par match. Source "myNFTlocker" : 50 % Sorare + 30 % forme (moy. 10 derniers, ajustee domicile/exterieur et back-to-back)
+  // Source "Sorare" : projection Sorare par match. Source "myNFTlocker" : 50 % Sorare + 30 % forme (moy. 10 derniers, ajustee domicile/exterieur et back-to-back d'apres l'historique des 3 dernieres saisons)
   // + 15 % plafond (meilleur des 10) + 5 % L5 (forme du moment). Statut : questionable -10 %, doubtful -15 %. Bonus 3 matchs : +2 d'office.
   const playersP = useMemo(() => players.map(p => {
     const days = new Set(p.opp.map(o => parisDay(o.d)));
     const prev = (d: string) => parisDay(new Date(new Date(d + 'T12:00:00Z').getTime() - 864e5).toISOString());
     const blend = (pj: number, o: { d: string; h: boolean }) => {
       if (pj <= 0) return 0; if (src !== 'mnl' || p.l10 == null) return pj;
-      const b2b = days.has(prev(parisDay(o.d))), adj = (o.h ? 1.02 : 0.98) * (b2b ? 0.96 : 1);
+      const b2b = days.has(prev(parisDay(o.d))), sp = splits[p.slug], adj = sp ? (o.h ? sp.home : sp.away) * (b2b ? sp.b2b : 1) : (o.h ? 1.02 : 0.98) * (b2b ? 0.96 : 1);
       return 0.5 * pj + 0.3 * p.l10 * adj + 0.15 * (p.ceil ?? p.l10) + 0.05 * (p.l5 ?? p.l10);
     };
     const opp = p.opp.map(o => ({ ...o, pj: blend(o.pj ?? p.proj, o) }));
@@ -77,7 +79,7 @@ export default function GwBuilder() {
     const st = p.inj === 'DOUBT' ? 0.85 : p.inj === 'QUEST' || p.inj === 'GTD' ? 0.9 : 1;
     const proj = p.games > 0 ? (best + (p.games >= 3 ? 2 : 0)) * st : 0;
     return { ...p, opp, proj };
-  }), [players, src]);
+  }), [players, src, splits]);
   const nights = useMemo(() => [...new Set(players.flatMap(p => p.opp.map(o => parisDay(o.d))))].sort(), [players]);
   const fxSlug: string = gw?.fixture?.slug || '';
 
