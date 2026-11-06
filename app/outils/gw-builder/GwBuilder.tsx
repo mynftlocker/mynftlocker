@@ -399,11 +399,11 @@ export default function GwBuilder() {
       if (ql && !(x.p.name + ' ' + x.p.teamName).toLowerCase().includes(ql)) continue;
       const v = cardValue(x, pickerRoom); if (v <= 0) continue;
       const here = pickerRoom.pins.includes(x.id), pe = pinnedAt(x.id), w = where(x.id);
-      const samePlayer = mine.some(m => m.p.slug === x.p.slug && m.id !== x.id);
+      const samePlayer = pickerRes.lineup.some(m => m.p.slug === x.p.slug && m.id !== x.id);
       let why = '';
       if (!here) {
         if (pe >= 0) why = `imposée en compo ${pe + 1}`;
-        else if (samePlayer) why = 'joueur déjà choisi';
+        else if (samePlayer) why = 'joueur déjà dans la compo';
         else if (cost + Math.round(x.p.stars * 2) > pickerRoom.cap * 2) why = 'dépasse le plafond d’étoiles';
         else if ((cnt[x.p.team] || 0) >= pickerRoom.perTeam) why = `déjà ${pickerRoom.perTeam} joueurs de ${x.p.teamName}`;
       }
