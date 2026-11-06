@@ -336,6 +336,7 @@ export default function GwBuilder() {
               {buy?.id === r.id && (
                 <div style={{ margin: '10px 0 12px', padding: 12, borderRadius: 14, border: `1px solid ${c.gold}55`, background: 'radial-gradient(120% 140% at 0% 0%, rgba(229,185,78,.10), rgba(7,11,28,0))' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}><b style={{ color: c.gold }}>Acheter {buy.n} carte{buy.n > 1 ? 's' : ''} · meilleurs gains pour cette compo</b><button onClick={() => setBuy(null)} style={btn()}>✕</button></div>
+                  <div style={{ fontSize: 12, color: c.dim, marginBottom: 6 }}>Annonces à prix fixe des managers (achat immédiat) uniquement : les enchères sont exclues, leur prix n’est pas fiable avant la fin.</div>
                   {buy.busy && <div style={{ color: c.dim, fontSize: 13 }}>Recherche sur le marché Sorare…</div>}
                   {buy.msg && <div style={{ color: c.red, fontSize: 13 }}>{buy.msg}</div>}
                   {buy.res.map((o, k) => (
@@ -343,7 +344,7 @@ export default function GwBuilder() {
                       <div style={{ display: 'flex', gap: 8 }}>{o.adds.map(a => <div key={a.id} style={{ width: 96, containerType: 'inline-size' }}><Slab c={toCand(a, r)} u={n => `${n}cqw`} art={a.pic} /></div>)}</div>
                       <div style={{ flex: '1 1 150px' }}>
                         {o.adds.map(a => <div key={a.id} style={{ fontSize: 13 }}><b>{a.p.name}</b> · {a.buy!.eur.toFixed(2)} € · <a href={a.buy!.url} target="_blank" rel="noopener noreferrer" style={{ color: c.cy }}>voir la carte</a></div>)}
-                        <div style={{ fontSize: 12, color: c.dim, marginTop: 4 }}>Total {o.adds.reduce((s, a) => s + a.buy!.eur, 0).toFixed(2)} € · {(o.gain / o.adds.reduce((s, a) => s + a.buy!.eur, 0)).toFixed(1)} pts par €</div>
+                        <div style={{ fontSize: 12, color: c.dim, marginTop: 4 }}>Total {o.adds.reduce((s, a) => s + a.buy!.eur, 0).toFixed(2)} € · {(o.gain / o.adds.reduce((s, a) => s + a.buy!.eur, 0) * 10).toFixed(1)} pts pour 10 €</div>
                       </div>
                       <div style={{ textAlign: 'right' }}><div style={{ fontSize: 22, fontWeight: 800, color: c.green }}>+{o.gain.toFixed(1)}</div><div style={{ fontSize: 12, color: c.dim }}>nouveau total {o.total.toFixed(0)}</div></div>
                     </div>
