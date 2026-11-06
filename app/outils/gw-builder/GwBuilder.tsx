@@ -407,7 +407,7 @@ export default function GwBuilder() {
   return (
     <div style={{ position: 'relative', minHeight: '100vh', background: '#030510', color: '#fff' }}>
       <StarBg />
-      <style>{'.gwb-row{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}.gwb-cell{container-type:inline-size}.gwb-pick{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}@media(max-width:700px){.gwb-pick{grid-template-columns:repeat(3,minmax(0,1fr))}}@media(max-width:700px){.gwb-row{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}}'}</style>
+      <style>{'.gwb-row{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}.gwb-cell{container-type:inline-size}.gwb-pick{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}@media(max-width:700px){.gwb-pick{grid-template-columns:repeat(3,minmax(0,1fr))}}@media(max-width:700px){.gwb-row{display:flex;overflow-x:auto;scroll-snap-type:x proximity;gap:10px;padding-bottom:8px;-webkit-overflow-scrolling:touch}.gwb-row>.gwb-cell{flex:0 0 46%;scroll-snap-align:start}.gwb-tiles{display:grid!important;grid-template-columns:1fr 1fr;gap:12px 14px!important;width:100%}.gwb-tiles>div:nth-child(3){grid-column:1/-1}.gwb-hint{display:none}}'}</style>
       <main style={{ position: 'relative', zIndex: 1, maxWidth: 1100, margin: '0 auto', padding: '22px 14px 80px', fontFamily: 'system-ui,sans-serif' }}>
         <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, marginBottom: 16 }}>
           <div style={{ minWidth: 0, flex: 1 }}>
@@ -416,14 +416,14 @@ export default function GwBuilder() {
               <a href="/?vue=galerie" style={pillLink}>Galerie</a>
             </nav>
             <h1 style={{ fontSize: 28, margin: '0 0 4px', letterSpacing: '.01em' }}>GW <span style={{ color: c.cy }}>Builder</span></h1>
-            <p style={{ color: c.dim, fontSize: 14, margin: 0 }}>{gw ? `GW ${gw.fixture.gw} · ${gw.fixture.games} matchs` : err || 'Chargement de la GW…'} · tes compos dans l’ordre que tu choisis : une carte ne sert qu’une fois, la compo la plus haute la prend.</p>
+            <p style={{ color: c.dim, fontSize: 14, margin: 0 }}>{gw ? `GW ${gw.fixture.gw} · ${gw.fixture.games} matchs` : err || 'Chargement de la GW…'} <span className="gwb-hint">· tes compos dans l’ordre que tu choisis : une carte ne sert qu’une fois, la compo la plus haute la prend.</span></p>
           </div>
           <a href="/" title="Retour à myNFTlocker" style={{ flex: '0 0 auto' }}>{/* eslint-disable-next-line @next/next/no-img-element */}<img src="/logo-pack.png" alt="myNFTlocker" style={{ height: 'clamp(72px,14vw,112px)', width: 'auto', display: 'block', filter: 'drop-shadow(0 8px 22px rgba(0,255,255,.28))' }} /></a>
         </header>
 
         {/* Synthese */}
         <div style={{ ...glass, padding: '14px 16px', marginBottom: 14, display: 'flex', flexWrap: 'wrap', gap: 14, alignItems: 'center', justifyContent: 'space-between', border: `1px solid rgba(0,255,255,.28)`, background: 'radial-gradient(120% 160% at 0% 0%, rgba(0,255,255,.14), rgba(7,11,28,0) 60%), ' + c.card }}>
-          <div style={{ display: 'flex', gap: 22, flexWrap: 'wrap', alignItems: 'center' }}>
+          <div className="gwb-tiles" style={{ display: 'flex', gap: 22, flexWrap: 'wrap', alignItems: 'center' }}>
             <div><div style={{ fontSize: 12, color: c.dim, letterSpacing: 1 }}>COMPOS PRÊTES</div><div style={{ fontSize: 34, fontWeight: 800, color: c.cy, textShadow: '0 0 18px rgba(0,255,255,.5)', lineHeight: 1.1 }}>{nDone}<span style={{ color: c.dim, fontSize: 18, textShadow: 'none' }}> / {results.length}</span></div></div>
             <div><div style={{ fontSize: 12, color: c.dim, letterSpacing: 1 }}>CARTES ENGAGÉES</div><div style={{ fontSize: 28, fontWeight: 800, lineHeight: 1.2 }}>{usedCards.size}<span style={{ color: c.dim, fontSize: 18 }}> / {cards.length}</span></div><div style={{ fontSize: 11.5, color: c.dim }}>jouables sur {cardStats.total} cartes de jeu · {cardStats.nomatch} non projetées par Sorare (absentes, blessées longue durée) · {cardStats.inj} blessées · {cardStats.engaged} déjà alignées</div></div>
             <div><div style={{ fontSize: 12, color: c.dim, letterSpacing: 1 }}>ESSENCE ARENA · BUDGET</div><div style={{ display: 'flex', alignItems: 'baseline', gap: 6, lineHeight: 1.2 }}><span style={{ fontSize: 28, fontWeight: 800, color: plan.bud && essenceIn > plan.bud ? c.red : c.gold }}>{essenceIn}</span><span style={{ color: c.dim, fontSize: 16 }}>/</span><input type="number" min={0} step={25} placeholder="∞" value={plan.bud || ''} onChange={e => setPlan(pl => ({ ...pl, bud: Math.max(0, +e.target.value || 0) }))} title="Budget Arena en Essence pour cette GW (0 ou vide = sans limite). « Tout générer » le respecte." style={{ ...inp, width: 78, padding: '3px 8px', fontSize: 16, fontWeight: 700 }} /></div><div style={{ fontSize: 11.5, color: plan.bud && essenceIn > plan.bud ? c.red : c.dim }}>{nArena} Arena rentables{plan.bud && essenceIn > plan.bud ? ` · budget dépassé de ${essenceIn - plan.bud}` : ''}</div></div>
