@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
 
-import { myProj, ttflEst } from '../../../lib/ttflEst';
+import { ttflProj, ttflForm, toSorareScale } from '../../../lib/ttflEst';
 import DeckBuilder from './DeckBuilder';
 import InjuriesTable from './InjuriesTable';
 import Bilan from './Bilan';
@@ -45,11 +45,11 @@ export default function TtflBoard() {
       const g = all.slice(-10);
       const n = g.length;
       const l10 = n ? g.reduce((s, x) => s + x.t, 0) / n : null;
-      const est = ttflEst(p.proj, p.l5, p.l10, p.inj);
+      const est = ttflProj(p.proj, ttflForm(all.map(x => ({ d: x.d, t: x.t }))), p.inj, p.home);
       const ti = tbl[norm(p.name)];
       const tOut = !!ti && ti.status === 'OUT' && (!ti.until || night < ti.until);
       const out = (!!p.inj && p.inj !== 'GTD') || tOut;
-      return { ...p, inj: p.inj || (tOut ? 'OUT' : null), n, l10, est, mp: myProj(p.proj, p.l5, p.l10, p.inj), last: n ? g[n - 1].t : null, gp, tg, out };
+      return { ...p, inj: p.inj || (tOut ? 'OUT' : null), n, l10, est, mp: toSorareScale(est), last: n ? g[n - 1].t : null, gp, tg, out };
     })  .filter(r => r.proj >= 5 && !(hideOut && r.out) && (!q || norm(r.name).includes(norm(q)) || norm(r.team).includes(norm(q))))
       .sort((a, b) => b.est - a.est);
   }, [players, hist, q, hideOut, tbl, night]);

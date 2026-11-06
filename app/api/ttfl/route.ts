@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { espnPlayer } from '../../../lib/ttflPlayer';
 import { redis } from '../../../lib/redis';
 import { getDayRows, ymdLocal } from '../../../lib/ttfl';
-import { ttflEst, myProj } from '../../../lib/ttflEst';
+import { ttflProj, ttflForm, toSorareScale } from '../../../lib/ttflEst';
 
 // API publique des projections TTFL : estimation du score TTFL de chaque joueur pour une nuit (jour Paris du coup d'envoi).
 // GET ?night=YYYY-MM-DD -> joueurs ; GET ?inj=1 -> blessures et retours (sans le texte des news). Aucune donnee privee.
@@ -64,10 +64,12 @@ export async function GET(req: NextRequest) {
       // Statut : OUT (Sorare ou tableau) > statut du tableau (injury report NBA : Doubtful / Questionable=GTD / Probable) > GTD Sorare
       const status: 'OUT' | 'GTD' | 'QUEST' | 'DOUBT' | 'PROB' | null = (p.inj && p.inj !== 'GTD') || tOut ? 'OUT' : ti && (ti.status === 'PROB' || ti.status === 'DOUBT' || ti.status === 'QUEST' || ti.status === 'GTD') ? ti.status : p.inj === 'GTD' ? 'GTD' : null;
       const malus = status === 'GTD' || status === 'QUEST' || status === 'DOUBT'; const injEff = malus ? 'GTD' : null; // malus 12 % : Questionable, Doubtful (et statut generique Sorare) ; Probable = aucune baisse
+      const form = ttflForm((s?.g || []).map(x => ({ d: x[0], t: x[1] }))); // forme, plafond et L5 en echelle TTFL
+      const est = status === 'OUT' ? 0 : ttflProj(p.proj, form, injEff, p.home), estFull = malus ? ttflProj(p.proj, form, null, p.home) : null;
       return {
         name: p.name, slug: p.slug, team: p.team, opp: p.opp, home: p.home, time: p.time,
-        est: status === 'OUT' ? 0 : +ttflEst(p.proj, p.l5, p.l10, injEff).toFixed(1), proj: status === 'OUT' ? 0 : +myProj(p.proj, p.l5, p.l10, injEff).toFixed(1), // absent : pas de projection
-        estFull: malus ? +ttflEst(p.proj, p.l5, p.l10, null).toFixed(1) : null, // projection s'il joue (sans malus GTD)
+        est: +est.toFixed(1), proj: status === 'OUT' ? 0 : +toSorareScale(est).toFixed(1), // absent : pas de projection
+        estFull: estFull == null ? null : +estFull.toFixed(1), // projection s'il joue (sans malus GTD)
         l10: s?.l10 ?? null, n: s?.n ?? 0, g: s?.g ?? [], last: s?.last ?? null, gp: s?.gp ?? 0, tg: s?.tg ?? 0,
         status, until: tOut ? ti.until : null,
       };

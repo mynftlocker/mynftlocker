@@ -24,6 +24,9 @@ async function snapshot(origin: string, night: string) {
   if (!haveC) await redis.set(`cuplog:snap:${night}`, snap, { ex: 60 * 86400 });
   // Journal TTFL : memes entrees mais avec le nom (le score TTFL reel est relu par nom dans les box-scores ESPN)
   if (!haveT) await redis.set(`ttflog:snap:${night}`, pl.map(p => [p.name, p.proj, p.l5 ?? null, p.l10 ?? null, p.inj ?? null]), { ex: 60 * 86400 }).catch(() => {});
+  // Journal de la formule publiee : estimation TTFL exacte affichee sur /ttfl (avec forme, plafond et L5 en echelle TTFL), pour comparer aux scores reels
+  const haveE = await redis.get(`ttflog:est:${night}`).catch(() => null);
+  if (!haveE) { try { const e = await (await fetch(`${origin}/api/ttfl?night=${night}`, { cache: 'no-store' })).json(); if (e?.rows?.length) await redis.set(`ttflog:est:${night}`, Object.fromEntries(e.rows.map((x: any) => [x.name, [x.est, x.status]])), { ex: 60 * 86400 }); } catch { /* journal de la formule : reessaye au prochain passage */ } }
   return pl.length;
 }
 async function settle(night: string) {
