@@ -128,7 +128,7 @@ export default function LiveTab({ night, proj, slugs, initialGame, onSelect }: {
 
   // Fiche joueur : anneau TTFL vs projection, puis "ce qui rapporte / ce qui coute" en barres, et l'adresse au tir en trois anneaux.
   const sheet = (p: P) => {
-    const pj = proj[norm(p.name)]; const gm = games?.find(g => g.id === sel); const logo = gm && (gm.away.abbr === p.team ? gm.away.logo : gm.home.logo); // le logo vient de la liste de la nuit (la fiche du match ne le donne pas)
+    const pj = proj[norm(p.name)]; const gm = games?.find(g => g.id === sel); const tm = gm && (gm.away.abbr === p.team ? gm.away : gm.home); const logo = tm?.logo; // le logo vient de la liste de la nuit (la fiche du match ne le donne pas)
     const miss = (p.fga - p.fgm) + (p.tpa - p.tpm) + (p.fta - p.ftm);
     const bonus = p.pts + p.reb + p.ast + p.stl + p.blk + p.fgm + p.tpm + p.ftm; const malus = miss + p.to;
     const col = tier(p.ttfl);
@@ -167,8 +167,10 @@ export default function LiveTab({ night, proj, slugs, initialGame, onSelect }: {
           </div>
           <div style={{ padding: '14px 12px 0' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px 14px', borderRadius: 18, border: `1px solid ${col}55`, background: `radial-gradient(110% 130% at 100% 0%, ${col}26, rgba(7,11,28,0) 60%), linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.01))` }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={`https://a.espncdn.com/i/headshots/nba/players/full/${p.id}.png`} alt={p.name} width={88} height={64} onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} style={{ flex: '0 0 auto', width: 88, height: 64, objectFit: 'cover', objectPosition: 'top', borderRadius: 14, border: `1px solid ${col}55`, background: 'rgba(255,255,255,.05)' }} />
               <div style={{ flex: 1, minWidth: 0 }}>
-                {logo && /* eslint-disable-next-line @next/next/no-img-element */ <img src={logo} alt="" width={40} height={40} style={{ display: 'block', marginBottom: 6 }} />}
+                {logo && <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>{/* eslint-disable-next-line @next/next/no-img-element */}<img src={logo} alt="" width={28} height={28} />{tm?.name && <span style={{ fontSize: 13, color: c.dim }}>{tm.name}</span>}</div>}
                 <div style={{ fontSize: 22, fontWeight: 800, lineHeight: 1.2 }}>{p.name}</div>
                 <div style={{ color: c.dim, fontSize: 13, marginTop: 4 }}>{p.starter ? tr('Cinq majeur') + ' · ' : ''}<b style={{ color: '#fff' }}>{Math.round(p.min)} min</b></div>
                 {pj != null && <div style={{ marginTop: 8, display: 'inline-block', fontSize: 13, color: c.gold, border: `1px solid ${c.gold}66`, borderRadius: 999, padding: '3px 10px' }}>{tr('Projection')} {pj.toFixed(1)} <b style={{ color: p.ttfl >= pj ? '#4ade80' : '#ff7b7b' }}>({p.ttfl >= pj ? '+' : ''}{(p.ttfl - pj).toFixed(1)})</b></div>}
