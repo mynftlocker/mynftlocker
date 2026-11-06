@@ -30,7 +30,7 @@ export const PRESETS: { kind: RoomKind; label: string; cap: number; minIS: numbe
 // Paliers de la Cup : cartes In-Season minimum (cap 16 etoiles)
 export const CUP_TIERS = [{ n: 1, pts: 230, is: 1 }, { n: 2, pts: 250, is: 1 }, { n: 3, pts: 270, is: 2 }, { n: 4, pts: 280, is: 3 }, { n: 5, pts: 300, is: 4 }];
 
-export type Card = { id: string; p: GP; is: boolean; pw: number; pic: string | null; rar?: string };
+export type Card = { id: string; p: GP; is: boolean; pw: number; pic: string | null; rar?: string; buy?: { eur: number; url: string } };
 export const RARITIES = [{ k: 'limited', l: 'Limited' }, { k: 'rare', l: 'Rare' }, { k: 'super_rare', l: 'Super Rare' }, { k: 'unique', l: 'Unique' }];
 // Arena Rooms NBA 27 (regles officielles Sorare) : plafond, age, entree en Essence
 export const ARENAS = [
@@ -132,8 +132,8 @@ export function allocate(rooms: Room[], cards: Card[]): RoomResult[] {
 
 // Potentiel d'une compo = meilleure compo possible avec TOUS les joueurs de la GW (hors collection) : sert de reference pour classer
 export function idealTotal(players: GP[], r: Room): number {
-  const fake: Card[] = players.filter(p => p.games > 0 && ageOk(p, r)).map(p => ({ id: 'i' + p.slug, p, is: true, pw: 1, pic: null }));
-  const lu = solve(fake.map(c => toCand(c, { ...r, bonus: false, minIS: 0 })), { ...r, minIS: 0 });
+  const fake: Card[] = players.filter(p => p.games > 0 && ageOk(p, r)).map(p => ({ id: 'i' + p.slug, p, is: true, pw: 1.1, pic: null }));
+  const lu = solve(fake.map(c => toCand(c, { ...r, minIS: 0 })), { ...r, minIS: 0 });
   return lu.reduce((s, c) => s + c.v, 0);
 }
 

@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
 import type { GP } from '../../../lib/gwLineup';
-import { PRESETS, ARENAS, RARITIES, roomRar, rankRooms, ageOk, CUP_TIERS, allocate, cardValue, toCand, type Card, type Room, type RoomKind } from '../../../lib/gwAuto';
+import { PRESETS, ARENAS, RARITIES, roomRar, rankRooms, ageOk, solve, CUP_TIERS, allocate, cardValue, toCand, type Card, type Room, type RoomKind } from '../../../lib/gwAuto';
 import { baseProj, gameAdj, statusMul } from '../../../lib/projBase';
 import StarBg from '../../components/StarBg';
 import { Slab } from '../gw/Slab';
@@ -58,6 +58,7 @@ export default function GwBuilder() {
   const [view, setView] = useState<'build' | 'teams'>('build');
   const [plan, setPlan] = useState({ isc: 4, isk: 3, clc: 3, clk: 3, ar: 2 });
   const [shareMsg, setShareMsg] = useState('');
+  const [buy, setBuy] = useState<{ id: string; n: 1 | 2; busy: boolean; msg: string; res: { adds: Card[]; total: number; gain: number }[] } | null>(null);
   const [splits, setSplits] = useState<Record<string, { home: number; away: number; b2b: number; n: number }>>({});
 
   useEffect(() => { fetch('/api/outils/gw').then(r => r.json()).then(j => j.error ? setErr(j.error) : setGw(j)).catch(e => setErr(String(e))); }, []);
@@ -143,6 +144,41 @@ export default function GwBuilder() {
     for (let i = 1; i <= plan.ar; i++) out.push(makeRoom('arena', { label: `Arena Champion ${i}`, essence: 150 }));
     return [...out.slice(0, 1), ...keep, ...out.slice(1)];
   });
+  // Acheter 1 ou 2 cartes : on cherche, parmi les meilleurs joueurs de la GW, la ou les cartes EN VENTE qui font le plus monter cette compo
+  // (visuel In-Season pour les compos IS et la Cup, Classic pour les Classic et les Arena). Pour 2 cartes : on garde les meilleures premieres achats puis on cherche le meilleur complement.
+  const runBuy = async (room: Room, n: 1 | 2) => {
+    setBuy({ id: room.id, n, busy: true, msg: '', res: [] });
+    try {
+      const isRoom = room.kind === 'is-champ' || room.kind === 'is-cont' || room.kind === 'cup', rar = roomRar(room)[0];
+      const cand = [...playersP].filter(p => p.games > 0 && p.proj > 0 && p.inj !== 'OUT' && ageOk(p, room)).sort((a, b) => b.proj - a.proj).slice(0, 40);
+      const offers: Record<string, any> = {};
+      for (let i = 0; i < cand.length; i += 20) {
+        const r = await fetch(`/api/outils/gw-market?rar=${rar}&slugs=${cand.slice(i, i + 20).map(p => p.slug).join(',')}`); const j = await r.json();
+        if (!r.ok) throw new Error(j.error || 'marché indisponible'); Object.assign(offers, j.offers || {});
+      }
+      const extras: Card[] = [];
+      for (const p of cand) { const o = offers[p.slug]?.[isRoom ? 'is' : 'cl']; if (o) extras.push({ id: 'buy:' + o.card, p, is: isRoom, pw: o.power || 1, pic: o.pic, rar, buy: { eur: o.eur, url: 'https://sorare.com/nba/cards/' + o.card } }); }
+      if (!extras.length) throw new Error('aucune carte en vente trouvée pour cette rareté');
+      const here = results.find(x => x.room.id === room.id)!;
+      const taken = new Set(results.filter(x => x.room.id !== room.id).flatMap(x => x.lineup.map(l => l.id)));
+      const rr = roomRar(room);
+      const pool = cards.filter(c => !taken.has(c.id) && rr.includes(c.rar || 'limited') && ageOk(c.p, room));
+      const lockedC = room.pins.map(id => cards.find(c => c.id === id)).filter(Boolean).map(c => toCand(c as Card, room));
+      const tot = (extra: Card[]) => { const lu = solve([...pool, ...extra].map(c => toCand(c, room)), room, lockedC); return { lu, t: lu.length === 5 ? lu.reduce((s, c) => s + c.v, 0) : 0 }; };
+      const base = here.lineup.length === 5 ? here.total : 0;
+      const one = extras.map(e => { const r = tot([e]); return { adds: [e], total: r.t, gain: r.t - base, used: r.lu.some(c => c.id === e.id) }; }).filter(x => x.used && x.gain > 0.05).sort((a, b) => b.gain - a.gain);
+      let out: { adds: Card[]; total: number; gain: number }[] = one.slice(0, 6);
+      if (n === 2) {
+        const pairs: { adds: Card[]; total: number; gain: number }[] = [];
+        for (const a of one.slice(0, 6)) for (const b of extras) {
+          if (b.p.slug === a.adds[0].p.slug) continue; const r = tot([a.adds[0], b]);
+          if (r.lu.some(c => c.id === a.adds[0].id) && r.lu.some(c => c.id === b.id) && r.t - base > 0.05) pairs.push({ adds: [a.adds[0], b], total: r.t, gain: r.t - base });
+        }
+        out = pairs.sort((a, b) => b.gain - a.gain).slice(0, 5);
+      }
+      setBuy({ id: room.id, n, busy: false, msg: out.length ? '' : 'Aucun achat n’améliore cette compo.', res: out.map(({ adds, total, gain }) => ({ adds, total, gain })) });
+    } catch (e: any) { setBuy({ id: room.id, n, busy: false, msg: 'Achat impossible : ' + String(e?.message || e), res: [] }); }
+  };
   const shareTeam = async (res: typeof results[number], i: number) => {
     try {
       const title = `${res.room.label}`;
@@ -292,9 +328,28 @@ export default function GwBuilder() {
                 </>}
                 {r.kind === 'arena' && <label style={{ fontSize: 13, color: c.dim, display: 'flex', alignItems: 'center', gap: 6 }}>Plafond ★ <input type="number" min={5} max={99} value={r.cap} onChange={e => patch(r.id, x => ({ ...x, cap: Math.max(5, +e.target.value || 16) }))} style={{ ...inp, width: 64 }} /></label>}
                 <button onClick={() => { setPicker(r.id); setQ(''); }} style={btn()}>+ Choisir une carte</button>
+                <button onClick={() => runBuy(r, 1)} style={btn(buy?.id === r.id && buy.n === 1)}>Acheter 1 carte</button>
+                <button onClick={() => runBuy(r, 2)} style={btn(buy?.id === r.id && buy.n === 2)}>Acheter 2 cartes</button>
                 {r.pins.length > 0 && <button onClick={() => patch(r.id, x => ({ ...x, pins: [] }))} style={btn()}>Vider mes choix</button>}
                 <button onClick={() => setRooms(rs => (rs || []).filter(x => x.id !== r.id))} style={{ ...btn(), marginLeft: 'auto', color: c.red }} aria-label="Supprimer la compo">Supprimer</button>
               </div>
+              {buy?.id === r.id && (
+                <div style={{ margin: '10px 0 12px', padding: 12, borderRadius: 14, border: `1px solid ${c.gold}55`, background: 'radial-gradient(120% 140% at 0% 0%, rgba(229,185,78,.10), rgba(7,11,28,0))' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}><b style={{ color: c.gold }}>Acheter {buy.n} carte{buy.n > 1 ? 's' : ''} · meilleurs gains pour cette compo</b><button onClick={() => setBuy(null)} style={btn()}>✕</button></div>
+                  {buy.busy && <div style={{ color: c.dim, fontSize: 13 }}>Recherche sur le marché Sorare…</div>}
+                  {buy.msg && <div style={{ color: c.red, fontSize: 13 }}>{buy.msg}</div>}
+                  {buy.res.map((o, k) => (
+                    <div key={k} style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', padding: '10px 0', borderTop: `1px solid ${c.line}` }}>
+                      <div style={{ display: 'flex', gap: 8 }}>{o.adds.map(a => <div key={a.id} style={{ width: 96, containerType: 'inline-size' }}><Slab c={toCand(a, r)} u={n => `${n}cqw`} art={a.pic} /></div>)}</div>
+                      <div style={{ flex: '1 1 150px' }}>
+                        {o.adds.map(a => <div key={a.id} style={{ fontSize: 13 }}><b>{a.p.name}</b> · {a.buy!.eur.toFixed(2)} € · <a href={a.buy!.url} target="_blank" rel="noopener noreferrer" style={{ color: c.cy }}>voir la carte</a></div>)}
+                        <div style={{ fontSize: 12, color: c.dim, marginTop: 4 }}>Total {o.adds.reduce((s, a) => s + a.buy!.eur, 0).toFixed(2)} € · {(o.gain / o.adds.reduce((s, a) => s + a.buy!.eur, 0)).toFixed(1)} pts par €</div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}><div style={{ fontSize: 22, fontWeight: 800, color: c.green }}>+{o.gain.toFixed(1)}</div><div style={{ fontSize: 12, color: c.dim }}>nouveau total {o.total.toFixed(0)}</div></div>
+                    </div>
+                  ))}
+                </div>
+              )}
               {res.lineup.length ? (
                 <div className="gwb-row">
                   {res.lineup.map(cd => {
