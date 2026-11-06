@@ -59,7 +59,7 @@ export default function GwBuilder() {
   const [picker, setPicker] = useState<string | null>(null);
   const [q, setQ] = useState('');
   const [copied, setCopied] = useState(false);
-  const [src, setSrc] = useState<'sorare' | 'mnl'>('sorare');   // source de projection
+  const [src, setSrc] = useState<'sorare' | 'mnl'>('mnl');   // source de projection
   const [view, setView] = useState<'build' | 'teams'>('build');
   const [plan, setPlan] = useState<Record<string, number>>({ 'isc|limited': 4, 'isk|limited': 3, 'clc|limited': 3, 'clk|limited': 3, 'ar|limited': 2 });
   const [shareMsg, setShareMsg] = useState('');
@@ -333,8 +333,8 @@ export default function GwBuilder() {
           <button onClick={() => setView('build')} style={btn(view === 'build')}>Construire</button>
           <button onClick={() => setView('teams')} style={btn(view === 'teams')}>Mes équipes ({results.filter(r => r.lineup.length === 5 && !skipped(r)).length})</button>
           <span style={{ marginLeft: 'auto', fontSize: 12, color: c.dim }}>Projection :</span>
-          <button onClick={() => setSrc('sorare')} style={btn(src === 'sorare')}>Sorare (Rotowire)</button>
           <button onClick={() => setSrc('mnl')} style={btn(src === 'mnl')}>myNFTlocker</button>
+          <button onClick={() => setSrc('sorare')} style={btn(src === 'sorare')}>Sorare (Rotowire)</button>
         </div>
         {shareMsg && <p style={{ color: c.red, fontSize: 13 }}>{shareMsg}</p>}
         {loadMsg && <p style={{ color: c.gold, fontSize: 13 }}>{loadMsg}</p>}
