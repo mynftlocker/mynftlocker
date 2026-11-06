@@ -2,8 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ownerOnly } from '../../../../lib/owner';
 import { redis } from '../../../../lib/redis';
 
-// Seuils reels des Arena Rooms NBA (API publique Sorare, GW deja terminees) : score de la 5e place (limite de rentabilite), du podium et du 1er,
-// par type de room et par rarete. Mediane sur un echantillon de rooms. Cache 6 h. Reserve au proprietaire.
+// Seuils reels des Arena Rooms NBA (API publique Sorare, GW deja terminees) par type de room et par rarete : score de la 5e place (limite de rentabilite),
+// du podium et du 1er, + les recompenses de la room. Reserve au proprietaire. Cache 6 h.
+// v3 (audit 06/11) : le niveau des scores depend surtout du NOMBRE DE MATCHS de la GW (backtest : correlation 0,96 a 0,99 entre nb de matchs et score de la 5e place).
+// On echantillonne jusqu'a 6 GW terminees, on ajuste score = a + b x nb de matchs par type/rarete, puis on ramene chaque room au nombre de matchs de la GW EN COURS.
 export const maxDuration = 60;
 const H: Record<string, string> = { 'Content-Type': 'application/json' };
 async function gq(q: string) {
@@ -13,30 +15,68 @@ async function gq(q: string) {
 }
 const med = (a: number[]) => { const s = [...a].sort((x, y) => x - y); return s.length ? s[Math.floor(s.length / 2)] : 0; };
 const TYPES: Record<string, string> = { Champion: 'champ', Contender: 'cont', Uncapped: 'unc', Veterans: 'vet', U23: 'u23' };
+const ROOMS_PER_GW = 10, MAX_GW = 6;
+
+// Droite des moindres carres y = a + b x (b borne a [0, 4] pour rester prudent)
+function line(xs: number[], ys: number[]) {
+  const n = xs.length, mx = xs.reduce((s, v) => s + v, 0) / n, my = ys.reduce((s, v) => s + v, 0) / n;
+  const sxx = xs.reduce((s, v) => s + (v - mx) ** 2, 0), sxy = xs.reduce((s, v, i) => s + (v - mx) * (ys[i] - my), 0);
+  const b = sxx > 0 ? Math.max(0, Math.min(4, sxy / sxx)) : 0;
+  return (x: number) => my + b * (x - mx);
+}
 
 export async function GET(req: NextRequest) {
   const deny = await ownerOnly(req); if (deny) return deny;
-  const KEY = 'gwb:arena:v2';
+  const KEY = 'gwb:arena:v3';
   if (!req.nextUrl.searchParams.get('fresh')) { const hit = await redis.get<any>(KEY).catch(() => null); if (hit) return NextResponse.json(hit); }
   try {
-    const fx = (await gq('{ so5{ so5Fixtures(first:6, sport:NBA){ nodes{ slug gameWeek aasmState } } } }')).so5.so5Fixtures.nodes.filter((f: any) => f.aasmState === 'closed').slice(0, 2);
-    const groups: Record<string, { slug: string }[]> = {};
-    for (const f of fx) {
-      const L = (await gq(`{ so5{ so5Fixture(slug:"${f.slug}"){ so5Leaderboards{ slug displayName } } } }`)).so5.so5Fixture.so5Leaderboards as { slug: string; displayName: string }[];
-      for (const l of L) { const m = l.slug.match(/_(limited|rare|super_rare)_arena_/); const t = TYPES[l.displayName]; if (!m || !t) continue; (groups[`${m[1]}|${t}`] ||= []).push(l); }
+    const all = (await gq('{ so5{ so5Fixtures(first:10, sport:NBA){ nodes{ slug gameWeek aasmState } } } }')).so5.so5Fixtures.nodes as { slug: string; gameWeek: number; aasmState: string }[];
+    const gamesOf = async (slug: string) => ((await gq(`{ so5{ so5Fixture(slug:"${slug}"){ games{ id } } } }`)).so5.so5Fixture?.games || []).length as number;
+    const cur = all.filter(f => f.aasmState === 'opened').sort((a, b) => a.gameWeek - b.gameWeek)[0];
+    const curGames = cur ? await gamesOf(cur.slug) : 0;
+    // GW terminees d'une saison reguliere (10 a 40 matchs : on ecarte les fixtures de playoffs / intersaison)
+    const done: { slug: string; gw: number; g: number }[] = [];
+    for (const f of all.filter(f => f.aasmState === 'closed').sort((a, b) => b.gameWeek - a.gameWeek)) {
+      if (done.length >= MAX_GW) break;
+      const g = await gamesOf(f.slug); if (g >= 10 && g <= 40) done.push({ slug: f.slug, gw: f.gameWeek, g });
     }
-    const jobs = Object.entries(groups).flatMap(([k, ls]) => ls.sort(() => Math.random() - 0.5).slice(0, 14).map(l => ({ k, slug: l.slug })));
-    const acc: Record<string, { f: number[]; p: number[]; w: number[] }> = {};
+    type Room = { key: string; gw: number; g: number; slug: string; top: number[] };
+    const groups: Record<string, { slug: string; gw: number; g: number }[]> = {};
+    const rewardSlug: Record<string, string> = {};
+    for (const f of done) {
+      const L = (await gq(`{ so5{ so5Fixture(slug:"${f.slug}"){ so5Leaderboards{ slug displayName } } } }`)).so5.so5Fixture.so5Leaderboards as { slug: string; displayName: string }[];
+      for (const l of L) { const m = l.slug.match(/_(limited|rare|super_rare)_arena_/); const t = TYPES[l.displayName]; if (!m || !t) continue; const k = `${m[1]}|${t}`; (groups[k] ||= []).push({ slug: l.slug, gw: f.gw, g: f.g }); if (m[1] === 'limited' && !rewardSlug[t]) rewardSlug[t] = l.slug; }
+    }
+    // echantillon : ROOMS_PER_GW rooms par GW et par cle
+    const jobs: { k: string; slug: string; gw: number; g: number }[] = [];
+    for (const [k, ls] of Object.entries(groups)) for (const f of done) jobs.push(...ls.filter(l => l.gw === f.gw).sort(() => Math.random() - 0.5).slice(0, ROOMS_PER_GW).map(l => ({ k, ...l })));
+    const rooms: Room[] = [];
     const batches: typeof jobs[] = []; for (let i = 0; i < jobs.length; i += 5) batches.push(jobs.slice(i, i + 5));
     let bi = 0;
     await Promise.all(Array.from({ length: 4 }, async () => { while (bi < batches.length) {
       const b = batches[bi++];
       try { const d = await gq('{ so5{ ' + b.map((x, j) => `r${j}: so5Leaderboard(slug:"${x.slug}"){ so5Rankings(first:5){ nodes{ ranking score } } }`).join(' ') + ' } }');
-        b.forEach((x, j) => { const n = d.so5[`r${j}`]?.so5Rankings?.nodes || []; if (n.length < 5) return; const a = (acc[x.k] ||= { f: [], p: [], w: [] }); a.f.push(n[4].score); a.p.push(n[2].score); a.w.push(n[0].score); }); } catch { /* lot ignore */ }
+        b.forEach((x, j) => { const n = d.so5[`r${j}`]?.so5Rankings?.nodes || []; if (n.length < 5) return; rooms.push({ key: x.k, gw: x.gw, g: x.g, slug: x.slug, top: n.map((z: any) => z.score as number) }); }); } catch { /* lot ignore */ }
     } }));
-    const out: Record<string, { fifth: number; podium: number; first: number; rooms: number; list: number[] }> = {};
-    for (const [k, a] of Object.entries(acc)) out[k] = { fifth: +med(a.f).toFixed(1), podium: +med(a.p).toFixed(1), first: +med(a.w).toFixed(1), rooms: a.f.length, list: [...a.f].sort((x, y) => x - y).map(v => +v.toFixed(1)) };
-    const res = { thresholds: out, gws: fx.map((f: any) => f.gameWeek), at: new Date().toISOString() };
+    // recompenses (cartes shards / Essence) des 5 premieres places, par type
+    const rew: Record<string, number[]> = {};
+    await Promise.all(Object.entries(rewardSlug).map(async ([t, slug]) => {
+      try { const d = await gq(`{ so5{ so5Leaderboard(slug:"${slug}"){ rewardsConfig{ ranking{ rewardConfigs{ ... on CardShardRewardConfig{ quantity } } } } } } }`);
+        const q = (d.so5.so5Leaderboard.rewardsConfig.ranking as any[]).map(x => Number(x.rewardConfigs?.[0]?.quantity) || 0); if (q.length === 5) rew[t] = q; } catch { /* pas de recompenses : pas de ROI */ }
+    }));
+    const out: Record<string, { fifth: number; podium: number; first: number; rooms: number; list: number[]; tops: number[][]; rew: number[] | null; slope: number; gws: number }> = {};
+    const byKey: Record<string, Room[]> = {}; for (const r of rooms) (byKey[r.key] ||= []).push(r);
+    for (const [k, rs] of Object.entries(byKey)) {
+      // niveau par GW (mediane de la 5e place) -> droite sur le nombre de matchs
+      const gwList = [...new Set(rs.map(r => r.gw))].map(gw => { const x = rs.filter(r => r.gw === gw); return { g: x[0].g, n: x.length, m: med(x.map(r => r.top[4])) }; }).filter(x => x.n >= 3);
+      const f = gwList.length >= 3 && new Set(gwList.map(x => x.g)).size >= 2 ? line(gwList.map(x => x.g), gwList.map(x => x.m)) : null;
+      const slope = f && curGames ? +(f(curGames + 1) - f(curGames)).toFixed(2) : 0;
+      const shift = (r: Room) => (f && curGames ? f(curGames) - f(r.g) : 0);   // ramene la room au nombre de matchs de la GW en cours
+      const tops = rs.map(r => r.top.map(v => v + shift(r)));
+      const fifths = tops.map(t => t[4]).sort((x, y) => x - y);
+      out[k] = { fifth: +med(fifths).toFixed(1), podium: +med(tops.map(t => t[2])).toFixed(1), first: +med(tops.map(t => t[0])).toFixed(1), rooms: rs.length, list: fifths.map(v => +v.toFixed(1)), tops: tops.slice(0, 40).map(t => t.map(v => +v.toFixed(1))), rew: rew[k.split('|')[1]] || null, slope, gws: gwList.length };
+    }
+    const res = { thresholds: out, gws: done.map(f => f.gw), games: curGames, at: new Date().toISOString() };
     if (Object.keys(out).length) await redis.set(KEY, res, { ex: 21600 }).catch(() => {});
     return NextResponse.json(res);
   } catch (e: any) { return NextResponse.json({ error: String(e?.message || e) }, { status: 502 }); }
