@@ -17,11 +17,11 @@ const med = (a: number[]) => { const s = [...a].sort((x, y) => x - y); return s.
 const TYPES: Record<string, string> = { Champion: 'champ', Contender: 'cont', Uncapped: 'unc', Veterans: 'vet', U23: 'u23' };
 const ROOMS_PER_GW = 10, MAX_GW = 6;
 
-// Droite des moindres carres y = a + b x (b borne a [0, 4] pour rester prudent)
-function line(xs: number[], ys: number[]) {
+// Droite des moindres carres y = a + b x (b borne a [0, bmax] pour rester prudent)
+function line(xs: number[], ys: number[], bmax = 4) {
   const n = xs.length, mx = xs.reduce((s, v) => s + v, 0) / n, my = ys.reduce((s, v) => s + v, 0) / n;
   const sxx = xs.reduce((s, v) => s + (v - mx) ** 2, 0), sxy = xs.reduce((s, v, i) => s + (v - mx) * (ys[i] - my), 0);
-  const b = sxx > 0 ? Math.max(0, Math.min(4, sxy / sxx)) : 0;
+  const b = sxx > 0 ? Math.max(0, Math.min(bmax, sxy / sxx)) : 0;
   return (x: number) => my + b * (x - mx);
 }
 
@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
     const curGames = cur ? await gamesOf(cur.slug) : 0;
     // GW terminees d'une saison reguliere (10 a 40 matchs : on ecarte les fixtures de playoffs / intersaison)
     const done: { slug: string; gw: number; g: number }[] = [];
-    for (const f of all.filter(f => f.aasmState === 'closed').sort((a, b) => b.gameWeek - a.gameWeek)) {
+    for (const f of all.filter(f => f.aasmState === 'closed' || f.aasmState === 'computed').sort((a, b) => b.gameWeek - a.gameWeek)) {
       if (done.length >= MAX_GW) break;
       const g = await gamesOf(f.slug); if (g >= 10 && g <= 40) done.push({ slug: f.slug, gw: f.gameWeek, g });
     }
@@ -66,15 +66,21 @@ export async function GET(req: NextRequest) {
     }));
     const out: Record<string, { fifth: number; podium: number; first: number; rooms: number; list: number[]; tops: number[][]; rew: number[] | null; slope: number; gws: number }> = {};
     const byKey: Record<string, Room[]> = {}; for (const r of rooms) (byKey[r.key] ||= []).push(r);
+    // Niveau RELATIF de chaque GW (mediane de la 5e place / mediane globale), mesure sur les deux types les mieux fournis (Champion et Contender, rarete Limited),
+    // puis droite niveau = f(nombre de matchs). Meme facteur applique a tous les types : plus fiable que d'ajuster chaque type avec peu de rooms.
+    const refPts: Record<number, { g: number; v: number[] }> = {};
+    for (const k of ['limited|cont', 'limited|champ']) {
+      const rs = byKey[k] || []; if (!rs.length) continue; const all = med(rs.map(r => r.top[4]));
+      for (const gw of new Set(rs.map(r => r.gw))) { const x = rs.filter(r => r.gw === gw); if (x.length >= 3) (refPts[gw] ||= { g: x[0].g, v: [] }).v.push(med(x.map(r => r.top[4])) / all); }
+    }
+    const pts = Object.values(refPts).map(p => ({ g: p.g, L: p.v.reduce((a, b) => a + b, 0) / p.v.length }));
+    const f = pts.length >= 3 && new Set(pts.map(p => p.g)).size >= 3 ? line(pts.map(p => p.g), pts.map(p => p.L), 0.05) : null;
+    const ratio = (r: Room) => (f && curGames ? Math.max(0.8, Math.min(1.25, f(curGames) / f(r.g))) : 1);   // ramene la room au nombre de matchs de la GW en cours
+    const slope = f && curGames ? +((f(curGames + 1) / f(curGames) - 1) * 100).toFixed(1) : 0;   // % de score par match supplementaire
     for (const [k, rs] of Object.entries(byKey)) {
-      // niveau par GW (mediane de la 5e place) -> droite sur le nombre de matchs
-      const gwList = [...new Set(rs.map(r => r.gw))].map(gw => { const x = rs.filter(r => r.gw === gw); return { g: x[0].g, n: x.length, m: med(x.map(r => r.top[4])) }; }).filter(x => x.n >= 3);
-      const f = gwList.length >= 3 && new Set(gwList.map(x => x.g)).size >= 2 ? line(gwList.map(x => x.g), gwList.map(x => x.m)) : null;
-      const slope = f && curGames ? +(f(curGames + 1) - f(curGames)).toFixed(2) : 0;
-      const shift = (r: Room) => (f && curGames ? f(curGames) - f(r.g) : 0);   // ramene la room au nombre de matchs de la GW en cours
-      const tops = rs.map(r => r.top.map(v => v + shift(r)));
+      const tops = rs.map(r => r.top.map(v => v * ratio(r)));
       const fifths = tops.map(t => t[4]).sort((x, y) => x - y);
-      out[k] = { fifth: +med(fifths).toFixed(1), podium: +med(tops.map(t => t[2])).toFixed(1), first: +med(tops.map(t => t[0])).toFixed(1), rooms: rs.length, list: fifths.map(v => +v.toFixed(1)), tops: tops.slice(0, 40).map(t => t.map(v => +v.toFixed(1))), rew: rew[k.split('|')[1]] || null, slope, gws: gwList.length };
+      out[k] = { fifth: +med(fifths).toFixed(1), podium: +med(tops.map(t => t[2])).toFixed(1), first: +med(tops.map(t => t[0])).toFixed(1), rooms: rs.length, list: fifths.map(v => +v.toFixed(1)), tops: tops.slice(0, 40).map(t => t.map(v => +v.toFixed(1))), rew: rew[k.split('|')[1]] || null, slope, gws: new Set(rs.map(r => r.gw)).size };
     }
     const res = { thresholds: out, gws: done.map(f => f.gw), games: curGames, at: new Date().toISOString() };
     if (Object.keys(out).length) await redis.set(KEY, res, { ex: 21600 }).catch(() => {});
