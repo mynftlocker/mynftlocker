@@ -632,7 +632,7 @@ export default function GwBuilder() {
       {/* Choix d'une carte : stock complet par joueur */}
       {picker && pickerRoom && (
         <div role="dialog" aria-modal="true" onClick={e => { if (e.target === e.currentTarget) setPicker(null); }} style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(3,6,18,.9)', backdropFilter: 'blur(6px)', overflowY: 'auto', padding: '16px 10px' }}>
-          <div style={{ ...glass, maxWidth: 760, margin: '0 auto', padding: 14 }}>
+          <div style={{ ...glass, maxWidth: 1060, margin: '0 auto', padding: 14 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginBottom: 10 }}>
               <b style={{ fontSize: 17 }}>{pickerRoom.label} · choisir une carte</b>
               <button onClick={() => setPicker(null)} style={btn()}>✕ Fermer</button>
@@ -640,53 +640,70 @@ export default function GwBuilder() {
             <input value={q} onChange={e => setQ(e.target.value)} placeholder="Joueur ou équipe" style={{ ...inp, width: '100%', boxSizing: 'border-box', marginBottom: 8 }} />
             <div style={{ fontSize: 12, color: c.dim, marginBottom: 10, lineHeight: 1.45 }}>Toute ta collection pour cette compo, par joueur : tu vois combien d’exemplaires il te reste et lesquels. Une carte déjà dans une autre compo passe dans celle-ci, l’autre se réorganise. Une compo ne contient qu’une seule rareté : {RARITIES.find(r => r.k === roomRar(pickerRoom)[0])?.l}.</div>
             {(() => {
-              const rows = pickerGroups.flatMap(g => g.list.map(z => ({ ...z, p: g.p })).filter(z => !pFree || z.st === 'libre' || z.st === 'ici'));
-              const val = (z: (typeof rows)[number]): number => { const p = z.p; switch (pSort.k) { case 'name': return 0; case 'stars': return p.stars; case 'bonus': return z.x.pw; case 'l5': return p.l5 ?? -1; case 'l10': return p.l10 ?? -1; case 'max': return p.ceil ?? -1; case 'proj': return p.proj; case 'eff': return z.v / Math.max(p.stars, 0.5); default: return z.v; } };
+              type Row = { x: Card; v: number; st: string; ok: boolean; why: string; p: GP; n: number; ids: string[] };
+              const m = new Map<string, Row>();
+              for (const g of pickerGroups) for (const z of g.list) {
+                if (pFree && z.st !== 'libre' && z.st !== 'ici') continue;
+                const k = [g.p.slug, z.x.rar, z.x.is, Math.round(z.x.pw * 100), z.st, z.ok].join('|'), e = m.get(k);
+                if (e) { e.n++; e.ids.push(z.x.id); } else m.set(k, { ...z, p: g.p, n: 1, ids: [z.x.id] });
+              }
+              const rows = [...m.values()];
+              const val = (z: Row): number => { const p = z.p; switch (pSort.k) { case 'stars': return p.stars; case 'bonus': return z.x.pw; case 'l5': return p.l5 ?? -1; case 'l10': return p.l10 ?? -1; case 'max': return p.ceil ?? -1; case 'proj': return p.proj; case 'd5': return p.l5 == null ? -99 : p.proj - p.l5; case 'd10': return p.l10 == null ? -99 : p.proj - p.l10; case 'eff': return z.v / Math.max(p.stars, 0.5); default: return z.v; } };
               rows.sort((a, b) => pSort.k === 'name' ? pSort.d * a.p.name.localeCompare(b.p.name) : pSort.d * (val(a) - val(b)));
               const sb = (k: string) => () => setPSort(o => ({ k, d: o.k === k ? (-o.d as 1 | -1) : (k === 'name' ? 1 : -1) }));
               const ar = (k: string) => pSort.k === k ? (pSort.d < 0 ? ' ▼' : ' ▲') : '';
-              const GRID = 'minmax(150px,1.6fr) 38px 120px 92px 40px 40px 52px 48px 58px 50px';
-              const H: React.CSSProperties = { cursor: 'pointer', color: c.dim, fontSize: 11, letterSpacing: .3 };
+              const GRID = 'minmax(190px,1fr) 34px 96px 86px 36px 36px 46px 46px 46px 46px 56px 46px';
+              const H: React.CSSProperties = { cursor: 'pointer', color: c.dim, fontSize: 11, lineHeight: 1.15 };
+              const dl = (a: number | null | undefined, b: number) => a == null ? <span style={{ color: c.dim }}>–</span> : <span style={{ color: b - a > 1 ? c.green : b - a < -1 ? c.red : c.dim }}>{b - a > 0 ? '+' : ''}{(b - a).toFixed(0)}</span>;
               return (
                 <>
-                  <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 13, marginBottom: 8, cursor: 'pointer' }}><input type="checkbox" checked={pFree} onChange={e => setPFree(e.target.checked)} /> Seulement les cartes libres</label>
+                  <div style={{ display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap', marginBottom: 6 }}>
+                    <label style={{ display: 'flex', gap: 7, alignItems: 'center', fontSize: 13, cursor: 'pointer' }}><input type="checkbox" checked={pFree} onChange={e => setPFree(e.target.checked)} /> Cartes libres seulement</label>
+                    <span style={{ fontSize: 12, color: c.dim }}>{rows.length} ligne{rows.length > 1 ? 's' : ''} · clique un titre pour trier · ×N = nombre d’exemplaires identiques</span>
+                  </div>
                   <div style={{ overflowX: 'auto' }}>
-                    <div style={{ minWidth: 700 }}>
-                      <div style={{ display: 'grid', gridTemplateColumns: GRID, gap: 6, padding: '6px 4px', borderBottom: `1px solid ${c.line}`, position: 'sticky', top: 0, background: 'rgba(8,12,28,.96)', zIndex: 2 }}>
-                        <span style={H} onClick={sb('name')}>Joueur{ar('name')}</span>
+                    <div style={{ minWidth: 900 }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: GRID, gap: 4, padding: '6px 4px', borderBottom: `1px solid ${c.line}`, position: 'sticky', top: 0, background: 'rgba(8,12,28,.97)', zIndex: 2 }}>
+                        <span style={{ ...H, color: c.cy }} onClick={sb('name')}>Joueur · matchs de la GW{ar('name')}</span>
                         <span style={H} onClick={sb('stars')} title="Étoiles de la carte">★{ar('stars')}</span>
-                        <span style={H} onClick={sb('bonus')} title="Rareté, type de carte et bonus">Carte · bonus{ar('bonus')}</span>
+                        <span style={H} onClick={sb('bonus')} title="Type de carte et bonus (power)">Carte{ar('bonus')}</span>
                         <span style={H}>Statut</span>
                         <span style={H} onClick={sb('l5')} title="Moyenne des 5 derniers matchs joués">L5{ar('l5')}</span>
                         <span style={H} onClick={sb('l10')} title="Moyenne des 10 derniers matchs joués">L10{ar('l10')}</span>
-                        <span style={H} onClick={sb('max')} title="Meilleur score sur les 10 derniers matchs">Plafond{ar('max')}</span>
-                        <span style={{ ...H, color: c.gold }} onClick={sb('proj')} title="Projection Sorare (Rotowire), meilleur match de la GW">Sorare{ar('proj')}</span>
-                        <span style={{ ...H, color: c.cy }} onClick={sb('est')} title="Estimation = projection × bonus de la carte (meilleur match de la GW)">Estim.{ar('est')}</span>
+                        <span style={{ ...H, color: c.cy }} onClick={sb('max')} title="Meilleur score sur les 10 derniers matchs">Plaf.{ar('max')}</span>
+                        <span style={{ ...H, color: c.gold }} onClick={sb('proj')} title="Projection Sorare (Rotowire) du meilleur match de la GW">Proj.<br /><small style={{ fontSize: 9 }}>Sorare</small>{ar('proj')}</span>
+                        <span style={H} onClick={sb('d5')} title="Projection Sorare moins L5 : vert = Sorare voit mieux que sa forme récente">± L5{ar('d5')}</span>
+                        <span style={H} onClick={sb('d10')} title="Projection Sorare moins L10">± L10{ar('d10')}</span>
+                        <span style={{ ...H, color: c.green }} onClick={sb('est')} title="Estimation = projection × bonus de la carte (meilleur match de la GW)">Estim.{ar('est')}<br /><small style={{ fontSize: 9 }}>× bonus</small></span>
                         <span style={H} onClick={sb('eff')} title="Estimation par étoile">Pts/★{ar('eff')}</span>
                       </div>
-                      {rows.slice(0, 150).map(z => {
-                        const p = z.p, bn = Math.round((z.x.pw - 1) * 100);
+                      {rows.slice(0, 200).map(z => {
+                        const p = z.p, bn = Math.round((z.x.pw - 1) * 100), bestG = Math.max(...p.opp.map(o => o.pj ?? 0));
                         return (
-                          <button key={z.x.id} disabled={!z.ok} onClick={() => { patch(pickerRoom.id, r => ({ ...r, pins: [...r.pins.filter(i => i !== z.x.id), z.x.id].slice(0, 5) })); setPicker(null); }} style={{ display: 'grid', gridTemplateColumns: GRID, gap: 6, alignItems: 'center', width: '100%', textAlign: 'left', background: z.st === 'ici' ? 'rgba(229,185,78,.1)' : 'transparent', border: 0, borderTop: `1px solid ${c.line}`, padding: '7px 4px', color: '#fff', fontSize: 13, cursor: z.ok ? 'pointer' : 'not-allowed', opacity: z.ok ? 1 : 0.45 }}>
+                          <button key={z.ids[0]} disabled={!z.ok} onClick={() => { patch(pickerRoom.id, r => ({ ...r, pins: [...r.pins.filter(i => !z.ids.includes(i)), z.ids[0]].slice(0, 5) })); setPicker(null); }} style={{ display: 'grid', gridTemplateColumns: GRID, gap: 4, alignItems: 'center', width: '100%', textAlign: 'left', background: z.st === 'ici' ? 'rgba(229,185,78,.1)' : 'transparent', border: 0, borderTop: '1px solid rgba(255,255,255,.06)', padding: '5px 4px', color: '#fff', fontSize: 13, cursor: z.ok ? 'pointer' : 'not-allowed', opacity: z.ok ? 1 : 0.45 }}>
                             <span style={{ minWidth: 0 }}>
-                              <b style={{ fontSize: 14 }}>{p.name}</b>{p.inj && <span style={{ marginLeft: 6, fontSize: 10.5, color: p.inj === 'GTD' ? c.gold : c.red }}>{p.inj}</span>}
-                              <span style={{ display: 'block', fontSize: 11.5, color: c.dim }}>{p.teamName} · {p.games} match{p.games > 1 ? 's' : ''}{p.age ? ` · ${p.age} ans` : ''}</span>
+                              <b>{p.name}</b>{p.inj && <span style={{ marginLeft: 6, fontSize: 11, color: p.inj === 'GTD' ? c.gold : c.red }}>{p.inj}</span>}
+                              <span style={{ display: 'flex', flexWrap: 'wrap', gap: '2px 8px', marginTop: 2 }}>
+                                {p.opp.map((o, i) => <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 11, color: o.pj === bestG && p.opp.length > 1 ? c.gold : c.dim, whiteSpace: 'nowrap' }}><span>{o.h ? 'vs' : '@'}</span><Logo ab={o.o} s={14} /><span>{o.o}</span><span style={{ opacity: .7 }}>{dayLab(parisDay(o.d)).split(' ').slice(0, 2).join(' ')}</span></span>)}
+                                {!p.opp.length && <span style={{ fontSize: 11, color: c.dim }}>pas de match</span>}
+                              </span>
                             </span>
                             <span>{p.stars}</span>
-                            <span style={{ fontSize: 12 }}>{RARITIES.find(r => r.k === z.x.rar)?.l ?? 'Limited'}<span style={{ display: 'block', color: z.x.is ? '#c084fc' : c.dim }}>{z.x.is ? '🟣 In-Season' : 'Classic'} <b style={{ color: bn > 0 ? c.green : c.dim }}>+{bn} %</b></span></span>
-                            <span style={{ fontSize: 11.5, color: z.why ? c.red : z.st === 'libre' ? c.green : c.gold, lineHeight: 1.25 }}>{z.why || (z.st === 'libre' ? 'Libre' : z.st === 'ici' ? 'Dans cette compo' : 'Utilisée ' + z.st)}</span>
+                            <span style={{ fontSize: 12 }}>{z.x.is ? <span style={{ color: '#c084fc' }}>🟣 IS</span> : <span style={{ color: c.green }}>✅ CL</span>} <b>+{bn} %</b>{z.n > 1 && <span style={{ color: c.dim }}> ×{z.n}</span>}{z.x.rar && z.x.rar !== 'limited' && <span style={{ display: 'block', fontSize: 10.5, color: c.dim }}>{RARITIES.find(r => r.k === z.x.rar)?.l}</span>}</span>
+                            <span style={{ fontSize: 11, color: z.why ? c.red : z.st === 'libre' ? c.green : c.gold, lineHeight: 1.2 }}>{z.why || (z.st === 'libre' ? 'Libre' : z.st === 'ici' ? 'Dans cette compo' : 'Utilisée ' + z.st)}</span>
                             <span>{p.l5 == null ? '–' : p.l5.toFixed(0)}</span>
                             <span>{p.l10 == null ? '–' : p.l10.toFixed(0)}</span>
-                            <span>{p.ceil == null ? '–' : p.ceil.toFixed(0)}</span>
+                            <span style={{ color: c.cy }}>{p.ceil == null ? '–' : p.ceil.toFixed(0)}</span>
                             <span style={{ color: c.gold }}>{p.proj.toFixed(0)}</span>
-                            <b style={{ color: c.cy, fontSize: 15 }}>{z.v.toFixed(1)}</b>
+                            {dl(p.l5, p.proj)}{dl(p.l10, p.proj)}
+                            <b style={{ color: c.green }}>{z.v.toFixed(0)}</b>
                             <span style={{ color: c.dim }}>{(z.v / Math.max(p.stars, 0.5)).toFixed(1)}</span>
                           </button>
                         );
                       })}
                     </div>
                   </div>
-                  {rows.length > 150 && <div style={{ fontSize: 12, color: c.dim, padding: 6 }}>{rows.length - 150} autres : affine avec la recherche.</div>}
+                  {rows.length > 200 && <div style={{ fontSize: 12, color: c.dim, padding: 6 }}>{rows.length - 200} autres : affine avec la recherche.</div>}
                 </>
               );
             })()}
