@@ -46,7 +46,7 @@ export function Slab({ c, u, art }: { c: Cand; u: (n: number) => string; art: st
             <HexStars stars={c.p.stars} size={u(12.5)} />
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
               <div style={{ display: 'flex', fontWeight: 800, fontSize: u(8.4), lineHeight: 0.95, color: gold, textShadow: '0 0 10px rgba(245,215,110,0.35)' }}>{c.v.toFixed(1)}</div>
-              <div style={{ display: 'flex', fontSize: u(3), letterSpacing: '0.1em', color: '#35e6ff', marginTop: u(1) }}>PROJ</div>
+              <div title="Score attendu du meilleur match de la GW, bonus de la carte inclus. Plus haut que la moyenne d'un match : seul le meilleur compte." style={{ display: 'flex', fontSize: u(3), letterSpacing: '0.1em', color: '#35e6ff', marginTop: u(1) }}>PROJ</div>
             </div>
           </div>
         </div>
@@ -59,7 +59,7 @@ export function Slab({ c, u, art }: { c: Cand; u: (n: number) => string; art: st
         {c.p.inj && <div style={{ display: 'flex', fontSize: u(5), fontWeight: 700, padding: `${u(0.6)} ${u(3)}`, borderRadius: u(10), background: c.p.inj === 'GTD' ? '#ffd914' : '#ff2828', color: c.p.inj === 'GTD' ? '#0e0e0e' : '#fff' }}>{c.p.inj}</div>}
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: u(1.6), fontSize: u(5.4), color: '#cfd8e6', lineHeight: 1.45 }}>
-        <div style={{ display: 'flex', color: '#9ab' }}>{c.p.games} match{c.p.games > 1 ? 's' : ''}</div>
+        <div style={{ display: 'flex', color: '#9ab' }}>{c.p.games} match{c.p.games > 1 ? 's' : ''} · moy.</div>
         {c.p.opp.map((g, i) => (
           <div key={i} style={{ display: 'flex' }}>
             <span>{day(g.d)}</span><span style={{ marginLeft: u(1.6) }}>{`${g.h ? '' : '@'}${abbr(g.o)}`}</span>{g.pj != null && <span style={{ marginLeft: u(2), color: '#ffd24a', fontWeight: 700 }}>{Math.round(g.pj)}</span>}
