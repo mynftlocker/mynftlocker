@@ -270,7 +270,8 @@ export default function GwBuilder() {
     const n = (rs || []).filter(r => r.kind === kind).length + 1; const p = PRESETS.find(x => x.kind === kind)!;
     return [...(rs || []), makeRoom(kind, { label: kind === 'cup' ? 'Emirates NBA Cup · palier 2' : `${p.label} ${n}`, ...(kind === 'cup' ? { minIS: 1, night: nights[0] } : {}) })];
   });
-  const total = results.reduce((s, r) => s + (r.lineup.length === 5 && !skipped(r) ? r.total : 0), 0);
+  const arenaOk = results.filter(r => r.room.kind === 'arena' && r.lineup.length === 5 && !r.issues.length && !skipped(r));
+  const nArena = arenaOk.length, essenceIn = arenaOk.reduce((s, r) => s + (r.room.essence || 0), 0);
   const nDone = results.filter(r => r.lineup.length === 5 && !r.issues.length && !skipped(r)).length;
   const usedCards = new Set(results.flatMap(r => r.lineup.map(x => x.id)));
 
@@ -336,9 +337,9 @@ export default function GwBuilder() {
         {/* Synthese */}
         <div style={{ ...glass, padding: '14px 16px', marginBottom: 14, display: 'flex', flexWrap: 'wrap', gap: 14, alignItems: 'center', justifyContent: 'space-between', border: `1px solid rgba(0,255,255,.28)`, background: 'radial-gradient(120% 160% at 0% 0%, rgba(0,255,255,.14), rgba(7,11,28,0) 60%), ' + c.card }}>
           <div style={{ display: 'flex', gap: 22, flexWrap: 'wrap', alignItems: 'center' }}>
-            <div><div style={{ fontSize: 12, color: c.dim, letterSpacing: 1 }}>TOTAL PROJETÉ</div><div style={{ fontSize: 34, fontWeight: 800, color: c.cy, textShadow: '0 0 18px rgba(0,255,255,.5)', lineHeight: 1.1 }}>{total.toFixed(0)}</div></div>
-            <div><div style={{ fontSize: 12, color: c.dim, letterSpacing: 1 }}>COMPOS COMPLÈTES</div><div style={{ fontSize: 28, fontWeight: 800, lineHeight: 1.2 }}>{nDone}<span style={{ color: c.dim, fontSize: 18 }}> / {results.length}</span></div></div>
-            <div><div style={{ fontSize: 12, color: c.dim, letterSpacing: 1 }}>CARTES UTILISÉES</div><div style={{ fontSize: 28, fontWeight: 800, lineHeight: 1.2 }}>{usedCards.size}<span style={{ color: c.dim, fontSize: 18 }}> / {cards.length}</span></div></div>
+            <div><div style={{ fontSize: 12, color: c.dim, letterSpacing: 1 }}>COMPOS PRÊTES</div><div style={{ fontSize: 34, fontWeight: 800, color: c.cy, textShadow: '0 0 18px rgba(0,255,255,.5)', lineHeight: 1.1 }}>{nDone}<span style={{ color: c.dim, fontSize: 18, textShadow: 'none' }}> / {results.length}</span></div></div>
+            <div><div style={{ fontSize: 12, color: c.dim, letterSpacing: 1 }}>CARTES ENGAGÉES</div><div style={{ fontSize: 28, fontWeight: 800, lineHeight: 1.2 }}>{usedCards.size}<span style={{ color: c.dim, fontSize: 18 }}> / {cards.length}</span></div><div style={{ fontSize: 11.5, color: c.dim }}>jouables cette GW · {rawCards.length} en collection</div></div>
+            <div><div style={{ fontSize: 12, color: c.dim, letterSpacing: 1 }}>ESSENCE ARENA</div><div style={{ fontSize: 28, fontWeight: 800, lineHeight: 1.2, color: c.gold }}>{essenceIn}<span style={{ color: c.dim, fontSize: 16 }}> Ess.</span></div><div style={{ fontSize: 11.5, color: c.dim }}>{nArena} Arena rentables</div></div>
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
             <label style={{ fontSize: 13, color: c.dim, display: 'flex', gap: 6, alignItems: 'center' }}><input type="checkbox" checked={onlyRent} onChange={e => setOnlyRent(e.target.checked)} /> Écarter les Arena non rentables</label>
