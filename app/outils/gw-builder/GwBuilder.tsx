@@ -207,15 +207,18 @@ export default function GwBuilder({ defaultSlug = 'memejacquet1998' }: { default
   const cards: Card[] = useMemo(() => {
     const by: Record<string, GP> = {}; playersP.forEach(p => { by[p.slug] = p; });
     const out: Card[] = [];
+    // Les cartes des compos VALIDEES restent toujours en place : meme si elles sont ensuite alignees sur Sorare ou si le joueur est blesse, la compo validee ne doit pas se defaire
+    const keep = new Set((rooms || []).filter(r => r.done).flatMap(r => r.pins));
     for (const x of rawCards) {
       const rar = String(x.rarityTyped || '').toLowerCase(); if (!['limited', 'rare', 'super_rare', 'unique'].includes(rar)) continue;
       const p = by[x.anyPlayer?.slug]; if (!p || p.games <= 0) continue;
-      if (noInj && p.inj && p.inj !== 'GTD') continue;
-      if (used[x.slug]) continue; // deja alignee dans une compo de cette GW
+      const kept = keep.has(x.slug);
+      if (!kept && noInj && p.inj && p.inj !== 'GTD') continue;
+      if (!kept && used[x.slug]) continue; // deja alignee dans une compo de cette GW
       out.push({ id: x.slug, p, is: !!x.inSeasonEligible, pw: Number(x.power) || 1, pic: x.pictureUrl || p.pic, rar });
     }
     return out;
-  }, [rawCards, playersP, used, noInj]);
+  }, [rawCards, playersP, used, noInj, rooms]);
 
   // Cup : donnees de la nuit choisie (calendrier independant des GW) via l'API du Cup Builder
   const bestNights = useMemo(() => Array.from({ length: 5 }, (_, i) => parisDay(new Date(Date.now() + i * 864e5).toISOString())), []);
