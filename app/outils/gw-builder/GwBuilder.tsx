@@ -144,7 +144,7 @@ export default function GwBuilder({ defaultSlug = 'memejacquet1998' }: { default
     if (!nights.length || rooms) return;
     let r: Room[] | null = null;
     try { const s = localStorage.getItem(LSR); if (s) r = JSON.parse(s); } catch {}
-    setRooms(Array.isArray(r) ? r.map(x => ({ ...x, pins: [], rar: x.rar?.length ? [x.rar[0]] : undefined })) : defaultRooms(nights.find(n => n >= parisDay(new Date().toISOString())) || nights[0]));
+    setRooms(Array.isArray(r) ? r.map(x => ({ ...x, pins: [], done: false, rar: x.rar?.length ? [x.rar[0]] : undefined })) : defaultRooms(nights.find(n => n >= parisDay(new Date().toISOString())) || nights[0]));
   }, [nights, rooms]);
   useEffect(() => { if (rooms) try { localStorage.setItem(LSR, JSON.stringify(rooms)); } catch {} }, [rooms]);
 
